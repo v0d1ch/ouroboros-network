@@ -35,7 +35,8 @@ import Data.Foldable (traverse_)
 import Data.Set (Set)
 import qualified Data.Set as Set
 
-import Ouroboros.Network.ErrorPolicy (CompleteApplicationResult (..), WithAddr, ErrorPolicyTrace)
+import Ouroboros.Network.Connections.Trace (WithAddr, ConnectionTrace)
+import Ouroboros.Network.ErrorPolicy (CompleteApplicationResult (..))
 
 -- | Abstraction of something that can provide connections.
 -- A `Network.Socket` can be used to get a
@@ -212,7 +213,7 @@ acceptOne resQ threadsVar statusVar beginConnection applicationStart acceptExcep
 -- determines when/if the server should stop.
 mainLoop
   :: forall addr st tr r t .
-     Tracer IO (WithAddr addr ErrorPolicyTrace)
+     Tracer IO (WithAddr addr ConnectionTrace)
   -> ResultQ addr r
   -> ThreadsVar
   -> StatusVar st
@@ -255,7 +256,7 @@ mainLoop errorPolicyTrace resQ threadsVar statusVar complete main =
 
 -- | Run a server.
 run
-  :: Tracer IO (WithAddr addr ErrorPolicyTrace)
+  :: Tracer IO (WithAddr addr ConnectionTrace)
   -- TODO: extend this trace to trace server action (this might be useful for
   -- debugging)
   -> Socket addr channel

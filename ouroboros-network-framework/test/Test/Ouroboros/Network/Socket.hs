@@ -239,7 +239,7 @@ prop_socket_send_recv initiatorAddr responderAddr f xs =
           connectToNode
             snocket
             cborTermVersionDataCodec
-            (NetworkConnectTracers activeMuxTracer nullTracer)
+            (NetworkConnectTracers activeMuxTracer nullTracer nullTracer)
             (unversionedProtocol (\_peerid -> initiatorApp))
             (Just initiatorAddr)
             responderAddr
@@ -249,9 +249,9 @@ prop_socket_send_recv initiatorAddr responderAddr f xs =
 
   where
     networkTracers = NetworkServerTracers {
-        nstMuxTracer         = activeMuxTracer,
-        nstHandshakeTracer   = nullTracer,
-        nstErrorPolicyTracer = showTracing stdoutTracer
+        nstMuxTracer        = activeMuxTracer,
+        nstHandshakeTracer  = nullTracer,
+        nstConnectionTracer = showTracing stdoutTracer
       }
 
 

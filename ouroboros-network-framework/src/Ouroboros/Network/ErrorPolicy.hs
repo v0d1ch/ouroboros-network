@@ -1,3 +1,4 @@
+{-# LANGUAGE BangPatterns          #-}
 {-# LANGUAGE DeriveFunctor         #-}
 {-# LANGUAGE GADTs                 #-}
 {-# LANGUAGE FlexibleContexts      #-}
@@ -15,11 +16,6 @@ module Ouroboros.Network.ErrorPolicy
   , CompleteApplication
   , CompleteApplicationResult (..)
   , Result (..)
-
-  -- * Traces
-  , ErrorPolicyTrace (..)
-  , traceErrorPolicy
-  , WithAddr (..)
 
   , SuspendDecision (..)
   ) where
@@ -40,6 +36,9 @@ import           Text.Printf
 import           Control.Monad.Class.MonadAsync
 import           Control.Monad.Class.MonadSTM
 import           Control.Monad.Class.MonadTime
+
+import           Ouroboros.Network.Connections.Trace
+
 
 -- | Semigroup of commands which acts on 'PeerState'.  The @t@ variable might
 -- be initiated to 'DiffTime' or @Time m@.
@@ -191,62 +190,7 @@ data CompleteApplicationResult m addr s =
         -- ^ new state
         carThreads :: Set (Async m ()),
         -- ^ threads to kill
-        carTrace   :: Maybe (WithAddr addr ErrorPolicyTrace)
+        carTrace   :: Maybe (WithAddr addr ConnectionTrace)
         -- ^ trace points
       }
   deriving Functor
-
---
--- Traces
---
-
--- | Trace data for error policies
-data ErrorPolicyTrace
-  = ErrorPolicySuspendPeer (Maybe (ConnectionOrApplicationExceptionTrace SomeException)) !DiffTime !DiffTime
-  -- ^ suspending peer with a given exception until
-  | ErrorPolicySuspendConsumer (Maybe (ConnectionOrApplicationExceptionTrace SomeException)) !DiffTime
-  -- ^ suspending consumer until
-  | ErrorPolicyLocalNodeError (ConnectionOrApplicationExceptionTrace SomeException)
-  -- ^ caught a local exception
-  | ErrorPolicyResumePeer
-  -- ^ resume a peer (both consumer and producer)
-  | ErrorPolicyKeepSuspended
-  -- ^ consumer was suspended until producer will resume
-  | ErrorPolicyResumeConsumer
-  -- ^ resume consumer
-  | ErrorPolicyResumeProducer
-  -- ^ resume producer
-  | ErrorPolicyUnhandledApplicationException SomeException
-  -- ^ an application throwed an exception, which was not handled by any
-  -- 'ErrorPolicy'.
-  | ErrorPolicyUnhandledConnectionException SomeException
-  -- ^ 'connect' throwed an exception, which was not handled by any
-  -- 'ErrorPolicy'.
-  | ErrorPolicyAcceptException IOException
-  -- ^ 'accept' throwed an exception
-  deriving Show
-
-traceErrorPolicy :: Either (ConnectionOrApplicationExceptionTrace SomeException) r
-                 -> SuspendDecision DiffTime
-                 -> Maybe ErrorPolicyTrace
-traceErrorPolicy (Left e) (SuspendPeer prodT consT) =
-    Just $ ErrorPolicySuspendPeer (Just e) prodT consT
-traceErrorPolicy (Right _) (SuspendPeer prodT consT) =
-    Just $ ErrorPolicySuspendPeer Nothing prodT consT
-traceErrorPolicy (Left e) (SuspendConsumer consT) =
-    Just $ ErrorPolicySuspendConsumer (Just e) consT
-traceErrorPolicy (Right _) (SuspendConsumer consT) =
-    Just $ ErrorPolicySuspendConsumer Nothing consT
-traceErrorPolicy (Left e) Throw =
-    Just $ ErrorPolicyLocalNodeError e
-traceErrorPolicy _ _ =
-    Nothing
-
-data WithAddr addr a = WithAddr {
-      wiaAddr  :: !addr
-    , wiaEvent :: !a
-    }
-
-instance (Show addr, Show a) => Show (WithAddr addr a) where
-    show WithAddr { wiaAddr, wiaEvent } =
-        printf "IP %s %s" (show wiaAddr) (show wiaEvent)

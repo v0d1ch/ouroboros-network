@@ -61,7 +61,7 @@ module Ouroboros.Network.NodeToNode (
   , TraceSendRecv (..)
   , SubscriptionTrace (..)
   , DnsTrace (..)
-  , ErrorPolicyTrace (..)
+  , ConnectionTrace (..)
   , WithDomainName (..)
   , WithAddr (..)
   , HandshakeTr

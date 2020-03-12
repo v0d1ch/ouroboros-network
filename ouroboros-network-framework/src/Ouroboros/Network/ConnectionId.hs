@@ -29,3 +29,4 @@ data WithConnectionId addr a = WithConnectionId {
     wcEvent        :: !a
   }
   deriving Show
+  deriving NoUnexpectedThunks via (UseIsNormalForm (WithConnectionId addr a))

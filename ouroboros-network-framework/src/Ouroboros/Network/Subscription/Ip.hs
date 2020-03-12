@@ -19,7 +19,6 @@ module Ouroboros.Network.Subscription.Ip
 
     --  * Traces
     , SubscriptionTrace (..)
-    , ErrorPolicyTrace (..)
     , WithIPList (..)
     ) where
 

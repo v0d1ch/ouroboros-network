@@ -94,6 +94,7 @@ import qualified Ouroboros.Network.Connections.Concurrent as Connection
                    (Accept, Reject, Decision(Accept), concurrent)
 import           Ouroboros.Network.Connections.Socket.Server (acceptLoop, withSocket)
 import           Ouroboros.Network.Connections.Types hiding (Decision(..))
+import           Ouroboros.Network.Connections.Trace
 
 -- | Tracer for locally-initiated connections.
 --
@@ -102,23 +103,29 @@ data NetworkConnectTracers addr vNumber = NetworkConnectTracers {
       -- ^ low level mux-network tracer, which logs mux sdu (send and received)
       -- and other low level multiplexing events.
       nctHandshakeTracer   :: Tracer IO (Mx.WithMuxBearer (ConnectionId addr)
-                                          (TraceSendRecv (Handshake vNumber CBOR.Term)))
+                                          (TraceSendRecv (Handshake vNumber CBOR.Term))),
       -- ^ handshake protocol tracer; it is important for analysing version
       -- negotation mismatches.
+
+      nctConnectionTracer :: Tracer IO (WithConnectionId addr ConnectionTrace)
+      -- ^ connection trace wich logs exceptiohns on outgoing connections: both
+      -- application exceptions or `connect` errors.
     }
 
 nullNetworkConnectTracers :: NetworkConnectTracers addr vNumber
 nullNetworkConnectTracers = NetworkConnectTracers {
-      nctMuxTracer       = nullTracer,
-      nctHandshakeTracer = nullTracer
+      nctMuxTracer        = nullTracer,
+      nctHandshakeTracer  = nullTracer,
+      nctConnectionTracer = nullTracer
     }
 
 
 debuggingNetworkConnectTracers :: (Show addr, Show vNumber)
                                => NetworkConnectTracers addr vNumber
 debuggingNetworkConnectTracers = NetworkConnectTracers {
-      nctMuxTracer       = showTracing stdoutTracer, 
-      nctHandshakeTracer = showTracing stdoutTracer
+      nctMuxTracer        = showTracing stdoutTracer, 
+      nctHandshakeTracer  = showTracing stdoutTracer,
+      nctConnectionTracer = showTracing stdoutTracer
     }
 
 sockAddrFamily
@@ -175,6 +182,15 @@ connectToNode sn versionDataCodec tracers versions localAddr remoteAddr =
           traverse_ (Snocket.bind sn sd) localAddr
           realLocalAddr <- Snocket.getLocalAddr sn sd
           Snocket.connect sn sd remoteAddr
+            `catch` \(err :: IOException) -> do
+              traceWith (nctConnectionTracer tracers)
+                        (WithConnectionId
+                          ConnectionId {
+                              localAddress = realLocalAddr,
+                              remoteAddress = remoteAddr
+                            }
+                          (ConnectionTraceConnectException err))
+              throwIO err
           runInitiator
             sn
             versionDataCodec
@@ -233,7 +249,7 @@ data NetworkServerTracers addr vNumber = NetworkServerTracers {
                                           (TraceSendRecv (Handshake vNumber CBOR.Term))),
       -- ^ handshake protocol tracer; it is important for analysing version
       -- negotation mismatches.
-      nstErrorPolicyTracer :: Tracer IO (WithAddr addr ErrorPolicyTrace)
+      nstConnectionTracer :: Tracer IO (WithConnectionId addr ConnectionTrace)
       -- ^ error policy tracer; must not be 'nullTracer', otherwise all the
       -- exceptions which are not matched by any error policy will be caught
       -- and not logged or rethrown.
@@ -241,9 +257,9 @@ data NetworkServerTracers addr vNumber = NetworkServerTracers {
 
 nullNetworkServerTracers :: NetworkServerTracers addr vNumber
 nullNetworkServerTracers = NetworkServerTracers {
-      nstMuxTracer         = nullTracer,
-      nstHandshakeTracer   = nullTracer,
-      nstErrorPolicyTracer = nullTracer
+      nstMuxTracer        = nullTracer,
+      nstHandshakeTracer  = nullTracer,
+      nstConnectionTracer = nullTracer
     }
 
 -- | Domain-specific rejection type. Only incoming connections can be rejected.
@@ -257,9 +273,9 @@ data RejectConnection (p :: Provenance) where
 debuggingNetworkServerTracers :: (Show addr, Show vNumber)
                               =>  NetworkServerTracers addr vNumber
 debuggingNetworkServerTracers = NetworkServerTracers {
-      nstMuxTracer         = showTracing stdoutTracer,
-      nstHandshakeTracer   = showTracing stdoutTracer,
-      nstErrorPolicyTracer = showTracing stdoutTracer
+      nstMuxTracer        = showTracing stdoutTracer,
+      nstHandshakeTracer  = showTracing stdoutTracer,
+      nstConnectionTracer = showTracing stdoutTracer
     }
 
 data SomeVersionedApplication vNumber vDataT addr provenance where
@@ -410,8 +426,15 @@ outgoingConnection sn tracers versionDataCodec versions errorPolicies connId sd 
                   case evalErrorPolicies exception (epAppErrorPolicies errorPolicies) of
                     -- This will make the `Connections` term re-throw the
                     -- exception and bring down the application.
-                    Just Throw -> throwIO exception
-                    _ -> pure ()
+                    Just Throw -> do
+                      traceWith (nctConnectionTracer tracers)
+                                (WithConnectionId connId
+                                  (ConnectionTraceFatalApplicationException exception))
+                      throwIO exception
+                    _ ->
+                      traceWith (nctConnectionTracer tracers)
+                                (WithConnectionId connId
+                                  (ConnectionTraceApplicationException exception))
                 Right _ -> atomically (writeTVar statusVar (Finished Nothing))
         pure $ Handler { handle = connectionHandle, action = action }
 
@@ -488,8 +511,9 @@ incomingConnection
     -> IO (Connection.Decision IO Remote reject (ConnectionHandle IO))
 incomingConnection sn
                    NetworkServerTracers { nstMuxTracer
-                                        , nstHandshakeTracer }
-                                        -- , nstErrorPolicyTracer }
+                                        , nstHandshakeTracer
+                                        , nstConnectionTracer
+                                        }
                    versionDataCodec
                    acceptVersion
                    versions
@@ -506,8 +530,15 @@ incomingConnection sn
           Left (exception :: SomeException) -> do
             atomically (writeTVar statusVar (Finished (Just exception)))
             case evalErrorPolicies exception (epAppErrorPolicies errorPolicies) of
-              Just Throw -> throwIO exception
-              _ -> pure ()
+              Just Throw -> do
+                traceWith nstConnectionTracer
+                          (WithConnectionId connid
+                            (ConnectionTraceFatalApplicationException exception))
+                throwIO exception
+              _ ->
+                traceWith nstConnectionTracer
+                          (WithConnectionId connid
+                            (ConnectionTraceApplicationException exception))
           Right _ -> atomically (writeTVar statusVar (Finished Nothing))
       -- This is the action to run for this connection.
       -- Does version negotiation, sets up mux, and starts it.
@@ -597,7 +628,10 @@ withServerNode sn tracers addr versionDataCodec acceptVersion versions errorPoli
     Connection.concurrent handleConnection $ \connections ->
       -- When the continuation runs here, the socket is bound and listening.
       withSocket sn addr $ \boundAddr socket -> withAsync
-        (acceptLoop sn connections boundAddr WithServerNodeRequest (acceptException boundAddr)
+        (acceptLoop sn connections boundAddr WithServerNodeRequest
+          -- TODO: We should use a type which allows to omit remote address, since we
+          -- don't know it.
+          (acceptException (ConnectionId boundAddr boundAddr))
           (Snocket.accept sn socket))
         (k boundAddr)
 
@@ -619,9 +653,9 @@ withServerNode sn tracers addr versionDataCodec acceptVersion versions errorPoli
         connid
         socket
 
-    acceptException :: addr -> SomeException -> IO ()
-    acceptException boundAddr e = case fromException e of
+    acceptException :: ConnectionId addr -> SomeException -> IO ()
+    acceptException connId e = case fromException e of
       Just (e' :: IOException) -> traceWith
-        (WithAddr boundAddr `contramap` nstErrorPolicyTracer tracers)
-        (ErrorPolicyAcceptException e')
+        (WithConnectionId connId `contramap` nstConnectionTracer tracers)
+        (ConnectionTraceAcceptException e')
       _ -> pure ()

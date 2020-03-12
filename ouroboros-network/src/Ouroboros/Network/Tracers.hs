@@ -28,7 +28,7 @@ data NetworkSubscriptionTracers withIPList addr vNumber = NetworkSubscriptionTra
                                             (TraceSendRecv (Handshake vNumber CBOR.Term))),
       -- ^ handshake protocol tracer; it is important for analysing version
       -- negotation mismatches.
-      nsErrorPolicyTracer  :: Tracer IO (WithAddr addr ErrorPolicyTrace),
+      nsErrorPolicyTracer  :: Tracer IO (WithAddr addr ConnectionTrace),
       -- ^ error policy tracer; must not be 'nullTracer', otherwise all the
       -- exceptions which are not matched by any error policy will be caught
       -- and not logged or rethrown.
@@ -58,7 +58,7 @@ data NetworkDNSSubscriptionTracers vNumber addr = NetworkDNSSubscriptionTracers 
                                             (TraceSendRecv (Handshake vNumber CBOR.Term))),
       -- ^ handshake protocol tracer; it is important for analysing version
       -- negotation mismatches.
-      ndstErrorPolicyTracer  :: Tracer IO (WithAddr addr ErrorPolicyTrace),
+      ndstErrorPolicyTracer  :: Tracer IO (WithAddr addr ConnectionTrace),
       -- ^ error policy tracer; must not be 'nullTracer', otherwise all the
       -- exceptions which are not matched by any error policy will be caught
       -- and not logged or rethrown.

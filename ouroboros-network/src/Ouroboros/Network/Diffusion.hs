@@ -75,8 +75,8 @@ data DiffusionTracers = DiffusionTracers {
       -- ^ Handshake protocol tracer
     , dtHandshakeLocalTracer   :: Tracer IO NodeToClient.HandshakeTr
       -- ^ Handshake protocol tracer for local clients
-    , dtErrorPolicyTracer      :: Tracer IO (WithAddr Socket.SockAddr ErrorPolicyTrace)
-    , dtLocalErrorPolicyTracer :: Tracer IO (WithAddr LocalAddress    ErrorPolicyTrace)
+    , dtErrorPolicyTracer      :: Tracer IO (WithAddr Socket.SockAddr ConnectionTrace)
+    , dtLocalErrorPolicyTracer :: Tracer IO (WithAddr LocalAddress    ConnectionTrace)
     }
 
 
@@ -203,14 +203,14 @@ runDataDiffusion tracers
         localAcceptException a e = case fromException e of
           Just (e' :: IOException) ->
             traceWith (WithAddr a `contramap` dtLocalErrorPolicyTracer) $
-              ErrorPolicyAcceptException e'
+              ConnectionTraceAcceptException e'
           Nothing -> pure ()
 
         acceptException :: Socket.SockAddr -> SomeException -> IO ()
         acceptException a e = case fromException e of
           Just (e' :: IOException) ->
             traceWith (WithAddr a `contramap` dtErrorPolicyTracer) $
-              ErrorPolicyAcceptException e'
+              ConnectionTraceAcceptException e'
           Nothing -> pure ()
 
         -- How to run a local server: take the `daLocalAddress` and run an

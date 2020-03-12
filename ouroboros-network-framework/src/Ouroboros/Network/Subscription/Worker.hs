@@ -46,11 +46,13 @@ import           Control.Tracer
 
 import           Ouroboros.Network.ConnectionId
 import           Ouroboros.Network.Connections.Types
+import           Ouroboros.Network.Connections.Trace
 import qualified Ouroboros.Network.Connections.Concurrent as Concurrent
 import           Ouroboros.Network.Connections.Socket.Client (Bind (..), client)
-import           Ouroboros.Network.ErrorPolicy (WithAddr, ErrorPolicies (..),
-                   ErrorPolicyTrace, SuspendDecision(Throw),
-                   evalErrorPolicies)
+import           Ouroboros.Network.ErrorPolicy ( ErrorPolicies (..)
+                                               , SuspendDecision(Throw)
+                                               , evalErrorPolicies
+                                               )
 import           Ouroboros.Network.Snocket (Snocket)
 import           Ouroboros.Network.Socket (ConnectionHandle, waitForConnection)
 
@@ -78,7 +80,7 @@ maxConnectionAttemptDelay = 2 -- 2s delay
 -- queue.
 worker
   :: Tracer IO (SubscriptionTrace addr)
-  -> Tracer IO (WithAddr addr ErrorPolicyTrace)
+  -> Tracer IO (WithAddr addr ConnectionTrace)
   -> ErrorPolicies
   -> NonEmpty (ConnectionId addr, Bind)
   -- ^ Targets for subscription. Each one indicates a local address and a remote
@@ -119,7 +121,7 @@ worker tr errTrace errPolicies targets valency delay sn connections req = do
 --
 workerOneTarget
   :: Tracer IO (SubscriptionTrace addr)
-  -> Tracer IO (WithAddr addr ErrorPolicyTrace)
+  -> Tracer IO (WithAddr addr ConnectionTrace)
   -> ErrorPolicies
   -> DiffTime
   -> TQueue (ConnectionId addr, Bind)
@@ -130,7 +132,7 @@ workerOneTarget
        IO
   -> request Local
   -> IO x
-workerOneTarget tr errTrace errPolicies delay q sn connections req = mask $ \restore -> do
+workerOneTarget tr connTrace errPolicies delay q sn connections req = mask $ \restore -> do
   (connectionId, bind) <- restore (atomically $ readTQueue q)
   traceWith tr $ SubscriptionTraceConnectStart (remoteAddress connectionId)
   start <- getMonotonicTime
@@ -145,8 +147,13 @@ workerOneTarget tr errTrace errPolicies delay q sn connections req = mask $ \res
   case outcome of
     NotAcquired err ->
       case evalErrorPolicies err (epConErrorPolicies errPolicies) of
-        Just Throw -> throwM err
-        _ -> pure ()
+        Just Throw -> do
+          traceWith connTrace $ WithAddr (remoteAddress connectionId)
+                                         (ConnectionTraceFatalApplicationException err)
+          throwM err
+        _ ->
+          traceWith connTrace $ WithAddr (remoteAddress connectionId)
+                                         (ConnectionTraceApplicationException err)
     -- The connection was established (acquired) but rejected, so it's our
     -- responsibility to close it.
     Acquired (Rejected (Concurrent.DomainSpecific _reason) acquiredRes) -> do
@@ -165,7 +172,7 @@ workerOneTarget tr errTrace errPolicies delay q sn connections req = mask $ \res
   -- Why? Because if this thread dies with an exception, so do all of the
   -- other threads spawned by `worker`, so who cares?
   atomically $ writeTQueue q (connectionId, bind)
-  workerOneTarget tr errTrace errPolicies delay q sn connections req
+  workerOneTarget tr connTrace errPolicies delay q sn connections req
 
 --
 -- Auxiliary types: errors, traces

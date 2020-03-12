@@ -49,7 +49,7 @@ module Ouroboros.Network.NodeToClient (
   , networkErrorPolicies
   , nullErrorPolicies
   , ErrorPolicy (..)
-  , ErrorPolicyTrace (..)
+  , ConnectionTrace (..)
   , WithAddr (..)
   , SuspendDecision (..)
   , TraceSendRecv (..)

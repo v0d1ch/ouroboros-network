@@ -21,7 +21,6 @@ module Ouroboros.Network.Subscription.Dns
       -- * Traces
     , SubscriptionTrace (..)
     , DnsTrace (..)
-    , ErrorPolicyTrace (..)
     , WithDomainName (..)
     , WithAddr (..)
     ) where
@@ -36,6 +35,7 @@ import qualified Network.DNS as DNS
 import qualified Network.Socket as Socket
 import           Text.Printf
 
+import           Ouroboros.Network.Connections.Trace
 import           Ouroboros.Network.ErrorPolicy
 import           Ouroboros.Network.Subscription.Ip
 
@@ -138,6 +138,7 @@ data WithDomainName a = WithDomainName {
 instance Show a => Show (WithDomainName a) where
     show WithDomainName {wdnDomain, wdnEvent} = printf  "Domain: %s %s" (show wdnDomain) (show wdnEvent)
 
+-- TODO: is this used?
 data DnsTrace =
       DnsTraceLookupException SomeException
     | DnsTraceLookupAError DNS.DNSError
