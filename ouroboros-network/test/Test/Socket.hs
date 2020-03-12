@@ -164,7 +164,7 @@ demo chain0 updates = withIOManager $ \iocp -> do
             (NodeToNodeVersionData $ NetworkMagic 0)
             (DictVersion nodeToNodeCodecCBORTerm)
             (\_peerid -> initiatorApp))
-          consumerAddress
+          (Just consumerAddress)
           realProducerAddress)
         $ \ _connAsync -> do
           void $ fork $ sequence_

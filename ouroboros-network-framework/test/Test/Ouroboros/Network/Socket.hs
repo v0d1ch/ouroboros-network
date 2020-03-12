@@ -241,7 +241,7 @@ prop_socket_send_recv initiatorAddr responderAddr f xs =
             cborTermVersionDataCodec
             (NetworkConnectTracers activeMuxTracer nullTracer)
             (unversionedProtocol (\_peerid -> initiatorApp))
-            initiatorAddr
+            (Just initiatorAddr)
             responderAddr
           atomically $ (,) <$> takeTMVar sv <*> takeTMVar cv
 
@@ -367,7 +367,7 @@ prop_socket_client_connect_error _ xs =
         cborTermVersionDataCodec
         nullNetworkConnectTracers
         (unversionedProtocol (\_peerid -> app))
-        (Socket.addrAddress clientAddr)
+        (Just $ Socket.addrAddress clientAddr)
         (Socket.addrAddress serverAddr)
 
     -- XXX Disregarding the exact exception type

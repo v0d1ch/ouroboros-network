@@ -227,7 +227,7 @@ connectTo
               DictVersion
               (ConnectionId Socket.SockAddr ->
                  OuroborosApplication InitiatorApp BL.ByteString IO a b)
-  -> Socket.SockAddr
+  -> Maybe Socket.SockAddr
   -> Socket.SockAddr
   -> IO ()
 connectTo sn =

@@ -3,6 +3,7 @@
 
 module Ouroboros.Network.ConnectionId
   ( ConnectionId (..)
+  , WithConnectionId (..)
   ) where
 
 import           Cardano.Prelude (NoUnexpectedThunks (..), Generic,
@@ -19,3 +20,12 @@ data ConnectionId addr = ConnectionId {
   }
   deriving (Eq, Ord, Show, Generic)
   deriving NoUnexpectedThunks via (UseIsNormalForm (ConnectionId addr))
+
+
+-- | Tracing context.
+--
+data WithConnectionId addr a = WithConnectionId {
+    wcConnectionId :: !(ConnectionId addr),
+    wcEvent        :: !a
+  }
+  deriving Show

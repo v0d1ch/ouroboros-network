@@ -63,6 +63,7 @@ import           Codec.Serialise (Serialise)
 import           Data.Typeable (Typeable)
 import qualified Data.ByteString.Lazy as BL
 import           Data.Int
+import           Data.Foldable (traverse_)
 import           Data.Void
 
 import qualified Network.Socket as Socket
@@ -161,7 +162,7 @@ connectToNode
   -> Versions vNumber extra
               (ConnectionId addr -> OuroborosApplication appType BL.ByteString IO a b)
   -- ^ application to run over the connection
-  -> addr
+  -> Maybe addr
   -- ^ local address; the created socket will bind to it
   -> addr
   -- ^ remote address
@@ -171,14 +172,15 @@ connectToNode sn versionDataCodec tracers versions localAddr remoteAddr =
       (Snocket.openToConnect sn remoteAddr)
       (Snocket.close sn)
       (\sd -> do
-          Snocket.bind sn sd localAddr
+          traverse_ (Snocket.bind sn sd) localAddr
+          realLocalAddr <- Snocket.getLocalAddr sn sd
           Snocket.connect sn sd remoteAddr
           runInitiator
             sn
             versionDataCodec
             tracers
             versions
-            (ConnectionId localAddr remoteAddr)
+            (ConnectionId realLocalAddr remoteAddr)
             sd
       )
 
@@ -199,7 +201,7 @@ connectToNodeSocket
               (ConnectionId Socket.SockAddr ->
                  OuroborosApplication appType BL.ByteString IO a b)
   -- ^ application to run over the connection
-  -> Socket.SockAddr
+  -> Maybe Socket.SockAddr
   -> Socket.SockAddr
   -> IO ()
 connectToNodeSocket iocp versionDataCodec tracers versions localAddr remoteAddr =

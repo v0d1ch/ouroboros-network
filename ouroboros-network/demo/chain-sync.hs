@@ -155,7 +155,7 @@ clientChainSync sockPaths = withIOManager $ \iocp ->
            (NodeToNodeVersionData $ NetworkMagic 0)
            (DictVersion nodeToNodeCodecCBORTerm)
            (\_peerid -> app))
-        (localAddressFromPath "")
+        Nothing
         (localAddressFromPath sockPath)
   where
     app :: OuroborosApplication InitiatorApp LBS.ByteString IO () Void
@@ -352,7 +352,7 @@ clientBlockFetch sockAddrs = withIOManager $ \iocp -> do
                             (NodeToNodeVersionData (NetworkMagic 0))
                             (DictVersion nodeToNodeCodecCBORTerm)
                             app)
-                          (localAddressFromPath "")
+                          Nothing
                           (localAddressFromPath sockAddr)
                     | sockAddr <- sockAddrs ]
 

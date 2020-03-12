@@ -104,7 +104,7 @@ clientPingPong pipelined =
       cborTermVersionDataCodec
       nullNetworkConnectTracers
       (unversionedProtocol (\_peerid -> app))
-      (localAddressFromPath "")
+      Nothing
       defaultLocalSocketAddr
   where
     app :: OuroborosApplication InitiatorApp LBS.ByteString IO () Void
@@ -193,7 +193,7 @@ clientPingPong2 =
       cborTermVersionDataCodec
       nullNetworkConnectTracers
       (unversionedProtocol (\_peerid -> app))
-      (localAddressFromPath "")
+      Nothing
       defaultLocalSocketAddr
   where
     app :: OuroborosApplication InitiatorApp LBS.ByteString IO  () Void

@@ -23,6 +23,7 @@ module Ouroboros.Network.NodeToClient (
   , NetworkServerTracers (..)
   , nullNetworkServerTracers
   , connectTo
+  , ClientSubscriptionParams (..)
   , subscriptionWorker
   , subscriptionWorker_V1
 
@@ -217,7 +218,7 @@ connectTo snocket tracers versions path =
                   cborTermVersionDataCodec
                   tracers
                   versions
-                  (localAddressFromPath "")
+                  Nothing
                   (localAddressFromPath path)
   
 
