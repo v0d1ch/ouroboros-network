@@ -6,6 +6,7 @@
 
 module Ouroboros.Network.Connections.Socket.Client
   ( client
+  , Bind (..)
   ) where
 
 import Control.Exception (SomeException)
@@ -17,17 +18,23 @@ import Ouroboros.Network.Connections.Types
 import Ouroboros.Network.Snocket (Snocket)
 import qualified Ouroboros.Network.Snocket as Snocket
 
+
+-- | Bind to the local address or not.
+--
+data Bind = Bind | NoBind
+
 -- | A client backed by a 'Snocket'. It will bind and connect according to the
 -- 'ConnectionId'. What this means is determined by the 'Snocket'.
 client
   :: forall m socket addr request reject accept .
      ( MonadCatch m, MonadMask m )
   => Snocket m socket addr
+  -> Bind
   -> Connections (ConnectionId addr) socket request reject accept m
   -> ConnectionId addr
   -> request Local
   -> m (Outcome Local SomeException reject accept socket m)
-client snocket connections connid request =
+client snocket bind connections connid request =
     includeResource connections connid resource request
 
   where
@@ -52,5 +59,7 @@ client snocket connections connid request =
 
     bindAndConnect :: socket -> m ()
     bindAndConnect socket = do
-      Snocket.bind snocket socket (localAddress connid)
+      case bind of
+        Bind -> Snocket.bind snocket socket (localAddress connid)
+        NoBind -> pure ()
       Snocket.connect snocket socket (remoteAddress connid)

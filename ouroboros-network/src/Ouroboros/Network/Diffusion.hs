@@ -4,6 +4,7 @@
 {-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE GADTs          #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TupleSections  #-}
 
 module Ouroboros.Network.Diffusion
   ( DiffusionTracers (..)
@@ -35,6 +36,7 @@ import           Ouroboros.Network.ConnectionId
 import           Ouroboros.Network.Connections.Types (Connections,
                    Provenance (..))
 import           Ouroboros.Network.Connections.Concurrent as Concurrent
+import           Ouroboros.Network.Connections.Socket.Client (Bind (..))
 import           Ouroboros.Network.Connections.Socket.Server as Server (acceptLoop, withSocket)
 import           Ouroboros.Network.Snocket (LocalAddress, SocketSnocket, LocalSnocket, LocalFD)
 import qualified Ouroboros.Network.Snocket as Snocket
@@ -313,7 +315,7 @@ runDataDiffusion tracers
           (contramap (WithIPList initiatorLocalAddresses (ispIps daIpProducers)) dtIpSubscriptionTracer)
           dtErrorPolicyTracer
           errorPolicy
-          connIds
+          ((,Bind) <$> connIds)
           (ispValency daIpProducers)
           ipRetryDelay
           sn
@@ -340,7 +342,7 @@ runDataDiffusion tracers
           (contramap (WithDomainName (dstDomain target)) dtDnsSubscriptionTracer)
           dtErrorPolicyTracer
           errorPolicy
-          connIds
+          ((,Bind) <$> connIds)
           (dstValency target)
           ipRetryDelay
           sn

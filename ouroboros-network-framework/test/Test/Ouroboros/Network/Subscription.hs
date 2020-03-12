@@ -6,6 +6,7 @@
 {-# LANGUAGE OverloadedStrings   #-}
 {-# LANGUAGE RankNTypes          #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TupleSections       #-}
 {-# LANGUAGE TypeFamilies        #-}
 
 {-# LANGUAGE GADTs               #-}
@@ -48,6 +49,7 @@ import           Ouroboros.Network.Protocol.Handshake.Type
 import           Ouroboros.Network.Protocol.Handshake.Version
 
 import           Ouroboros.Network.Connections.Types (Initiated, LocalOnlyRequest (..))
+import           Ouroboros.Network.Connections.Socket.Client (Bind (..))
 import qualified Ouroboros.Network.Connections.Concurrent as Connections (concurrent)
 import qualified Ouroboros.Network.Connections.Concurrent as Concurrent
 import           Ouroboros.Network.Driver
@@ -423,7 +425,7 @@ prop_sub_io lr = ioProperty $ withIOManager $ \iocp -> do
               activeTracer
               activeTracer
               nullErrorPolicies
-              connIds
+              ((,Bind) <$> connIds)
               -- Valency 1 guarantees ordering. Using lrioValency lr does not.
               -- Higher valency does _not_ guarantee the subscriptions go
               -- in order. Is that a problem?
@@ -599,7 +601,7 @@ prop_send_recv f xs _first = ioProperty $ withIOManager $ \iocp -> do
                       activeTracer
                       activeTracer
                       nullErrorPolicies
-                      connIds
+                      ((,Bind) <$> connIds)
                       1 -- valency
                       minConnectionAttemptDelay
                       sn
@@ -752,7 +754,7 @@ prop_send_recv_init_and_rsp f xs = ioProperty $ withIOManager $ \iocp -> do
                   activeTracer
                   activeTracer
                   nullErrorPolicies
-                  (connectionId NE.:| [])
+                  ((connectionId, Bind) NE.:| [])
                   1 -- valency
                   minConnectionAttemptDelay
                   (socketSnocket iocp)
@@ -868,7 +870,7 @@ _demo = ioProperty $ withIOManager $ \iocp -> do
                   activeTracer
                   activeTracer
                   nullErrorPolicies
-                  connIds
+                  ((,Bind) <$> connIds)
                   1 -- valency
                   minConnectionAttemptDelay
                   (socketSnocket iocp)

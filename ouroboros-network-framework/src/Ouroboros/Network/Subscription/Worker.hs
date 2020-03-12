@@ -47,7 +47,7 @@ import           Control.Tracer
 import           Ouroboros.Network.ConnectionId
 import           Ouroboros.Network.Connections.Types
 import qualified Ouroboros.Network.Connections.Concurrent as Concurrent
-import           Ouroboros.Network.Connections.Socket.Client (client)
+import           Ouroboros.Network.Connections.Socket.Client (Bind (..), client)
 import           Ouroboros.Network.ErrorPolicy (WithAddr, ErrorPolicies (..),
                    ErrorPolicyTrace, SuspendDecision(Throw),
                    evalErrorPolicies)
@@ -80,7 +80,7 @@ worker
   :: Tracer IO (SubscriptionTrace addr)
   -> Tracer IO (WithAddr addr ErrorPolicyTrace)
   -> ErrorPolicies
-  -> NonEmpty (ConnectionId addr)
+  -> NonEmpty (ConnectionId addr, Bind)
   -- ^ Targets for subscription. Each one indicates a local address and a remote
   -- address, so one worker can do both IPv4 and IPv6.
   -> Word
@@ -122,7 +122,7 @@ workerOneTarget
   -> Tracer IO (WithAddr addr ErrorPolicyTrace)
   -> ErrorPolicies
   -> DiffTime
-  -> TQueue (ConnectionId addr)
+  -> TQueue (ConnectionId addr, Bind)
   -> Snocket IO socket addr
   -> Connections (ConnectionId addr) socket request
        (Concurrent.Reject reject)
@@ -131,7 +131,7 @@ workerOneTarget
   -> request Local
   -> IO x
 workerOneTarget tr errTrace errPolicies delay q sn connections req = mask $ \restore -> do
-  connectionId <- restore (atomically $ readTQueue q)
+  (connectionId, bind) <- restore (atomically $ readTQueue q)
   traceWith tr $ SubscriptionTraceConnectStart (remoteAddress connectionId)
   start <- getMonotonicTime
   -- Exception handling here is relevant to the resource acquisition which
@@ -141,7 +141,7 @@ workerOneTarget tr errTrace errPolicies delay q sn connections req = mask $ \res
   -- An exception on resource acquisition is different from a rejected
   -- connection. The latter is relevant only cases in which the resource was
   -- created, but the connection was rejected for other reasons.
-  outcome <- restore (client sn connections connectionId req)
+  outcome <- restore (client sn bind connections connectionId req)
   case outcome of
     NotAcquired err ->
       case evalErrorPolicies err (epConErrorPolicies errPolicies) of
@@ -164,7 +164,7 @@ workerOneTarget tr errTrace errPolicies delay q sn connections req = mask $ \res
   -- No exception handling is done to ensure this gets returned to the queue.
   -- Why? Because if this thread dies with an exception, so do all of the
   -- other threads spawned by `worker`, so who cares?
-  atomically $ writeTQueue q connectionId
+  atomically $ writeTQueue q (connectionId, bind)
   workerOneTarget tr errTrace errPolicies delay q sn connections req
 
 --

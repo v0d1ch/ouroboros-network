@@ -80,6 +80,7 @@ import           Ouroboros.Network.ConnectionId
 import           Ouroboros.Network.Connections.Types ( Connections
                                                      , Provenance (..)
                                                      )
+import           Ouroboros.Network.Connections.Socket.Client (Bind (..))
 import qualified Ouroboros.Network.Connections.Concurrent as Connection
 import           Ouroboros.Network.Driver (TraceSendRecv(..))
 import           Ouroboros.Network.Driver.Limits (ProtocolLimitFailure)
@@ -300,7 +301,7 @@ subscriptionWorker snocket tracers
         (Identity `contramap` nsSubscriptionTracer tracers)
         (nsErrorPolicyTracer tracers)
         cspErrorPolicies
-        (ConnectionId cspAddress cspAddress :| [])
+        ((ConnectionId cspAddress cspAddress, NoBind) :| [])
         1
         (fromMaybe Subscription.ipRetryDelay cspConnectionAttemptDelay)
         snocket
