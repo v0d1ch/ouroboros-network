@@ -1,0 +1,115 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-pragma">{-# LANGUAGE DoAndIfThenElse #-}</span><span>
+</span><a name="line-2"></a><span>
+</span><a name="line-3"></a><span class="hs-comment">{-|
+Module      :  Cardano.Prelude.GHC.Heap.NormalForm
+Copyright   :  (c) 2013 Joachim Breitner
+License     :  BSD3
+
+This code has been adapted from the module &quot;GHC.AssertNF&quot; of the package
+&lt;http://hackage.haskell.org/package/ghc-heap-view ghc-heap-view&gt;
+(&lt;https://github.com/nomeata/ghc-heap-view GitHub&gt;) authored by
+Joachim Breitner.
+
+To avoid space leaks and unwanted evaluation behaviour, the programmer might want his data to be fully evaluated at certain positions in the code. This can be enforced, for example, by ample use of &quot;Control.DeepSeq&quot;, but this comes at a cost.
+
+Experienced users hence use 'Control.DeepSeq.deepseq' only to find out about the existence of space leaks and optimize their code to not create the thunks in the first place, until the code no longer shows better performance with 'deepseq'.
+
+This module provides an alternative approach: An explicit assertion about the evaluation state. If the programmer expect a certain value to be fully evaluated at a specific point of the program (e.g. before a call to 'writeIORef'), he can state that, and as long as assertions are enabled, this statement will be checked. In the production code the assertions can be disabled, to avoid the run-time cost.
+
+Copyright (c) 2012-2013, Joachim Breitner
+
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are met:
+
+    * Redistributions of source code must retain the above copyright
+      notice, this list of conditions and the following disclaimer.
+
+    * Redistributions in binary form must reproduce the above
+      copyright notice, this list of conditions and the following
+      disclaimer in the documentation and/or other materials provided
+      with the distribution.
+
+    * Neither the name of Joachim Breitner nor the names of other
+      contributors may be used to endorse or promote products derived
+      from this software without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+&quot;AS IS&quot; AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+-}</span><span>
+</span><a name="line-51"></a><span>
+</span><a name="line-52"></a><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Cardano.Prelude.GHC.Heap.NormalForm</span><span>
+</span><a name="line-53"></a><span>  </span><span class="hs-special">(</span><span> </span><a href="Cardano.Prelude.GHC.Heap.NormalForm.html#isHeadNormalForm"><span class="hs-identifier hs-var">isHeadNormalForm</span></a><span>
+</span><a name="line-54"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Cardano.Prelude.GHC.Heap.NormalForm.html#isNormalForm"><span class="hs-identifier hs-var">isNormalForm</span></a><span>
+</span><a name="line-55"></a><span>  </span><span class="hs-special">)</span><span>
+</span><a name="line-56"></a><span class="hs-keyword">where</span><span>
+</span><a name="line-57"></a><span>
+</span><a name="line-58"></a><span class="hs-keyword">import</span><span> </span><a href="Cardano.Prelude.Base.html"><span class="hs-identifier">Cardano.Prelude.Base</span></a><span>
+</span><a name="line-59"></a><span>
+</span><a name="line-60"></a><span class="hs-keyword">import</span><span> </span><a href="file:///home/coot/.ghcup/ghc/8.6.5/share/doc/ghc-8.6.5/html/libraries/ghc-heap-8.6.5/src/GHC.Exts.Heap.html"><span class="hs-identifier">GHC.Exts.Heap</span></a><span>
+</span><a name="line-61"></a><span>
+</span><a name="line-62"></a><span class="hs-comment">-- Everything is in normal form, unless it is a</span><span>
+</span><a name="line-63"></a><span class="hs-comment">-- thunk explicitly marked as such.</span><span>
+</span><a name="line-64"></a><span class="hs-comment">-- Indirection are also considered to be in HNF</span><span>
+</span><a name="line-65"></a><span class="hs-identifier">isHeadNormalForm</span><span> </span><span class="hs-glyph">::</span><span> </span><a href="file:///home/coot/.ghcup/ghc/8.6.5/share/doc/ghc-8.6.5/html/libraries/ghc-heap-8.6.5/src/GHC.Exts.Heap.Closures.html#Closure"><span class="hs-identifier hs-type">Closure</span></a><span> </span><span class="hs-glyph">-&gt;</span><span> </span><a href="file:///home/coot/.ghcup/ghc/8.6.5/share/doc/ghc-8.6.5/html/libraries/ghc-prim-0.5.3/src/GHC.Types.html#IO"><span class="hs-identifier hs-type">IO</span></a><span> </span><a href="file:///home/coot/.ghcup/ghc/8.6.5/share/doc/ghc-8.6.5/html/libraries/ghc-prim-0.5.3/src/GHC.Types.html#Bool"><span class="hs-identifier hs-type">Bool</span></a><span>
+</span><a name="line-66"></a><a name="isHeadNormalForm"><a href="Cardano.Prelude.GHC.Heap.NormalForm.html#isHeadNormalForm"><span class="hs-identifier">isHeadNormalForm</span></a></a><span> </span><a name="local-6989586621679104268"><a href="#local-6989586621679104268"><span class="hs-identifier">c</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><a name="line-67"></a><span>  </span><span class="hs-keyword">case</span><span> </span><a href="#local-6989586621679104268"><span class="hs-identifier hs-var">c</span></a><span> </span><span class="hs-keyword">of</span><span>
+</span><a name="line-68"></a><span>    </span><a href="file:///home/coot/.ghcup/ghc/8.6.5/share/doc/ghc-8.6.5/html/libraries/ghc-heap-8.6.5/src/GHC.Exts.Heap.Closures.html#ThunkClosure"><span class="hs-identifier hs-var">ThunkClosure</span></a><span class="hs-special">{</span><span class="hs-special">}</span><span>    </span><span class="hs-glyph">-&gt;</span><span> </span><a href="file:///home/coot/.ghcup/ghc/8.6.5/share/doc/ghc-8.6.5/html/libraries/base-4.12.0.0/src/GHC.Base.html#return"><span class="hs-identifier hs-var">return</span></a><span> </span><a href="file:///home/coot/.ghcup/ghc/8.6.5/share/doc/ghc-8.6.5/html/libraries/ghc-prim-0.5.3/src/GHC.Types.html#False"><span class="hs-identifier hs-var">False</span></a><span>
+</span><a name="line-69"></a><span>    </span><a href="file:///home/coot/.ghcup/ghc/8.6.5/share/doc/ghc-8.6.5/html/libraries/ghc-heap-8.6.5/src/GHC.Exts.Heap.Closures.html#APClosure"><span class="hs-identifier hs-var">APClosure</span></a><span class="hs-special">{</span><span class="hs-special">}</span><span>       </span><span class="hs-glyph">-&gt;</span><span> </span><a href="file:///home/coot/.ghcup/ghc/8.6.5/share/doc/ghc-8.6.5/html/libraries/base-4.12.0.0/src/GHC.Base.html#return"><span class="hs-identifier hs-var">return</span></a><span> </span><a href="file:///home/coot/.ghcup/ghc/8.6.5/share/doc/ghc-8.6.5/html/libraries/ghc-prim-0.5.3/src/GHC.Types.html#False"><span class="hs-identifier hs-var">False</span></a><span>
+</span><a name="line-70"></a><span>    </span><a href="file:///home/coot/.ghcup/ghc/8.6.5/share/doc/ghc-8.6.5/html/libraries/ghc-heap-8.6.5/src/GHC.Exts.Heap.Closures.html#SelectorClosure"><span class="hs-identifier hs-var">SelectorClosure</span></a><span class="hs-special">{</span><span class="hs-special">}</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><a href="file:///home/coot/.ghcup/ghc/8.6.5/share/doc/ghc-8.6.5/html/libraries/base-4.12.0.0/src/GHC.Base.html#return"><span class="hs-identifier hs-var">return</span></a><span> </span><a href="file:///home/coot/.ghcup/ghc/8.6.5/share/doc/ghc-8.6.5/html/libraries/ghc-prim-0.5.3/src/GHC.Types.html#False"><span class="hs-identifier hs-var">False</span></a><span>
+</span><a name="line-71"></a><span>    </span><a href="file:///home/coot/.ghcup/ghc/8.6.5/share/doc/ghc-8.6.5/html/libraries/ghc-heap-8.6.5/src/GHC.Exts.Heap.Closures.html#BCOClosure"><span class="hs-identifier hs-var">BCOClosure</span></a><span class="hs-special">{</span><span class="hs-special">}</span><span>      </span><span class="hs-glyph">-&gt;</span><span> </span><a href="file:///home/coot/.ghcup/ghc/8.6.5/share/doc/ghc-8.6.5/html/libraries/base-4.12.0.0/src/GHC.Base.html#return"><span class="hs-identifier hs-var">return</span></a><span> </span><a href="file:///home/coot/.ghcup/ghc/8.6.5/share/doc/ghc-8.6.5/html/libraries/ghc-prim-0.5.3/src/GHC.Types.html#False"><span class="hs-identifier hs-var">False</span></a><span>
+</span><a name="line-72"></a><span>    </span><span class="hs-identifier">_</span><span>                 </span><span class="hs-glyph">-&gt;</span><span> </span><a href="file:///home/coot/.ghcup/ghc/8.6.5/share/doc/ghc-8.6.5/html/libraries/base-4.12.0.0/src/GHC.Base.html#return"><span class="hs-identifier hs-var">return</span></a><span> </span><a href="file:///home/coot/.ghcup/ghc/8.6.5/share/doc/ghc-8.6.5/html/libraries/ghc-prim-0.5.3/src/GHC.Types.html#True"><span class="hs-identifier hs-var">True</span></a><span>
+</span><a name="line-73"></a><span>
+</span><a name="line-74"></a><span class="hs-comment">-- | The function 'isNormalForm' checks whether its argument is fully evaluated</span><span>
+</span><a name="line-75"></a><span class="hs-comment">-- and deeply evaluated.</span><span>
+</span><a name="line-76"></a><span class="hs-comment">--</span><span>
+</span><a name="line-77"></a><span class="hs-comment">-- NOTE 1: If you want to override the behaviour of 'isNormalForm' for specific</span><span>
+</span><a name="line-78"></a><span class="hs-comment">-- types (in particular, for specific types that may be /nested/ somewhere</span><span>
+</span><a name="line-79"></a><span class="hs-comment">-- inside the @a@), consider using</span><span>
+</span><a name="line-80"></a><span class="hs-comment">-- 'Cardano.Prelude.GHC.Heap.NormalForm.Classy.noUnexpectedThunks' instead.</span><span>
+</span><a name="line-81"></a><span class="hs-comment">--</span><span>
+</span><a name="line-82"></a><span class="hs-comment">-- NOTE 2: The normal form check can be quite brittle, especially with @-O0@.</span><span>
+</span><a name="line-83"></a><span class="hs-comment">-- For example, writing something like</span><span>
+</span><a name="line-84"></a><span class="hs-comment">--</span><span>
+</span><a name="line-85"></a><span class="hs-comment">-- &gt; let !(Value x) = ... in ....</span><span>
+</span><a name="line-86"></a><span class="hs-comment">--</span><span>
+</span><a name="line-87"></a><span class="hs-comment">-- might translate to</span><span>
+</span><a name="line-88"></a><span class="hs-comment">--</span><span>
+</span><a name="line-89"></a><span class="hs-comment">-- &gt; let !.. = ... in ... (case ... of Value x -&gt; x)</span><span>
+</span><a name="line-90"></a><span class="hs-comment">--</span><span>
+</span><a name="line-91"></a><span class="hs-comment">-- which would trivially be @False@. In general, 'isNormalForm' should probably</span><span>
+</span><a name="line-92"></a><span class="hs-comment">-- only be used with @-O1@, but even then the answer may still depend on</span><span>
+</span><a name="line-93"></a><span class="hs-comment">-- internal decisions made by ghc during compilation.</span><span>
+</span><a name="line-94"></a><span class="hs-identifier">isNormalForm</span><span> </span><span class="hs-glyph">::</span><span> </span><a href="#local-6989586621679104267"><span class="hs-identifier hs-type">a</span></a><span> </span><span class="hs-glyph">-&gt;</span><span> </span><a href="file:///home/coot/.ghcup/ghc/8.6.5/share/doc/ghc-8.6.5/html/libraries/ghc-prim-0.5.3/src/GHC.Types.html#IO"><span class="hs-identifier hs-type">IO</span></a><span> </span><a href="file:///home/coot/.ghcup/ghc/8.6.5/share/doc/ghc-8.6.5/html/libraries/ghc-prim-0.5.3/src/GHC.Types.html#Bool"><span class="hs-identifier hs-type">Bool</span></a><span>
+</span><a name="line-95"></a><a name="isNormalForm"><a href="Cardano.Prelude.GHC.Heap.NormalForm.html#isNormalForm"><span class="hs-identifier">isNormalForm</span></a></a><span> </span><a name="local-6989586621679104269"><a href="#local-6989586621679104269"><span class="hs-identifier">x</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><a href="Cardano.Prelude.GHC.Heap.NormalForm.html#isNormalFormBoxed"><span class="hs-identifier hs-var">isNormalFormBoxed</span></a><span> </span><span class="hs-special">(</span><a href="file:///home/coot/.ghcup/ghc/8.6.5/share/doc/ghc-8.6.5/html/libraries/ghc-heap-8.6.5/src/GHC.Exts.Heap.Closures.html#asBox"><span class="hs-identifier hs-var">asBox</span></a><span> </span><a href="#local-6989586621679104269"><span class="hs-identifier hs-var">x</span></a><span class="hs-special">)</span><span>
+</span><a name="line-96"></a><span>
+</span><a name="line-97"></a><span class="hs-identifier">isNormalFormBoxed</span><span> </span><span class="hs-glyph">::</span><span> </span><a href="file:///home/coot/.ghcup/ghc/8.6.5/share/doc/ghc-8.6.5/html/libraries/ghc-heap-8.6.5/src/GHC.Exts.Heap.Closures.html#Box"><span class="hs-identifier hs-type">Box</span></a><span> </span><span class="hs-glyph">-&gt;</span><span> </span><a href="file:///home/coot/.ghcup/ghc/8.6.5/share/doc/ghc-8.6.5/html/libraries/ghc-prim-0.5.3/src/GHC.Types.html#IO"><span class="hs-identifier hs-type">IO</span></a><span> </span><a href="file:///home/coot/.ghcup/ghc/8.6.5/share/doc/ghc-8.6.5/html/libraries/ghc-prim-0.5.3/src/GHC.Types.html#Bool"><span class="hs-identifier hs-type">Bool</span></a><span>
+</span><a name="line-98"></a><a name="isNormalFormBoxed"><a href="Cardano.Prelude.GHC.Heap.NormalForm.html#isNormalFormBoxed"><span class="hs-identifier">isNormalFormBoxed</span></a></a><span> </span><a name="local-6989586621679104270"><a href="#local-6989586621679104270"><span class="hs-identifier">b</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><a name="line-99"></a><span>  </span><a name="local-6989586621679104271"><a href="#local-6989586621679104271"><span class="hs-identifier">c</span></a></a><span>  </span><span class="hs-glyph">&lt;-</span><span> </span><a href="file:///home/coot/.ghcup/ghc/8.6.5/share/doc/ghc-8.6.5/html/libraries/ghc-heap-8.6.5/src/GHC.Exts.Heap.html#getBoxedClosureData"><span class="hs-identifier hs-var">getBoxedClosureData</span></a><span> </span><a href="#local-6989586621679104270"><span class="hs-identifier hs-var">b</span></a><span>
+</span><a name="line-100"></a><span>  </span><a name="local-6989586621679104272"><a href="#local-6989586621679104272"><span class="hs-identifier">nf</span></a></a><span> </span><span class="hs-glyph">&lt;-</span><span> </span><a href="Cardano.Prelude.GHC.Heap.NormalForm.html#isHeadNormalForm"><span class="hs-identifier hs-var">isHeadNormalForm</span></a><span> </span><a href="#local-6989586621679104271"><span class="hs-identifier hs-var">c</span></a><span>
+</span><a name="line-101"></a><span>  </span><span class="hs-keyword">if</span><span> </span><a href="#local-6989586621679104272"><span class="hs-identifier hs-var">nf</span></a><span>
+</span><a name="line-102"></a><span>    </span><span class="hs-keyword">then</span><span> </span><span class="hs-keyword">do</span><span>
+</span><a name="line-103"></a><span>      </span><a name="local-6989586621679104273"><a href="#local-6989586621679104273"><span class="hs-identifier">c'</span></a></a><span> </span><span class="hs-glyph">&lt;-</span><span> </span><a href="file:///home/coot/.ghcup/ghc/8.6.5/share/doc/ghc-8.6.5/html/libraries/ghc-heap-8.6.5/src/GHC.Exts.Heap.html#getBoxedClosureData"><span class="hs-identifier hs-var">getBoxedClosureData</span></a><span> </span><a href="#local-6989586621679104270"><span class="hs-identifier hs-var">b</span></a><span>
+</span><a name="line-104"></a><span>      </span><a href="Cardano.Prelude.GHC.Heap.NormalForm.html#allM"><span class="hs-identifier hs-var">allM</span></a><span> </span><a href="Cardano.Prelude.GHC.Heap.NormalForm.html#isNormalFormBoxed"><span class="hs-identifier hs-var">isNormalFormBoxed</span></a><span> </span><span class="hs-special">(</span><a href="file:///home/coot/.ghcup/ghc/8.6.5/share/doc/ghc-8.6.5/html/libraries/ghc-heap-8.6.5/src/GHC.Exts.Heap.Closures.html#allClosures"><span class="hs-identifier hs-var">allClosures</span></a><span> </span><a href="#local-6989586621679104273"><span class="hs-identifier hs-var">c'</span></a><span class="hs-special">)</span><span>
+</span><a name="line-105"></a><span>    </span><span class="hs-keyword">else</span><span> </span><span class="hs-keyword">do</span><span>
+</span><a name="line-106"></a><span>      </span><a href="file:///home/coot/.ghcup/ghc/8.6.5/share/doc/ghc-8.6.5/html/libraries/base-4.12.0.0/src/GHC.Base.html#return"><span class="hs-identifier hs-var">return</span></a><span> </span><a href="file:///home/coot/.ghcup/ghc/8.6.5/share/doc/ghc-8.6.5/html/libraries/ghc-prim-0.5.3/src/GHC.Types.html#False"><span class="hs-identifier hs-var">False</span></a><span>
+</span><a name="line-107"></a><span>
+</span><a name="line-108"></a><span class="hs-comment">-- From Control.Monad.Loops in monad-loops, but I'd like to avoid too many</span><span>
+</span><a name="line-109"></a><span class="hs-comment">-- trivial dependencies</span><span>
+</span><a name="line-110"></a><span class="hs-identifier">allM</span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><a href="file:///home/coot/.ghcup/ghc/8.6.5/share/doc/ghc-8.6.5/html/libraries/base-4.12.0.0/src/GHC.Base.html#Monad"><span class="hs-identifier hs-type">Monad</span></a><span> </span><a href="#local-6989586621679103768"><span class="hs-identifier hs-type">m</span></a><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="hs-special">(</span><a href="#local-6989586621679103769"><span class="hs-identifier hs-type">a</span></a><span> </span><span class="hs-glyph">-&gt;</span><span> </span><a href="#local-6989586621679103768"><span class="hs-identifier hs-type">m</span></a><span> </span><a href="file:///home/coot/.ghcup/ghc/8.6.5/share/doc/ghc-8.6.5/html/libraries/ghc-prim-0.5.3/src/GHC.Types.html#Bool"><span class="hs-identifier hs-type">Bool</span></a><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">[</span><a href="#local-6989586621679103769"><span class="hs-identifier hs-type">a</span></a><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><a href="#local-6989586621679103768"><span class="hs-identifier hs-type">m</span></a><span> </span><a href="file:///home/coot/.ghcup/ghc/8.6.5/share/doc/ghc-8.6.5/html/libraries/ghc-prim-0.5.3/src/GHC.Types.html#Bool"><span class="hs-identifier hs-type">Bool</span></a><span>
+</span><a name="line-111"></a><a name="allM"><a href="Cardano.Prelude.GHC.Heap.NormalForm.html#allM"><span class="hs-identifier">allM</span></a></a><span> </span><span class="hs-identifier">_</span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span>       </span><span class="hs-glyph">=</span><span> </span><a href="file:///home/coot/.ghcup/ghc/8.6.5/share/doc/ghc-8.6.5/html/libraries/base-4.12.0.0/src/GHC.Base.html#return"><span class="hs-identifier hs-var">return</span></a><span> </span><a href="file:///home/coot/.ghcup/ghc/8.6.5/share/doc/ghc-8.6.5/html/libraries/ghc-prim-0.5.3/src/GHC.Types.html#True"><span class="hs-identifier hs-var">True</span></a><span>
+</span><a name="line-112"></a><span class="hs-identifier">allM</span><span> </span><a name="local-6989586621679104274"><a href="#local-6989586621679104274"><span class="hs-identifier">p</span></a></a><span> </span><span class="hs-special">(</span><a name="local-6989586621679104275"><a href="#local-6989586621679104275"><span class="hs-identifier">x</span></a></a><span> </span><span class="hs-glyph">:</span><span> </span><a name="local-6989586621679104276"><a href="#local-6989586621679104276"><span class="hs-identifier">xs</span></a></a><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><a name="line-113"></a><span>  </span><a name="local-6989586621679104277"><a href="#local-6989586621679104277"><span class="hs-identifier">q</span></a></a><span> </span><span class="hs-glyph">&lt;-</span><span> </span><a href="#local-6989586621679104274"><span class="hs-identifier hs-var">p</span></a><span> </span><a href="#local-6989586621679104275"><span class="hs-identifier hs-var">x</span></a><span>
+</span><a name="line-114"></a><span>  </span><span class="hs-keyword">if</span><span> </span><a href="#local-6989586621679104277"><span class="hs-identifier hs-var">q</span></a><span> </span><span class="hs-keyword">then</span><span> </span><a href="Cardano.Prelude.GHC.Heap.NormalForm.html#allM"><span class="hs-identifier hs-var">allM</span></a><span> </span><a href="#local-6989586621679104274"><span class="hs-identifier hs-var">p</span></a><span> </span><a href="#local-6989586621679104276"><span class="hs-identifier hs-var">xs</span></a><span> </span><span class="hs-keyword">else</span><span> </span><a href="file:///home/coot/.ghcup/ghc/8.6.5/share/doc/ghc-8.6.5/html/libraries/base-4.12.0.0/src/GHC.Base.html#return"><span class="hs-identifier hs-var">return</span></a><span> </span><a href="file:///home/coot/.ghcup/ghc/8.6.5/share/doc/ghc-8.6.5/html/libraries/ghc-prim-0.5.3/src/GHC.Types.html#False"><span class="hs-identifier hs-var">False</span></a><span>
+</span><a name="line-115"></a></pre></body></html>
