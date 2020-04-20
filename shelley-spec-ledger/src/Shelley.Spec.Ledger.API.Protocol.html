@@ -1,0 +1,348 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-pragma">{-# LANGUAGE DeriveGeneric #-}</span><span>
+</span><a name="line-2"></a><span class="hs-pragma">{-# LANGUAGE FlexibleContexts #-}</span><span>
+</span><a name="line-3"></a><span class="hs-pragma">{-# LANGUAGE NamedFieldPuns #-}</span><span>
+</span><a name="line-4"></a><span class="hs-pragma">{-# LANGUAGE ScopedTypeVariables #-}</span><span>
+</span><a name="line-5"></a><span class="hs-pragma">{-# LANGUAGE StrictData #-}</span><span>
+</span><a name="line-6"></a><span class="hs-pragma">{-# LANGUAGE TypeApplications #-}</span><span>
+</span><a name="line-7"></a><span>
+</span><a name="line-8"></a><span class="hs-comment">-- | Integration between the Shelley ledger and its corresponding (Transitional</span><span>
+</span><a name="line-9"></a><span class="hs-comment">-- Praos) protocol.</span><span>
+</span><a name="line-10"></a><span class="hs-comment">--</span><span>
+</span><a name="line-11"></a><span class="hs-comment">-- In particular, this code supports extracting the components of the ledger</span><span>
+</span><a name="line-12"></a><span class="hs-comment">-- state needed for protocol execution, both now and in a 2k-slot window.</span><span>
+</span><a name="line-13"></a><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Shelley.Spec.Ledger.API.Protocol</span><span>
+</span><a name="line-14"></a><span>  </span><span class="hs-special">(</span><span> </span><a href="Shelley.Spec.Ledger.STS.Prtcl.html#PrtclEnv"><span class="hs-identifier hs-type">STS.Prtcl.PrtclEnv</span></a><span class="hs-special">,</span><span>
+</span><a name="line-15"></a><span>    </span><a href="Shelley.Spec.Ledger.API.Protocol.html#mkPrtclEnv"><span class="hs-identifier hs-var">mkPrtclEnv</span></a><span class="hs-special">,</span><span>
+</span><a name="line-16"></a><span>    </span><a href="Shelley.Spec.Ledger.API.Protocol.html#LedgerView"><span class="hs-identifier hs-type">LedgerView</span></a><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span>
+</span><a name="line-17"></a><span>    </span><a href="Shelley.Spec.Ledger.API.Protocol.html#currentLedgerView"><span class="hs-identifier hs-var">currentLedgerView</span></a><span class="hs-special">,</span><span>
+</span><a name="line-18"></a><span>    </span><span class="hs-comment">-- $timetravel</span><span>
+</span><a name="line-19"></a><span>    </span><a href="Shelley.Spec.Ledger.API.Protocol.html#futureLedgerView"><span class="hs-identifier hs-var">futureLedgerView</span></a><span class="hs-special">,</span><span>
+</span><a name="line-20"></a><span>  </span><span class="hs-special">)</span><span>
+</span><a name="line-21"></a><span class="hs-keyword">where</span><span>
+</span><a name="line-22"></a><span>
+</span><a name="line-23"></a><span class="hs-keyword">import</span><span>           </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.html"><span class="hs-identifier">Cardano.Binary</span></a><span> </span><span class="hs-special">(</span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.FromCBOR.html#FromCBOR"><span class="hs-identifier hs-type">FromCBOR</span></a><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.ToCBOR.html#ToCBOR"><span class="hs-identifier hs-type">ToCBOR</span></a><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-var">decodeListLenOf</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-var">encodeListLen</span><span class="hs-special">)</span><span>
+</span><a name="line-24"></a><span class="hs-keyword">import</span><span>           </span><a href="Shelley.Spec.Ledger.API.Validation.html"><span class="hs-identifier">Shelley.Spec.Ledger.API.Validation</span></a><span>
+</span><a name="line-25"></a><span class="hs-keyword">import</span><span>           </span><a href="Shelley.Spec.Ledger.Crypto.html"><span class="hs-identifier">Shelley.Spec.Ledger.Crypto</span></a><span>
+</span><a name="line-26"></a><span class="hs-keyword">import</span><span>           </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-prelude-0.1.0.0/noopt/doc/html/cardano-prelude/src/Cardano.Prelude.html"><span class="hs-identifier">Cardano.Prelude</span></a><span> </span><span class="hs-special">(</span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-prelude-0.1.0.0/noopt/doc/html/cardano-prelude/src/Cardano.Prelude.GHC.Heap.NormalForm.Classy.html#NoUnexpectedThunks"><span class="hs-identifier hs-type">NoUnexpectedThunks</span></a><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><a name="line-27"></a><span class="hs-keyword">import</span><span>           </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-slotting-0.1.0.0/noopt/doc/html/cardano-slotting/src/Cardano.Slotting.EpochInfo.html"><span class="hs-identifier">Cardano.Slotting.EpochInfo</span></a><span> </span><span class="hs-special">(</span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-slotting-0.1.0.0/noopt/doc/html/cardano-slotting/src/Cardano.Slotting.EpochInfo.API.html#epochInfoEpoch"><span class="hs-identifier hs-var">epochInfoEpoch</span></a><span class="hs-special">)</span><span>
+</span><a name="line-28"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Control.Arrow</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-var">left</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-var">right</span><span class="hs-special">)</span><span>
+</span><a name="line-29"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Control.Monad.Except</span><span>
+</span><a name="line-30"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Control.Monad.Trans.Reader</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-var">runReader</span><span class="hs-special">)</span><span>
+</span><a name="line-31"></a><span class="hs-keyword">import</span><span>           </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/small-steps-0.1.0.0/noopt/doc/html/small-steps/src/Control.State.Transition.Extended.html"><span class="hs-identifier">Control.State.Transition.Extended</span></a><span> </span><span class="hs-special">(</span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/small-steps-0.1.0.0/noopt/doc/html/small-steps/src/Control.State.Transition.Extended.html#PredicateFailure"><span class="hs-identifier hs-type">PredicateFailure</span></a><span class="hs-special">,</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/small-steps-0.1.0.0/noopt/doc/html/small-steps/src/Control.State.Transition.Extended.html#TRC"><span class="hs-identifier hs-type">TRC</span></a><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/small-steps-0.1.0.0/noopt/doc/html/small-steps/src/Control.State.Transition.Extended.html#applySTS"><span class="hs-identifier hs-var">applySTS</span></a><span class="hs-special">)</span><span>
+</span><a name="line-32"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data.Functor.Identity</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-var">runIdentity</span><span class="hs-special">)</span><span>
+</span><a name="line-33"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data.Map.Strict</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Map</span><span class="hs-special">)</span><span>
+</span><a name="line-34"></a><span class="hs-keyword">import</span><span>           </span><a href="Shelley.Spec.Ledger.BaseTypes.html"><span class="hs-identifier">Shelley.Spec.Ledger.BaseTypes</span></a><span> </span><span class="hs-special">(</span><a href="Shelley.Spec.Ledger.BaseTypes.html#Globals"><span class="hs-identifier hs-type">Globals</span></a><span> </span><span class="hs-special">(</span><span class="hs-identifier">epochInfo</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><a name="line-35"></a><span>
+</span><a name="line-36"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">GHC.Generics</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Generic</span><span class="hs-special">)</span><span>
+</span><a name="line-37"></a><span class="hs-keyword">import</span><span>           </span><a href="Shelley.Spec.Ledger.Delegation.Certificates.html"><span class="hs-identifier">Shelley.Spec.Ledger.Delegation.Certificates</span></a><span> </span><span class="hs-special">(</span><a href="Shelley.Spec.Ledger.Delegation.Certificates.html#PoolDistr"><span class="hs-identifier hs-type">PoolDistr</span></a><span class="hs-special">)</span><span>
+</span><a name="line-38"></a><span class="hs-keyword">import</span><span>           </span><a href="Shelley.Spec.Ledger.Keys.html"><span class="hs-identifier">Shelley.Spec.Ledger.Keys</span></a><span> </span><span class="hs-special">(</span><a href="Shelley.Spec.Ledger.Keys.html#GenDelegs"><span class="hs-identifier hs-type">GenDelegs</span></a><span class="hs-special">)</span><span>
+</span><a name="line-39"></a><span class="hs-keyword">import</span><span>           </span><a href="Shelley.Spec.Ledger.LedgerState.html"><span class="hs-identifier">Shelley.Spec.Ledger.LedgerState</span></a><span> </span><span class="hs-special">(</span><a href="Shelley.Spec.Ledger.LedgerState.html#EpochState"><span class="hs-identifier hs-type">EpochState</span></a><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><a href="Shelley.Spec.Ledger.LedgerState.html#NewEpochEnv"><span class="hs-identifier hs-type">NewEpochEnv</span></a><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span>
+</span><a name="line-40"></a><span>                     </span><a href="Shelley.Spec.Ledger.LedgerState.html#NewEpochState"><span class="hs-identifier hs-type">NewEpochState</span></a><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><a href="Shelley.Spec.Ledger.LedgerState.html#OBftSlot"><span class="hs-identifier hs-type">OBftSlot</span></a><span class="hs-special">,</span><span> </span><a href="Shelley.Spec.Ledger.LedgerState.html#getGKeys"><span class="hs-identifier hs-var">getGKeys</span></a><span class="hs-special">,</span><span> </span><a href="Shelley.Spec.Ledger.LedgerState.html#_delegationState"><span class="hs-identifier hs-var">_delegationState</span></a><span class="hs-special">,</span><span> </span><a href="Shelley.Spec.Ledger.LedgerState.html#_dstate"><span class="hs-identifier hs-var">_dstate</span></a><span class="hs-special">,</span><span> </span><a href="Shelley.Spec.Ledger.LedgerState.html#_genDelegs"><span class="hs-identifier hs-var">_genDelegs</span></a><span class="hs-special">)</span><span>
+</span><a name="line-41"></a><span class="hs-keyword">import</span><span>           </span><a href="Shelley.Spec.Ledger.PParams.html"><span class="hs-identifier">Shelley.Spec.Ledger.PParams</span></a><span> </span><span class="hs-special">(</span><a href="Shelley.Spec.Ledger.PParams.html#PParams"><span class="hs-identifier hs-type">PParams</span></a><span class="hs-special">)</span><span>
+</span><a name="line-42"></a><span class="hs-keyword">import</span><span>           </span><a href="Shelley.Spec.Ledger.Slot.html"><span class="hs-identifier">Shelley.Spec.Ledger.Slot</span></a><span> </span><span class="hs-special">(</span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-slotting-0.1.0.0/noopt/doc/html/cardano-slotting/src/Cardano.Slotting.Slot.html#SlotNo"><span class="hs-identifier hs-type">SlotNo</span></a><span class="hs-special">)</span><span>
+</span><a name="line-43"></a><span class="hs-keyword">import</span><span>           </span><a href="Shelley.Spec.Ledger.STS.NewEpoch.html"><span class="hs-identifier">Shelley.Spec.Ledger.STS.NewEpoch</span></a><span> </span><span class="hs-special">(</span><a href="Shelley.Spec.Ledger.STS.NewEpoch.html#NEWEPOCH"><span class="hs-identifier hs-type">NEWEPOCH</span></a><span class="hs-special">)</span><span>
+</span><a name="line-44"></a><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><a href="Shelley.Spec.Ledger.STS.Prtcl.html"><span class="hs-identifier">Shelley.Spec.Ledger.STS.Prtcl</span></a><span> </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">STS.Prtcl</span><span>
+</span><a name="line-45"></a><span>
+</span><a name="line-46"></a><span class="hs-comment">-- | Data required by the Transitional Praos protocol from the Shelley ledger.</span><span>
+</span><a name="line-47"></a><span class="hs-keyword">data</span><span> </span><a name="LedgerView"><a href="Shelley.Spec.Ledger.API.Protocol.html#LedgerView"><span class="hs-identifier">LedgerView</span></a></a><span> </span><a name="local-6989586621679709532"><a href="#local-6989586621679709532"><span class="hs-identifier">crypto</span></a></a><span>
+</span><a name="line-48"></a><span>  </span><span class="hs-glyph">=</span><span> </span><a name="LedgerView"><a href="Shelley.Spec.Ledger.API.Protocol.html#LedgerView"><span class="hs-identifier">LedgerView</span></a></a><span>
+</span><a name="line-49"></a><span>      </span><span class="hs-special">{</span><span> </span><a name="lvProtParams"><a href="Shelley.Spec.Ledger.API.Protocol.html#lvProtParams"><span class="hs-identifier">lvProtParams</span></a></a><span> </span><span class="hs-glyph">::</span><span> </span><a href="Shelley.Spec.Ledger.PParams.html#PParams"><span class="hs-identifier hs-type">PParams</span></a><span class="hs-special">,</span><span>
+</span><a name="line-50"></a><span>        </span><a name="lvOverlaySched"><a href="Shelley.Spec.Ledger.API.Protocol.html#lvOverlaySched"><span class="hs-identifier">lvOverlaySched</span></a></a><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">Map</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-slotting-0.1.0.0/noopt/doc/html/cardano-slotting/src/Cardano.Slotting.Slot.html#SlotNo"><span class="hs-identifier hs-type">SlotNo</span></a><span> </span><span class="hs-special">(</span><a href="Shelley.Spec.Ledger.LedgerState.html#OBftSlot"><span class="hs-identifier hs-type">OBftSlot</span></a><span> </span><a href="#local-6989586621679709532"><span class="hs-identifier hs-type">crypto</span></a><span class="hs-special">)</span><span class="hs-special">,</span><span>
+</span><a name="line-51"></a><span>        </span><a name="lvPoolDistr"><a href="Shelley.Spec.Ledger.API.Protocol.html#lvPoolDistr"><span class="hs-identifier">lvPoolDistr</span></a></a><span> </span><span class="hs-glyph">::</span><span> </span><a href="Shelley.Spec.Ledger.Delegation.Certificates.html#PoolDistr"><span class="hs-identifier hs-type">PoolDistr</span></a><span> </span><a href="#local-6989586621679709532"><span class="hs-identifier hs-type">crypto</span></a><span class="hs-special">,</span><span>
+</span><a name="line-52"></a><span>        </span><a name="lvGenDelegs"><a href="Shelley.Spec.Ledger.API.Protocol.html#lvGenDelegs"><span class="hs-identifier">lvGenDelegs</span></a></a><span> </span><span class="hs-glyph">::</span><span> </span><a href="Shelley.Spec.Ledger.Keys.html#GenDelegs"><span class="hs-identifier hs-type">GenDelegs</span></a><span> </span><a href="#local-6989586621679709532"><span class="hs-identifier hs-type">crypto</span></a><span>
+</span><a name="line-53"></a><span>      </span><span class="hs-special">}</span><span>
+</span><a name="line-54"></a><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Eq</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Show</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Generic</span><span class="hs-special">)</span><span>
+</span><a name="line-55"></a><span>
+</span><a name="line-56"></a><span class="hs-keyword">instance</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-prelude-0.1.0.0/noopt/doc/html/cardano-prelude/src/Cardano.Prelude.GHC.Heap.NormalForm.Classy.html#NoUnexpectedThunks"><span class="hs-identifier hs-type">NoUnexpectedThunks</span></a><span> </span><span class="hs-special">(</span><a href="Shelley.Spec.Ledger.API.Protocol.html#LedgerView"><span class="hs-identifier hs-type">LedgerView</span></a><span> </span><a href="#local-6989586621679709539"><span class="hs-identifier hs-type">crypto</span></a><span class="hs-special">)</span><span>
+</span><a name="line-57"></a><span>
+</span><a name="line-58"></a><span class="hs-keyword">instance</span><span> </span><a href="Shelley.Spec.Ledger.Crypto.html#Crypto"><span class="hs-identifier hs-type">Crypto</span></a><span> </span><a href="#local-6989586621679709538"><span class="hs-identifier hs-type">crypto</span></a><span> </span><span class="hs-glyph">=&gt;</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.FromCBOR.html#FromCBOR"><span class="hs-identifier hs-type">FromCBOR</span></a><span> </span><span class="hs-special">(</span><a href="Shelley.Spec.Ledger.API.Protocol.html#LedgerView"><span class="hs-identifier hs-type">LedgerView</span></a><span> </span><a href="#local-6989586621679709538"><span class="hs-identifier hs-type">crypto</span></a><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
+</span><a name="line-59"></a><span>  </span><a name="local-8214565720323792921"><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.FromCBOR.html#fromCBOR"><span class="hs-identifier">fromCBOR</span></a></a><span> </span><span class="hs-glyph">=</span><span>
+</span><a name="line-60"></a><span>    </span><span class="hs-identifier hs-var">decodeListLenOf</span><span> </span><span class="hs-number">4</span><span>
+</span><a name="line-61"></a><span>      </span><span class="hs-operator hs-var">&gt;&gt;</span><span> </span><a href="Shelley.Spec.Ledger.API.Protocol.html#LedgerView"><span class="hs-identifier hs-var">LedgerView</span></a><span>
+</span><a name="line-62"></a><span>      </span><span class="hs-operator hs-var">&lt;$&gt;</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.FromCBOR.html#fromCBOR"><span class="hs-identifier hs-var">fromCBOR</span></a><span>
+</span><a name="line-63"></a><span>      </span><span class="hs-operator hs-var">&lt;*&gt;</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.FromCBOR.html#fromCBOR"><span class="hs-identifier hs-var">fromCBOR</span></a><span>
+</span><a name="line-64"></a><span>      </span><span class="hs-operator hs-var">&lt;*&gt;</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.FromCBOR.html#fromCBOR"><span class="hs-identifier hs-var">fromCBOR</span></a><span>
+</span><a name="line-65"></a><span>      </span><span class="hs-operator hs-var">&lt;*&gt;</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.FromCBOR.html#fromCBOR"><span class="hs-identifier hs-var">fromCBOR</span></a><span>
+</span><a name="line-66"></a><span>
+</span><a name="line-67"></a><span class="hs-keyword">instance</span><span> </span><a href="Shelley.Spec.Ledger.Crypto.html#Crypto"><span class="hs-identifier hs-type">Crypto</span></a><span> </span><a href="#local-6989586621679709533"><span class="hs-identifier hs-type">crypto</span></a><span> </span><span class="hs-glyph">=&gt;</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.ToCBOR.html#ToCBOR"><span class="hs-identifier hs-type">ToCBOR</span></a><span> </span><span class="hs-special">(</span><a href="Shelley.Spec.Ledger.API.Protocol.html#LedgerView"><span class="hs-identifier hs-type">LedgerView</span></a><span> </span><a href="#local-6989586621679709533"><span class="hs-identifier hs-type">crypto</span></a><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
+</span><a name="line-68"></a><span>  </span><a name="local-8214565720323792854"><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.ToCBOR.html#toCBOR"><span class="hs-identifier">toCBOR</span></a></a><span>
+</span><a name="line-69"></a><span>    </span><a href="Shelley.Spec.Ledger.API.Protocol.html#LedgerView"><span class="hs-identifier hs-var">LedgerView</span></a><span>
+</span><a name="line-70"></a><span>      </span><span class="hs-special">{</span><span> </span><a name="local-6989586621679709534"><a href="#local-6989586621679709534"><span class="hs-identifier">lvProtParams</span></a></a><span class="hs-special">,</span><span>
+</span><a name="line-71"></a><span>        </span><a name="local-6989586621679709535"><a href="#local-6989586621679709535"><span class="hs-identifier">lvOverlaySched</span></a></a><span class="hs-special">,</span><span>
+</span><a name="line-72"></a><span>        </span><a name="local-6989586621679709536"><a href="#local-6989586621679709536"><span class="hs-identifier">lvPoolDistr</span></a></a><span class="hs-special">,</span><span>
+</span><a name="line-73"></a><span>        </span><a name="local-6989586621679709537"><a href="#local-6989586621679709537"><span class="hs-identifier">lvGenDelegs</span></a></a><span>
+</span><a name="line-74"></a><span>      </span><span class="hs-special">}</span><span> </span><span class="hs-glyph">=</span><span>
+</span><a name="line-75"></a><span>      </span><span class="hs-identifier hs-var">mconcat</span><span>
+</span><a name="line-76"></a><span>        </span><span class="hs-special">[</span><span> </span><span class="hs-identifier hs-var">encodeListLen</span><span> </span><span class="hs-number">4</span><span class="hs-special">,</span><span>
+</span><a name="line-77"></a><span>          </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.ToCBOR.html#toCBOR"><span class="hs-identifier hs-var">toCBOR</span></a><span> </span><a href="#local-6989586621679709534"><span class="hs-identifier hs-var">lvProtParams</span></a><span class="hs-special">,</span><span>
+</span><a name="line-78"></a><span>          </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.ToCBOR.html#toCBOR"><span class="hs-identifier hs-var">toCBOR</span></a><span> </span><a href="#local-6989586621679709535"><span class="hs-identifier hs-var">lvOverlaySched</span></a><span class="hs-special">,</span><span>
+</span><a name="line-79"></a><span>          </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.ToCBOR.html#toCBOR"><span class="hs-identifier hs-var">toCBOR</span></a><span> </span><a href="#local-6989586621679709536"><span class="hs-identifier hs-var">lvPoolDistr</span></a><span class="hs-special">,</span><span>
+</span><a name="line-80"></a><span>          </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.ToCBOR.html#toCBOR"><span class="hs-identifier hs-var">toCBOR</span></a><span> </span><a href="#local-6989586621679709537"><span class="hs-identifier hs-var">lvGenDelegs</span></a><span>
+</span><a name="line-81"></a><span>        </span><span class="hs-special">]</span><span>
+</span><a name="line-82"></a><span>
+</span><a name="line-83"></a><span class="hs-comment">-- | Construct a protocol environment from the ledger view, along with the</span><span>
+</span><a name="line-84"></a><span class="hs-comment">-- current slot and a marker indicating whether this is the first block in a new</span><span>
+</span><a name="line-85"></a><span class="hs-comment">-- epoch.</span><span>
+</span><a name="line-86"></a><span class="hs-identifier">mkPrtclEnv</span><span> </span><span class="hs-glyph">::</span><span>
+</span><a name="line-87"></a><span>  </span><a href="Shelley.Spec.Ledger.API.Protocol.html#LedgerView"><span class="hs-identifier hs-type">LedgerView</span></a><span> </span><a href="#local-6989586621679709544"><span class="hs-identifier hs-type">crypto</span></a><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><a name="line-88"></a><span>  </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-slotting-0.1.0.0/noopt/doc/html/cardano-slotting/src/Cardano.Slotting.Slot.html#SlotNo"><span class="hs-identifier hs-type">SlotNo</span></a><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><a name="line-89"></a><span>  </span><span class="hs-comment">-- | New epoch marker. This should be true iff this execution of the PRTCL</span><span>
+</span><a name="line-90"></a><span>  </span><span class="hs-comment">-- rule is being run on the first block in a new epoch.</span><span>
+</span><a name="line-91"></a><span>  </span><span class="hs-identifier hs-type">Bool</span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><a name="line-92"></a><span>  </span><a href="Shelley.Spec.Ledger.STS.Prtcl.html#PrtclEnv"><span class="hs-identifier hs-type">STS.Prtcl.PrtclEnv</span></a><span> </span><a href="#local-6989586621679709544"><span class="hs-identifier hs-type">crypto</span></a><span>
+</span><a name="line-93"></a><a name="mkPrtclEnv"><a href="Shelley.Spec.Ledger.API.Protocol.html#mkPrtclEnv"><span class="hs-identifier">mkPrtclEnv</span></a></a><span>
+</span><a name="line-94"></a><span>  </span><a href="Shelley.Spec.Ledger.API.Protocol.html#LedgerView"><span class="hs-identifier hs-var">LedgerView</span></a><span>
+</span><a name="line-95"></a><span>    </span><span class="hs-special">{</span><span> </span><a name="local-6989586621679709545"><a href="#local-6989586621679709545"><span class="hs-identifier">lvProtParams</span></a></a><span class="hs-special">,</span><span>
+</span><a name="line-96"></a><span>      </span><a name="local-6989586621679709546"><a href="#local-6989586621679709546"><span class="hs-identifier">lvOverlaySched</span></a></a><span class="hs-special">,</span><span>
+</span><a name="line-97"></a><span>      </span><a name="local-6989586621679709547"><a href="#local-6989586621679709547"><span class="hs-identifier">lvPoolDistr</span></a></a><span class="hs-special">,</span><span>
+</span><a name="line-98"></a><span>      </span><a name="local-6989586621679709548"><a href="#local-6989586621679709548"><span class="hs-identifier">lvGenDelegs</span></a></a><span>
+</span><a name="line-99"></a><span>    </span><span class="hs-special">}</span><span> </span><span class="hs-glyph">=</span><span>
+</span><a name="line-100"></a><span>    </span><a href="Shelley.Spec.Ledger.STS.Prtcl.html#PrtclEnv"><span class="hs-identifier hs-var">STS.Prtcl.PrtclEnv</span></a><span>
+</span><a name="line-101"></a><span>      </span><a href="#local-6989586621679709545"><span class="hs-identifier hs-var">lvProtParams</span></a><span>
+</span><a name="line-102"></a><span>      </span><a href="#local-6989586621679709546"><span class="hs-identifier hs-var">lvOverlaySched</span></a><span>
+</span><a name="line-103"></a><span>      </span><a href="#local-6989586621679709547"><span class="hs-identifier hs-var">lvPoolDistr</span></a><span>
+</span><a name="line-104"></a><span>      </span><a href="#local-6989586621679709548"><span class="hs-identifier hs-var">lvGenDelegs</span></a><span>
+</span><a name="line-105"></a><span>
+</span><a name="line-106"></a><span class="hs-identifier">view</span><span> </span><span class="hs-glyph">::</span><span> </span><a href="Shelley.Spec.Ledger.API.Validation.html#ShelleyState"><span class="hs-identifier hs-type">ShelleyState</span></a><span> </span><a href="#local-6989586621679709543"><span class="hs-identifier hs-type">crypto</span></a><span> </span><span class="hs-glyph">-&gt;</span><span> </span><a href="Shelley.Spec.Ledger.API.Protocol.html#LedgerView"><span class="hs-identifier hs-type">LedgerView</span></a><span> </span><a href="#local-6989586621679709543"><span class="hs-identifier hs-type">crypto</span></a><span>
+</span><a name="line-107"></a><a name="view"><a href="Shelley.Spec.Ledger.API.Protocol.html#view"><span class="hs-identifier">view</span></a></a><span>
+</span><a name="line-108"></a><span>  </span><a href="Shelley.Spec.Ledger.LedgerState.html#NewEpochState"><span class="hs-identifier hs-var">NewEpochState</span></a><span>
+</span><a name="line-109"></a><span>    </span><span class="hs-special">{</span><span> </span><a name="local-6989586621679709549"><a href="#local-6989586621679709549"><span class="hs-identifier">nesPd</span></a></a><span class="hs-special">,</span><span>
+</span><a name="line-110"></a><span>      </span><a name="local-6989586621679709550"><a href="#local-6989586621679709550"><span class="hs-identifier">nesOsched</span></a></a><span class="hs-special">,</span><span>
+</span><a name="line-111"></a><span>      </span><a name="local-6989586621679709551"><a href="#local-6989586621679709551"><span class="hs-identifier">nesEs</span></a></a><span>
+</span><a name="line-112"></a><span>    </span><span class="hs-special">}</span><span> </span><span class="hs-glyph">=</span><span>
+</span><a name="line-113"></a><span>    </span><a href="Shelley.Spec.Ledger.API.Protocol.html#LedgerView"><span class="hs-identifier hs-var">LedgerView</span></a><span>
+</span><a name="line-114"></a><span>      </span><span class="hs-special">{</span><span> </span><span class="hs-identifier">lvProtParams</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-identifier">esPp</span><span> </span><a href="#local-6989586621679709551"><span class="hs-identifier hs-var">nesEs</span></a><span class="hs-special">,</span><span>
+</span><a name="line-115"></a><span>        </span><span class="hs-identifier">lvOverlaySched</span><span> </span><span class="hs-glyph">=</span><span>
+</span><a name="line-116"></a><span>          </span><a href="#local-6989586621679709550"><span class="hs-identifier hs-var">nesOsched</span></a><span class="hs-special">,</span><span>
+</span><a name="line-117"></a><span>        </span><span class="hs-identifier">lvPoolDistr</span><span> </span><span class="hs-glyph">=</span><span> </span><a href="#local-6989586621679709549"><span class="hs-identifier hs-var">nesPd</span></a><span class="hs-special">,</span><span>
+</span><a name="line-118"></a><span>        </span><span class="hs-identifier">lvGenDelegs</span><span> </span><span class="hs-glyph">=</span><span>
+</span><a name="line-119"></a><span>          </span><span class="hs-identifier">_genDelegs</span><span> </span><span class="hs-operator hs-var">.</span><span> </span><span class="hs-identifier">_dstate</span><span>
+</span><a name="line-120"></a><span>            </span><span class="hs-operator hs-var">.</span><span> </span><span class="hs-identifier">_delegationState</span><span>
+</span><a name="line-121"></a><span>            </span><span class="hs-operator hs-var">$</span><span> </span><span class="hs-identifier">esLState</span><span> </span><a href="#local-6989586621679709551"><span class="hs-identifier hs-var">nesEs</span></a><span>
+</span><a name="line-122"></a><span>      </span><span class="hs-special">}</span><span>
+</span><a name="line-123"></a><span>
+</span><a name="line-124"></a><span class="hs-comment">-- | Alias of 'view' for export</span><span>
+</span><a name="line-125"></a><span class="hs-identifier">currentLedgerView</span><span> </span><span class="hs-glyph">::</span><span> </span><a href="Shelley.Spec.Ledger.API.Validation.html#ShelleyState"><span class="hs-identifier hs-type">ShelleyState</span></a><span> </span><a href="#local-6989586621679709542"><span class="hs-identifier hs-type">crypto</span></a><span> </span><span class="hs-glyph">-&gt;</span><span> </span><a href="Shelley.Spec.Ledger.API.Protocol.html#LedgerView"><span class="hs-identifier hs-type">LedgerView</span></a><span> </span><a href="#local-6989586621679709542"><span class="hs-identifier hs-type">crypto</span></a><span>
+</span><a name="line-126"></a><a name="currentLedgerView"><a href="Shelley.Spec.Ledger.API.Protocol.html#currentLedgerView"><span class="hs-identifier">currentLedgerView</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><a href="Shelley.Spec.Ledger.API.Protocol.html#view"><span class="hs-identifier hs-var">view</span></a><span>
+</span><a name="line-127"></a><span>
+</span><a name="line-128"></a><span class="hs-comment">-- $timetravel</span><span>
+</span><a name="line-129"></a><span class="hs-comment">--</span><span>
+</span><a name="line-130"></a><span class="hs-comment">--  Time Travel (or the anachronistic ledger view)</span><span>
+</span><a name="line-131"></a><span class="hs-comment">--</span><span>
+</span><a name="line-132"></a><span class="hs-comment">--  The ledger needs to expose access to the 'LedgerView' for a window of</span><span>
+</span><a name="line-133"></a><span class="hs-comment">--  2k-slots around the current tip of the chain. This functionality allows the</span><span>
+</span><a name="line-134"></a><span class="hs-comment">--  protocol layer to validate headers without downloading corresponding blocks.</span><span>
+</span><a name="line-135"></a><span class="hs-comment">--</span><span>
+</span><a name="line-136"></a><span class="hs-comment">--  The ability to travel backwards in time is obviously always possible by</span><span>
+</span><a name="line-137"></a><span class="hs-comment">--  keeping a record of past ledger states (or, more conservatively, ledger</span><span>
+</span><a name="line-138"></a><span class="hs-comment">--  views). We do not therefore deal explicitly with it in this module, though</span><span>
+</span><a name="line-139"></a><span class="hs-comment">--  see later for discussion on when snapshots should be taken.</span><span>
+</span><a name="line-140"></a><span class="hs-comment">--</span><span>
+</span><a name="line-141"></a><span class="hs-comment">--  In order to achieve forward time travel, we need a few things:</span><span>
+</span><a name="line-142"></a><span class="hs-comment">--  - Transition rules which process the body of a block should not have any</span><span>
+</span><a name="line-143"></a><span class="hs-comment">--    effect on the @LedgerView@ for at least 2k slots after they are received.</span><span>
+</span><a name="line-144"></a><span class="hs-comment">--    This property should be guaranteed by the design of the ledger.</span><span>
+</span><a name="line-145"></a><span class="hs-comment">--  - The effect of transition rules which process the header of a block should</span><span>
+</span><a name="line-146"></a><span class="hs-comment">--    be predictable for up to 2k slots.</span><span>
+</span><a name="line-147"></a><span class="hs-comment">--</span><span>
+</span><a name="line-148"></a><span class="hs-comment">--  In Shelley, there are two transition systems which operate during header</span><span>
+</span><a name="line-149"></a><span class="hs-comment">--  processing (the TICK rule itself merely applying checks and delegating</span><span>
+</span><a name="line-150"></a><span class="hs-comment">--  these systems):</span><span>
+</span><a name="line-151"></a><span class="hs-comment">--  - The RUPD rule deals with creating the reward update at an appropriate</span><span>
+</span><a name="line-152"></a><span class="hs-comment">--    point.</span><span>
+</span><a name="line-153"></a><span class="hs-comment">--  - The NEWEPOCH rule deals with various updates done at the end of an epoch.</span><span>
+</span><a name="line-154"></a><span class="hs-comment">--</span><span>
+</span><a name="line-155"></a><span class="hs-comment">--  We make the following claim:</span><span>
+</span><a name="line-156"></a><span class="hs-comment">--</span><span>
+</span><a name="line-157"></a><span class="hs-comment">--  A future ledger view (within the 2k-slot bound) is either:</span><span>
+</span><a name="line-158"></a><span class="hs-comment">--  - Equal to the current ledger view (if we remain in the same epoch), or</span><span>
+</span><a name="line-159"></a><span class="hs-comment">--  - Equal to the application of the NEWEPOCH rule on the first slot of the new</span><span>
+</span><a name="line-160"></a><span class="hs-comment">--    epoch to the current ledger state, if we are in a new epoch.</span><span>
+</span><a name="line-161"></a><span class="hs-comment">--</span><span>
+</span><a name="line-162"></a><span class="hs-comment">--  A sketch proof of this claim:</span><span>
+</span><a name="line-163"></a><span class="hs-comment">--</span><span>
+</span><a name="line-164"></a><span class="hs-comment">--  We will assume, even if not stated in the below, that all</span><span>
+</span><a name="line-165"></a><span class="hs-comment">--  blocks/headers/slots are within the 2k slot window of our current slot.</span><span>
+</span><a name="line-166"></a><span class="hs-comment">--</span><span>
+</span><a name="line-167"></a><span class="hs-comment">--  Lemma 1: Let `ls` be the current state at slot `s_0`, `s` be a future slot</span><span>
+</span><a name="line-168"></a><span class="hs-comment">--  within 2k of `s_0`, and `h_s` be some valid header at slot `s`. If `epoch s</span><span>
+</span><a name="line-169"></a><span class="hs-comment">--  /= epoch s_0 + 1`, then</span><span>
+</span><a name="line-170"></a><span class="hs-comment">--</span><span>
+</span><a name="line-171"></a><span class="hs-comment">--  ```</span><span>
+</span><a name="line-172"></a><span class="hs-comment">--          h_s</span><span>
+</span><a name="line-173"></a><span class="hs-comment">--  ls ------------&gt; ls' =&gt; view ls == view ls'</span><span>
+</span><a name="line-174"></a><span class="hs-comment">--         TICK</span><span>
+</span><a name="line-175"></a><span class="hs-comment">--  ```</span><span>
+</span><a name="line-176"></a><span class="hs-comment">--</span><span>
+</span><a name="line-177"></a><span class="hs-comment">--  Proof:</span><span>
+</span><a name="line-178"></a><span class="hs-comment">--</span><span>
+</span><a name="line-179"></a><span class="hs-comment">--  By the rules for NEWEPOCH, since `epoch s /= epoch s_0 + 1` the input state</span><span>
+</span><a name="line-180"></a><span class="hs-comment">--  is returned unchanged. The RUPD system modifies only the reward update</span><span>
+</span><a name="line-181"></a><span class="hs-comment">--  component of 'NewEpochState', which is thrown away by 'view'.</span><span>
+</span><a name="line-182"></a><span class="hs-comment">--</span><span>
+</span><a name="line-183"></a><span class="hs-comment">--  Lemma 2: Let `h_0, ..., h_n` be a valid set of headers continuing from</span><span>
+</span><a name="line-184"></a><span class="hs-comment">--  ledger state `ls` (that is, there is a valid transition under the TICK</span><span>
+</span><a name="line-185"></a><span class="hs-comment">--  system for each header). Let `h_e` be the header which first transitions to</span><span>
+</span><a name="line-186"></a><span class="hs-comment">--  a new epoch. Then:</span><span>
+</span><a name="line-187"></a><span class="hs-comment">--</span><span>
+</span><a name="line-188"></a><span class="hs-comment">--  ```</span><span>
+</span><a name="line-189"></a><span class="hs-comment">--           h_e                                       h_n</span><span>
+</span><a name="line-190"></a><span class="hs-comment">--  ls_i ------------&gt; ls_e -----------&gt; ls_{n-1} ------------&gt; ls' =&gt; view ls' == view ls_e</span><span>
+</span><a name="line-191"></a><span class="hs-comment">--          TICK             .....                    TICK</span><span>
+</span><a name="line-192"></a><span class="hs-comment">--  ```</span><span>
+</span><a name="line-193"></a><span class="hs-comment">--</span><span>
+</span><a name="line-194"></a><span class="hs-comment">--  Proof: By induction on the chain, applying lemma 1.</span><span>
+</span><a name="line-195"></a><span class="hs-comment">--</span><span>
+</span><a name="line-196"></a><span class="hs-comment">--  Lemma 3: Let `h_0, h_e` be a valid set of headers continuing from ledger</span><span>
+</span><a name="line-197"></a><span class="hs-comment">--  state `ls` (that is, there is a valid transition under the TICK system for</span><span>
+</span><a name="line-198"></a><span class="hs-comment">--  each header). Let `h_e` be the header which first transitions to a new</span><span>
+</span><a name="line-199"></a><span class="hs-comment">--  epoch. Then given:</span><span>
+</span><a name="line-200"></a><span class="hs-comment">--</span><span>
+</span><a name="line-201"></a><span class="hs-comment">--  ```</span><span>
+</span><a name="line-202"></a><span class="hs-comment">--         h_0                h_e</span><span>
+</span><a name="line-203"></a><span class="hs-comment">--  ls ------------&gt; ls_0 -----------&gt; ls_e</span><span>
+</span><a name="line-204"></a><span class="hs-comment">--        TICK               TICK</span><span>
+</span><a name="line-205"></a><span class="hs-comment">--  ```</span><span>
+</span><a name="line-206"></a><span class="hs-comment">--  ```</span><span>
+</span><a name="line-207"></a><span class="hs-comment">--       slot h_e</span><span>
+</span><a name="line-208"></a><span class="hs-comment">--  ls ------------&gt; ls'</span><span>
+</span><a name="line-209"></a><span class="hs-comment">--       NEWEPOCH</span><span>
+</span><a name="line-210"></a><span class="hs-comment">--  ```</span><span>
+</span><a name="line-211"></a><span class="hs-comment">--</span><span>
+</span><a name="line-212"></a><span class="hs-comment">--  we have that</span><span>
+</span><a name="line-213"></a><span class="hs-comment">--</span><span>
+</span><a name="line-214"></a><span class="hs-comment">--  ```</span><span>
+</span><a name="line-215"></a><span class="hs-comment">--  view ls_e == view ls'</span><span>
+</span><a name="line-216"></a><span class="hs-comment">--  ```</span><span>
+</span><a name="line-217"></a><span class="hs-comment">--</span><span>
+</span><a name="line-218"></a><span class="hs-comment">--  Proof: Since `h_e` marks the start of a new epoch (and we are within the 2k</span><span>
+</span><a name="line-219"></a><span class="hs-comment">--  window), the TICK transition under `h_0` must be a RUPD transition and only</span><span>
+</span><a name="line-220"></a><span class="hs-comment">--  effect that component of the state.</span><span>
+</span><a name="line-221"></a><span class="hs-comment">--</span><span>
+</span><a name="line-222"></a><span class="hs-comment">--  The NEWEPOCH rule applies that reward update by calling 'applyRUpd' before</span><span>
+</span><a name="line-223"></a><span class="hs-comment">--  the call to the EPOCH rule. By definition of 'applyRUpd', this modifies the</span><span>
+</span><a name="line-224"></a><span class="hs-comment">--  treasury and reserves in the accounting state, and the rewards and fees in</span><span>
+</span><a name="line-225"></a><span class="hs-comment">--  the ledger state.</span><span>
+</span><a name="line-226"></a><span class="hs-comment">--</span><span>
+</span><a name="line-227"></a><span class="hs-comment">--  We are then forced to proceed by component selected by 'view', chasing their</span><span>
+</span><a name="line-228"></a><span class="hs-comment">--  dependencies through the NEWEPOCH/EPOCH rules and their various subrules:</span><span>
+</span><a name="line-229"></a><span class="hs-comment">--</span><span>
+</span><a name="line-230"></a><span class="hs-comment">--  - 'lvProtParams' are determined only by the value `pp_new`, which depends</span><span>
+</span><a name="line-231"></a><span class="hs-comment">--    only on a subcomponent of `utxoSt'`, goverened by the SNAP rule. But we</span><span>
+</span><a name="line-232"></a><span class="hs-comment">--    can see that the SNAP rule does not modify the proposed new protocol</span><span>
+</span><a name="line-233"></a><span class="hs-comment">--    parameters.</span><span>
+</span><a name="line-234"></a><span class="hs-comment">--  - `lvGenDelegs` is a component of the delegation state (`dstate'`), which is</span><span>
+</span><a name="line-235"></a><span class="hs-comment">--    changed only by the POOLREAP rule. But `POOLREAP` does not modify the</span><span>
+</span><a name="line-236"></a><span class="hs-comment">--    `genDelegs` component.</span><span>
+</span><a name="line-237"></a><span class="hs-comment">--  - 'lvOverlaySched' is not part of the state updated by EPOCH, but is</span><span>
+</span><a name="line-238"></a><span class="hs-comment">--    determined according to the function  'overlaySchedule', which takes as</span><span>
+</span><a name="line-239"></a><span class="hs-comment">--    its inputs the epoch, the set of genesis keys and the protocol parameters.</span><span>
+</span><a name="line-240"></a><span class="hs-comment">--    Per our earlier analysis, the reward update does not modify the set of</span><span>
+</span><a name="line-241"></a><span class="hs-comment">--    genesis keys or the set of protocol paramters, and hence it does not</span><span>
+</span><a name="line-242"></a><span class="hs-comment">--    modify the overlay schedule.</span><span>
+</span><a name="line-243"></a><span class="hs-comment">--  - `lvPoolDistr` is not modified by the EPOCH rule, but is constructed by</span><span>
+</span><a name="line-244"></a><span class="hs-comment">--    looking at the pools (from the snapshot state) and the stake distribution,</span><span>
+</span><a name="line-245"></a><span class="hs-comment">--    which also derives entirely from the snapshots. So these are also not</span><span>
+</span><a name="line-246"></a><span class="hs-comment">--    affected by the reward update.</span><span>
+</span><a name="line-247"></a><span class="hs-comment">--</span><span>
+</span><a name="line-248"></a><span class="hs-comment">--  Lemma 4: RUPD is idempotent. For slots `s`, `s1` we have that:</span><span>
+</span><a name="line-249"></a><span class="hs-comment">--</span><span>
+</span><a name="line-250"></a><span class="hs-comment">--  ```</span><span>
+</span><a name="line-251"></a><span class="hs-comment">--          s                  s1</span><span>
+</span><a name="line-252"></a><span class="hs-comment">--  ru ------------&gt; ru_0 -----------&gt; ru_1 =&gt; ru_0 == ru_1</span><span>
+</span><a name="line-253"></a><span class="hs-comment">--         RUPD               RUPD</span><span>
+</span><a name="line-254"></a><span class="hs-comment">--  ```</span><span>
+</span><a name="line-255"></a><span class="hs-comment">--</span><span>
+</span><a name="line-256"></a><span class="hs-comment">--  Proof: There is only one case in the RUPD rule which modifies the state. It</span><span>
+</span><a name="line-257"></a><span class="hs-comment">--  is predicated upon the reward update being empty, and it sets it to a</span><span>
+</span><a name="line-258"></a><span class="hs-comment">--  non-empty value.</span><span>
+</span><a name="line-259"></a><span class="hs-comment">--</span><span>
+</span><a name="line-260"></a><span class="hs-comment">--  Lemma 5: For successive slots `s`, `s1` such that neither marks the</span><span>
+</span><a name="line-261"></a><span class="hs-comment">--  beginning of a new epoch, TICK is idempotent.</span><span>
+</span><a name="line-262"></a><span class="hs-comment">--</span><span>
+</span><a name="line-263"></a><span class="hs-comment">--  Proof: Since neither slot marks the beginning of a new epoch, in neither</span><span>
+</span><a name="line-264"></a><span class="hs-comment">--  slot does NEWEPOCH make any changes. As such both transitions only involve</span><span>
+</span><a name="line-265"></a><span class="hs-comment">--  changes from RUPD. But by lemma 4, RUPD is idempotent.</span><span>
+</span><a name="line-266"></a><span class="hs-comment">--</span><span>
+</span><a name="line-267"></a><span class="hs-comment">--  At this point, we also formalise our &quot;time-travel&quot; assumption in the form of</span><span>
+</span><a name="line-268"></a><span class="hs-comment">--  an axiom:</span><span>
+</span><a name="line-269"></a><span class="hs-comment">--</span><span>
+</span><a name="line-270"></a><span class="hs-comment">--  Axiom 1: Time-travelling headers. Let `b_0,...b_n` be a chain of valid</span><span>
+</span><a name="line-271"></a><span class="hs-comment">--  blocks starting at our current slot, with `h_0,...,h_n` their corresponding</span><span>
+</span><a name="line-272"></a><span class="hs-comment">--  headers. Let `cs` be our current chain state. Then given:</span><span>
+</span><a name="line-273"></a><span class="hs-comment">--</span><span>
+</span><a name="line-274"></a><span class="hs-comment">--  ```</span><span>
+</span><a name="line-275"></a><span class="hs-comment">--         b_0                                       b_n</span><span>
+</span><a name="line-276"></a><span class="hs-comment">--  cs ------------&gt; cs_0 -----------&gt; cs_{n-1} ------------&gt; cs_n</span><span>
+</span><a name="line-277"></a><span class="hs-comment">--        CHAIN             .....                   CHAIN</span><span>
+</span><a name="line-278"></a><span class="hs-comment">--  ```</span><span>
+</span><a name="line-279"></a><span class="hs-comment">--  and</span><span>
+</span><a name="line-280"></a><span class="hs-comment">--  ```</span><span>
+</span><a name="line-281"></a><span class="hs-comment">--         h_0                                       h_n</span><span>
+</span><a name="line-282"></a><span class="hs-comment">--  cs ------------&gt; hs_0 -----------&gt; hs_{n-1} ------------&gt; hs_n</span><span>
+</span><a name="line-283"></a><span class="hs-comment">--        TICK             .....                    TICK</span><span>
+</span><a name="line-284"></a><span class="hs-comment">--  ```</span><span>
+</span><a name="line-285"></a><span class="hs-comment">--</span><span>
+</span><a name="line-286"></a><span class="hs-comment">--  we have that</span><span>
+</span><a name="line-287"></a><span class="hs-comment">--</span><span>
+</span><a name="line-288"></a><span class="hs-comment">--  ```</span><span>
+</span><a name="line-289"></a><span class="hs-comment">--  view cs_n == view hs_n</span><span>
+</span><a name="line-290"></a><span class="hs-comment">--  ```</span><span>
+</span><a name="line-291"></a><span class="hs-comment">--</span><span>
+</span><a name="line-292"></a><span class="hs-comment">--  We may finally state the main theorem.</span><span>
+</span><a name="line-293"></a><span class="hs-comment">--</span><span>
+</span><a name="line-294"></a><span class="hs-comment">--  Theorem: Let `b_0,...b_n` be a chain of valid blocks starting at our current</span><span>
+</span><a name="line-295"></a><span class="hs-comment">--  slot, with `h_0,...,h_n` their corresponding headers. Let `cs` be our</span><span>
+</span><a name="line-296"></a><span class="hs-comment">--  current chain state. Let `b_e` be the first slot in a new epoch. Let `cs_n`</span><span>
+</span><a name="line-297"></a><span class="hs-comment">--  be as in the axiom above. Then given:</span><span>
+</span><a name="line-298"></a><span class="hs-comment">--</span><span>
+</span><a name="line-299"></a><span class="hs-comment">--  ```</span><span>
+</span><a name="line-300"></a><span class="hs-comment">--       slot b_e</span><span>
+</span><a name="line-301"></a><span class="hs-comment">--  cs ------------&gt; ls'</span><span>
+</span><a name="line-302"></a><span class="hs-comment">--       NEWEPOCH</span><span>
+</span><a name="line-303"></a><span class="hs-comment">--  ```</span><span>
+</span><a name="line-304"></a><span class="hs-comment">--</span><span>
+</span><a name="line-305"></a><span class="hs-comment">--  we have that `view cs_n == view ls'`.</span><span>
+</span><a name="line-306"></a><span class="hs-comment">--</span><span>
+</span><a name="line-307"></a><span class="hs-comment">--  Proof: Apply axiom 1 to translate the chain of blocks into a chain of</span><span>
+</span><a name="line-308"></a><span class="hs-comment">--  headers. Apply lemma 2 on the right of the chain and lemma 5 on the left of</span><span>
+</span><a name="line-309"></a><span class="hs-comment">--  the chain. Apply lemma 3 in the middle.</span><span>
+</span><a name="line-310"></a><span>
+</span><a name="line-311"></a><span class="hs-keyword">newtype</span><span> </span><a name="FutureLedgerViewError"><a href="Shelley.Spec.Ledger.API.Protocol.html#FutureLedgerViewError"><span class="hs-identifier">FutureLedgerViewError</span></a></a><span> </span><a name="local-6989586621679709531"><a href="#local-6989586621679709531"><span class="hs-identifier">crypto</span></a></a><span>
+</span><a name="line-312"></a><span>  </span><span class="hs-glyph">=</span><span> </span><a name="FutureLedgerViewError"><a href="Shelley.Spec.Ledger.API.Protocol.html#FutureLedgerViewError"><span class="hs-identifier">FutureLedgerViewError</span></a></a><span> </span><span class="hs-special">[</span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/small-steps-0.1.0.0/noopt/doc/html/small-steps/src/Control.State.Transition.Extended.html#PredicateFailure"><span class="hs-identifier hs-type">PredicateFailure</span></a><span> </span><span class="hs-special">(</span><a href="Shelley.Spec.Ledger.STS.NewEpoch.html#NEWEPOCH"><span class="hs-identifier hs-type">NEWEPOCH</span></a><span> </span><a href="#local-6989586621679709531"><span class="hs-identifier hs-type">crypto</span></a><span class="hs-special">)</span><span class="hs-special">]</span><span>
+</span><a name="line-313"></a><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Eq</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Show</span><span class="hs-special">)</span><span>
+</span><a name="line-314"></a><span>
+</span><a name="line-315"></a><span class="hs-comment">-- | Anachronistic ledger view</span><span>
+</span><a name="line-316"></a><span class="hs-comment">--</span><span>
+</span><a name="line-317"></a><span class="hs-comment">--   Given a slot within a 2k-slot future window of our current slot (the slot</span><span>
+</span><a name="line-318"></a><span class="hs-comment">--   corresponding to the passed-in 'ShelleyState'), return a 'LedgerView'</span><span>
+</span><a name="line-319"></a><span class="hs-comment">--   appropriate to that slot.</span><span>
+</span><a name="line-320"></a><span class="hs-comment">--</span><span>
+</span><a name="line-321"></a><span class="hs-comment">--   This 'LedgerView' will in fact be valid for the entire epoch containing</span><span>
+</span><a name="line-322"></a><span class="hs-comment">--   that slot. As such (and because we do not store the current slot in the</span><span>
+</span><a name="line-323"></a><span class="hs-comment">--   'ShelleyState')</span><span>
+</span><a name="line-324"></a><span class="hs-identifier">futureLedgerView</span><span> </span><span class="hs-glyph">::</span><span>
+</span><a name="line-325"></a><span>  </span><span class="hs-keyword">forall</span><span> </span><a name="local-6989586621679709540"><a href="#local-6989586621679709540"><span class="hs-identifier">crypto</span></a></a><span> </span><a name="local-6989586621679709541"><a href="#local-6989586621679709541"><span class="hs-identifier">m</span></a></a><span class="hs-operator">.</span><span>
+</span><a name="line-326"></a><span>  </span><span class="hs-special">(</span><span> </span><a href="Shelley.Spec.Ledger.Crypto.html#Crypto"><span class="hs-identifier hs-type">Crypto</span></a><span> </span><a href="#local-6989586621679709540"><span class="hs-identifier hs-type">crypto</span></a><span class="hs-special">,</span><span>
+</span><a name="line-327"></a><span>    </span><span class="hs-identifier hs-type">MonadError</span><span> </span><span class="hs-special">(</span><a href="Shelley.Spec.Ledger.API.Protocol.html#FutureLedgerViewError"><span class="hs-identifier hs-type">FutureLedgerViewError</span></a><span> </span><a href="#local-6989586621679709540"><span class="hs-identifier hs-type">crypto</span></a><span class="hs-special">)</span><span> </span><a href="#local-6989586621679709541"><span class="hs-identifier hs-type">m</span></a><span>
+</span><a name="line-328"></a><span>  </span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
+</span><a name="line-329"></a><span>  </span><a href="Shelley.Spec.Ledger.BaseTypes.html#Globals"><span class="hs-identifier hs-type">Globals</span></a><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><a name="line-330"></a><span>  </span><a href="Shelley.Spec.Ledger.API.Validation.html#ShelleyState"><span class="hs-identifier hs-type">ShelleyState</span></a><span> </span><a href="#local-6989586621679709540"><span class="hs-identifier hs-type">crypto</span></a><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><a name="line-331"></a><span>  </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-slotting-0.1.0.0/noopt/doc/html/cardano-slotting/src/Cardano.Slotting.Slot.html#SlotNo"><span class="hs-identifier hs-type">SlotNo</span></a><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><a name="line-332"></a><span>  </span><a href="#local-6989586621679709541"><span class="hs-identifier hs-type">m</span></a><span> </span><span class="hs-special">(</span><a href="Shelley.Spec.Ledger.API.Protocol.html#LedgerView"><span class="hs-identifier hs-type">LedgerView</span></a><span> </span><a href="#local-6989586621679709540"><span class="hs-identifier hs-type">crypto</span></a><span class="hs-special">)</span><span>
+</span><a name="line-333"></a><a name="futureLedgerView"><a href="Shelley.Spec.Ledger.API.Protocol.html#futureLedgerView"><span class="hs-identifier">futureLedgerView</span></a></a><span> </span><a name="local-6989586621679709552"><a href="#local-6989586621679709552"><span class="hs-identifier">globals</span></a></a><span> </span><a name="local-6989586621679709553"><a href="#local-6989586621679709553"><span class="hs-identifier">ss</span></a></a><span> </span><a name="local-6989586621679709554"><a href="#local-6989586621679709554"><span class="hs-identifier">slot</span></a></a><span> </span><span class="hs-glyph">=</span><span>
+</span><a name="line-334"></a><span>  </span><span class="hs-identifier hs-var">liftEither</span><span>
+</span><a name="line-335"></a><span>    </span><span class="hs-operator hs-var">.</span><span> </span><span class="hs-identifier hs-var">right</span><span> </span><a href="Shelley.Spec.Ledger.API.Protocol.html#view"><span class="hs-identifier hs-var">view</span></a><span>
+</span><a name="line-336"></a><span>    </span><span class="hs-operator hs-var">.</span><span> </span><span class="hs-identifier hs-var">left</span><span> </span><span class="hs-special">(</span><a href="Shelley.Spec.Ledger.API.Protocol.html#FutureLedgerViewError"><span class="hs-identifier hs-var">FutureLedgerViewError</span></a><span> </span><span class="hs-operator hs-var">.</span><span> </span><span class="hs-identifier hs-var">join</span><span class="hs-special">)</span><span>
+</span><a name="line-337"></a><span>    </span><span class="hs-operator hs-var">$</span><span> </span><a href="#local-6989586621679709556"><span class="hs-identifier hs-var">res</span></a><span>
+</span><a name="line-338"></a><span>  </span><span class="hs-keyword">where</span><span>
+</span><a name="line-339"></a><span>    </span><a name="local-6989586621679709555"><a href="#local-6989586621679709555"><span class="hs-identifier">epoch</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-identifier">runIdentity</span><span> </span><span class="hs-operator hs-var">$</span><span> </span><span class="hs-identifier">epochInfoEpoch</span><span> </span><span class="hs-special">(</span><span class="hs-identifier">epochInfo</span><span> </span><a href="#local-6989586621679709552"><span class="hs-identifier hs-var">globals</span></a><span class="hs-special">)</span><span> </span><a href="#local-6989586621679709554"><span class="hs-identifier hs-var">slot</span></a><span>
+</span><a name="line-340"></a><span>    </span><a name="local-6989586621679709556"><a href="#local-6989586621679709556"><span class="hs-identifier">res</span></a></a><span> </span><span class="hs-glyph">=</span><span>
+</span><a name="line-341"></a><span>      </span><span class="hs-identifier hs-var">flip</span><span> </span><span class="hs-identifier hs-var">runReader</span><span> </span><a href="#local-6989586621679709552"><span class="hs-identifier hs-var">globals</span></a><span>
+</span><a name="line-342"></a><span>        </span><span class="hs-operator hs-var">.</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/small-steps-0.1.0.0/noopt/doc/html/small-steps/src/Control.State.Transition.Extended.html#applySTS"><span class="hs-identifier hs-var">applySTS</span></a><span> </span><span class="hs-glyph">@</span><span class="hs-special">(</span><a href="Shelley.Spec.Ledger.STS.NewEpoch.html#NEWEPOCH"><span class="hs-identifier hs-type">NEWEPOCH</span></a><span> </span><a href="#local-6989586621679709540"><span class="hs-identifier hs-type">crypto</span></a><span class="hs-special">)</span><span>
+</span><a name="line-343"></a><span>        </span><span class="hs-operator hs-var">$</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/small-steps-0.1.0.0/noopt/doc/html/small-steps/src/Control.State.Transition.Extended.html#TRC"><span class="hs-identifier hs-var">TRC</span></a><span> </span><span class="hs-special">(</span><a href="#local-6989586621679709557"><span class="hs-identifier hs-var">mkNewEpochEnv</span></a><span class="hs-special">,</span><span> </span><a href="#local-6989586621679709553"><span class="hs-identifier hs-var">ss</span></a><span class="hs-special">,</span><span> </span><a href="#local-6989586621679709555"><span class="hs-identifier hs-var">epoch</span></a><span class="hs-special">)</span><span>
+</span><a name="line-344"></a><span>    </span><a name="local-6989586621679709557"><a href="#local-6989586621679709557"><span class="hs-identifier">mkNewEpochEnv</span></a></a><span> </span><span class="hs-glyph">=</span><span>
+</span><a name="line-345"></a><span>      </span><a href="Shelley.Spec.Ledger.LedgerState.html#NewEpochEnv"><span class="hs-identifier hs-var">NewEpochEnv</span></a><span>
+</span><a name="line-346"></a><span>        </span><a href="#local-6989586621679709554"><span class="hs-identifier hs-var">slot</span></a><span>
+</span><a name="line-347"></a><span>        </span><span class="hs-special">(</span><a href="Shelley.Spec.Ledger.LedgerState.html#getGKeys"><span class="hs-identifier hs-var">getGKeys</span></a><span> </span><a href="#local-6989586621679709553"><span class="hs-identifier hs-var">ss</span></a><span class="hs-special">)</span><span>
+</span><a name="line-348"></a></pre></body></html>
