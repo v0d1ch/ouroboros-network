@@ -84,7 +84,7 @@ data DiffusionTracers = DiffusionTracers {
                                              Socket.SockAddr
                                              (MaybeAddress Socket.SockAddr)
                                              ConnectionTrace)
-    , dtLocalConnectionTracer :: Tracer IO (WithAddr LocalAddress    ConnectionTrace)
+    , dtLocalConnectionTracer :: Tracer IO (WithAddress LocalAddress ConnectionTrace)
     }
 
 
@@ -216,8 +216,9 @@ runDataDiffusion tracers
         localAcceptException :: LocalAddress -> SomeException -> IO ()
         localAcceptException a e = case fromException e of
           Just (e' :: IOException) ->
-            traceWith (WithAddr a `contramap` dtLocalConnectionTracer) $
-              ConnectionTraceAcceptException e'
+            traceWith
+              dtLocalConnectionTracer
+              (WithAddress a (ConnectionTraceAcceptException e'))
           Nothing -> pure ()
 
         acceptException :: Socket.SockAddr -> SomeException -> IO ()

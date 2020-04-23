@@ -10,6 +10,7 @@ module Ouroboros.Network.ConnectionId
   , WithConnectionId' (..)
   , MaybeAddress (..)
   , withKnownRemoteAddress
+  , WithAddress (..)
   ) where
 
 import           Cardano.Prelude (NoUnexpectedThunks (..), Generic,
@@ -64,7 +65,6 @@ data WithConnectionId' localAddr remoteAddr a = WithConnectionId {
 
 type WithConnectionId addr = WithConnectionId' addr addr
 
-
 withKnownRemoteAddress :: WithConnectionId addr a
                        -> WithConnectionId' addr (MaybeAddress addr) a
 withKnownRemoteAddress WithConnectionId { wcConnectionId, wcEvent } =
@@ -72,3 +72,13 @@ withKnownRemoteAddress WithConnectionId { wcConnectionId, wcEvent } =
         wcConnectionId = knownRemoteAddress wcConnectionId,
         wcEvent
       }
+
+
+-- | 'WithAddress' is used for tracing events over local connections (over Unix
+-- sockets or named pipes on Windows).  We don't use `WithConnectionId` just to
+-- save logging output.
+--
+data WithAddress addr a = WithAddress {
+    waAddress :: addr,
+    waEvent   :: a
+  }

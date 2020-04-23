@@ -5,7 +5,6 @@
 --
 module Ouroboros.Network.Connections.Trace
   ( ConnectionTrace (..)
-  , WithAddr (..)
   ) where
 
 import           Control.Exception
@@ -32,16 +31,3 @@ data ConnectionTrace =
     --
     | ConnectionTraceConnectException !IOException
   deriving Show
-
-
--- | 'WithAddr' tracing context for contravariant tracing.
---
-data WithAddr addr a = WithAddr {
-      wiaAddr  :: !addr
-    , wiaEvent :: !a
-    }
-
-
-instance (Show addr, Show a) => Show (WithAddr addr a) where
-    show WithAddr { wiaAddr, wiaEvent } =
-        printf "IP %s %s" (show wiaAddr) (show wiaEvent)

@@ -22,7 +22,6 @@ module Ouroboros.Network.Subscription.Dns
     , SubscriptionTrace (..)
     , DnsTrace (..)
     , WithDomainName (..)
-    , WithAddr (..)
     ) where
 
 import           Control.Exception (IOException)

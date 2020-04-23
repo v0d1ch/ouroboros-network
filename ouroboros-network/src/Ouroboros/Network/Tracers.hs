@@ -56,17 +56,21 @@ data NetworkDNSSubscriptionTracers vNumber addr = NetworkDNSSubscriptionTracers 
       ndstMuxTracer          :: Tracer IO (WithMuxBearer (ConnectionId addr) MuxTrace),
       -- ^ low level mux-network tracer, which logs mux sdu (send and received)
       -- and other low level multiplexing events.
+
       ndstHandshakeTracer    :: Tracer IO (WithMuxBearer (ConnectionId addr)
                                             (TraceSendRecv (Handshake vNumber CBOR.Term))),
       -- ^ handshake protocol tracer; it is important for analysing version
       -- negotation mismatches.
-      ndstConnectionTracer   :: Tracer IO (WithAddr addr ConnectionTrace),
+
+      ndstConnectionTracer   :: Tracer IO (WithConnectionId addr ConnectionTrace),
       -- ^ error policy tracer; must not be 'nullTracer', otherwise all the
       -- exceptions which are not matched by any error policy will be caught
       -- and not logged or rethrown.
+
       ndstSubscriptionTracer :: Tracer IO (WithDomainName (SubscriptionTrace addr)),
       -- ^ subscription tracer; it is infrequent it should not be 'nullTracer'
       -- by default.
+
       ndstDnsTracer          :: Tracer IO (WithDomainName DnsTrace)
       -- ^ dns resolver tracer; it is infrequent it should not be 'nullTracer'
       -- by default.
