@@ -80,7 +80,7 @@ maxConnectionAttemptDelay = 2 -- 2s delay
 -- queue.
 worker
   :: Tracer IO (SubscriptionTrace addr)
-  -> Tracer IO (WithAddr addr ConnectionTrace)
+  -> Tracer IO (WithConnectionId addr ConnectionTrace)
   -> ErrorPolicies
   -> NonEmpty (ConnectionId addr, Bind)
   -- ^ Targets for subscription. Each one indicates a local address and a remote
@@ -101,16 +101,16 @@ worker
   -- before attempting a connection to the next target.
   -> request Local
   -> IO x
-worker tr errTrace errPolicies targets valency delay sn connections req = do
+worker tr connTrace errPolicies targets valency delay sn connections req = do
   q <- newTQueueIO
   atomically $ forM_ (NE.toList targets) (writeTQueue q)
   let numThreads = max 1 (min (fromIntegral valency) (NE.length targets))
   -- Write it out like this so that we can convince GHC that this program
   -- really does not ever return (hence `IO x`).
   (impossible, _) <- concurrently
-    (workerOneTarget tr errTrace errPolicies delay q sn connections req)
+    (workerOneTarget tr connTrace errPolicies delay q sn connections req)
     (forConcurrently_ [1..(numThreads-1)] $ \_ ->
-       workerOneTarget tr errTrace errPolicies delay q sn connections req)
+       workerOneTarget tr connTrace errPolicies delay q sn connections req)
   absurd impossible
 
 -- | Worker for one subscription target sequence.
@@ -121,7 +121,7 @@ worker tr errTrace errPolicies targets valency delay sn connections req = do
 --
 workerOneTarget
   :: Tracer IO (SubscriptionTrace addr)
-  -> Tracer IO (WithAddr addr ConnectionTrace)
+  -> Tracer IO (WithConnectionId addr ConnectionTrace)
   -> ErrorPolicies
   -> DiffTime
   -> TQueue (ConnectionId addr, Bind)
@@ -148,12 +148,16 @@ workerOneTarget tr connTrace errPolicies delay q sn connections req = mask $ \re
     NotAcquired err ->
       case evalErrorPolicies err (epConErrorPolicies errPolicies) of
         Just Throw -> do
-          traceWith connTrace $ WithAddr (remoteAddress connectionId)
-                                         (ConnectionTraceFatalApplicationException err)
+          traceWith connTrace
+            $ WithConnectionId
+                connectionId
+                (ConnectionTraceFatalApplicationException err)
           throwM err
         _ ->
-          traceWith connTrace $ WithAddr (remoteAddress connectionId)
-                                         (ConnectionTraceApplicationException err)
+          traceWith connTrace
+            $ WithConnectionId
+                connectionId
+                (ConnectionTraceApplicationException err)
     -- The connection was established (acquired) but rejected, so it's our
     -- responsibility to close it.
     Acquired (Rejected (Concurrent.DomainSpecific _reason) acquiredRes) -> do

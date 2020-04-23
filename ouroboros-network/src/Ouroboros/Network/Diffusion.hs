@@ -16,7 +16,11 @@ module Ouroboros.Network.Diffusion
   , simpleSingletonVersions
   , IPSubscriptionTarget (..)
   , DnsSubscriptionTarget (..)
-  , ConnectionId (..)
+  , ConnectionId' (..)
+  , ConnectionId
+  , MaybeAddress (..)
+  , WithConnectionId' (..)
+  , WithConnectionId
   )
   where
 
@@ -33,6 +37,7 @@ import           Network.Socket (AddrInfo)
 import qualified Network.Socket as Socket
 
 import           Ouroboros.Network.ConnectionId
+import           Ouroboros.Network.Connections.Trace
 import           Ouroboros.Network.Connections.Types (Connections,
                    Provenance (..))
 import           Ouroboros.Network.Connections.Concurrent as Concurrent
@@ -75,8 +80,11 @@ data DiffusionTracers = DiffusionTracers {
       -- ^ Handshake protocol tracer
     , dtHandshakeLocalTracer   :: Tracer IO NodeToClient.HandshakeTr
       -- ^ Handshake protocol tracer for local clients
-    , dtErrorPolicyTracer      :: Tracer IO (WithAddr Socket.SockAddr ConnectionTrace)
-    , dtLocalErrorPolicyTracer :: Tracer IO (WithAddr LocalAddress    ConnectionTrace)
+    , dtConnectionTracer      :: Tracer IO (WithConnectionId'
+                                             Socket.SockAddr
+                                             (MaybeAddress Socket.SockAddr)
+                                             ConnectionTrace)
+    , dtLocalConnectionTracer :: Tracer IO (WithAddr LocalAddress    ConnectionTrace)
     }
 
 
@@ -175,7 +183,7 @@ runDataDiffusion tracers
           (NetworkServerTracers
             dtMuxLocalTracer
             dtHandshakeLocalTracer
-            dtErrorPolicyTracer)
+            dtConnectionTracer)
           ((fmap . fmap) SomeResponderApplication (daLocalResponderApplication applications))
 
         -- Note-to-node connections request: for a PeerConnection we do the
@@ -188,28 +196,34 @@ runDataDiffusion tracers
           (NetworkServerTracers
             dtMuxTracer
             dtHandshakeTracer
-            dtErrorPolicyTracer)
+            dtConnectionTracer)
           ((fmap . fmap) SomeResponderApplication (daResponderApplication applications))
         -- IP or DNS subscription requests are locally-initiated (requests
         -- from subscribers to _us_ are `PeerConnection` above.
         connectionRequest IpSubscriptionConnection  = SomeVersionedInitiatorApp
-          (NetworkConnectTracers dtMuxTracer dtHandshakeTracer)
+          (NetworkConnectTracers
+            dtMuxTracer
+            dtHandshakeTracer
+            (withKnownRemoteAddress `contramap` dtConnectionTracer))
           (daInitiatorApplication applications)
         connectionRequest DnsSubscriptionConnection = SomeVersionedInitiatorApp
-          (NetworkConnectTracers dtMuxTracer dtHandshakeTracer)
+          (NetworkConnectTracers
+            dtMuxTracer
+            dtHandshakeTracer
+            (withKnownRemoteAddress `contramap` dtConnectionTracer))
           (daInitiatorApplication applications)
 
         localAcceptException :: LocalAddress -> SomeException -> IO ()
         localAcceptException a e = case fromException e of
           Just (e' :: IOException) ->
-            traceWith (WithAddr a `contramap` dtLocalErrorPolicyTracer) $
+            traceWith (WithAddr a `contramap` dtLocalConnectionTracer) $
               ConnectionTraceAcceptException e'
           Nothing -> pure ()
 
         acceptException :: Socket.SockAddr -> SomeException -> IO ()
         acceptException a e = case fromException e of
           Just (e' :: IOException) ->
-            traceWith (WithAddr a `contramap` dtErrorPolicyTracer) $
+            traceWith (WithConnectionId (ConnectionId a UnknownAddress) `contramap` dtConnectionTracer) $
               ConnectionTraceAcceptException e'
           Nothing -> pure ()
 
@@ -272,8 +286,8 @@ runDataDiffusion tracers
                      , dtMuxLocalTracer
                      , dtHandshakeTracer
                      , dtHandshakeLocalTracer
-                     , dtErrorPolicyTracer
-                     , dtLocalErrorPolicyTracer
+                     , dtConnectionTracer
+                     , dtLocalConnectionTracer
                      } = tracers
 
     initiatorLocalAddresses :: LocalAddresses
@@ -313,7 +327,7 @@ runDataDiffusion tracers
         Nothing -> pure ()
         Just connIds -> Subscription.worker
           (contramap (WithIPList initiatorLocalAddresses (ispIps daIpProducers)) dtIpSubscriptionTracer)
-          dtErrorPolicyTracer
+          (withKnownRemoteAddress `contramap` dtConnectionTracer)
           errorPolicy
           ((,Bind) <$> connIds)
           (ispValency daIpProducers)
@@ -339,8 +353,8 @@ runDataDiffusion tracers
         -- TODO: add a log warning message.  This could be a misconfiguration.
         Nothing -> pure ()
         Just connIds -> Subscription.worker
-          (contramap (WithDomainName (dstDomain target)) dtDnsSubscriptionTracer)
-          dtErrorPolicyTracer
+          (WithDomainName (dstDomain target) `contramap` dtDnsSubscriptionTracer)
+          (withKnownRemoteAddress `contramap` dtConnectionTracer)
           errorPolicy
           ((,Bind) <$> connIds)
           (dstValency target)

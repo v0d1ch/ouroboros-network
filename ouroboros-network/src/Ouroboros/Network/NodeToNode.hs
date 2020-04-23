@@ -43,7 +43,9 @@ module Ouroboros.Network.NodeToNode (
   , nullNetworkDNSSubscriptionTracers
 
   -- * Re-exports
-  , ConnectionId (..)
+  , ConnectionId
+  , ConnectionId' (..)
+  , MaybeAddress (..)
   , RemoteConnectionId
   , ProtocolLimitFailure
   , Handshake
@@ -63,7 +65,8 @@ module Ouroboros.Network.NodeToNode (
   , DnsTrace (..)
   , ConnectionTrace (..)
   , WithDomainName (..)
-  , WithAddr (..)
+  , WithConnectionId
+  , WithConnectionId' (..)
   , HandshakeTr
   ) where
 
@@ -81,6 +84,7 @@ import           Network.Mux (WithMuxBearer (..))
 import qualified Network.Socket as Socket
 
 import           Ouroboros.Network.ConnectionId
+import           Ouroboros.Network.Connections.Trace
 import           Ouroboros.Network.Connections.Types (Connections)
 import qualified Ouroboros.Network.Connections.Concurrent as Connection
 import           Ouroboros.Network.Driver (TraceSendRecv(..))

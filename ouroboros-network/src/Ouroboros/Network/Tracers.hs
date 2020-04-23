@@ -11,8 +11,9 @@ import qualified Codec.CBOR.Term as CBOR
 
 import           Network.Mux.Trace
 
+import           Ouroboros.Network.ConnectionId
+import           Ouroboros.Network.Connections.Trace
 import           Ouroboros.Network.Driver (TraceSendRecv)
-import           Ouroboros.Network.ErrorPolicy
 import           Ouroboros.Network.Protocol.Handshake.Type
 import           Ouroboros.Network.Socket (ConnectionId)
 import           Ouroboros.Network.Subscription.Ip
@@ -28,10 +29,11 @@ data NetworkSubscriptionTracers withIPList addr vNumber = NetworkSubscriptionTra
                                             (TraceSendRecv (Handshake vNumber CBOR.Term))),
       -- ^ handshake protocol tracer; it is important for analysing version
       -- negotation mismatches.
-      nsErrorPolicyTracer  :: Tracer IO (WithAddr addr ConnectionTrace),
-      -- ^ error policy tracer; must not be 'nullTracer', otherwise all the
+      nsConnectionTracer   :: Tracer IO (WithConnectionId addr ConnectionTrace),
+      -- ^ connection tracer; must not be 'nullTracer', otherwise all the
       -- exceptions which are not matched by any error policy will be caught
       -- and not logged or rethrown.
+
       nsSubscriptionTracer :: Tracer IO (withIPList (SubscriptionTrace addr))
       -- ^ subscription tracers; it is infrequent it should not be 'nullTracer'
       -- by default.
@@ -44,7 +46,7 @@ nullNetworkSubscriptionTracers :: NetworkSubscriptionTracers withIPList addr vNu
 nullNetworkSubscriptionTracers = NetworkSubscriptionTracers {
       nsMuxTracer          = nullTracer,
       nsHandshakeTracer    = nullTracer,
-      nsErrorPolicyTracer  = nullTracer,
+      nsConnectionTracer   = nullTracer,
       nsSubscriptionTracer = nullTracer
     }
 
@@ -58,7 +60,7 @@ data NetworkDNSSubscriptionTracers vNumber addr = NetworkDNSSubscriptionTracers 
                                             (TraceSendRecv (Handshake vNumber CBOR.Term))),
       -- ^ handshake protocol tracer; it is important for analysing version
       -- negotation mismatches.
-      ndstErrorPolicyTracer  :: Tracer IO (WithAddr addr ConnectionTrace),
+      ndstConnectionTracer   :: Tracer IO (WithAddr addr ConnectionTrace),
       -- ^ error policy tracer; must not be 'nullTracer', otherwise all the
       -- exceptions which are not matched by any error policy will be caught
       -- and not logged or rethrown.
@@ -75,7 +77,7 @@ nullNetworkDNSSubscriptionTracers :: NetworkDNSSubscriptionTracers vNumber peeri
 nullNetworkDNSSubscriptionTracers = NetworkDNSSubscriptionTracers {
       ndstMuxTracer          = nullTracer,
       ndstHandshakeTracer    = nullTracer,
-      ndstErrorPolicyTracer  = nullTracer,
+      ndstConnectionTracer   = nullTracer,
       ndstSubscriptionTracer = nullTracer,
       ndstDnsTracer          = nullTracer
     }

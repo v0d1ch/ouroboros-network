@@ -43,14 +43,16 @@ module Ouroboros.Network.NodeToClient (
   , LocalAddress
 
   -- * Re-exports
-  , ConnectionId (..)
+  , ConnectionId
+  , ConnectionId' (..)
   , LocalConnectionId
   , ErrorPolicies (..)
   , networkErrorPolicies
   , nullErrorPolicies
   , ErrorPolicy (..)
   , ConnectionTrace (..)
-  , WithAddr (..)
+  , WithConnectionId
+  , WithConnectionId' (..)
   , SuspendDecision (..)
   , TraceSendRecv (..)
   , ProtocolLimitFailure
@@ -77,10 +79,11 @@ import           Codec.Serialise (Serialise (..), DeserialiseFailure)
 import           Network.Mux (WithMuxBearer (..))
 
 import           Ouroboros.Network.ConnectionId
+import           Ouroboros.Network.Connections.Socket.Client (Bind(NoBind))
+import           Ouroboros.Network.Connections.Trace
 import           Ouroboros.Network.Connections.Types ( Connections
                                                      , Provenance (..)
                                                      )
-import           Ouroboros.Network.Connections.Socket.Client (Bind (..))
 import qualified Ouroboros.Network.Connections.Concurrent as Connection
 import           Ouroboros.Network.Driver (TraceSendRecv(..))
 import           Ouroboros.Network.Driver.Limits (ProtocolLimitFailure)
@@ -299,7 +302,7 @@ subscriptionWorker snocket tracers
     withConnections cspErrorPolicies snocket localConnectionRequest $ \connections ->
       Subscription.worker
         (Identity `contramap` nsSubscriptionTracer tracers)
-        (nsErrorPolicyTracer tracers)
+        (nsConnectionTracer tracers)
         cspErrorPolicies
         ((ConnectionId cspAddress cspAddress, NoBind) :| [])
         1
@@ -315,7 +318,8 @@ subscriptionWorker snocket tracers
       SomeVersionedInitiatorApp
         (NetworkConnectTracers { 
           nctMuxTracer = nsMuxTracer tracers,
-          nctHandshakeTracer = nsHandshakeTracer tracers
+          nctHandshakeTracer = nsHandshakeTracer tracers,
+          nctConnectionTracer = nsConnectionTracer tracers
         })
         initiatorApplication
 

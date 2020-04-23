@@ -20,7 +20,8 @@ module Ouroboros.Network.Socket (
     -- server doesn't allow outgoing connections, for example).
     -- TODO rename
       ConnectionData (..)
-    , ConnectionId (..)
+    , ConnectionId
+    , ConnectionId' (..)
     , SomeVersionedApplication (..)
     , SomeResponderApplication (..)
     , RejectConnection (..)
@@ -245,14 +246,16 @@ data NetworkServerTracers addr vNumber = NetworkServerTracers {
       nstMuxTracer         :: Tracer IO (Mx.WithMuxBearer (ConnectionId addr) Mx.MuxTrace),
       -- ^ low level mux-network tracer, which logs mux sdu (send and received)
       -- and other low level multiplexing events.
+
       nstHandshakeTracer   :: Tracer IO (Mx.WithMuxBearer (ConnectionId addr)
                                           (TraceSendRecv (Handshake vNumber CBOR.Term))),
       -- ^ handshake protocol tracer; it is important for analysing version
       -- negotation mismatches.
-      nstConnectionTracer :: Tracer IO (WithConnectionId addr ConnectionTrace)
-      -- ^ error policy tracer; must not be 'nullTracer', otherwise all the
-      -- exceptions which are not matched by any error policy will be caught
-      -- and not logged or rethrown.
+
+      nstConnectionTracer :: Tracer IO (WithConnectionId' addr (MaybeAddress addr) ConnectionTrace)
+    -- ^ trace 'ConnectionTrace' events which happen either in the life time of
+    -- a connection or in the accept loop.  In the former case we don't know the
+    -- remote address, that's why we use 'MaybeAddress'.
     }
 
 nullNetworkServerTracers :: NetworkServerTracers addr vNumber
@@ -523,7 +526,13 @@ incomingConnection sn
   -- Sadly, the type signature _is_ needed. io-sim-classes is defined such
   -- that the `m` type is ambiguous without it.
   statusVar <- atomically (newTVar Running :: STM IO (StrictTVar IO ConnectionStatus))
-  let connectionHandle = ConnectionHandle { status = readTVar statusVar }
+
+  let connectionTracer :: Tracer IO ConnectionTrace
+      connectionTracer =
+        WithConnectionId (knownRemoteAddress connid)
+        `contramap` nstConnectionTracer
+
+      connectionHandle = ConnectionHandle { status = readTVar statusVar }
       action = mask $ \restore -> do
         result <- try (restore runResponder)
         case result of
@@ -531,14 +540,14 @@ incomingConnection sn
             atomically (writeTVar statusVar (Finished (Just exception)))
             case evalErrorPolicies exception (epAppErrorPolicies errorPolicies) of
               Just Throw -> do
-                traceWith nstConnectionTracer
-                          (WithConnectionId connid
-                            (ConnectionTraceFatalApplicationException exception))
+                traceWith
+                  connectionTracer
+                  (ConnectionTraceFatalApplicationException exception)
                 throwIO exception
               _ ->
-                traceWith nstConnectionTracer
-                          (WithConnectionId connid
-                            (ConnectionTraceApplicationException exception))
+                traceWith
+                  connectionTracer
+                  (ConnectionTraceApplicationException exception)
           Right _ -> atomically (writeTVar statusVar (Finished Nothing))
       -- This is the action to run for this connection.
       -- Does version negotiation, sets up mux, and starts it.
@@ -631,7 +640,7 @@ withServerNode sn tracers addr versionDataCodec acceptVersion versions errorPoli
         (acceptLoop sn connections boundAddr WithServerNodeRequest
           -- TODO: We should use a type which allows to omit remote address, since we
           -- don't know it.
-          (acceptException (ConnectionId boundAddr boundAddr))
+          (acceptException (ConnectionId boundAddr UnknownAddress))
           (Snocket.accept sn socket))
         (k boundAddr)
 
@@ -653,7 +662,7 @@ withServerNode sn tracers addr versionDataCodec acceptVersion versions errorPoli
         connid
         socket
 
-    acceptException :: ConnectionId addr -> SomeException -> IO ()
+    acceptException :: ConnectionId' addr (MaybeAddress addr) -> SomeException -> IO ()
     acceptException connId e = case fromException e of
       Just (e' :: IOException) -> traceWith
         (WithConnectionId connId `contramap` nstConnectionTracer tracers)
