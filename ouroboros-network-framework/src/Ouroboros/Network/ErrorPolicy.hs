@@ -13,9 +13,6 @@ module Ouroboros.Network.ErrorPolicy
   , ErrorPolicy (..)
   , evalErrorPolicy
   , evalErrorPolicies
-  , CompleteApplication
-  , CompleteApplicationResult (..)
-  , Result (..)
 
   , SuspendDecision (..)
   ) where
@@ -146,51 +143,3 @@ data ConnectionOrApplicationExceptionTrace err =
      -- | Trace of exception thrown by an application
    | ApplicationExceptionTrace err
    deriving (Show, Functor)
-
-
--- | Complete a connection, which receive application result (or exception).
---
-type CompleteApplication m s addr r =
-    Result addr r -> s -> STM m (CompleteApplicationResult m addr s)
-
-
--- | Result of the connection thread.  It's either result of an application, or
--- an exception thrown by it.
---
-data Result addr r where
-     ApplicationResult
-       :: !Time
-       -> !addr
-       -> !r
-       -> Result addr r
-
-     Connected
-       :: !Time
-       -> !addr
-       -> Result addr r
-
-     ConnectionError
-       :: Exception e
-       => !Time
-       -> !addr
-       -> !e
-       -> Result addr r
-
-     ApplicationError
-       :: Exception e
-       => !Time
-       -> !addr
-       -> !e
-       -> Result addr r
-
-
-data CompleteApplicationResult m addr s =
-    CompleteApplicationResult {
-        carState   :: !s,
-        -- ^ new state
-        carThreads :: Set (Async m ()),
-        -- ^ threads to kill
-        carTrace   :: Maybe (WithAddr addr ConnectionTrace)
-        -- ^ trace points
-      }
-  deriving Functor
