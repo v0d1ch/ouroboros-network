@@ -13,6 +13,7 @@ module Ouroboros.Network.Protocol.ChainSync.ExamplesPipelined
     ) where
 
 import           Control.Monad.Class.MonadSTM.Strict
+import           Data.Word
 
 import           Network.TypedProtocol.Pipelined
 
@@ -239,7 +240,7 @@ chainSyncClientPipelinedMax
          ( HasHeader header
          , MonadSTM m
          )
-      => Int
+      => Word32
       -- ^ maximal number of outstanding requests
       -> StrictTVar m (Chain header)
       -> Client header (Tip header) m a
@@ -248,7 +249,7 @@ chainSyncClientPipelinedMax omax = chainSyncClientPipelined (constantPipelineDec
 
 -- | A pipelined chain-sycn client that pipelines at most @omax@ requests and
 -- always tries to collect any replies as soon as they are available.   This
--- keeps pipelineing to bare minimum, and gives maximum choice to the
+-- keeps pipelining to bare minimum, and gives maximum choice to the
 -- environment (drivers).
 --
 -- If @omax@ is equal to 3 the communication will look like (if the client is
@@ -292,7 +293,7 @@ chainSyncClientPipelinedMin
          ( HasHeader header
          , MonadSTM m
          )
-      => Int
+      => Word32
       -- ^ maximal number of outstanding requests
       -> StrictTVar m (Chain header)
       -> Client header (Tip header) m a
@@ -305,9 +306,9 @@ chainSyncClientPipelinedLowHigh
          ( HasHeader header
          , MonadSTM m
          )
-      => Int
+      => Word32
       -- ^ low mark
-      -> Int
+      -> Word32
       -- ^ high mark
       -> StrictTVar m (Chain header)
       -> Client header (Tip header) m a

@@ -1,4 +1,4 @@
-resolver: https://raw.githubusercontent.com/input-output-hk/cardano-prelude/3893f21db1665e7bab9e8c6504c547fc7c28f98c/snapshot.yaml
+resolver: https://raw.githubusercontent.com/input-output-hk/cardano-prelude/91f357abae16099858193b999807323ca9a7c63c/snapshot.yaml
 
 packages:
   - ./typed-protocols
@@ -12,6 +12,7 @@ packages:
   - ./ouroboros-consensus/ouroboros-consensus-mock
   - ./ouroboros-consensus-byron
   - ./ouroboros-consensus-byronspec
+  - ./ouroboros-consensus-shelley
   - ./ouroboros-consensus-cardano
   - ./io-sim
   - ./io-sim-classes
@@ -35,12 +36,12 @@ flags:
 
 extra-deps:
   - git: https://github.com/input-output-hk/iohk-monitoring-framework
-    commit: dd30455144e11efb435619383ba84ce02aee720d
+    commit: cda172dac4428058ebcb832673f379c9f92d411e
     subdirs:
       - contra-tracer
 
   - git: https://github.com/input-output-hk/cardano-base
-    commit: f869bee9b08ba1044b1476737c9d65083e1c6c7f
+    commit: 5035c9ed95e9d47f050314a7d96b1b2043288f61
     subdirs:
       - binary
       - binary/test
@@ -48,11 +49,14 @@ extra-deps:
       - slotting
 
   - git: https://github.com/input-output-hk/cardano-ledger-specs
-    commit: 2500720815d30a29c95d153b3d97b1e0307f6906
+    commit: 52afaab4fe99df8fff1e7666e665a923118cfc53
     subdirs:
-      - byron/semantics/executable-spec
-      - byron/ledger/executable-spec
       - byron/chain/executable-spec
+      - byron/ledger/executable-spec
+      - semantics/executable-spec
+      - shelley/chain-and-ledger/dependencies/non-integer
+      - shelley/chain-and-ledger/executable-spec
+      - shelley/chain-and-ledger/executable-spec/test
 
   # Needed for `cardano-ledger-specs`
   - git: https://github.com/input-output-hk/goblins
@@ -61,7 +65,7 @@ extra-deps:
   - gray-code-0.3.1
 
   - git: https://github.com/input-output-hk/cardano-ledger
-    commit: 1d28218397913ed2c832a780037fc5c7d5ab3c09
+    commit: 9ee8a6630a8719ba54554c3ce10c555bf5dff4cc
     subdirs:
       - cardano-ledger
       - cardano-ledger/test
@@ -69,10 +73,13 @@ extra-deps:
       - crypto/test
 
   - git: https://github.com/input-output-hk/cardano-prelude
-    commit: 3893f21db1665e7bab9e8c6504c547fc7c28f98c
+    commit: 91f357abae16099858193b999807323ca9a7c63c
     subdirs:
       - .
       - test
+
+  - git: https://github.com/input-output-hk/cardano-crypto/
+    commit: 2547ad1e80aeabca2899951601079408becbc92c
 
   - git: https://github.com/advancedtelematic/quickcheck-state-machine
     commit: 2bf37003ca1c0c57e4354610d7c47da0a0e77b5c
@@ -84,10 +91,11 @@ extra-deps:
   - hedgehog-quickcheck-0.1.1
   - markov-chain-usage-model-0.0.0  # Needed for `quickcheck-state-machine`
   - splitmix-0.0.2
-  - tasty-hedgehog-1.0.0.1
+  - tasty-hedgehog-1.0.0.2
   - Unique-0.4.7.6
   - statistics-linreg-0.3
   - network-3.1.0.1
+  - quiet-0.2
 
   # Windows only
   - Win32-2.6.2.0

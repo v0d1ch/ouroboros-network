@@ -7,8 +7,6 @@
 module Ouroboros.Consensus.Storage.ImmutableDB.API
   ( ImmutableDB (..)
   , closeDB
-  , isOpen
-  , reopen
   , getTip
   , getBlockComponent
   , getEBBComponent
@@ -64,7 +62,6 @@ import           Ouroboros.Consensus.Storage.ImmutableDB.Types
 --
 -- The database can be explicitly closed, but can also be automatically closed
 -- in case of an 'Ouroboros.Consensus.Storage.ImmutableDB.Types.UnexpectedError'.
--- Use 'reopen' to reopen the database.
 data ImmutableDB hash m = ImmutableDB
   { -- | Close the database.
     --
@@ -75,23 +72,6 @@ data ImmutableDB hash m = ImmutableDB
       :: HasCallStack => m ()
       -- TODO remove this operation from the public API and expose it using an
       -- internal record so it can be used by 'withDB'.
-
-    -- | Return 'True' when the database is open.
-  , isOpen_
-      :: HasCallStack => m Bool
-
-    -- | When the database was closed, manually or because of an
-    -- 'Ouroboros.Consensus.Storage.ImmutableDB.Types.UnexpectedError' during an
-    -- operation, recover using the given 'ValidationPolicy' and reopen it at
-    -- the most recent epoch.
-    --
-    -- During validation, the database will be truncated to the last valid
-    -- block or EBB stored in it. The tip of the database will never point to
-    -- an unfilled slot or missing EBB.
-    --
-    -- Throws an 'OpenDBError' if the database is open.
-  , reopen_
-      :: HasCallStack => ValidationPolicy -> m ()
 
     -- | Return the tip of the database.
     --
@@ -244,16 +224,6 @@ data Iterator hash m a = Iterator
     -- 'iteratorClose'.
     iteratorNext    :: HasCallStack => m (IteratorResult a)
 
-    -- | Read the blob the 'Iterator' is currently pointing.
-    --
-    -- This operation is idempotent.
-    --
-    -- The next time 'iteratorNext' is called, the same 'IteratorResult' will
-    -- be returned.
-    --
-    -- Throws a 'ClosedDBError' if the database is closed.
-  , iteratorPeek    :: HasCallStack => m (IteratorResult a)
-
     -- | Return the epoch number (in case of an EBB) or slot number and hash
     -- of the next blob, if there is a next. Return 'Nothing' if not.
     --
@@ -272,7 +242,7 @@ instance NoUnexpectedThunks (Iterator hash m a) where
   whnfNoUnexpectedThunks _ctxt _itr = return NoUnexpectedThunks
 
 -- | Variant of 'traverse' instantiated to @'Iterator' hash m@ that executes
--- the monadic function when calling 'iteratorNext' and 'iteratorPeek'.
+-- the monadic function when calling 'iteratorNext'.
 traverseIterator
   :: Monad m
   => (a -> m b)
@@ -280,7 +250,6 @@ traverseIterator
   -> Iterator hash m b
 traverseIterator f itr = Iterator{
       iteratorNext    = iteratorNext itr >>= traverse f
-    , iteratorPeek    = iteratorPeek itr >>= traverse f
     , iteratorHasNext = iteratorHasNext itr
     , iteratorClose   = iteratorClose itr
     }
@@ -315,18 +284,6 @@ closeDB
   => ImmutableDB hash m
   -> m ()
 closeDB = closeDB_
-
-isOpen
-  :: HasCallStack
-  => ImmutableDB hash m
-  -> m Bool
-isOpen = isOpen_
-
-reopen
-  :: HasCallStack
-  => ImmutableDB hash m
-  -> ValidationPolicy -> m ()
-reopen = reopen_
 
 getTip
   :: HasCallStack

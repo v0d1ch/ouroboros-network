@@ -1,4 +1,3 @@
-{-# LANGUAGE BangPatterns        #-}
 {-# LANGUAGE GADTs               #-}
 {-# LANGUAGE LambdaCase          #-}
 {-# LANGUAGE NamedFieldPuns      #-}
@@ -87,6 +86,7 @@
 --     index file.
 module Ouroboros.Consensus.Storage.ImmutableDB.Impl
   ( withDB
+  , ImmutableDbArgs (..)
     -- * Internals for testing purposes
   , openDBInternal
   , Internal (..)
@@ -97,8 +97,7 @@ import           Prelude hiding (truncate)
 
 import           Control.Monad (replicateM_, when)
 import           Control.Monad.Except (runExceptT)
-import           Control.Monad.State.Strict (StateT (..), get, lift, modify,
-                     put)
+import           Control.Monad.State.Strict (get, lift, modify, put)
 import           Control.Tracer (Tracer, traceWith)
 import           Data.ByteString.Builder (Builder)
 import           Data.Functor (($>))
@@ -108,11 +107,10 @@ import           Cardano.Slotting.Block
 import           Cardano.Slotting.Slot
 
 import           Ouroboros.Consensus.Block (IsEBB (..))
-import           Ouroboros.Consensus.BlockchainTime (BlockchainTime,
-                     getCurrentSlot)
 import           Ouroboros.Consensus.Util (SomePair (..))
 import           Ouroboros.Consensus.Util.IOLike
-import           Ouroboros.Consensus.Util.ResourceRegistry (ResourceRegistry)
+import           Ouroboros.Consensus.Util.ResourceRegistry (ResourceRegistry,
+                     runWithTempRegistry)
 
 import           Ouroboros.Consensus.Storage.Common
 import           Ouroboros.Consensus.Storage.FS.API
@@ -159,24 +157,28 @@ import           Ouroboros.Consensus.Storage.ImmutableDB.Parser
 -- __Note__: To be used in conjunction with 'withDB'.
 withDB
   :: forall m h hash e a.
-     (HasCallStack, IOLike m, Eq hash, NoUnexpectedThunks hash)
-  => ResourceRegistry m
-  -> HasFS m h
-  -> ChunkInfo
-  -> HashInfo hash
-  -> ValidationPolicy
-  -> ChunkFileParser e m (BlockSummary hash) hash
-  -> Tracer m (TraceEvent e hash)
-  -> Index.CacheConfig
-  -> BlockchainTime m
+     (HasCallStack, IOLike m, Eq hash, NoUnexpectedThunks hash, Eq h)
+  => ImmutableDbArgs m h hash e
   -> (ImmutableDB hash m -> m a)
   -> m a
-withDB registry hasFS chunkInfo hashInfo valPol parser tracer cacheConfig btime =
-    bracket open closeDB
+withDB args = bracket open closeDB
   where
-    open = fst <$>
-      openDBInternal registry hasFS chunkInfo hashInfo valPol parser tracer
-        cacheConfig btime
+    open = fst <$> openDBInternal args
+
+{------------------------------------------------------------------------------
+  ImmutableDB arguments
+------------------------------------------------------------------------------}
+
+data ImmutableDbArgs m h hash e = ImmutableDbArgs
+    { registry    :: ResourceRegistry m
+    , hasFS       :: HasFS m h
+    , chunkInfo   :: ChunkInfo
+    , hashInfo    :: HashInfo hash
+    , tracer      :: Tracer m (TraceEvent e hash)
+    , cacheConfig :: Index.CacheConfig
+    , valPol      :: ValidationPolicy
+    , parser      :: ChunkFileParser e m (BlockSummary hash) hash
+    }
 
 {------------------------------------------------------------------------------
   Exposed internals and/or extra functionality for testing purposes
@@ -210,8 +212,6 @@ mkDBRecord :: (IOLike m, Eq hash, NoUnexpectedThunks hash)
            => ImmutableDBEnv m hash -> ImmutableDB hash m
 mkDBRecord dbEnv = ImmutableDB
     { closeDB_                = closeDBImpl                dbEnv
-    , isOpen_                 = isOpenImpl                 dbEnv
-    , reopen_                 = reopenImpl                 dbEnv
     , getTip_                 = getTipImpl                 dbEnv
     , getBlockComponent_      = getBlockComponentImpl      dbEnv
     , getEBBComponent_        = getEBBComponentImpl        dbEnv
@@ -227,34 +227,21 @@ mkDBRecord dbEnv = ImmutableDB
 -- * Non-bracketed, as @quickcheck-state-machine@ doesn't support that.
 openDBInternal
   :: forall m h hash e.
-     (HasCallStack, IOLike m, Eq hash, NoUnexpectedThunks hash)
-  => ResourceRegistry m  -- ^ The ImmutableDB will be in total control of
-                         -- this, not to be used for other resources.
-  -> HasFS m h
-  -> ChunkInfo
-  -> HashInfo hash
-  -> ValidationPolicy
-  -> ChunkFileParser e m (BlockSummary hash) hash
-  -> Tracer m (TraceEvent e hash)
-  -> Index.CacheConfig
-  -> BlockchainTime m
+     (HasCallStack, IOLike m, Eq hash, NoUnexpectedThunks hash, Eq h)
+  => ImmutableDbArgs m h hash e
   -> m (ImmutableDB hash m, Internal hash m)
-openDBInternal registry hasFS chunkInfo hashInfo valPol parser tracer
-               cacheConfig btime = do
-    currentSlot <- atomically $ getCurrentSlot btime
+openDBInternal ImmutableDbArgs {..} = runWithTempRegistry $ do
     let validateEnv = ValidateEnv
           { hasFS
           , chunkInfo
           , hashInfo
           , parser
           , tracer
-          , registry
           , cacheConfig
-          , currentSlot
           }
-    !ost  <- validateAndReopen validateEnv valPol
+    ost <- validateAndReopen validateEnv registry valPol
 
-    stVar <- newMVar (DbOpen ost)
+    stVar <- lift $ newMVar (DbOpen ost)
 
     let dbEnv = ImmutableDBEnv
           { hasFS            = hasFS
@@ -265,13 +252,17 @@ openDBInternal registry hasFS chunkInfo hashInfo valPol parser tracer
           , tracer           = tracer
           , registry         = registry
           , cacheConfig      = cacheConfig
-          , blockchainTime   = btime
           }
         db = mkDBRecord dbEnv
         internal = Internal
           { deleteAfter_ = deleteAfterImpl dbEnv
           }
-    return (db, internal)
+    -- TODO move 'withTempResourceRegistry' outside of this function?
+    --
+    -- Note that we can still leak resources if the caller of
+    -- 'openDBInternal' doesn't bracket his call with 'closeDB' or doesn't
+    -- use a 'ResourceRegistry'.
+    return ((db, internal), ost)
 
 closeDBImpl
   :: forall m hash. (HasCallStack, IOLike m)
@@ -291,39 +282,6 @@ closeDBImpl ImmutableDBEnv { hasFS, tracer, varInternalState } = do
         cleanUp hasFS openState
         traceWith tracer DBClosed
 
-isOpenImpl :: IOLike m => ImmutableDBEnv m hash -> m Bool
-isOpenImpl ImmutableDBEnv { varInternalState } =
-    dbIsOpen <$> readMVar varInternalState
-
-reopenImpl
-  :: forall m hash. (HasCallStack, IOLike m, Eq hash, NoUnexpectedThunks hash)
-  => ImmutableDBEnv m hash
-  -> ValidationPolicy
-  -> m ()
-reopenImpl ImmutableDBEnv {..} valPol = bracketOnError
-  (takeMVar varInternalState)
-  -- Important: put back the state when an error is thrown, otherwise we have
-  -- an empty TMVar.
-  (putMVar varInternalState) $ \case
-      -- When still open,
-      DbOpen _ -> throwUserError OpenDBError
-
-      -- Closed, so we can try to reopen
-      DbClosed -> do
-        currentSlot <- atomically $ getCurrentSlot blockchainTime
-        let validateEnv = ValidateEnv
-              { hasFS       = hasFS
-              , chunkInfo   = chunkInfo
-              , hashInfo    = hashInfo
-              , parser      = chunkFileParser
-              , tracer      = tracer
-              , registry    = registry
-              , cacheConfig = cacheConfig
-              , currentSlot = currentSlot
-              }
-        ost <- validateAndReopen validateEnv valPol
-        putMVar varInternalState (DbOpen ost)
-
 deleteAfterImpl
   :: forall m hash. (HasCallStack, IOLike m)
   => ImmutableDBEnv m hash
@@ -338,23 +296,23 @@ deleteAfterImpl dbEnv@ImmutableDBEnv { tracer } newTip =
         newTipChunkSlot     = (chunkSlotFor . forgetTipInfo) <$> newTip
 
     when (newTipChunkSlot < currentTipChunkSlot) $ do
-      !ost <- lift $ do
-        traceWith tracer $ DeletingAfter newTip
+      ost <- lift $ do
+        lift $ traceWith tracer $ DeletingAfter newTip
         -- Release the open handles, as we might have to remove files that are
         -- currently opened.
-        cleanUp hasFS st
-        newTipWithHash <- truncateTo hasFS st newTipChunkSlot
+        lift $ cleanUp hasFS st
+        newTipWithHash <- lift $ truncateTo hasFS st newTipChunkSlot
         let (newChunk, allowExisting) = case newTipChunkSlot of
               Origin                 -> (firstChunkNo, MustBeNew)
               At (ChunkSlot chunk _) -> (chunk, AllowExisting)
         -- Reset the index, as it can contain stale information. Also restarts
         -- the background thread expiring unused past chunks.
-        Index.restart currentIndex newChunk
-        mkOpenState registry hasFS currentIndex newChunk newTipWithHash
+        lift $ Index.restart currentIndex newChunk
+        mkOpenState hasFS currentIndex newChunk newTipWithHash
           allowExisting
       put ost
   where
-    ImmutableDBEnv { chunkInfo, hashInfo, registry } = dbEnv
+    ImmutableDBEnv { chunkInfo, hashInfo } = dbEnv
 
     chunkSlotFor :: BlockOrEBB -> ChunkSlot
     chunkSlotFor = chunkSlotForBlockOrEBB chunkInfo
@@ -392,7 +350,7 @@ deleteAfterImpl dbEnv@ImmutableDBEnv { tracer } newTip =
               withFile hasFS chunkFile (AppendMode AllowExisting) $ \eHnd ->
                 hTruncate hasFS eHnd offset
             where
-              chunkFile = renderFile "epoch" chunk
+              chunkFile = fsPathChunkFile chunk
               offset    = unBlockOffset (Secondary.blockOffset entry)
                         + fromIntegral size
 
@@ -555,7 +513,7 @@ extractBlockComponent hasFS chunkInfo chunk curChunkInfo (entry, blockSize) = \c
       , blockOrEBB
       } = entry
     CurrentChunkInfo curChunk curChunkOffset = curChunkInfo
-    chunkFile = renderFile "epoch" chunk
+    chunkFile = fsPathChunkFile chunk
 
 getBlockOrEBBComponentImpl
   :: forall m hash b. (HasCallStack, IOLike m, Eq hash)
@@ -642,10 +600,10 @@ appendBlockImpl dbEnv slot blockNumber headerHash binaryInfo =
         throwUserError $
           AppendToSlotInThePastError slot (forgetTipInfo <$> currentTip)
 
-      appendChunkSlot registry hasFS chunkInfo currentIndex chunkSlot
+      appendChunkSlot hasFS chunkInfo currentIndex chunkSlot
         blockNumber (Block slot) headerHash binaryInfo
   where
-    ImmutableDBEnv { chunkInfo, registry } = dbEnv
+    ImmutableDBEnv { chunkInfo } = dbEnv
 
 appendEBBImpl
   :: forall m hash. (HasCallStack, IOLike m)
@@ -672,16 +630,15 @@ appendEBBImpl dbEnv epoch blockNumber headerHash binaryInfo =
       when inThePast $ lift $ throwUserError $
         AppendToEBBInThePastError epoch currentChunk
 
-      appendChunkSlot registry hasFS chunkInfo currentIndex
+      appendChunkSlot hasFS chunkInfo currentIndex
         (chunkSlotForBoundaryBlock chunkInfo epoch) blockNumber (EBB epoch)
         headerHash binaryInfo
   where
-    ImmutableDBEnv { chunkInfo, registry } = dbEnv
+    ImmutableDBEnv { chunkInfo } = dbEnv
 
 appendChunkSlot
-  :: forall m h hash. (HasCallStack, IOLike m)
-  => ResourceRegistry m
-  -> HasFS m h
+  :: forall m h hash. (HasCallStack, IOLike m, Eq h)
+  => HasFS m h
   -> ChunkInfo
   -> Index m hash h
   -> ChunkSlot  -- ^ The 'ChunkSlot' of the new block or EBB
@@ -690,8 +647,8 @@ appendChunkSlot
                 -- new tip
   -> hash
   -> BinaryInfo Builder
-  -> StateT (OpenState m hash h) m ()
-appendChunkSlot registry hasFS chunkInfo index chunkSlot blockNumber blockOrEBB headerHash
+  -> ModifyOpenState m hash h ()
+appendChunkSlot hasFS chunkInfo index chunkSlot blockNumber blockOrEBB headerHash
                 BinaryInfo { binaryBlob, headerOffset, headerSize } = do
     OpenState { currentChunk = initialChunk } <- get
 
@@ -701,7 +658,7 @@ appendChunkSlot registry hasFS chunkInfo index chunkSlot blockNumber blockOrEBB 
     when (chunk > initialChunk) $ do
       let newChunksToStart :: Int
           newChunksToStart = fromIntegral $ countChunks chunk initialChunk
-      replicateM_ newChunksToStart (startNewChunk registry hasFS index chunkInfo)
+      replicateM_ newChunksToStart $ startNewChunk hasFS index chunkInfo
 
     -- We may have updated the state with 'startNewChunk', so get the
     -- (possibly) updated state, but first remember the current chunk
@@ -723,7 +680,7 @@ appendChunkSlot registry hasFS chunkInfo index chunkSlot blockNumber blockOrEBB 
                           chunkSlotForBlockOrEBB chunkInfo b
 
     -- Append to the end of the chunk file.
-    (blockSize, entrySize) <- lift $ do
+    (blockSize, entrySize) <- lift $ lift $ do
 
         -- Write to the chunk file
         (blockSize, crc) <- hPutCRC hasFS currentChunkHandle binaryBlob
@@ -757,13 +714,12 @@ appendChunkSlot registry hasFS chunkInfo index chunkSlot blockNumber blockOrEBB 
     ChunkSlot chunk relSlot = chunkSlot
 
 startNewChunk
-  :: forall m h hash. (HasCallStack, IOLike m)
-  => ResourceRegistry m
-  -> HasFS m h
+  :: forall m h hash. (HasCallStack, IOLike m, Eq h)
+  => HasFS m h
   -> Index m hash h
   -> ChunkInfo
-  -> StateT (OpenState m hash h) m ()
-startNewChunk registry hasFS index chunkInfo = do
+  -> ModifyOpenState m hash h ()
+startNewChunk hasFS index chunkInfo = do
     st@OpenState {..} <- get
 
     -- We have to take care when starting multiple new chunks in a row. In the
@@ -790,11 +746,11 @@ startNewChunk registry hasFS index chunkInfo = do
                             nextFreeRelSlot
                             currentSecondaryOffset
 
-    lift $
+    lift $ lift $
       Index.appendOffsets index currentPrimaryHandle backfillOffsets
-      `finally` cleanUp hasFS st
+      `finally` closeOpenHandles hasFS st
 
-    st' <- lift $ mkOpenState registry hasFS index (nextChunkNo currentChunk)
-      currentTip MustBeNew
+    st' <- lift $
+      mkOpenState hasFS index (nextChunkNo currentChunk) currentTip MustBeNew
 
     put st'

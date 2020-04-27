@@ -17,7 +17,6 @@ import           Ouroboros.Network.Block (SlotNo (..), blockSlot)
 import           Ouroboros.Network.MockChain.Chain (foldChain)
 
 import           Ouroboros.Consensus.BlockchainTime
-import           Ouroboros.Consensus.BlockchainTime.Mock (NumSlots (..))
 import           Ouroboros.Consensus.HeaderValidation
 import           Ouroboros.Consensus.Ledger.Extended (ExtValidationError (..))
 import           Ouroboros.Consensus.Mock.Ledger.Block
@@ -40,8 +39,10 @@ import           Test.ThreadNet.Util.HasCreator.Mock ()
 import           Test.ThreadNet.Util.NodeJoinPlan
 import           Test.ThreadNet.Util.NodeRestarts
 import           Test.ThreadNet.Util.NodeTopology
+import           Test.ThreadNet.Util.SimpleBlock
 
 import           Test.Util.Orphans.Arbitrary ()
+import           Test.Util.Time
 
 tests :: TestTree
 tests = testGroup "PBFT" $
@@ -60,7 +61,7 @@ tests = testGroup "PBFT" $
           ]
         , nodeRestarts = noRestarts
         , nodeTopology = meshNodeTopology ncn5
-        , slotLengths  = singletonSlotLengths $ slotLengthFromSec 1
+        , slotLength   = slotLengthFromSec 1
         , initSeed     = Seed (9550173506264790139,4734409083700350196,9697926137031612922,16476814117921936461,9569412668768792610)
         }
     , testProperty "simple convergence" $ \tc ->
@@ -75,19 +76,21 @@ prop_simple_pbft_convergence
   k testConfig@TestConfig{numCoreNodes, numSlots, nodeJoinPlan} =
     tabulate "Ref.PBFT result" [Ref.resultConstrName refResult] $
     prop_asSimulated .&&.
-    prop_general
-        countSimpleGenTxs
-        k
-        testConfig
-        (Just $ roundRobinLeaderSchedule numCoreNodes numSlots)
-        -- do not use the "Test.ThreadNet.Util.Expectations" module; it doesn't
-        -- consider the PBFT threshold
-        (Just $ NumBlocks $ case refResult of
-           Ref.Forked{} -> 1
-           _            -> 0)
-        (expectedBlockRejection numCoreNodes)
-        0
-        testOutput
+    prop_general PropGeneralArgs
+      { pgaBlockProperty          = prop_validSimpleBlock
+      , pgaCountTxs               = countSimpleGenTxs
+      , pgaExpectedBlockRejection = expectedBlockRejection numCoreNodes
+      , pgaFirstBlockNo           = 0
+      , pgaFixedMaxForkLength     =
+          Just $ NumBlocks $ case refResult of
+            Ref.Forked{} -> 1
+            _            -> 0
+      , pgaFixedSchedule          =
+          Just $ roundRobinLeaderSchedule numCoreNodes numSlots
+      , pgaSecurityParam          = k
+      , pgaTestConfig             = testConfig
+      }
+      testOutput
   where
     NumCoreNodes nn = numCoreNodes
 
@@ -100,8 +103,9 @@ prop_simple_pbft_convergence
             , nodeInfo    = plainTestNodeInitialization .
                             protocolInfoMockPBFT
                               params
-                              (singletonSlotLengths pbftSlotLength)
+                              (defaultSimpleBlockConfig k pbftSlotLength)
             , rekeying    = Nothing
+            , txGenExtra  = ()
             }
 
     -- The mock ledger doesn't really care, and neither does BFT.

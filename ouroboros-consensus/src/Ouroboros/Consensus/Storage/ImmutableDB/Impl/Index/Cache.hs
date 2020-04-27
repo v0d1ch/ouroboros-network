@@ -51,13 +51,13 @@ import           Data.Word (Word32, Word64)
 import           GHC.Generics (Generic)
 import           GHC.Stack (HasCallStack, callStack)
 
-import           Cardano.Prelude (NoUnexpectedThunks (..), forceElemsToWHNF)
+import           Cardano.Prelude (NoUnexpectedThunks (..), forceElemsToWHNF,
+                     unsafeNoUnexpectedThunks)
 
 import           Ouroboros.Consensus.Block (IsEBB (..))
 import           Ouroboros.Consensus.Util (whenJust)
 import           Ouroboros.Consensus.Util.IOLike
-import           Ouroboros.Consensus.Util.MonadSTM.NormalForm (tryPutMVar,
-                     unsafeNoThunks)
+import           Ouroboros.Consensus.Util.MonadSTM.NormalForm (tryPutMVar)
 import qualified Ouroboros.Consensus.Util.MonadSTM.StrictMVar as Strict
 import           Ouroboros.Consensus.Util.ResourceRegistry
 
@@ -73,8 +73,9 @@ import qualified Ouroboros.Consensus.Storage.ImmutableDB.Impl.Index.Primary as P
 import           Ouroboros.Consensus.Storage.ImmutableDB.Impl.Index.Secondary
                      (BlockSize (..))
 import qualified Ouroboros.Consensus.Storage.ImmutableDB.Impl.Index.Secondary as Secondary
-import           Ouroboros.Consensus.Storage.ImmutableDB.Impl.Util (renderFile,
-                     throwUnexpectedError)
+import           Ouroboros.Consensus.Storage.ImmutableDB.Impl.Util
+                     (fsPathChunkFile, fsPathPrimaryIndexFile,
+                     fsPathSecondaryIndexFile, throwUnexpectedError)
 import           Ouroboros.Consensus.Storage.ImmutableDB.Types (HashInfo (..),
                      TraceCacheEvent (..), UnexpectedError (..),
                      WithBlockSize (..))
@@ -236,11 +237,22 @@ addPastChunkInfo chunk lastUsed pastChunkInfo cached =
     -- means the following cannot be a precondition:
     -- assert (not (PSQ.member chunk pastChunksInfo)) $
     cached
-      { pastChunksInfo = PSQ.insert (chunkNoToInt chunk) lastUsed pastChunkInfo pastChunksInfo
-      , nbPastChunks   = succ nbPastChunks
+      { pastChunksInfo = pastChunksInfo'
+      , nbPastChunks   = nbPastChunks'
       }
   where
     Cached { pastChunksInfo, nbPastChunks } = cached
+
+    -- In case of multiple concurrent cache misses of the same chunk, the
+    -- chunk might already be in there.
+    (mbAlreadyPresent, pastChunksInfo') =
+      PSQ.insertView (chunkNoToInt chunk) lastUsed pastChunkInfo pastChunksInfo
+
+    nbPastChunks'
+      | Just _ <- mbAlreadyPresent
+      = nbPastChunks
+      | otherwise
+      = succ nbPastChunks
 
 -- | Remove the least recently used past chunk from the cache when 'Cached'
 -- contains more chunks than the given maximum.
@@ -375,7 +387,8 @@ newEnv hasFS hashInfo registry tracer cacheConfig chunkInfo chunk = do
     bgThreadVar <- newMVar Nothing
     let cacheEnv = CacheEnv {..}
     mask_ $ modifyMVar_ bgThreadVar $ \_mustBeNothing -> do
-      !bgThread <- forkLinkedThread registry $ expireUnusedChunks cacheEnv
+      !bgThread <- forkLinkedThread registry "ImmutableDB.expireUnusedChunks" $
+        expireUnusedChunks cacheEnv
       return $ Just bgThread
     return cacheEnv
   where
@@ -387,7 +400,7 @@ newEnv hasFS hashInfo registry tracer cacheConfig chunkInfo chunk = do
       Strict.newMVarWithInvariant $ \cached ->
         checkInvariants pastChunksToCache cached
         `mplus`
-        unsafeNoThunks cached
+        unsafeNoUnexpectedThunks cached
 
 {------------------------------------------------------------------------------
   Background thread
@@ -486,7 +499,7 @@ readSecondaryIndex hasFS@HasFS { hGetSize } hashInfo chunk firstIsEBB = do
     Secondary.readAllEntries hasFS hashInfo secondaryOffset
       chunk stopCondition chunkFileSize firstIsEBB
   where
-    chunkFile = renderFile "epoch" chunk
+    chunkFile = fsPathChunkFile chunk
     -- Read from the start
     secondaryOffset = 0
     -- Don't stop until the end
@@ -516,7 +529,7 @@ loadCurrentChunkInfo hasFS chunkInfo hashInfo chunk = do
     else
       return $ emptyCurrentChunkInfo chunk
   where
-    primaryIndexFile = renderFile "primary" chunk
+    primaryIndexFile = fsPathPrimaryIndexFile chunk
 
 loadPastChunkInfo
   :: (HasCallStack, IOLike m)
@@ -610,7 +623,8 @@ restart cacheEnv chunk = do
       case mbBgThread of
         Just _  -> throwM $ userError "background thread still running"
         Nothing -> do
-          !bgThread <- forkLinkedThread registry $ expireUnusedChunks cacheEnv
+          !bgThread <- forkLinkedThread registry "ImmutableDB.expireUnusedChunks" $
+            expireUnusedChunks cacheEnv
           return $ Just bgThread
   where
     CacheEnv { hasFS, hashInfo, registry, cacheVar, bgThreadVar, chunkInfo } = cacheEnv
@@ -757,7 +771,7 @@ readEntries cacheEnv@CacheEnv { hashInfo } chunk toRead =
     -- likely, so we mention that file in the error message.
     noEntry :: SecondaryOffset -> m a
     noEntry secondaryOffset = throwUnexpectedError $ InvalidFileError
-      (renderFile "secondary" chunk)
+      (fsPathSecondaryIndexFile chunk)
       ("no entry missing for " <> show secondaryOffset)
       callStack
 

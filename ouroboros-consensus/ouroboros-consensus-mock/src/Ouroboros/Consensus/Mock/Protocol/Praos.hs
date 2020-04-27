@@ -6,6 +6,7 @@
 {-# LANGUAGE FlexibleInstances         #-}
 {-# LANGUAGE KindSignatures            #-}
 {-# LANGUAGE LambdaCase                #-}
+{-# LANGUAGE NamedFieldPuns            #-}
 {-# LANGUAGE RecordWildCards           #-}
 {-# LANGUAGE ScopedTypeVariables       #-}
 {-# LANGUAGE StandaloneDeriving        #-}
@@ -118,7 +119,7 @@ praosValidateView getFields hdr =
 
 data PraosNodeState c =
     -- | The KES key is available
-    PraosKeyAvailable (SignKeyKES (PraosKES c))
+    PraosKeyAvailable !(SignKeyKES (PraosKES c))
 
     -- | The KES key is being evolved by another thread
     --
@@ -258,6 +259,11 @@ instance PraosCrypto c => ConsensusProtocol (Praos c) where
   type ValidationErr  (Praos c) = PraosValidationError c
   type ValidateView   (Praos c) = PraosValidateView    c
   type ConsensusState (Praos c) = [BlockInfo c]
+
+  checkIfCanBeLeader PraosConfig{praosNodeId} =
+    case praosNodeId of
+        CoreId{}  -> True
+        RelayId{} -> False  -- Relays are never leaders
 
   checkIsLeader cfg@PraosConfig{..} slot _u cs =
     case praosNodeId of

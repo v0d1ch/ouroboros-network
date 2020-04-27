@@ -40,6 +40,7 @@ ioHasFS mount = HasFS {
         return $ Handle (H.HandleOS path hVar) fp
     , hClose = \(Handle h fp) -> rethrowFsError fp $
         F.close h
+    , hIsOpen = H.isOpenHandleOS . handleRaw
     , hSeek = \(Handle h fp) mode o -> rethrowFsError fp $
         F.seek h mode o
     , hGetSome = \(Handle h fp) n -> rethrowFsError fp $
@@ -65,6 +66,8 @@ ioHasFS mount = HasFS {
         Dir.createDirectoryIfMissing createParent (root fp)
     , removeFile = \fp -> rethrowFsError fp $
         Dir.removeFile (root fp)
+    , renameFile = \fp1 fp2 -> rethrowFsError fp1 $
+        Dir.renameFile (root fp1) (root fp2)
     , mkFsErrorPath = fsToFsErrorPath mount
     }
   where

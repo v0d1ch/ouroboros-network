@@ -37,6 +37,7 @@ import           Text.Printf
 import qualified System.Random.SplitMix as SM
 
 import           Control.Monad.Class.MonadAsync
+import           Control.Monad.Class.MonadFork
 import           Control.Monad.Class.MonadSay
 import           Control.Monad.Class.MonadST
 import           Control.Monad.Class.MonadSTM.Strict
@@ -50,6 +51,7 @@ import           Control.Tracer (Tracer (..), contramap, nullTracer)
 import qualified System.Win32.NamedPipes as Win32.NamedPipes
 import qualified System.Win32.File       as Win32.File
 import qualified System.Win32.Async      as Win32.Async
+import           System.IOManager
 #else
 import           System.IO (hClose)
 import           System.Process (createPipe)
@@ -352,9 +354,12 @@ prop_mux_snd_recv messages = ioProperty $ do
 -- side and a MiniProtocolDescription for the server side for a RequestResponce
 -- protocol.
 --
-setupMiniReqRsp :: IO ()              -- | Action performed by responder before processing the response
-                -> StrictTVar IO Int  -- | Total number of miniprotocols.
-                -> DummyTrace         -- | Trace of messages
+setupMiniReqRsp :: IO ()
+                -- ^ Action performed by responder before processing the response
+                -> StrictTVar IO Int
+                -- ^ Total number of miniprotocols.
+                -> DummyTrace
+                -- ^ Trace of messages
                 -> IO ( IO Bool
                       , Channel IO -> IO ()
                       , Channel IO -> IO ()
@@ -460,7 +465,7 @@ runWithQueues initApp respApp = do
 runWithPipe :: RunMuxApplications
 runWithPipe initApp respApp =
 #if defined(mingw32_HOST_OS)
-    Win32.Async.withIOManager $ \iocp -> do
+    withIOManager $ \ioManager -> do
       let pipeName = "\\\\.\\pipe\\mux-test-pipe"
       bracket
         (Win32.NamedPipes.createNamedPipe
@@ -484,8 +489,8 @@ runWithPipe initApp respApp =
                    Nothing)
                 Win32.File.closeHandle
           $ \hCli -> do
-             Win32.Async.associateWithIOCompletionPort (Left hSrv) iocp
-             Win32.Async.associateWithIOCompletionPort (Left hCli) iocp
+             associateWithIOManager ioManager (Left hSrv)
+             associateWithIOManager ioManager (Left hCli)
 
              let clientChannel = pipeChannelFromNamedPipe hCli
                  serverChannel = pipeChannelFromNamedPipe hSrv
@@ -697,7 +702,7 @@ prop_mux_starvation (Uneven response0 response1) =
 
     -- Then look at the message trace to check for starvation.
     trace <- atomically $ readTVar traceHeaderVar
-    let es = map msNum (take 100 (reverse trace))
+    let es = map mhNum (take 100 (reverse trace))
         ls = dropWhile (\e -> e == head es) es
         fair = verifyStarvation ls
     return $ res_short .&&. res_long .&&. fair
@@ -747,6 +752,7 @@ encodeInvalidMuxSDU sdu =
 prop_demux_sdu :: forall m.
                     ( MonadAsync m
                     , MonadCatch m
+                    , MonadFork m
                     , MonadMask m
                     , MonadSay m
                     , MonadST m
@@ -877,10 +883,13 @@ prop_demux_sdu a = do
     writeSdu _ payload | payload == BL.empty = return ()
     writeSdu queue payload = do
         let (!frag, !rest) = BL.splitAt 0xffff payload
-            sdu' = MuxSDU (RemoteClockModel 0)
-                          (MiniProtocolNum 2)
-                           ModeInitiator
-                          (fromIntegral $ BL.length frag) frag
+            sdu' = MuxSDU
+                    (MuxSDUHeader
+                      (RemoteClockModel 0)
+                      (MiniProtocolNum 2)
+                      ModeInitiator
+                      (fromIntegral $ BL.length frag))
+                    frag
             !pkt = encodeMuxSDU (sdu' :: MuxSDU)
 
         atomically $ writeTBQueue queue pkt

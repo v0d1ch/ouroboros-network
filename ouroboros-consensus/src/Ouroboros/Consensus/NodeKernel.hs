@@ -30,7 +30,7 @@ import           Control.Monad.Except
 import           Data.Map.Strict (Map)
 import           Data.Maybe (isJust)
 import           Data.Proxy
-import           Data.Word (Word16, Word32)
+import           Data.Word (Word32)
 
 import           Control.Tracer
 
@@ -39,9 +39,8 @@ import qualified Ouroboros.Network.AnchoredFragment as AF
 import           Ouroboros.Network.Block
 import           Ouroboros.Network.BlockFetch
 import           Ouroboros.Network.BlockFetch.State (FetchMode (..))
+import           Ouroboros.Network.NodeToNode (MiniProtocolParameters (..))
 import           Ouroboros.Network.Point (WithOrigin (..))
-import           Ouroboros.Network.Protocol.ChainSync.PipelineDecision
-                     (MkPipelineDecision)
 import           Ouroboros.Network.TxSubmission.Inbound
                      (TxSubmissionMempoolWriter)
 import qualified Ouroboros.Network.TxSubmission.Inbound as Inbound
@@ -52,6 +51,7 @@ import qualified Ouroboros.Network.TxSubmission.Mempool.Reader as MempoolReader
 import           Ouroboros.Consensus.Block
 import           Ouroboros.Consensus.BlockchainTime
 import           Ouroboros.Consensus.Config
+import           Ouroboros.Consensus.Forecast
 import           Ouroboros.Consensus.HeaderValidation
 import           Ouroboros.Consensus.Ledger.Abstract
 import           Ouroboros.Consensus.Ledger.Extended
@@ -80,7 +80,7 @@ import qualified Ouroboros.Consensus.Storage.ChainDB.API as ChainDB
 -------------------------------------------------------------------------------}
 
 -- | Interface against running relay node
-data NodeKernel m peer blk = NodeKernel {
+data NodeKernel m remotePeer localPeer blk = NodeKernel {
       -- | The 'ChainDB' of the node
       getChainDB             :: ChainDB m blk
 
@@ -91,13 +91,13 @@ data NodeKernel m peer blk = NodeKernel {
     , getTopLevelConfig      :: TopLevelConfig blk
 
       -- | The fetch client registry, used for the block fetch clients.
-    , getFetchClientRegistry :: FetchClientRegistry peer (Header blk) blk m
+    , getFetchClientRegistry :: FetchClientRegistry remotePeer (Header blk) blk m
 
       -- | Read the current candidates
-    , getNodeCandidates      :: StrictTVar m (Map peer (StrictTVar m (AnchoredFragment (Header blk))))
+    , getNodeCandidates      :: StrictTVar m (Map remotePeer (StrictTVar m (AnchoredFragment (Header blk))))
 
       -- | The node's tracers
-    , getTracers             :: Tracers m peer blk
+    , getTracers             :: Tracers m remotePeer localPeer blk
     }
 
 -- | Callbacks required to produce blocks
@@ -121,10 +121,9 @@ data BlockProduction m blk = BlockProduction {
                    -- effects; this is primarily useful for tests.
 
                    -> Update n (NodeState blk)
-                   -> SlotNo             -- Current slot
-                   -> BlockNo            -- Current block number
-                   -> ExtLedgerState blk -- Current ledger state
-                   -> [GenTx blk]        -- Contents of the mempool
+                   -> BlockNo               -- Current block number
+                   -> TickedLedgerState blk -- Current ledger state
+                   -> [GenTx blk]           -- Contents of the mempool
                    -> IsLeader (BlockProtocol blk) -- Proof we are leader
                    -> n blk
 
@@ -159,35 +158,35 @@ data MempoolCapacityBytesOverride
     -- ^ Use the following 'MempoolCapacityBytes'.
 
 -- | Arguments required when initializing a node
-data NodeArgs m peer blk = NodeArgs {
-      tracers             :: Tracers m peer blk
-    , registry            :: ResourceRegistry m
-    , maxClockSkew        :: ClockSkew
-    , cfg                 :: TopLevelConfig blk
-    , initState           :: NodeState blk
-    , btime               :: BlockchainTime m
-    , chainDB             :: ChainDB m blk
-    , initChainDB         :: TopLevelConfig blk -> ChainDB m blk -> m ()
-    , blockFetchSize      :: Header blk -> SizeInBytes
-    , blockProduction     :: Maybe (BlockProduction m blk)
-    , blockMatchesHeader  :: Header blk -> blk -> Bool
-    , maxUnackTxs         :: Word16
-    , maxBlockSize        :: MaxBlockSizeOverride
-    , mempoolCap          :: MempoolCapacityBytesOverride
-    , chainSyncPipelining :: MkPipelineDecision
+data NodeArgs m remotePeer localPeer blk = NodeArgs {
+      tracers                :: Tracers m remotePeer localPeer blk
+    , registry               :: ResourceRegistry m
+    , maxClockSkew           :: ClockSkew
+    , cfg                    :: TopLevelConfig blk
+    , initState              :: NodeState blk
+    , btime                  :: BlockchainTime m
+    , chainDB                :: ChainDB m blk
+    , initChainDB            :: TopLevelConfig blk -> ChainDB m blk -> m ()
+    , blockFetchSize         :: Header blk -> SizeInBytes
+    , blockProduction        :: Maybe (BlockProduction m blk)
+    , blockMatchesHeader     :: Header blk -> blk -> Bool
+    , maxBlockSize           :: MaxBlockSizeOverride
+    , mempoolCap             :: MempoolCapacityBytesOverride
+    , miniProtocolParameters :: MiniProtocolParameters
     }
 
 initNodeKernel
-    :: forall m peer blk.
+    :: forall m remotePeer localPeer blk.
        ( IOLike m
        , RunNode blk
-       , NoUnexpectedThunks peer
-       , Ord peer
+       , NoUnexpectedThunks remotePeer
+       , Ord remotePeer
        )
-    => NodeArgs m peer blk
-    -> m (NodeKernel m peer blk)
+    => NodeArgs m remotePeer localPeer blk
+    -> m (NodeKernel m remotePeer localPeer blk)
 initNodeKernel args@NodeArgs { registry, cfg, tracers, maxBlockSize
-                             , blockProduction, chainDB, initChainDB } = do
+                             , blockProduction, chainDB, initChainDB
+                             , miniProtocolParameters } = do
 
     initChainDB cfg chainDB
 
@@ -200,7 +199,8 @@ initNodeKernel args@NodeArgs { registry, cfg, tracers, maxBlockSize
 
     -- Run the block fetch logic in the background. This will call
     -- 'addFetchedBlock' whenever a new block is downloaded.
-    void $ forkLinkedThread registry $ blockFetchLogic
+    void $ forkLinkedThread registry "NodeKernel.blockFetchLogic" $
+      blockFetchLogic
         (blockFetchDecisionTracer tracers)
         (blockFetchClientTracer   tracers)
         blockFetchInterface
@@ -221,35 +221,36 @@ initNodeKernel args@NodeArgs { registry, cfg, tracers, maxBlockSize
     blockFetchConfiguration = BlockFetchConfiguration
       { bfcMaxConcurrencyBulkSync = 1 -- Set to 1 for now, see #1526
       , bfcMaxConcurrencyDeadline = 1
+      , bfcMaxRequestsInflight    = blockFetchPipeliningMax miniProtocolParameters
       }
 
 {-------------------------------------------------------------------------------
   Internal node components
 -------------------------------------------------------------------------------}
 
-data InternalState m peer blk = IS {
-      tracers             :: Tracers m peer blk
+data InternalState m remotePeer localPeer blk = IS {
+      tracers             :: Tracers m remotePeer localPeer blk
     , cfg                 :: TopLevelConfig blk
     , registry            :: ResourceRegistry m
     , btime               :: BlockchainTime m
     , chainDB             :: ChainDB m blk
-    , blockFetchInterface :: BlockFetchConsensusInterface peer (Header blk) blk m
-    , fetchClientRegistry :: FetchClientRegistry peer (Header blk) blk m
-    , varCandidates       :: StrictTVar m (Map peer (StrictTVar m (AnchoredFragment (Header blk))))
+    , blockFetchInterface :: BlockFetchConsensusInterface remotePeer (Header blk) blk m
+    , fetchClientRegistry :: FetchClientRegistry remotePeer (Header blk) blk m
+    , varCandidates       :: StrictTVar m (Map remotePeer (StrictTVar m (AnchoredFragment (Header blk))))
     , varState            :: StrictTVar m (NodeState blk)
     , mempool             :: Mempool m blk TicketNo
     }
 
 initInternalState
-    :: forall m peer blk.
+    :: forall m remotePeer localPeer blk.
        ( IOLike m
        , LedgerSupportsProtocol blk
-       , Ord peer
-       , NoUnexpectedThunks peer
+       , Ord remotePeer
+       , NoUnexpectedThunks remotePeer
        , RunNode blk
        )
-    => NodeArgs m peer blk
-    -> m (InternalState m peer blk)
+    => NodeArgs m remotePeer localPeer blk
+    -> m (InternalState m remotePeer localPeer blk)
 initInternalState NodeArgs { tracers, chainDB, registry, cfg,
                              blockFetchSize, blockMatchesHeader, btime,
                              initState, mempoolCap } = do
@@ -275,10 +276,10 @@ initInternalState NodeArgs { tracers, chainDB, registry, cfg,
 
     fetchClientRegistry <- newFetchClientRegistry
 
-    let getCandidates :: STM m (Map peer (AnchoredFragment (Header blk)))
+    let getCandidates :: STM m (Map remotePeer (AnchoredFragment (Header blk)))
         getCandidates = readTVar varCandidates >>= traverse readTVar
 
-        blockFetchInterface :: BlockFetchConsensusInterface peer (Header blk) blk m
+        blockFetchInterface :: BlockFetchConsensusInterface remotePeer (Header blk) blk m
         blockFetchInterface = initBlockFetchConsensusInterface
           cfg chainDB getCandidates blockFetchSize blockMatchesHeader btime
 
@@ -332,10 +333,10 @@ initBlockFetchConsensusInterface cfg chainDB getCandidates blockFetchSize
     readFetchedBlocks :: STM m (Point blk -> Bool)
     readFetchedBlocks = ChainDB.getIsFetched chainDB
 
-    -- Asynchronous: doesn't wait until the block has been written to disk or
-    -- processed.
+    -- Waits until the block has been written to disk, but not until chain
+    -- selection has processed the block.
     addFetchedBlock :: Point blk -> blk -> m ()
-    addFetchedBlock _pt = void . ChainDB.addBlockAsync chainDB
+    addFetchedBlock _pt = void . ChainDB.addBlockWaitWrittenToDisk chainDB
 
     readFetchedMaxSlotNo :: STM m MaxSlotNo
     readFetchedMaxSlotNo = ChainDB.getMaxSlotNo chainDB
@@ -351,14 +352,15 @@ initBlockFetchConsensusInterface cfg chainDB getCandidates blockFetchSize
     compareCandidateChains = compareAnchoredCandidates cfg
 
 forkBlockProduction
-    :: forall m peer blk.
+    :: forall m remotePeer localPeer blk.
        (IOLike m, RunNode blk)
     => MaxBlockSizeOverride
-    -> InternalState m peer blk
+    -> InternalState m remotePeer localPeer blk
     -> BlockProduction m blk
     -> m ()
 forkBlockProduction maxBlockSizeOverride IS{..} BlockProduction{..} =
-    void $ onSlotChange btime $ withEarlyExit_ . go
+    void $ onKnownSlotChange registry btime "NodeKernel.blockProduction" $
+      withEarlyExit_ . go
   where
     RunMonadRandom{..} = runMonadRandomDict
 
@@ -393,35 +395,47 @@ forkBlockProduction maxBlockSizeOverride IS{..} BlockProduction{..} =
             Nothing -> do
               trace $ TraceNoLedgerState currentSlot bcPrevPoint
               exitEarly
-        let ledger = ledgerState extLedger
+        let unticked = ledgerState extLedger
+
+        -- Check if we are not too far ahead of the chain
+        --
+        -- TODO: This check is not strictly necessary, but omitting it breaks
+        -- the consensus tests at the moment.
+        -- <https://github.com/input-output-hk/ouroboros-network/issues/1941>
+        case runExcept $ forecastFor
+                           (ledgerViewForecastAtTip (configLedger cfg) unticked)
+                           currentSlot of
+          Left err -> do
+            -- There are so many empty slots between the tip of our chain and
+            -- the current slot that we cannot get an ledger view anymore
+            -- In principle, this is no problem; we can still produce a block
+            -- (we use the ticked ledger state). However, we probably don't
+            -- /want/ to produce a block in this case; we are most likely
+            -- missing a blocks on our chain.
+            trace $ TraceNoLedgerView currentSlot err
+            exitEarly
+          Right _ ->
+            return ()
+
+        -- Tick the ledger state for the 'SlotNo' we're producing a block for
+        let ticked = applyChainTick (configLedger cfg) currentSlot unticked
 
         -- Check if we are the leader
-        proof <-
-          case runExcept $ anachronisticProtocolLedgerView
-                 (configLedger cfg)
-                 ledger
-                 (At currentSlot) of
-            Right ledgerView -> do
-              mIsLeader :: Maybe (IsLeader (BlockProtocol blk)) <- lift $
-                runMonadRandom $ \_lift' ->
-                  checkIsLeader
-                    (configConsensus cfg)
-                    currentSlot
-                    ledgerView
-                    (headerStateConsensus (headerState extLedger))
-              case mIsLeader of
-                Just p  -> return p
-                Nothing -> do
-                  trace $ TraceNodeNotLeader currentSlot
-                  exitEarly
-            Left err -> do
-              -- There are so many empty slots between the tip of our chain and
-              -- the current slot that we cannot even get an accurate ledger
-              -- view anymore. This is indicative of a serious problem: we are
-              -- not receiving blocks. It is /possible/ it's just due to our
-              -- network connectivity, and we might still get these blocks at
-              -- some point; but we certainly can't produce a block of our own.
-              trace $ TraceNoLedgerView currentSlot err
+        proof <- do
+          let ledgerView = protocolLedgerView
+                             (configLedger cfg)
+                             (tickedLedgerState ticked)
+          mIsLeader :: Maybe (IsLeader (BlockProtocol blk)) <- lift $
+            runMonadRandom $ \_lift' ->
+              checkIsLeader
+                (configConsensus cfg)
+                currentSlot
+                ledgerView
+                (headerStateConsensus (headerState extLedger))
+          case mIsLeader of
+            Just p  -> return p
+            Nothing -> do
+              trace $ TraceNodeNotLeader currentSlot
               exitEarly
 
         -- At this point we have established that we are indeed slot leader
@@ -434,22 +448,21 @@ forkBlockProduction maxBlockSizeOverride IS{..} BlockProduction{..} =
         -- produce a block that fits onto the ledger we got above; if the
         -- ledger in the meantime changes, the block we produce here may or
         -- may not be adopted, but it won't be invalid.
-        mempoolSnapshot <- lift $ atomically $ getSnapshotFor
-                                                 mempool
-                                                 (TxsForBlockInSlot currentSlot)
-                                                 (ledgerState extLedger)
+        mempoolSnapshot <- lift $ atomically $
+                             getSnapshotFor
+                               mempool
+                               (ForgeInKnownSlot ticked)
         let txs = map fst $ snapshotTxsForSize
                               mempoolSnapshot
-                              (maxBlockBodySize ledger)
+                              (maxBlockBodySize $ tickedLedgerState ticked)
 
         -- Actually produce the block
         newBlock <- lift $ runMonadRandom $ \lift' ->
           produceBlock
             lift'
             (updateFromTVar (castStrictTVar varState))
-            currentSlot
             bcBlockNo
-            extLedger
+            ticked
             txs
             proof
         trace $ TraceForgedBlock
@@ -628,6 +641,6 @@ getMempoolWriter
 getMempoolWriter mempool = Inbound.TxSubmissionMempoolWriter
     { Inbound.txId          = txId
     , mempoolAddTxs = \txs ->
-        map (txId . fst) . filter (isTxAddedOrAlreadyInMempool . snd) <$>
+        map (txId . fst) . filter (isMempoolTxAdded . snd) <$>
         addTxs mempool txs
     }

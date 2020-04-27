@@ -5,6 +5,7 @@
 {-# LANGUAGE RankNTypes          #-}
 {-# LANGUAGE RecordWildCards     #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TupleSections       #-}
 module Ouroboros.Consensus.Storage.ImmutableDB.Impl.Validation
   ( validateAndReopen
   , ValidateEnv (..)
@@ -14,11 +15,11 @@ module Ouroboros.Consensus.Storage.ImmutableDB.Impl.Validation
   ) where
 
 import           Control.Exception (assert)
-import           Control.Monad (unless, when)
+import           Control.Monad (forM_, unless, when)
 import           Control.Monad.Except (ExceptT, lift, runExceptT, throwError)
 import           Control.Tracer (Tracer, contramap, traceWith)
 import           Data.Functor (($>))
-import           Data.Maybe (fromMaybe)
+import           Data.Maybe (fromMaybe, mapMaybe)
 import qualified Data.Set as Set
 import           GHC.Stack (HasCallStack)
 import           Streaming (Of (..))
@@ -29,7 +30,8 @@ import           Ouroboros.Network.Point (WithOrigin (..))
 import           Ouroboros.Consensus.Block (IsEBB (..))
 import           Ouroboros.Consensus.Util (lastMaybe, whenJust)
 import           Ouroboros.Consensus.Util.IOLike
-import           Ouroboros.Consensus.Util.ResourceRegistry (ResourceRegistry)
+import           Ouroboros.Consensus.Util.ResourceRegistry (ResourceRegistry,
+                     WithTempRegistry)
 
 import           Ouroboros.Consensus.Storage.FS.API
 import           Ouroboros.Consensus.Storage.FS.API.Types
@@ -61,21 +63,27 @@ data ValidateEnv m hash h e = ValidateEnv
   , hashInfo    :: !(HashInfo hash)
   , parser      :: !(ChunkFileParser e m (BlockSummary hash) hash)
   , tracer      :: !(Tracer m (TraceEvent e hash))
-  , registry    :: !(ResourceRegistry m)
   , cacheConfig :: !Index.CacheConfig
-  , currentSlot :: !SlotNo
   }
 
 -- | Perform validation as per the 'ValidationPolicy' using 'validate' and
 -- create an 'OpenState' corresponding to its outcome using 'mkOpenState'.
 validateAndReopen
-  :: forall m hash h e. (IOLike m, Eq hash, NoUnexpectedThunks hash, HasCallStack)
+  :: forall m hash h e.
+     ( IOLike m
+     , Eq hash
+     , NoUnexpectedThunks hash
+     , Eq h
+     , HasCallStack
+     )
   => ValidateEnv m hash h e
+  -> ResourceRegistry m
+     -- ^ Not used for validation, only used to open a new index
   -> ValidationPolicy
-  -> m (OpenState m hash h)
-validateAndReopen validateEnv valPol = do
-    (chunk, tip) <- validate validateEnv valPol
-    index        <- cachedIndex
+  -> WithTempRegistry (OpenState m hash h) m (OpenState m hash h)
+validateAndReopen validateEnv registry valPol = wrapFsError $ do
+    (chunk, tip) <- lift $ validate validateEnv valPol
+    index        <- lift $ cachedIndex
                       hasFS
                       hashInfo
                       registry
@@ -85,28 +93,39 @@ validateAndReopen validateEnv valPol = do
                       chunk
     case tip of
       Origin -> assert (chunk == firstChunkNo) $ do
-        traceWith tracer NoValidLastLocation
-        mkOpenState registry hasFS index chunk Origin MustBeNew
+        lift $ traceWith tracer NoValidLastLocation
+        mkOpenState hasFS index chunk Origin MustBeNew
       _      -> do
-        traceWith tracer $ ValidatedLastLocation chunk (forgetTipInfo <$> tip)
-        mkOpenState registry hasFS index chunk tip    AllowExisting
+        lift $ traceWith tracer $ ValidatedLastLocation chunk (forgetTipInfo <$> tip)
+        mkOpenState hasFS index chunk tip    AllowExisting
   where
     ValidateEnv { hasFS
                 , hashInfo
                 , tracer
-                , registry
                 , cacheConfig
                 , chunkInfo
                 } = validateEnv
     cacheTracer = contramap TraceCacheEvent tracer
 
 -- | Execute the 'ValidationPolicy'.
+--
+-- Migrates first.
+--
+-- NOTE: we don't use a 'ResourceRegistry' to allocate file handles in,
+-- because validation happens on startup, so when an exception is thrown, the
+-- database hasn't even been opened and the node will shut down. In which case
+-- we don't have to worry about leaking handles, they will be closed when the
+-- process terminates.
 validate
   :: forall m hash h e. (IOLike m, Eq hash, HasCallStack)
   => ValidateEnv m hash h e
   -> ValidationPolicy
   -> m (ChunkNo, ImmTipWithInfo hash)
 validate validateEnv@ValidateEnv{ hasFS } valPol = do
+
+    -- First migrate any old files before validating them
+    migrate validateEnv
+
     filesInDBFolder <- listDirectory (mkFsPath [])
     let (chunkFiles, _, _) = dbFilesOnDisk filesInDBFolder
     case Set.lookupMax chunkFiles of
@@ -310,7 +329,7 @@ validateChunk ValidateEnv{..} shouldBeFinalised chunk mbPrevHash = do
     -- expensive integrity check of a block.
     let expectedChecksums = map Secondary.checksum entriesFromSecondaryIndex
     (entriesWithPrevHashes, mbErr) <- lift $
-        runChunkFileParser parser chunkFile currentSlot expectedChecksums $ \entries ->
+        runChunkFileParser parser chunkFile expectedChecksums $ \entries ->
           (\(es :> mbErr) -> (es, mbErr)) <$> S.toList entries
 
     -- Check whether the first block of this chunk fits onto the last block of
@@ -376,9 +395,9 @@ validateChunk ValidateEnv{..} shouldBeFinalised chunk mbPrevHash = do
 
       return $ summaryToTipInfo <$> lastMaybe summary
   where
-    chunkFile          = renderFile "epoch"     chunk
-    primaryIndexFile   = renderFile "primary"   chunk
-    secondaryIndexFile = renderFile "secondary" chunk
+    chunkFile          = fsPathChunkFile          chunk
+    primaryIndexFile   = fsPathPrimaryIndexFile   chunk
+    secondaryIndexFile = fsPathSecondaryIndexFile chunk
 
     HasFS { hTruncate, doesFileExist } = hasFS
 
@@ -489,3 +508,71 @@ reconstructPrimaryIndex chunkInfo HashInfo { hashSize } shouldBeFinalised
                                   + Secondary.entrySize hashSize
               in backfilled ++ secondaryOffset
                : go (nextRelativeSlot relSlot) secondaryOffset relSlots'
+
+
+{------------------------------------------------------------------------------
+  Migration
+------------------------------------------------------------------------------}
+
+-- | Migrate the files in the database to the latest version.
+--
+-- We always migrate the database to the latest version before opening it. If
+-- a migration was unsuccessful, an error is thrown and the database is not
+-- opened. User intervention will be needed before the database can be
+-- reopened, as without it, the same error will be thrown when reopening the
+-- database the next time.
+--
+-- For example, when during a migration we have to rename a file A to B, but
+-- we don't have permissions to do so, we require user intervention.
+--
+-- We have the following versions, from current to oldest:
+--
+-- * Current version:
+--
+--   - Chunk files are named "XXXXX.chunk" where "XXXXX" is the chunk/epoch
+--     number padded with zeroes to five decimals. A chunk file stores the
+--     blocks in that chunk sequentially. Empty slots are skipped.
+--
+--   - Primary index files are named "XXXXX.primary". See 'PrimaryIndex' for
+--     more information.
+--
+--   - Secondary index files are named "XXXXX.secondary". See
+--     'Secondary.Entry' for more information.
+--
+-- * The only difference with the version after it was that chunk files were
+--   named "XXXXX.epoch" instead of "XXXXX.chunk". The contents of all files
+--   remain identical because we chose the chunk size to be equal to the Byron
+--   epoch size and allowed EBBs in the chunk.
+--
+-- We don't include versions before the first release, as we don't have to
+-- migrate from them.
+--
+-- Note that primary index files also contain a version number, but since the
+-- binary format hasn't changed yet, this version number hasn't been changed
+-- yet.
+--
+-- Implementation note: as currently the sole migration we need to be able to
+-- perform only requires renaming files, we keep it simple for now.
+migrate :: (IOLike m, HasCallStack) => ValidateEnv m hash h e -> m ()
+migrate ValidateEnv { hasFS, tracer } = do
+    filesInDBFolder <- listDirectory (mkFsPath [])
+    -- Any old "XXXXX.epoch" files
+    let epochFileChunkNos :: [(FsPath, ChunkNo)]
+        epochFileChunkNos =
+          mapMaybe
+            (\file -> (mkFsPath [file],) <$> isEpochFile file)
+            (Set.toAscList filesInDBFolder)
+
+    unless (null epochFileChunkNos) $ do
+      traceWith tracer $ Migrating ".epoch files to .chunk files"
+      forM_ epochFileChunkNos $ \(epochFile, chunk) ->
+        renameFile epochFile (fsPathChunkFile chunk)
+  where
+    HasFS { listDirectory, renameFile } = hasFS
+
+    isEpochFile :: String -> Maybe ChunkNo
+    isEpochFile s = case parseDBFile s of
+      Just (prefix, chunk)
+        | prefix == "epoch"
+        -> Just (chunk)
+      _ -> Nothing

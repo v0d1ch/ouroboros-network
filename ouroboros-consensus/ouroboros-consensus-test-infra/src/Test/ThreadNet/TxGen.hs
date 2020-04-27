@@ -1,12 +1,11 @@
+{-# LANGUAGE TypeFamilies #-}
 -- | Transaction generator for testing
 module Test.ThreadNet.TxGen
   ( TxGen (..)
   ) where
 
-import           Control.Monad (replicateM)
-import           Crypto.Number.Generate (generateBetween)
-
 import           Cardano.Slotting.Slot (SlotNo)
+import           Data.Kind (Type)
 
 import           Ouroboros.Consensus.Config
 import           Ouroboros.Consensus.Ledger.Abstract
@@ -19,29 +18,22 @@ import           Ouroboros.Consensus.Util.Random
 -------------------------------------------------------------------------------}
 
 class TxGen blk where
-  -- | Generate a transaction, valid or invalid, that can be submitted to a
-  -- node's Mempool.
-  testGenTx :: MonadRandom m
-            => NumCoreNodes
-            -> SlotNo
-            -> TopLevelConfig blk
-            -> LedgerState blk
-            -> m (GenTx blk)
+
+  -- | Extra information required to generate transactions
+  type TxGenExtra blk :: Type
+  type TxGenExtra blk = ()
 
   -- | Generate a number of transactions, valid or invalid, that can be
   -- submitted to a node's Mempool.
   --
-  -- This function (not 'testGenTx') will be called to generate transactions
-  -- in consensus tests.
+  -- This function will be called to generate transactions in consensus tests.
+  --
+  -- Note: this function returns a list so that an empty list can be returned
+  -- in case we are unable to generate transactions for a @blk@.
   testGenTxs :: MonadRandom m
              => NumCoreNodes
              -> SlotNo
              -> TopLevelConfig blk
+             -> TxGenExtra blk
              -> LedgerState blk
              -> m [GenTx blk]
-  testGenTxs  numCoreNodes curSlotNo cfg ledger = do
-    -- Currently 0 to 1 txs
-    n <- generateBetween 0 20
-    replicateM (fromIntegral n) $ testGenTx numCoreNodes curSlotNo cfg ledger
-
-  {-# MINIMAL testGenTx #-}

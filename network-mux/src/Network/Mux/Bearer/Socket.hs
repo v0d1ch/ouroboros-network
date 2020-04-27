@@ -1,6 +1,8 @@
+{-# LANGUAGE BangPatterns        #-}
 {-# LANGUAGE CPP                 #-}
 {-# LANGUAGE NamedFieldPuns      #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE RankNTypes          #-}
 
 module Network.Mux.Bearer.Socket
   ( socketAsMuxBearer
@@ -15,7 +17,7 @@ import           GHC.Stack
 
 import           Control.Monad.Class.MonadThrow
 import           Control.Monad.Class.MonadTime
-import           Control.Monad.Class.MonadTimer
+import           Control.Monad.Class.MonadTimer hiding (timeout)
 
 import qualified Network.Socket as Socket
 #if !defined(mingw32_HOST_OS)
@@ -30,6 +32,7 @@ import qualified Network.Mux.Types as Mx
 import qualified Network.Mux.Trace as Mx
 import qualified Network.Mux.Codec as Mx
 import qualified Network.Mux.Time as Mx
+import qualified Network.Mux.Timeout as Mx
 
 
 -- |
@@ -44,34 +47,56 @@ import qualified Network.Mux.Time as Mx
 -- 'MuxError'.
 --
 socketAsMuxBearer
-  :: Tracer IO Mx.MuxTrace
+  :: DiffTime
+  -> Tracer IO Mx.MuxTrace
   -> Socket.Socket
   -> MuxBearer IO
-socketAsMuxBearer tracer sd =
+socketAsMuxBearer sduTimeout tracer sd =
       Mx.MuxBearer {
         Mx.read    = readSocket,
         Mx.write   = writeSocket,
         Mx.sduSize = 12288
       }
     where
-      readSocket :: HasCallStack => IO (Mx.MuxSDU, Time)
-      readSocket = do
-          traceWith tracer $ Mx.MuxTraceRecvHeaderStart
-          hbuf <- recvLen' True 8 []
-          case Mx.decodeMuxSDU hbuf of
-              Left  e      -> throwM e
-              Right header -> do
-                  traceWith tracer $ Mx.MuxTraceRecvHeaderEnd header
-                  traceWith tracer $ Mx.MuxTraceRecvPayloadStart (fromIntegral $ Mx.msLength header)
-                  blob <- recvLen' False (fromIntegral $ Mx.msLength header) []
-                  ts <- getMonotonicTime
-                  traceWith tracer (Mx.MuxTraceRecvDeltaQObservation header ts)
-                  traceWith tracer $ Mx.MuxTraceRecvPayloadEnd blob
-                  return (header {Mx.msBlob = blob}, ts)
+      hdrLenght = 8
 
-      recvLen' :: Bool -> Int64 -> [BL.ByteString] -> IO BL.ByteString
-      recvLen' _ 0 bufs = return (BL.concat $ reverse bufs)
-      recvLen' waitingOnNxtHeader l bufs = do
+      readSocket :: HasCallStack => Mx.TimeoutFn IO -> IO (Mx.MuxSDU, Time)
+      readSocket timeout = do
+          traceWith tracer $ Mx.MuxTraceRecvHeaderStart
+
+          -- Wait for the first part of the header without any timeout
+          h0 <- recvAtMost True hdrLenght
+
+          -- Optionally wait at most sduTimeout seconds for the complete SDU.
+          r_m <- timeout sduTimeout $ recvRem h0
+          case r_m of
+                Nothing -> do
+                    traceWith tracer $ Mx.MuxTraceSDUReadTimeoutException
+                    throwM $ Mx.MuxError Mx.MuxSDUReadTimeout "Mux SDU Timeout" callStack
+                Just r -> return r
+
+      recvRem :: BL.ByteString -> IO (Mx.MuxSDU, Time)
+      recvRem !h0 = do
+          hbuf <- recvLen' (hdrLenght - fromIntegral (BL.length h0)) [h0]
+          case Mx.decodeMuxSDU hbuf of
+               Left  e      ->  throwM e
+               Right header@Mx.MuxSDU { Mx.msHeader } -> do
+                   traceWith tracer $ Mx.MuxTraceRecvHeaderEnd msHeader
+                   !blob <- recvLen' (fromIntegral $ Mx.mhLength msHeader) []
+
+                   !ts <- getMonotonicTime
+                   let !header' = header {Mx.msBlob = blob}
+                   traceWith tracer (Mx.MuxTraceRecvDeltaQObservation msHeader ts)
+                   return (header', ts)
+
+      recvLen' ::  Int64 -> [BL.ByteString] -> IO BL.ByteString
+      recvLen' 0 bufs = return $ BL.concat $ reverse bufs
+      recvLen' l bufs = do
+          buf <- recvAtMost False l
+          recvLen' (l - fromIntegral (BL.length buf)) (buf : bufs)
+
+      recvAtMost :: Bool -> Int64 -> IO BL.ByteString
+      recvAtMost waitingOnNxtHeader l = do
           traceWith tracer $ Mx.MuxTraceRecvStart $ fromIntegral l
 #if defined(mingw32_HOST_OS)
           buf <- Win32.Async.recv sd (fromIntegral l)
@@ -91,22 +116,28 @@ socketAsMuxBearer tracer sd =
                       " closed when reading data, waiting on next header " ++
                       show waitingOnNxtHeader) callStack
               else do
-                  traceWith tracer $ Mx.MuxTraceRecvEnd buf
-                  recvLen' False (l - fromIntegral (BL.length buf)) (buf : bufs)
+                  traceWith tracer $ Mx.MuxTraceRecvEnd (fromIntegral $ BL.length buf)
+                  return buf
 
-      writeSocket :: Mx.MuxSDU -> IO Time
-      writeSocket sdu = do
+      writeSocket :: Mx.TimeoutFn IO -> Mx.MuxSDU -> IO Time
+      writeSocket timeout sdu = do
           ts <- getMonotonicTime
           let ts32 = Mx.timestampMicrosecondsLow32Bits ts
-              sdu' = sdu { Mx.msTimestamp = Mx.RemoteClockModel ts32 }
+              sdu' = Mx.setTimestamp sdu (Mx.RemoteClockModel ts32)
               buf  = Mx.encodeMuxSDU sdu'
-          traceWith tracer $ Mx.MuxTraceSendStart sdu'
+          traceWith tracer $ Mx.MuxTraceSendStart (Mx.msHeader sdu')
+          r <- timeout sduTimeout $
 #if defined(mingw32_HOST_OS)
-          Win32.Async.sendAll sd buf
+              Win32.Async.sendAll sd buf
 #else
-          Socket.sendAll sd buf
+              Socket.sendAll sd buf
 #endif
-            `catch` Mx.handleIOException "sendAll errored"
-          traceWith tracer $ Mx.MuxTraceSendEnd
-          return ts
+              `catch` Mx.handleIOException "sendAll errored"
+          case r of
+               Nothing -> do
+                    traceWith tracer $ Mx.MuxTraceSDUWriteTimeoutException
+                    throwM $ Mx.MuxError Mx.MuxSDUWriteTimeout "Mux SDU Timeout" callStack
+               Just _ -> do
+                   traceWith tracer $ Mx.MuxTraceSendEnd
+                   return ts
 

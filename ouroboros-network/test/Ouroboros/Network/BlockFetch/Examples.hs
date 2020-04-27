@@ -68,7 +68,7 @@ import           Ouroboros.Network.Testing.ConcreteBlock
 --
 blockFetchExample1 :: forall m.
                       (MonadSTM m, MonadST m, MonadAsync m, MonadFork m,
-                       MonadCatch m, MonadTime m, MonadTimer m)
+                       MonadTime m, MonadTimer m, MonadMask m, MonadThrow (STM m))
                    => Tracer m [TraceLabelPeer Int
                                  (FetchDecision [Point BlockHeader])]
                    -> Tracer m (TraceLabelPeer Int
@@ -125,7 +125,7 @@ blockFetchExample1 decisionTracer clientStateTracer clientMsgTracer
           decisionTracer clientStateTracer
           (sampleBlockFetchPolicy1 blockHeap currentChainHeaders candidateChainHeaders)
           registry
-          (BlockFetchConfiguration 2 1)
+          (BlockFetchConfiguration 2 1 10)
         >> return ()
 
     driver :: TestFetchedBlockHeap m Block -> m ()
@@ -187,7 +187,8 @@ exampleFixedPeerGSVs =
 -- Utils to run fetch clients and servers
 --
 
-runFetchClient :: (MonadCatch m, MonadAsync m, MonadFork m, MonadST m,
+runFetchClient :: (MonadAsync m, MonadFork m, MonadMask m, MonadThrow (STM m),
+                   MonadST m, MonadTime m, MonadTimer m,
                    Ord peerid, Serialise block, Serialise (HeaderHash block))
                 => Tracer m (TraceSendRecv (BlockFetch block))
                 -> FetchClientRegistry peerid header block m
@@ -198,12 +199,13 @@ runFetchClient :: (MonadCatch m, MonadAsync m, MonadFork m, MonadST m,
                 -> m a
 runFetchClient tracer registry peerid channel client =
     bracketFetchClient registry peerid $ \clientCtx ->
-      runPipelinedPeer tracer codec channel $
-        client clientCtx
+      runPipelinedPeerWithLimits tracer codec (byteLimitsBlockFetch (fromIntegral . LBS.length))
+        timeLimitsBlockFetch channel $ client clientCtx
   where
     codec = codecBlockFetch encode decode encode decode
 
-runFetchServer :: (MonadThrow m, MonadST m,
+runFetchServer :: (MonadAsync m, MonadFork m, MonadMask m, MonadThrow (STM m),
+                   MonadST m, MonadTime m, MonadTimer m,
                    Serialise block,
                    Serialise (HeaderHash block))
                 => Tracer m (TraceSendRecv (BlockFetch block))
@@ -211,14 +213,14 @@ runFetchServer :: (MonadThrow m, MonadST m,
                 -> BlockFetchServer block m a
                 -> m a
 runFetchServer tracer channel server =
-    runPeer tracer codec channel $
-      blockFetchServerPeer server
+    runPeerWithLimits tracer codec (byteLimitsBlockFetch (fromIntegral . LBS.length))
+      timeLimitsBlockFetch channel $ blockFetchServerPeer server
   where
     codec = codecBlockFetch encode decode encode decode
 
 runFetchClientAndServerAsync
-               :: (MonadCatch m, MonadAsync m, MonadFork m, MonadTimer m,
-                   MonadST m, Ord peerid,
+               :: (MonadAsync m, MonadFork m, MonadMask m, MonadThrow (STM m),
+                   MonadST m, MonadTime m, MonadTimer m, Ord peerid,
                    Serialise header, Serialise block,
                    Serialise (HeaderHash block))
                 => Tracer m (TraceSendRecv (BlockFetch block))

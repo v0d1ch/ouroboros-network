@@ -42,15 +42,16 @@ import           Ouroboros.Network.Point (WithOrigin)
 import qualified Ouroboros.Network.Point as WithOrigin
 
 import           Ouroboros.Consensus.Block (IsEBB (..))
+import           Ouroboros.Consensus.Util.CBOR (ReadIncrementalErr)
 import           Ouroboros.Consensus.Util.IOLike
 
 import           Ouroboros.Consensus.Storage.ChainDB.Impl.VolDB
                      (blockFileParser')
 import           Ouroboros.Consensus.Storage.Common
-import           Ouroboros.Consensus.Storage.FS.API (HasFS, hPutAll, withFile)
+import           Ouroboros.Consensus.Storage.FS.API (hPutAll, withFile)
 import           Ouroboros.Consensus.Storage.FS.API.Types
 import           Ouroboros.Consensus.Storage.VolatileDB
-import           Ouroboros.Consensus.Storage.VolatileDB.Util
+import           Ouroboros.Consensus.Storage.VolatileDB.Impl.Util
 
 import           Test.QuickCheck hiding (elements)
 import           Test.QuickCheck.Monadic
@@ -113,13 +114,12 @@ type AllComponents =
   )
 
 data Cmd
-    = IsOpen
-    | Close
+    = Close
     | ReOpen
     | GetBlockComponent BlockId
     | PutBlock TestBlock
     | GarbageCollect SlotNo
-    | GetSuccessors [Predecessor]
+    | FilterByPredecessor [Predecessor]
     | GetBlockInfo [BlockId]
     | GetMaxSlotNo
     | Corruption Corruptions
@@ -230,23 +230,20 @@ runPure :: Cmd
         -> DBModel BlockId
         -> (Resp, DBModel BlockId)
 runPure = \case
-    GetBlockComponent bid -> ok MbAllComponents            $ queryE   (getBlockComponentModel allComponents bid)
-    GetSuccessors bids    -> ok (Successors  . (<$> bids)) $ queryE    getSuccessorsModel
-    GetBlockInfo bids     -> ok (BlockInfos  . (<$> bids)) $ queryE    getBlockInfoModel
-    GarbageCollect slot   -> ok Unit                       $ updateE_ (garbageCollectModel slot)
-    IsOpen                -> ok Bool                       $ query     isOpenModel
-    Close                 -> ok Unit                       $ update_   closeModel
-    ReOpen                -> ok Unit                       $ update_   reOpenModel
-    GetMaxSlotNo          -> ok MaxSlot                    $ queryE    getMaxSlotNoModel
-    PutBlock b            -> ok Unit                       $ updateE_ (putBlockModel blockInfo blob)
+    GetBlockComponent bid    -> ok MbAllComponents            $ queryE   (getBlockComponentModel allComponents bid)
+    FilterByPredecessor bids -> ok (Successors  . (<$> bids)) $ queryE    filterByPredecessorModel
+    GetBlockInfo bids        -> ok (BlockInfos  . (<$> bids)) $ queryE    getBlockInfoModel
+    GarbageCollect slot      -> ok Unit                       $ updateE_ (garbageCollectModel slot)
+    Close                    -> ok Unit                       $ update_   closeModel
+    ReOpen                   -> ok Unit                       $ update_   reOpenModel
+    GetMaxSlotNo             -> ok MaxSlot                    $ queryE    getMaxSlotNoModel
+    PutBlock b               -> ok Unit                       $ updateE_ (putBlockModel blockInfo blob)
       where
         blockInfo = testBlockToBlockInfo b
         blob      = testBlockToBuilder b
-    Corruption cors       -> ok Unit                       $ update_  (withClosedDB (runCorruptionsModel cors))
-    DuplicateBlock {}     -> ok Unit                       $ update_  (withClosedDB noop)
+    Corruption cors          -> ok Unit                       $ update_  (withClosedDB (runCorruptionsModel cors))
+    DuplicateBlock {}        -> ok Unit                       $ update_  (withClosedDB noop)
   where
-    query f m = (Right (f m), m)
-
     queryE f m = (f m, m)
 
     update_ f m = (Right (), f m)
@@ -272,7 +269,8 @@ runPureErr :: DBModel BlockId
            -> (Resp, DBModel BlockId)
 runPureErr dbm (CmdErr cmd _mbErrors) = runPure cmd dbm
 
-sm :: VolatileDBEnv h
+sm :: Eq h
+   => VolatileDBEnv h
    -> DBModel BlockId
    -> StateMachine Model (At CmdErr) IO (At Resp)
 sm env dbm = StateMachine {
@@ -338,14 +336,13 @@ postconditionImpl model cmdErr resp =
 generatorCmdImpl :: Model Symbolic -> Gen Cmd
 generatorCmdImpl Model {..} = frequency
     [ (3, PutBlock <$> genTestBlock)
-    , (1, return IsOpen)
     , (1, return Close)
       -- When the DB is closed, we try to reopen it ASAP.
     , (if open dbModel then 1 else 5, return ReOpen)
     , (2, GetBlockComponent <$> genBlockId)
     , (2, GarbageCollect <$> genGCSlot)
     , (2, GetBlockInfo <$> listOf genBlockId)
-    , (2, GetSuccessors <$> listOf genWithOriginBlockId)
+    , (2, FilterByPredecessor <$> listOf genWithOriginBlockId)
     , (2, return GetMaxSlotNo)
 
     , (if null dbFiles then 0 else 1,
@@ -466,45 +463,64 @@ shrinkerImpl m (At (CmdErr cmd mbErr)) = fmap At $
 
 shrinkCmd :: Model Symbolic -> Cmd -> [Cmd]
 shrinkCmd Model{..} cmd = case cmd of
-    GetBlockInfo   bids  -> GetBlockInfo   <$> shrinkList (const []) bids
-    GetSuccessors  preds -> GetSuccessors  <$> shrinkList (const []) preds
-    Corruption cors      -> Corruption <$> shrinkCorruptions cors
-    _                    -> []
+    GetBlockInfo   bids       -> GetBlockInfo <$> shrinkList (const []) bids
+    FilterByPredecessor preds -> FilterByPredecessor <$> shrinkList (const []) preds
+    Corruption cors           -> Corruption <$> shrinkCorruptions cors
+    _                         -> []
 
 -- | Environment to run commands against the real VolatileDB implementation.
 data VolatileDBEnv h = VolatileDBEnv
   { varErrors :: StrictTVar IO Errors
-  , hasFS     :: HasFS IO h
-  , db        :: VolatileDB BlockId IO
+  , varDB     :: StrictMVar IO (VolatileDB BlockId IO)
+  , args      :: VolatileDbArgs IO h BlockId ReadIncrementalErr
   }
 
-semanticsImpl :: VolatileDBEnv h -> At CmdErr Concrete -> IO (At Resp Concrete)
-semanticsImpl env@VolatileDBEnv { db, varErrors }  (At (CmdErr cmd mbErrors)) =
+-- | Opens a new VolatileDB and stores it in 'varDB'.
+--
+-- Does not close the current VolatileDB stored in 'varDB'.
+reopenDB :: Eq h => VolatileDBEnv h -> IO ()
+reopenDB VolatileDBEnv { varDB, args } = do
+    db <- openDB args
+    void $ swapMVar varDB db
+
+semanticsImpl
+  :: Eq h
+  => VolatileDBEnv h -> At CmdErr Concrete -> IO (At Resp Concrete)
+semanticsImpl env@VolatileDBEnv { varDB, varErrors }  (At (CmdErr cmd mbErrors)) =
     At . Resp <$> case mbErrors of
       Nothing     -> tryVolDB (runDB env cmd)
       Just errors -> do
         _ <- withErrors varErrors errors $
           tryVolDB (runDB env cmd)
-        -- As all operations on the VolatileDB are idempotent, close
-        -- (idempotent), reopen it, and run the command again.
-        closeDB  db
-        reOpenDB db
+        -- As all operations on the VolatileDB are idempotent, close (not
+        -- idempotent by default!), reopen it, and run the command again.
+        readMVar varDB >>= idemPotentCloseDB
+        reopenDB env
         tryVolDB (runDB env cmd)
 
-runDB :: HasCallStack
+idemPotentCloseDB :: VolatileDB BlockId IO -> IO ()
+idemPotentCloseDB db =
+    catchJust
+      isClosedDBError
+      (closeDB db)
+      (const (return ()))
+  where
+    isClosedDBError (UserError (ClosedDBError _)) = Just ()
+    isClosedDBError _                             = Nothing
+
+runDB :: (Eq h, HasCallStack)
       => VolatileDBEnv h
       -> Cmd
       -> IO Success
-runDB VolatileDBEnv { db, hasFS } cmd = case cmd of
-    GetBlockComponent bid -> MbAllComponents          <$> getBlockComponent db allComponents bid
-    PutBlock b            -> Unit                     <$> putBlock db (testBlockToBlockInfo b) (testBlockToBuilder b)
-    GetSuccessors  bids   -> Successors .  (<$> bids) <$> atomically (getSuccessors db)
-    GetBlockInfo   bids   -> BlockInfos .  (<$> bids) <$> atomically (getBlockInfo db)
-    GarbageCollect slot   -> Unit                     <$> garbageCollect db slot
-    GetMaxSlotNo          -> MaxSlot                  <$> atomically (getMaxSlotNo db)
-    IsOpen                -> Bool                     <$> isOpenDB db
-    Close                 -> Unit                     <$> closeDB db
-    ReOpen                -> Unit                     <$> reOpenDB db
+runDB env@VolatileDBEnv { varDB, args } cmd = readMVar varDB >>= \db -> case cmd of
+    GetBlockComponent bid    -> MbAllComponents          <$> getBlockComponent db allComponents bid
+    PutBlock b               -> Unit                     <$> putBlock db (testBlockToBlockInfo b) (testBlockToBuilder b)
+    FilterByPredecessor bids -> Successors .  (<$> bids) <$> atomically (filterByPredecessor db)
+    GetBlockInfo   bids      -> BlockInfos .  (<$> bids) <$> atomically (getBlockInfo db)
+    GarbageCollect slot      -> Unit                     <$> garbageCollect db slot
+    GetMaxSlotNo             -> MaxSlot                  <$> atomically (getMaxSlotNo db)
+    Close                    -> Unit                     <$> closeDB db
+    ReOpen                   -> Unit                     <$> reopenDB env
     Corruption corrs ->
       withClosedDB $
         forM_ corrs $ \(corr, file) -> corruptFile hasFS corr file
@@ -513,11 +529,13 @@ runDB VolatileDBEnv { db, hasFS } cmd = case cmd of
         withFile hasFS (filePath fileId) (AppendMode AllowExisting) $ \hndl ->
           void $ hPutAll hasFS hndl bytes
   where
+    VolatileDbArgs { hasFS } = args
+
     withClosedDB :: IO () -> IO Success
     withClosedDB action = do
-      closeDB db
+      readMVar varDB >>= closeDB
       action
-      reOpenDB db
+      reopenDB env
       return $ Unit ()
 
 mockImpl :: Model Symbolic -> At CmdErr Symbolic -> GenSym (At Resp Symbolic)
@@ -540,11 +558,11 @@ prop_sequential = forAllCommands smUnused Nothing $ \cmds -> monadicIO $ do
         $ tabulate "GetBlockInfo: total number of Just's"
           [groupIsMember $ isMemberTrue events]
         $ tabulate "Successors"
-          (tagGetSuccessors events)
+          (tagFilterByPredecessor events)
         $ prop
   where
-    dbm = initDBModel maxBlocksPerFile
-    smUnused = sm unusedEnv dbm
+    dbm = initDBModel testMaxBlocksPerFile
+    smUnused = sm (unusedEnv @()) dbm
 
     groupIsMember n
       | n < 5     = show n
@@ -563,25 +581,38 @@ test cmds = do
         parser = blockFileParser' hasFS testBlockIsEBB
           testBlockToBinaryInfo (const <$> decode) testBlockIsValid
           ValidateAll
+        args = VolatileDbArgs
+          { hasFS
+          , maxBlocksPerFile = testMaxBlocksPerFile
+          , tracer
+          , parser
+          }
 
-    withDB (openDB hasFS parser tracer maxBlocksPerFile) $ \db -> do
-      let env = VolatileDBEnv { varErrors, db, hasFS }
-          sm' = sm env dbm
-      (hist, _model, res) <- QSM.runCommands' sm' cmds
+    (hist, res, trace) <- bracket
+      (openDB args >>= newMVar)
+      -- Note: we might be closing a different VolatileDB than the one we
+      -- opened, as we can reopen it the VolatileDB, swapping the VolatileDB
+      -- in the MVar.
+      (\varDB -> readMVar varDB >>= closeDB)
+      $ \varDB -> do
+        let env = VolatileDBEnv { varErrors, varDB, args }
+            sm' = sm env dbm
+        (hist, _model, res) <- QSM.runCommands' sm' cmds
+        trace <- getTrace
+        return (hist, res, trace)
 
-      trace <- getTrace
-      fs    <- atomically $ readTVar varFs
+    fs <- atomically $ readTVar varFs
 
-      let prop =
-            counterexample ("Trace: " <> unlines (map show trace)) $
-            counterexample ("FS: " <> Mock.pretty fs)              $
-            res === Ok
-      return (hist, prop)
+    let prop =
+          counterexample ("Trace: " <> unlines (map show trace)) $
+          counterexample ("FS: " <> Mock.pretty fs)              $
+          res === Ok
+    return (hist, prop)
   where
-    dbm = initDBModel maxBlocksPerFile
+    dbm = initDBModel testMaxBlocksPerFile
 
-maxBlocksPerFile :: BlocksPerFile
-maxBlocksPerFile = mkBlocksPerFile 3
+testMaxBlocksPerFile :: BlocksPerFile
+testMaxBlocksPerFile = mkBlocksPerFile 3
 
 unusedEnv :: VolatileDBEnv h
 unusedEnv = error "VolatileDBEnv used during command generation"
@@ -691,8 +722,8 @@ tag ls = QSM.classify
 
     tagIsClosedError :: EventPred
     tagIsClosedError = predicate $ \ev -> case eventMockResp ev of
-      Resp (Left (UserError ClosedDBError)) -> Left TagClosedError
-      _                                     -> Right tagIsClosedError
+      Resp (Left (UserError (ClosedDBError _))) -> Left TagClosedError
+      _                                         -> Right tagIsClosedError
 
     tagGarbageCollectThenReOpen :: EventPred
     tagGarbageCollectThenReOpen = successful $ \ev _ -> case getCmd ev of
@@ -773,12 +804,12 @@ tagSimulatedErrors events = fmap tagError events
       At (CmdErr _ Nothing) -> "NoError"
       At (CmdErr cmd _)     -> cmdName (At cmd) <> " Error"
 
-tagGetSuccessors :: [VolDBEvent Symbolic] -> [String]
-tagGetSuccessors = mapMaybe f
+tagFilterByPredecessor :: [VolDBEvent Symbolic] -> [String]
+tagFilterByPredecessor = mapMaybe f
   where
     f :: VolDBEvent Symbolic -> Maybe String
     f ev = case (getCmd ev, eventMockResp ev) of
-        (GetSuccessors _pid, Resp (Right (Successors st))) ->
+        (FilterByPredecessor _pid, Resp (Right (Successors st))) ->
             if all Set.null st then Just "Empty Successors"
             else Just "Non empty Successors"
         _otherwise -> Nothing
@@ -796,5 +827,5 @@ showLabelledExamples' :: Maybe Int
 showLabelledExamples' mReplay numTests focus =
     QSM.showLabelledExamples' smUnused mReplay numTests tag focus
   where
-    dbm      = initDBModel maxBlocksPerFile
-    smUnused = sm unusedEnv dbm
+    dbm      = initDBModel testMaxBlocksPerFile
+    smUnused = sm (unusedEnv @()) dbm

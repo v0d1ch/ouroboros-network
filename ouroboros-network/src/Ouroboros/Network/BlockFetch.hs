@@ -211,7 +211,10 @@ data BlockFetchConfiguration =
          bfcMaxConcurrencyBulkSync :: !Word,
 
          -- | Maximum concurrent downloads during deadline syncing.
-         bfcMaxConcurrencyDeadline :: !Word
+         bfcMaxConcurrencyDeadline :: !Word,
+
+         -- | Maximum requests in flight per each peer.
+         bfcMaxRequestsInflight    :: !Word
      }
 
 -- | Execute the block fetch logic. It monitors the current chain and candidate
@@ -254,10 +257,7 @@ blockFetchLogic decisionTracer clientStateTracer
     fetchDecisionPolicy :: FetchDecisionPolicy header
     fetchDecisionPolicy =
       FetchDecisionPolicy {
-        -- TODO: This is a protocol constant, but determined elsewhere.
-        -- It should be passed in.
-        maxInFlightReqsPerPeer   = 10,
-
+        maxInFlightReqsPerPeer   = bfcMaxRequestsInflight,
         maxConcurrencyBulkSync   = bfcMaxConcurrencyBulkSync,
         maxConcurrencyDeadline   = bfcMaxConcurrencyDeadline,
 
@@ -286,9 +286,9 @@ blockFetchLogic decisionTracer clientStateTracer
 
     -- TODO: get this from elsewhere once we have DeltaQ info available
     readPeerGSVs = Map.map (const dummyGSVs) <$> readFetchClientsStateVars registry
-    -- roughly 100ms one-way ping time and 5MBit/s bandwidth gives an in-flight
-    -- low watermark and high watermark of ~100kb and ~200kb respectively.
+    -- roughly 500ms one-way ping time and 5MBit/s bandwidth gives an in-flight
+    -- low watermark and high watermark of ~500kb and ~1000kb respectively.
     dummyGSVs    = PeerGSV{outboundGSV, inboundGSV}
-    inboundGSV   = ballisticGSV 100e-3 2e-6 (degenerateDistribution 0)
+    inboundGSV   = ballisticGSV 500e-3 2e-6 (degenerateDistribution 0)
     outboundGSV  = inboundGSV
 

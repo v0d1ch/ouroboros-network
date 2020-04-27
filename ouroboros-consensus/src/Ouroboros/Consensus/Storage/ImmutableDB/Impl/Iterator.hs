@@ -258,15 +258,13 @@ streamImpl dbEnv registry blockComponent mbStart mbEnd =
     mkEmptyIterator :: Iterator hash m b
     mkEmptyIterator = Iterator
       { iteratorNext    = return IteratorExhausted
-      , iteratorPeek    = return IteratorExhausted
       , iteratorHasNext = return Nothing
       , iteratorClose   = return ()
       }
 
     mkIterator :: IteratorHandle hash m -> Iterator hash m b
     mkIterator ith = Iterator
-      { iteratorNext    = iteratorNextImpl dbEnv ith registry blockComponent True
-      , iteratorPeek    = iteratorNextImpl dbEnv ith registry blockComponent False
+      { iteratorNext    = iteratorNextImpl dbEnv ith registry blockComponent
       , iteratorHasNext = iteratorHasNextImpl    ith
       , iteratorClose   = iteratorCloseImpl      ith
       }
@@ -348,13 +346,12 @@ iteratorNextImpl
   -> IteratorHandle hash m
   -> ResourceRegistry m
   -> BlockComponent (ImmutableDB hash m) b
-  -> Bool  -- ^ Step the iterator after reading iff True
   -> m (IteratorResult b)
 iteratorNextImpl dbEnv it@IteratorHandle
                          { itHasFS = hasFS :: HasFS m h
                          , itIndex = index :: Index m hash h
                          , ..
-                         } registry blockComponent step = do
+                         } registry blockComponent = do
     -- The idea is that if the state is not 'IteratorStateExhausted, then the
     -- head of 'itChunkEntries' is always ready to be read. After reading it
     -- with 'readNextBlock' or 'readNextHeader', 'stepIterator' will advance
@@ -369,7 +366,7 @@ iteratorNextImpl dbEnv it@IteratorHandle
                 (currentChunkOffset st)
               entry = NE.head itChunkEntries
           b <- getBlockComponent itChunkHandle itChunk entry blockComponent
-          when step $ stepIterator curChunkInfo iteratorState
+          stepIterator curChunkInfo iteratorState
           return $ IteratorResult b
   where
     ImmutableDBEnv { chunkInfo } = dbEnv
@@ -420,7 +417,7 @@ iteratorNextImpl dbEnv it@IteratorHandle
       where
         Secondary.Entry { blockOffset, checksum, blockOrEBB } = entry
         offset    = AbsOffset $ Secondary.unBlockOffset blockOffset
-        chunkFile = renderFile "epoch" chunk
+        chunkFile = fsPathChunkFile chunk
 
     -- | We don't rely on the position of the handle, we always use
     -- 'hGetExactlyAt', i.e. @pread@ for reading from a given offset.
@@ -452,7 +449,7 @@ iteratorNextImpl dbEnv it@IteratorHandle
         -- No more entries in this chunk, so open the next.
         Nothing -> do
           -- Release the resource, i.e., close the handle.
-          release itChunkKey
+          void $ release itChunkKey
           -- If this was the final chunk, close the iterator
           if itChunk >= chunkIndex itEnd then
             iteratorCloseImpl it
@@ -530,7 +527,7 @@ iteratorCloseImpl IteratorHandle { itState } = do
         -- closing all open iterators, i.e., the iterators opened by the
         -- protocol threads. So we're releasing handles allocated in resource
         -- registry A from a thread tracked by resource registry B. See #1390.
-        unsafeRelease itChunkKey
+        void $ unsafeRelease itChunkKey
 
 iteratorStateForChunk
   :: (HasCallStack, IOLike m, Eq hash)
@@ -553,7 +550,7 @@ iteratorStateForChunk hasFS index registry
     -- will be closed in case of an exception.
     (key, eHnd) <- allocate
       registry
-      (\_key -> hOpen (renderFile "epoch" chunk) ReadMode)
+      (\_key -> hOpen (fsPathChunkFile chunk) ReadMode)
       hClose
 
     -- If the last entry in @entries@ corresponds to the last block in the

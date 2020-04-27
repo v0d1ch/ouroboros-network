@@ -6,6 +6,7 @@
 {-# LANGUAGE FlexibleContexts           #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE LambdaCase                 #-}
+{-# LANGUAGE MultiWayIf                 #-}
 {-# LANGUAGE OverloadedStrings          #-}
 {-# LANGUAGE RecordWildCards            #-}
 {-# LANGUAGE TupleSections              #-}
@@ -29,6 +30,7 @@ module Test.Util.FS.Sim.MockFS (
     -- * Operations on files
   , hOpen
   , hClose
+  , hIsOpen
   , hSeek
   , hGetSome
   , hGetSomeAt
@@ -42,6 +44,7 @@ module Test.Util.FS.Sim.MockFS (
   , doesDirectoryExist
   , doesFileExist
   , removeFile
+  , renameFile
     -- * Exported for the benefit of tests only
   , HandleState       -- opaque
   , OpenHandleState   -- opaque
@@ -496,6 +499,10 @@ hClose h = withHandleRead h $ \_fs -> \case
     HandleClosed hs ->
       return ((), HandleClosed hs)
 
+-- | Mock implementation of 'hIsOpen'
+hIsOpen :: CanSimFS m => Handle' -> m Bool
+hIsOpen h = gets (`handleIsOpen` handleRaw h)
+
 -- | Mock implementation of 'hSeek'
 --
 -- NOTE: This is more restricted than the IO version, because seek has some
@@ -782,6 +789,27 @@ removeFile fp =
       _ -> do
         files' <- checkFsTree $ FS.removeFile fp (mockFiles fs)
         return ((), fs { mockFiles = files' })
+
+renameFile :: CanSimFS m => FsPath -> FsPath -> m ()
+renameFile fpOld fpNew =
+    modifyMockFS $ \fs -> if
+      | fpOld `S.member` openFilePaths fs
+      -> throwError $ errRenameOpenFile fpOld
+      | fpNew `S.member` openFilePaths fs
+      -> throwError $ errRenameOpenFile fpNew
+      | otherwise
+      -> do
+        files' <- checkFsTree $ FS.renameFile fpOld fpNew (mockFiles fs)
+        return ((), fs { mockFiles = files' })
+  where
+    errRenameOpenFile fp = FsError {
+        fsErrorType   = FsIllegalOperation
+      , fsErrorPath   = fsToFsErrorPathUnmounted fp
+      , fsErrorString = "cannot rename opened file"
+      , fsErrorNo     = Nothing
+      , fsErrorStack  = callStack
+      , fsLimitation  = True
+      }
 
 {-------------------------------------------------------------------------------
   Pretty-printing

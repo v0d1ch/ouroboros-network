@@ -10,15 +10,15 @@
 module Ouroboros.Consensus.Mempool.API (
     Mempool(..)
   , addTxs
-  , BlockSlot(..)
+  , ForgeLedgerState(..)
   , MempoolCapacityBytes (..)
   , MempoolSnapshot(..)
   , ApplyTx(..)
   , HasTxId(..)
   , GenTxId
   , MempoolAddTxResult (..)
-  , isTxAddedOrAlreadyInMempool
-  , isTxRejected
+  , isMempoolTxAdded
+  , isMempoolTxRejected
   , MempoolSize (..)
   , TraceEventMempool(..)
   , HasTxs(..)
@@ -30,7 +30,6 @@ import           Control.Monad.Except
 import           Data.Word (Word32)
 import           GHC.Stack (HasCallStack)
 
-import           Ouroboros.Network.Block (SlotNo)
 import           Ouroboros.Network.Protocol.TxSubmission.Type (TxSizeInBytes)
 
 import           Ouroboros.Consensus.Ledger.Abstract
@@ -82,7 +81,12 @@ class (Ord (TxId tx), NoUnexpectedThunks (TxId tx)) => HasTxId tx where
   -- | A generalized transaction, 'GenTx', identifier.
   data family TxId tx :: *
 
-  -- | Return the 'GenTxId' of a 'GenTx'.
+  -- | Return the 'TxId' of a 'GenTx'.
+  --
+  -- NOTE: a 'TxId' must be unique up to ledger rules, i.e., two 'GenTx's with
+  -- the same 'TxId' must be the same transaction /according to the ledger/.
+  -- However, we do not assume that a 'TxId' uniquely determines a 'GenTx':
+  -- two 'GenTx's with the same 'TxId' can differ in, e.g., witnesses.
   --
   -- Should be cheap as this will be called often.
   txId :: tx -> TxId tx
@@ -214,9 +218,7 @@ data Mempool m blk idx = Mempool {
       -- the given ledger state
       --
       -- This does not update the state of the mempool.
-    , getSnapshotFor :: BlockSlot
-                     -> LedgerState blk
-                     -> STM m (MempoolSnapshot blk idx)
+    , getSnapshotFor :: ForgeLedgerState blk -> STM m (MempoolSnapshot blk idx)
 
       -- | Get the mempool's capacity in bytes.
     , getCapacity    :: STM m MempoolCapacityBytes
@@ -230,11 +232,6 @@ data Mempool m blk idx = Mempool {
 data MempoolAddTxResult blk
   = MempoolTxAdded
     -- ^ The transaction was added to the mempool.
-  | MempoolTxAlreadyInMempool
-    -- ^ The transaction already exists within the mempool and therefore could
-    -- not be added.
-    --
-    -- Note that we don't treat this like an error/rejection case.
   | MempoolTxRejected !(ApplyTxErr blk)
     -- ^ The transaction was rejected and could not be added to the mempool
     -- for the specified reason.
@@ -242,14 +239,13 @@ data MempoolAddTxResult blk
 deriving instance Eq (ApplyTxErr blk) => Eq (MempoolAddTxResult blk)
 deriving instance Show (ApplyTxErr blk) => Show (MempoolAddTxResult blk)
 
-isTxAddedOrAlreadyInMempool :: MempoolAddTxResult blk -> Bool
-isTxAddedOrAlreadyInMempool MempoolTxAdded            = True
-isTxAddedOrAlreadyInMempool MempoolTxAlreadyInMempool = True
-isTxAddedOrAlreadyInMempool _                         = False
+isMempoolTxAdded :: MempoolAddTxResult blk -> Bool
+isMempoolTxAdded MempoolTxAdded = True
+isMempoolTxAdded _              = False
 
-isTxRejected :: MempoolAddTxResult blk -> Bool
-isTxRejected (MempoolTxRejected _) = True
-isTxRejected _                     = False
+isMempoolTxRejected :: MempoolAddTxResult blk -> Bool
+isMempoolTxRejected (MempoolTxRejected _) = True
+isMempoolTxRejected _                     = False
 
 -- | Wrapper around 'implTryAddTxs' that blocks until all transaction have
 -- either been added to the Mempool or rejected.
@@ -292,7 +288,7 @@ addTxs mempool = \txs -> do
       (added, toAdd) <- tryAddTxs mempool txs
       go (added:acc) toAdd
 
--- | The slot of the block in which the transactions in the mempool will end up
+-- | The ledger state wrt to which we should produce a block
 --
 -- The transactions in the mempool will be part of the body of a block, but a
 -- block consists of a header and a body, and the full validation of a block
@@ -301,12 +297,13 @@ addTxs mempool = \txs -> do
 -- ledger: the update system might be updated, scheduled delegations might be
 -- applied, etc., and such changes should take effect before we validate any
 -- transactions.
-data BlockSlot =
+data ForgeLedgerState blk =
     -- | The slot number of the block is known
     --
     -- This will only be the case when we realized that we are the slot leader
-    -- and we are actually producing a block.
-    TxsForBlockInSlot SlotNo
+    -- and we are actually producing a block. It is the caller's responsibilit
+    -- to call 'applyChainTick' and produce the ticked ledger state.
+    ForgeInKnownSlot (TickedLedgerState blk)
 
     -- | The slot number of the block is not yet known
     --
@@ -314,7 +311,7 @@ data BlockSlot =
     -- will end up, we have to make an assumption about which slot number to use
     -- for 'applyChainTick' to prepare the ledger state; we will assume that
     -- they will end up in the slot after the slot at the tip of the ledger.
-  | TxsForUnknownBlock
+  | ForgeInUnknownSlot (LedgerState blk)
 
 -- | Represents the maximum number of bytes worth of transactions that a
 -- 'Mempool' can contain.

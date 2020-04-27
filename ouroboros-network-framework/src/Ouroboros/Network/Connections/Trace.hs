@@ -8,7 +8,6 @@ module Ouroboros.Network.Connections.Trace
   ) where
 
 import           Control.Exception
-import           Text.Printf
 
 -- | Trace for exceptions thrown either by application or by either `accept` or
 -- `connect` system calls.

@@ -21,17 +21,16 @@ module Ouroboros.Consensus.Ledger.Dual (
     -- * Pair types
   , DualBlock(..)
   , DualHeader
+  , DualLedgerConfig(..)
   , DualLedgerError(..)
   , DualGenTxErr(..)
     -- * Lifted functions
-  , dualExtLedgerStateMain
   , dualExtValidationErrorMain
   , dualTopLevelConfigMain
     -- * Type class family instances
   , Header(..)
   , BlockConfig(..)
   , LedgerState(..)
-  , LedgerConfig(..)
   , GenTx(..)
   , TxId(..)
     -- * Serialisation
@@ -256,22 +255,15 @@ deriving instance ( Eq (LedgerError m)
   Update the ledger
 -------------------------------------------------------------------------------}
 
-instance Bridge m a => UpdateLedger (DualBlock m a) where
+data DualLedgerConfig m a = DualLedgerConfig {
+      dualLedgerConfigMain :: LedgerConfig m
+    , dualLedgerConfigAux  :: LedgerConfig a
+    }
+  deriving NoUnexpectedThunks via AllowThunk (DualLedgerConfig m a)
 
-  data LedgerState (DualBlock m a) = DualLedgerState {
-        dualLedgerStateMain   :: LedgerState m
-      , dualLedgerStateAux    :: LedgerState a
-      , dualLedgerStateBridge :: BridgeLedger m a
-      }
-    deriving NoUnexpectedThunks via AllowThunk (LedgerState (DualBlock m a))
-
-  data LedgerConfig (DualBlock m a) = DualLedgerConfig {
-        dualLedgerConfigMain :: LedgerConfig m
-      , dualLedgerConfigAux  :: LedgerConfig a
-      }
-    deriving NoUnexpectedThunks via AllowThunk (LedgerConfig (DualBlock m a))
-
-  type LedgerError (DualBlock m a) = DualLedgerError m a
+instance Bridge m a => IsLedger (LedgerState (DualBlock m a)) where
+  type LedgerCfg (LedgerState (DualBlock m a)) = DualLedgerConfig m a
+  type LedgerErr (LedgerState (DualBlock m a)) = DualLedgerError   m a
 
   applyChainTick DualLedgerConfig{..}
                  slot
@@ -295,19 +287,20 @@ instance Bridge m a => UpdateLedger (DualBlock m a) where
                   slot
                   dualLedgerStateAux
 
+instance Bridge m a => ApplyBlock (LedgerState (DualBlock m a)) (DualBlock m a) where
   applyLedgerBlock DualLedgerConfig{..}
                    block@DualBlock{..}
-                   DualLedgerState{..} = do
+                   (TickedLedgerState slot DualLedgerState{..}) = do
       (main', aux') <-
         agreeOnError DualLedgerError (
             applyLedgerBlock
               dualLedgerConfigMain
               dualBlockMain
-              dualLedgerStateMain
+              (TickedLedgerState slot dualLedgerStateMain)
           , applyMaybeBlock
               dualLedgerConfigAux
               dualBlockAux
-              dualLedgerStateAux
+              (TickedLedgerState slot dualLedgerStateAux)
           )
       return DualLedgerState {
           dualLedgerStateMain   = main'
@@ -319,22 +312,32 @@ instance Bridge m a => UpdateLedger (DualBlock m a) where
 
   reapplyLedgerBlock DualLedgerConfig{..}
                      block@DualBlock{..}
-                     DualLedgerState{..} =
+                     (TickedLedgerState slot DualLedgerState{..}) =
     DualLedgerState {
           dualLedgerStateMain   = reapplyLedgerBlock
                                     dualLedgerConfigMain
                                     dualBlockMain
-                                    dualLedgerStateMain
+                                    (TickedLedgerState slot dualLedgerStateMain)
         , dualLedgerStateAux    = reapplyMaybeBlock
                                     dualLedgerConfigAux
                                     dualBlockAux
-                                    dualLedgerStateAux
+                                    (TickedLedgerState slot dualLedgerStateAux)
         , dualLedgerStateBridge = updateBridgeWithBlock
                                     block
                                     dualLedgerStateBridge
       }
 
-  ledgerTipPoint = castPoint . ledgerTipPoint . dualLedgerStateMain
+  ledgerTipPoint = castPoint
+                 . (ledgerTipPoint :: LedgerState m -> Point m)
+                 . dualLedgerStateMain
+
+instance Bridge m a => UpdateLedger (DualBlock m a) where
+  data LedgerState (DualBlock m a) = DualLedgerState {
+        dualLedgerStateMain   :: LedgerState m
+      , dualLedgerStateAux    :: LedgerState a
+      , dualLedgerStateBridge :: BridgeLedger m a
+      }
+    deriving NoUnexpectedThunks via AllowThunk (LedgerState (DualBlock m a))
 
 deriving instance ( Show (LedgerState m)
                   , Show (LedgerState a)
@@ -348,13 +351,6 @@ deriving instance ( Eq (LedgerState m)
 {-------------------------------------------------------------------------------
   Utilities for working with the extended ledger state
 -------------------------------------------------------------------------------}
-
-dualExtLedgerStateMain :: ExtLedgerState (DualBlock m a)
-                       -> ExtLedgerState m
-dualExtLedgerStateMain ExtLedgerState{..} = ExtLedgerState{
-      ledgerState = dualLedgerStateMain ledgerState
-    , headerState = castHeaderState     headerState
-    }
 
 dualExtValidationErrorMain :: ExtValidationError (DualBlock m a)
                            -> ExtValidationError m
@@ -374,9 +370,10 @@ instance Bridge m a => HasAnnTip (DualBlock m a) where
   getTipInfo = getTipInfo . dualHeaderMain
 
 instance Bridge m a => ValidateEnvelope (DualBlock m a) where
-  validateEnvelope cfg t =
+  type OtherHeaderEnvelopeError (DualBlock m a) = OtherHeaderEnvelopeError m
+  validateEnvelope cfg ledgerView t =
         withExcept castHeaderEnvelopeError
-      . validateEnvelope (dualBlockConfigMain cfg) (castAnnTip <$> t)
+      . validateEnvelope (dualTopLevelConfigMain cfg) ledgerView (castAnnTip <$> t)
       . dualHeaderMain
 
   firstBlockNo          _ = firstBlockNo          (Proxy @m)
@@ -388,8 +385,20 @@ instance Bridge m a => LedgerSupportsProtocol (DualBlock m a) where
         (dualLedgerConfigMain cfg)
         (dualLedgerStateMain  state)
 
-  anachronisticProtocolLedgerView_ cfg state =
-      anachronisticProtocolLedgerView_
+  ledgerViewForecastAt_ cfg state =
+      ledgerViewForecastAt_
+        (dualLedgerConfigMain cfg)
+        (dualLedgerStateMain  state)
+
+instance Bridge m a => HasHardForkHistory (DualBlock m a) where
+  type HardForkIndices (DualBlock m a) = HardForkIndices m
+
+  hardForkShape cfg =
+      hardForkShape
+        (dualBlockConfigMain cfg)
+
+  hardForkTransitions cfg state =
+      hardForkTransitions
         (dualLedgerConfigMain cfg)
         (dualLedgerStateMain  state)
 
@@ -407,8 +416,8 @@ instance Bridge m a => QueryLedger (DualBlock m a) where
   data Query (DualBlock m a) result
     deriving (Show)
 
-  answerQuery = \case {}
-  eqQuery     = \case {}
+  answerQuery _ = \case {}
+  eqQuery       = \case {}
 
 instance ShowQuery (Query (DualBlock m a)) where
   showResult = \case {}
@@ -509,9 +518,9 @@ deriving instance Ord  (GenTxId m) => Ord  (TxId (GenTx (DualBlock m a)))
 applyMaybeBlock :: UpdateLedger blk
                 => LedgerConfig blk
                 -> Maybe blk
-                -> LedgerState blk
+                -> TickedLedgerState blk
                 -> Except (LedgerError blk) (LedgerState blk)
-applyMaybeBlock _   Nothing      = return
+applyMaybeBlock _   Nothing      = return . tickedLedgerState
 applyMaybeBlock cfg (Just block) = applyLedgerBlock cfg block
 
 -- | Lift 'reapplyLedgerBlock' to @Maybe blk@
@@ -520,9 +529,9 @@ applyMaybeBlock cfg (Just block) = applyLedgerBlock cfg block
 reapplyMaybeBlock :: UpdateLedger blk
                   => LedgerConfig blk
                   -> Maybe blk
+                  -> TickedLedgerState blk
                   -> LedgerState blk
-                  -> LedgerState blk
-reapplyMaybeBlock _   Nothing      = id
+reapplyMaybeBlock _   Nothing      = tickedLedgerState
 reapplyMaybeBlock cfg (Just block) = reapplyLedgerBlock cfg block
 
 -- | Used when the concrete and abstract implementation should agree on errors

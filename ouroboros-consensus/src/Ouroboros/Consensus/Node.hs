@@ -1,5 +1,6 @@
 {-# LANGUAGE NamedFieldPuns      #-}
 {-# LANGUAGE NumericUnderscores  #-}
+{-# LANGUAGE MonadComprehensions #-}
 {-# LANGUAGE RecordWildCards     #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeApplications    #-}
@@ -11,8 +12,8 @@ module Ouroboros.Consensus.Node
   ( DiffusionTracers (..)
   , DiffusionArguments (..)
   , run
-  , IsProducer (..)
     -- * Exposed by 'run'
+  , RunNodeArgs (..)
   , RunNode (..)
   , Tracers
   , Tracers' (..)
@@ -37,24 +38,26 @@ import           Codec.Serialise (DeserialiseFailure)
 import           Control.Monad (when)
 import           Control.Tracer (Tracer)
 import           Data.ByteString.Lazy (ByteString)
+import           Data.List.NonEmpty (NonEmpty)
 import           Data.Proxy (Proxy (..))
-import           Data.Time.Clock (secondsToDiffTime)
 
 import           Ouroboros.Network.Diffusion
 import           Ouroboros.Network.Magic
 import           Ouroboros.Network.NodeToClient (DictVersion (..),
                      LocalConnectionId, NodeToClientVersionData (..),
                      nodeToClientCodecCBORTerm)
-import           Ouroboros.Network.NodeToNode (NodeToNodeVersionData (..),
-                     RemoteConnectionId, nodeToNodeCodecCBORTerm)
-import           Ouroboros.Network.Protocol.ChainSync.PipelineDecision
-                     (pipelineDecisionLowHighMark)
+import           Ouroboros.Network.NodeToNode (MiniProtocolParameters (..),
+                     NodeToNodeVersionData (..), RemoteConnectionId,
+                     defaultMiniProtocolParameters, nodeToNodeCodecCBORTerm,
+                     combineVersions)
 
 import           Ouroboros.Consensus.BlockchainTime
 import           Ouroboros.Consensus.Config
 import           Ouroboros.Consensus.Ledger.Extended (ExtLedgerState (..))
 import           Ouroboros.Consensus.MiniProtocol.ChainSync.Client
                      (ClockSkew (..))
+import qualified Ouroboros.Consensus.Network.NodeToClient as NTC
+import qualified Ouroboros.Consensus.Network.NodeToNode as NTN
 import           Ouroboros.Consensus.Node.DbMarker
 import           Ouroboros.Consensus.Node.ErrorPolicy
 import           Ouroboros.Consensus.Node.LedgerDerivedInfo
@@ -65,7 +68,7 @@ import           Ouroboros.Consensus.Node.Run
 import           Ouroboros.Consensus.Node.State
 import           Ouroboros.Consensus.Node.Tracers
 import           Ouroboros.Consensus.NodeKernel
-import           Ouroboros.Consensus.NodeNetwork
+import           Ouroboros.Consensus.Protocol.Abstract
 import           Ouroboros.Consensus.Util.IOLike
 import           Ouroboros.Consensus.Util.Orphans ()
 import           Ouroboros.Consensus.Util.Random
@@ -84,11 +87,58 @@ import           Ouroboros.Consensus.Storage.LedgerDB.InMemory
 import           Ouroboros.Consensus.Storage.VolatileDB
                      (BlockValidationPolicy (..), mkBlocksPerFile)
 
--- | Whether the node produces blocks or not.
-data IsProducer
-  = IsProducer
-  | IsNotProducer
-  deriving (Eq, Show)
+-- | Arguments required by 'runNode'
+data RunNodeArgs blk = RunNodeArgs {
+      -- | Consensus tracers
+      rnTraceConsensus :: Tracers IO RemoteConnectionId LocalConnectionId blk
+
+      -- | Protocol tracers for node-to-node communication
+    , rnTraceNTN :: NTN.Tracers IO RemoteConnectionId blk DeserialiseFailure
+
+      -- | Protocol tracers for node-to-client communication
+    , rnTraceNTC :: NTC.Tracers IO LocalConnectionId blk DeserialiseFailure
+
+      -- | ChainDB tracer
+    , rnTraceDB :: Tracer IO (ChainDB.TraceEvent blk)
+
+      -- | Diffusion tracers
+    , rnTraceDiffusion :: DiffusionTracers
+
+      -- | Diffusion arguments
+    , rnDiffusionArguments :: DiffusionArguments
+
+      -- | Network magic
+    , rnNetworkMagic :: NetworkMagic
+
+      -- | Database path
+    , rnDatabasePath :: FilePath
+
+      -- | Protocol info
+    , rnProtocolInfo :: ProtocolInfo blk
+
+      -- | Customise the 'ChainDbArgs'
+    , rnCustomiseChainDbArgs :: ChainDbArgs IO blk -> ChainDbArgs IO blk
+
+      -- | Customise the 'NodeArgs'
+    , rnCustomiseNodeArgs :: NodeArgs IO RemoteConnectionId LocalConnectionId blk
+                          -> NodeArgs IO RemoteConnectionId LocalConnectionId blk
+
+      -- | node-to-node protocol versions to run.
+      --
+    , rnNodeToNodeVersions   :: NonEmpty (NodeToNodeVersion blk)
+
+      -- | node-to-client protocol versions to run.
+      --
+    , rnNodeToClientVersions :: NonEmpty (NodeToClientVersion blk)
+
+      -- | Hook called after the initialisation of the 'NodeKernel'
+      --
+      -- Called on the 'NodeKernel' after creating it, but before the network
+      -- layer is initialised.
+    , rnNodeKernelHook :: ResourceRegistry IO
+                       -> NodeKernel IO RemoteConnectionId LocalConnectionId blk
+                       -> IO ()
+    }
 
 -- | Start a node.
 --
@@ -96,40 +146,18 @@ data IsProducer
 -- network layer.
 --
 -- This function runs forever unless an exception is thrown.
-run
-  :: forall blk.
-     RunNode blk
-  => Tracers IO RemoteConnectionId  blk   -- ^ Consensus tracers
-  -> ProtocolTracers IO RemoteConnectionId LocalConnectionId blk DeserialiseFailure
-     -- ^ Protocol tracers
-  -> Tracer IO (ChainDB.TraceEvent blk)   -- ^ ChainDB tracer
-  -> DiffusionTracers                     -- ^ Diffusion tracers
-  -> DiffusionArguments                   -- ^ Diffusion arguments
-  -> NetworkMagic
-  -> FilePath                             -- ^ Database path
-  -> ProtocolInfo blk
-  -> IsProducer
-  -> (ChainDbArgs IO blk -> ChainDbArgs IO blk)
-      -- ^ Customise the 'ChainDbArgs'
-  -> (NodeArgs IO RemoteConnectionId blk -> NodeArgs IO RemoteConnectionId blk)
-      -- ^ Customise the 'NodeArgs'
-  -> (ResourceRegistry IO -> NodeKernel IO RemoteConnectionId blk -> IO ())
-     -- ^ Called on the 'NodeKernel' after creating it, but before the network
-     -- layer is initialised.
-  -> IO ()
-run tracers protocolTracers chainDbTracer diffusionTracers diffusionArguments
-    networkMagic dbPath pInfo isProducer customiseChainDbArgs
-    customiseNodeArgs onNodeKernel = do
+run :: forall blk. RunNode blk => RunNodeArgs blk -> IO ()
+run RunNodeArgs{..} = do
     either throwM return =<< checkDbMarker
       hasFS
       mountPoint
       (nodeProtocolMagicId (Proxy @blk) cfg)
     withRegistry $ \registry -> do
 
-      lockDbMarkerFile registry dbPath
+      lockDbMarkerFile registry rnDatabasePath
       btime <- realBlockchainTime
         registry
-        (blockchainTimeTracer tracers)
+        (blockchainTimeTracer rnTraceConsensus)
         (nodeStartTime (Proxy @blk) cfg)
         (focusSlotLengths slotLengths)
 
@@ -143,14 +171,14 @@ run tracers protocolTracers chainDbTracer diffusionTracers diffusionArguments
       when lastShutDownWasClean $ removeCleanShutdownMarker hasFS
       let customiseChainDbArgs' args
             | lastShutDownWasClean
-            = customiseChainDbArgs args
+            = rnCustomiseChainDbArgs args
             | otherwise
               -- When the last shutdown was not clean, validate the complete
               -- ChainDB to detect and recover from any corruptions. This will
               -- override the default value /and/ the user-customised value of
               -- the 'ChainDB.cdbImmValidation' and the
               -- 'ChainDB.cdbVolValidation' fields.
-            = (customiseChainDbArgs args)
+            = (rnCustomiseChainDbArgs args)
               { ChainDB.cdbImmValidation = ValidateAllChunks
               , ChainDB.cdbVolValidation = ValidateAll
               }
@@ -162,94 +190,109 @@ run tracers protocolTracers chainDbTracer diffusionTracers diffusionArguments
 
         (_, chainDB) <- allocate registry
           (\_ -> openChainDB
-            chainDbTracer registry btime dbPath cfg initLedger
+            rnTraceDB registry btime rnDatabasePath cfg initLedger
             customiseChainDbArgs')
           ChainDB.closeDB
 
-        let nodeArgs = customiseNodeArgs $ mkNodeArgs
-              registry
+        let nodeArgs = rnCustomiseNodeArgs $
+              mkNodeArgs
+                registry
                 cfg
                 initState
-                tracers
+                rnTraceConsensus
                 btime
                 chainDB
-                isProducer
         nodeKernel <- initNodeKernel nodeArgs
-        onNodeKernel registry nodeKernel
+        rnNodeKernelHook registry nodeKernel
 
-        let networkApps = mkNetworkApps nodeArgs nodeKernel
-            diffusionApplications = mkDiffusionApplications networkApps
+        let ntnApps = mkNodeToNodeApps   nodeArgs nodeKernel
+            ntcApps = mkNodeToClientApps nodeArgs nodeKernel
+            diffusionApplications = mkDiffusionApplications
+                                      (miniProtocolParameters nodeArgs)
+                                      ntnApps
+                                      ntcApps
 
-        runDataDiffusion diffusionTracers
-                         diffusionArguments
+        runDataDiffusion rnTraceDiffusion
+                         rnDiffusionArguments
                          diffusionApplications
   where
-    mountPoint = MountPoint dbPath
-    hasFS      = ioHasFS mountPoint
+    mountPoint              = MountPoint rnDatabasePath
+    hasFS                   = ioHasFS mountPoint
+    slotLengths             = knownSlotLengths (configBlock cfg)
+    nodeToNodeVersionData   = NodeToNodeVersionData   { networkMagic = rnNetworkMagic }
+    nodeToClientVersionData = NodeToClientVersionData { networkMagic = rnNetworkMagic }
 
     ProtocolInfo
       { pInfoConfig     = cfg
       , pInfoInitLedger = initLedger
       , pInfoInitState  = initState
-      } = pInfo
+      } = rnProtocolInfo
 
-    slotLengths = knownSlotLengths (configBlock cfg)
+    mkNodeToNodeApps
+      :: NodeArgs   IO RemoteConnectionId LocalConnectionId blk
+      -> NodeKernel IO RemoteConnectionId LocalConnectionId blk
+      -> NodeToNodeVersion blk
+      -> NTN.Apps IO RemoteConnectionId ByteString ByteString ByteString ()
+    mkNodeToNodeApps nodeArgs nodeKernel version =
+        NTN.mkApps
+          nodeKernel
+          rnTraceNTN
+          (NTN.defaultCodecs (configBlock (getTopLevelConfig nodeKernel)) version)
+          (Just 70) -- timeout after waiting this long for the next header
+                    -- 70s allows for 3 slots (3 * 20s)
+          (NTN.mkHandlers nodeArgs nodeKernel)
 
-    nodeToNodeVersionData   = NodeToNodeVersionData { networkMagic   = networkMagic }
-    nodeToClientVersionData = NodeToClientVersionData { networkMagic = networkMagic }
-
-    mkNetworkApps
-      :: NodeArgs   IO RemoteConnectionId blk
-      -> NodeKernel IO RemoteConnectionId blk
-      -> NetworkProtocolVersion blk
-      -> NetworkApplication
-           IO RemoteConnectionId LocalConnectionId
-           ByteString ByteString ByteString ByteString ByteString ByteString
-           ()
-    mkNetworkApps nodeArgs nodeKernel version = consensusNetworkApps
-      nodeKernel
-      protocolTracers
-      (protocolCodecs (getTopLevelConfig nodeKernel) version)
-      (protocolHandlers nodeArgs nodeKernel)
+    mkNodeToClientApps
+      :: NodeArgs   IO RemoteConnectionId LocalConnectionId blk
+      -> NodeKernel IO RemoteConnectionId LocalConnectionId blk
+      -> NodeToClientVersion blk
+      -> NTC.Apps IO LocalConnectionId ByteString ByteString ByteString ()
+    mkNodeToClientApps nodeArgs nodeKernel version =
+        NTC.mkApps
+          rnTraceNTC
+          (NTC.defaultCodecs (configBlock (getTopLevelConfig nodeKernel)) version)
+          (NTC.mkHandlers nodeArgs nodeKernel)
 
     mkDiffusionApplications
-      :: (   NetworkProtocolVersion blk
-          -> NetworkApplication
-              IO RemoteConnectionId LocalConnectionId
-              ByteString ByteString ByteString ByteString ByteString ByteString
-              ()
+      :: MiniProtocolParameters
+      -> (   NodeToNodeVersion   blk
+          -> NTN.Apps IO RemoteConnectionId ByteString ByteString ByteString ()
+         )
+      -> (   NodeToClientVersion blk
+          -> NTC.Apps IO LocalConnectionId  ByteString ByteString ByteString ()
          )
       -> DiffusionApplications
-    mkDiffusionApplications networkApps = DiffusionApplications
-      { daResponderApplication = combineVersions [
-      simpleSingletonVersions
-    (nodeToNodeProtocolVersion (Proxy @blk) version)
-    nodeToNodeVersionData
-    (DictVersion nodeToNodeCodecCBORTerm)
-    (responderNetworkApplication $ networkApps version)
-      | version <- supportedNetworkProtocolVersions (Proxy @blk)
-      ]
-     , daInitiatorApplication = combineVersions [
-           simpleSingletonVersions
-             (nodeToNodeProtocolVersion (Proxy @blk) version)
-             nodeToNodeVersionData
-             (DictVersion nodeToNodeCodecCBORTerm)
-             (initiatorNetworkApplication $ networkApps version)
-         | version <- supportedNetworkProtocolVersions (Proxy @blk)
-         ]
-     , daLocalResponderApplication = combineVersions [
-           simpleSingletonVersions
-             (nodeToClientProtocolVersion (Proxy @blk) version)
-             nodeToClientVersionData
-             (DictVersion nodeToClientCodecCBORTerm)
-             (localResponderNetworkApplication $ networkApps version)
-         | version <- supportedNetworkProtocolVersions (Proxy @blk)
-         ]
-     , daErrorPolicies = consensusErrorPolicy (Proxy @blk)
-     }
-
-    combineVersions :: Semigroup a => [a] -> a
-    combineVersions = foldr1 (<>)
+    mkDiffusionApplications miniProtocolParams ntnApps ntcApps =
+      DiffusionApplications {
+          daResponderApplication = combineVersions [
+              simpleSingletonVersions
+                version'
+                nodeToNodeVersionData
+                (DictVersion nodeToNodeCodecCBORTerm)
+                (NTN.responder miniProtocolParams version' $ ntnApps version)
+            | version <- rnNodeToNodeVersions
+            , let version' = nodeToNodeProtocolVersion (Proxy @blk) version
+            ]
+        , daInitiatorApplication = combineVersions [
+              simpleSingletonVersions
+                version'
+                nodeToNodeVersionData
+                (DictVersion nodeToNodeCodecCBORTerm)
+                (NTN.initiator miniProtocolParams version' $ ntnApps version)
+            | version <- rnNodeToNodeVersions
+            , let version' = nodeToNodeProtocolVersion (Proxy @blk) version
+            ]
+        , daLocalResponderApplication = combineVersions [
+              simpleSingletonVersions
+                version'
+                nodeToClientVersionData
+                (DictVersion nodeToClientCodecCBORTerm)
+                (NTC.responder version' $ ntcApps version)
+            | version <- rnNodeToClientVersions
+            , let version' = nodeToClientProtocolVersion (Proxy @blk) version
+            ]
+        , daErrorPolicies = consensusErrorPolicy (Proxy @blk)
+        }
 
 openChainDB
   :: forall blk. RunNode blk
@@ -287,68 +330,69 @@ mkChainDbArgs
 mkChainDbArgs tracer registry btime dbPath cfg initLedger
               chunkInfo = (ChainDB.defaultArgs dbPath)
     { ChainDB.cdbBlocksPerFile        = mkBlocksPerFile 1000
-    , ChainDB.cdbDecodeBlock          = nodeDecodeBlock          cfg
-    , ChainDB.cdbDecodeHeader         = nodeDecodeHeader         cfg SerialisedToDisk
-    , ChainDB.cdbDecodeConsensusState = nodeDecodeConsensusState (Proxy @blk) cfg
-    , ChainDB.cdbDecodeHash           = nodeDecodeHeaderHash     (Proxy @blk)
-    , ChainDB.cdbDecodeLedger         = nodeDecodeLedgerState    cfg
-    , ChainDB.cdbDecodeTipInfo        = nodeDecodeTipInfo        (Proxy @blk)
-    , ChainDB.cdbEncodeBlock          = nodeEncodeBlockWithInfo  cfg
-    , ChainDB.cdbEncodeHeader         = nodeEncodeHeader         cfg SerialisedToDisk
-    , ChainDB.cdbEncodeConsensusState = nodeEncodeConsensusState (Proxy @blk) cfg
-    , ChainDB.cdbEncodeHash           = nodeEncodeHeaderHash     (Proxy @blk)
-    , ChainDB.cdbEncodeLedger         = nodeEncodeLedgerState    cfg
-    , ChainDB.cdbEncodeTipInfo        = nodeEncodeTipInfo        (Proxy @blk)
+    , ChainDB.cdbDecodeBlock          = nodeDecodeBlock          bcfg
+    , ChainDB.cdbDecodeHeader         = nodeDecodeHeader         bcfg SerialisedToDisk
+    , ChainDB.cdbDecodeConsensusState = nodeDecodeConsensusState pb cfg
+    , ChainDB.cdbDecodeHash           = nodeDecodeHeaderHash     pb
+    , ChainDB.cdbDecodeLedger         = nodeDecodeLedgerState
+    , ChainDB.cdbDecodeTipInfo        = nodeDecodeTipInfo        pb
+    , ChainDB.cdbEncodeBlock          = nodeEncodeBlockWithInfo  bcfg
+    , ChainDB.cdbEncodeHeader         = nodeEncodeHeader         bcfg SerialisedToDisk
+    , ChainDB.cdbEncodeConsensusState = nodeEncodeConsensusState pb cfg
+    , ChainDB.cdbEncodeHash           = nodeEncodeHeaderHash     pb
+    , ChainDB.cdbEncodeLedger         = nodeEncodeLedgerState
+    , ChainDB.cdbEncodeTipInfo        = nodeEncodeTipInfo        pb
     , ChainDB.cdbChunkInfo            = chunkInfo
-    , ChainDB.cdbHashInfo             = nodeHashInfo             (Proxy @blk)
+    , ChainDB.cdbHashInfo             = nodeHashInfo             pb
     , ChainDB.cdbGenesis              = return initLedger
-    , ChainDB.cdbAddHdrEnv            = nodeAddHeaderEnvelope    (Proxy @blk)
-    , ChainDB.cdbDiskPolicy           = defaultDiskPolicy secParam
+    , ChainDB.cdbAddHdrEnv            = nodeAddHeaderEnvelope    pb
+    , ChainDB.cdbDiskPolicy           = defaultDiskPolicy k
     , ChainDB.cdbIsEBB                = nodeIsEBB
     , ChainDB.cdbCheckIntegrity       = nodeCheckIntegrity       cfg
-    , ChainDB.cdbParamsLgrDB          = ledgerDbDefaultParams secParam
+    , ChainDB.cdbParamsLgrDB          = ledgerDbDefaultParams k
     , ChainDB.cdbTopLevelConfig       = cfg
     , ChainDB.cdbRegistry             = registry
     , ChainDB.cdbTracer               = tracer
     , ChainDB.cdbImmValidation        = ValidateMostRecentChunk
     , ChainDB.cdbVolValidation        = NoValidation
-    , ChainDB.cdbGcDelay              = secondsToDiffTime 10
     , ChainDB.cdbBlockchainTime       = btime
     }
   where
-    secParam = configSecurityParam cfg
+    k    = configSecurityParam cfg
+    bcfg = configBlock         cfg
+    pb   = Proxy @blk
 
 mkNodeArgs
   :: forall blk. RunNode blk
   => ResourceRegistry IO
   -> TopLevelConfig blk
   -> NodeState blk
-  -> Tracers IO RemoteConnectionId blk
+  -> Tracers IO RemoteConnectionId LocalConnectionId blk
   -> BlockchainTime IO
   -> ChainDB IO blk
-  -> IsProducer
-  -> NodeArgs IO RemoteConnectionId blk
-mkNodeArgs registry cfg initState tracers btime chainDB isProducer = NodeArgs
+  -> NodeArgs IO RemoteConnectionId LocalConnectionId blk
+mkNodeArgs registry cfg initState tracers btime chainDB = NodeArgs
     { tracers
     , registry
-    , maxClockSkew        = ClockSkew 1
+    , maxClockSkew           = ClockSkew 1
     , cfg
     , initState
     , btime
     , chainDB
-    , initChainDB         = nodeInitChainDB
+    , initChainDB            = nodeInitChainDB
     , blockProduction
-    , blockFetchSize      = nodeBlockFetchSize
-    , blockMatchesHeader  = nodeBlockMatchesHeader
-    , maxUnackTxs         = 100 -- TODO
-    , maxBlockSize        = NoOverride
-    , mempoolCap          = NoMempoolCapacityBytesOverride
-    , chainSyncPipelining = pipelineDecisionLowHighMark 200 300 -- TODO
+    , blockFetchSize         = nodeBlockFetchSize
+    , blockMatchesHeader     = nodeBlockMatchesHeader
+    , maxBlockSize           = NoOverride
+    , mempoolCap             = NoMempoolCapacityBytesOverride
+    , miniProtocolParameters = defaultMiniProtocolParameters
     }
   where
-    blockProduction = case isProducer of
-      IsNotProducer -> Nothing
-      IsProducer    -> Just BlockProduction
-                         { produceBlock       = \_lift' -> nodeForgeBlock cfg
-                         , runMonadRandomDict = runMonadRandomIO
-                         }
+    blockProduction
+      | checkIfCanBeLeader (configConsensus cfg)
+      = Just BlockProduction
+               { produceBlock       = \_lift' -> nodeForgeBlock cfg
+               , runMonadRandomDict = runMonadRandomIO
+               }
+      | otherwise
+      = Nothing

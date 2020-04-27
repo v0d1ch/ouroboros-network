@@ -38,15 +38,18 @@ library
                        Ouroboros.Consensus.Block.SupportsProtocol
                        Ouroboros.Consensus.BlockchainTime
                        Ouroboros.Consensus.BlockchainTime.API
-                       Ouroboros.Consensus.BlockchainTime.Mock
                        Ouroboros.Consensus.BlockchainTime.SlotLength
                        Ouroboros.Consensus.BlockchainTime.SlotLengths
                        Ouroboros.Consensus.BlockchainTime.WallClock
                        Ouroboros.Consensus.Config
+                       Ouroboros.Consensus.Forecast
+                       Ouroboros.Consensus.Fragment.Validated
+                       Ouroboros.Consensus.HardFork.History
                        Ouroboros.Consensus.HeaderValidation
                        Ouroboros.Consensus.Ledger.Abstract
                        Ouroboros.Consensus.Ledger.Dual
                        Ouroboros.Consensus.Ledger.Extended
+                       Ouroboros.Consensus.Ledger.History
                        Ouroboros.Consensus.Ledger.SupportsProtocol
                        Ouroboros.Consensus.Mempool
                        Ouroboros.Consensus.Mempool.API
@@ -57,10 +60,14 @@ library
                        Ouroboros.Consensus.MiniProtocol.ChainSync.Server
                        Ouroboros.Consensus.MiniProtocol.LocalStateQuery.Server
                        Ouroboros.Consensus.MiniProtocol.LocalTxSubmission.Server
+                       Ouroboros.Consensus.Network.NodeToClient
+                       Ouroboros.Consensus.Network.NodeToNode
                        Ouroboros.Consensus.Node
                        Ouroboros.Consensus.Node.DbMarker
                        Ouroboros.Consensus.Node.ErrorPolicy
                        Ouroboros.Consensus.Node.Exit
+                       Ouroboros.Consensus.NodeId
+                       Ouroboros.Consensus.NodeKernel
                        Ouroboros.Consensus.Node.LedgerDerivedInfo
                        Ouroboros.Consensus.Node.NetworkProtocolVersion
                        Ouroboros.Consensus.Node.ProtocolInfo
@@ -68,9 +75,6 @@ library
                        Ouroboros.Consensus.Node.Run
                        Ouroboros.Consensus.Node.State
                        Ouroboros.Consensus.Node.Tracers
-                       Ouroboros.Consensus.NodeId
-                       Ouroboros.Consensus.NodeKernel
-                       Ouroboros.Consensus.NodeNetwork
                        Ouroboros.Consensus.Protocol.Abstract
                        Ouroboros.Consensus.Protocol.BFT
                        Ouroboros.Consensus.Protocol.LeaderSchedule
@@ -87,10 +91,12 @@ library
                        Ouroboros.Consensus.Util.CallStack
                        Ouroboros.Consensus.Util.CBOR
                        Ouroboros.Consensus.Util.Condense
+                       Ouroboros.Consensus.Util.Counting
                        Ouroboros.Consensus.Util.EarlyExit
                        Ouroboros.Consensus.Util.HList
                        Ouroboros.Consensus.Util.IOLike
                        Ouroboros.Consensus.Util.MonadSTM.NormalForm
+                       Ouroboros.Consensus.Util.MonadSTM.RAWLock
                        Ouroboros.Consensus.Util.MonadSTM.StrictMVar
                        Ouroboros.Consensus.Util.Orphans
                        Ouroboros.Consensus.Util.Random
@@ -116,7 +122,6 @@ library
                        Ouroboros.Consensus.Storage.ChainDB.Impl.LgrDB
                        Ouroboros.Consensus.Storage.ChainDB.Impl.Query
                        Ouroboros.Consensus.Storage.ChainDB.Impl.Reader
-                       Ouroboros.Consensus.Storage.ChainDB.Impl.Reopen
                        Ouroboros.Consensus.Storage.ChainDB.Impl.Types
                        Ouroboros.Consensus.Storage.ChainDB.Impl.VolDB
                        Ouroboros.Consensus.Storage.Common
@@ -142,17 +147,17 @@ library
                        Ouroboros.Consensus.Storage.ImmutableDB.Impl.Validation
                        Ouroboros.Consensus.Storage.ImmutableDB.Parser
                        Ouroboros.Consensus.Storage.ImmutableDB.Types
-                       Ouroboros.Consensus.Storage.LedgerDB.Conf
                        Ouroboros.Consensus.Storage.LedgerDB.DiskPolicy
                        Ouroboros.Consensus.Storage.LedgerDB.InMemory
                        Ouroboros.Consensus.Storage.LedgerDB.OnDisk
                        Ouroboros.Consensus.Storage.VolatileDB
                        Ouroboros.Consensus.Storage.VolatileDB.API
-                       Ouroboros.Consensus.Storage.VolatileDB.FileInfo
                        Ouroboros.Consensus.Storage.VolatileDB.Impl
-                       Ouroboros.Consensus.Storage.VolatileDB.Index
+                       Ouroboros.Consensus.Storage.VolatileDB.Impl.FileInfo
+                       Ouroboros.Consensus.Storage.VolatileDB.Impl.Index
+                       Ouroboros.Consensus.Storage.VolatileDB.Impl.State
+                       Ouroboros.Consensus.Storage.VolatileDB.Impl.Util
                        Ouroboros.Consensus.Storage.VolatileDB.Types
-                       Ouroboros.Consensus.Storage.VolatileDB.Util
 
   default-language:    Haskell2010
   other-extensions:
@@ -256,12 +261,16 @@ test-suite test-consensus
   other-modules:
                        Test.Consensus.BlockchainTime.SlotLengths
                        Test.Consensus.BlockchainTime.WallClock
+                       Test.Consensus.HardFork.History
+                       Test.Consensus.HardFork.Infra
+                       Test.Consensus.HardFork.Summary
                        Test.Consensus.MiniProtocol.ChainSync.Client
                        Test.Consensus.MiniProtocol.LocalStateQuery.Server
                        Test.Consensus.Mempool
                        Test.Consensus.Node
                        Test.Consensus.Protocol.PBFT
                        Test.Consensus.ResourceRegistry
+                       Test.Consensus.Util.MonadSTM.RAWLock
                        Test.Consensus.Util.Versioned
 
                        -- ouroboros-consensus-mock
@@ -280,7 +289,6 @@ test-suite test-consensus
                        Ouroboros.Consensus.Mock.Protocol.Praos
 
                        -- ouroboros-consensus-test-infra
-                       Test.Util.BlockchainTime
                        Test.Util.FS.Sim.FsTree
                        Test.Util.FS.Sim.MockFS
                        Test.Util.FS.Sim.Pure
@@ -288,6 +296,7 @@ test-suite test-consensus
                        Test.Util.Orphans.Arbitrary
                        Test.Util.Orphans.IOLike
                        Test.Util.Orphans.NoUnexpectedThunks
+                       Test.Util.Orphans.ToExpr
                        Test.Util.QSM
                        Test.Util.QuickCheck
                        Test.Util.Range
@@ -295,6 +304,7 @@ test-suite test-consensus
                        Test.Util.SOP
                        Test.Util.Split
                        Test.Util.TestBlock
+                       Test.Util.Time
                        Test.Util.Tracer
 
   build-depends:       base
@@ -361,6 +371,7 @@ test-suite test-storage
                        Test.Ouroboros.Storage.ChainDB
                        Test.Ouroboros.Storage.ChainDB.AddBlock
                        Test.Ouroboros.Storage.ChainDB.Iterator
+                       Test.Ouroboros.Storage.ChainDB.GcSchedule
                        Test.Ouroboros.Storage.ChainDB.Mock
                        Test.Ouroboros.Storage.ChainDB.Mock.Test
                        Test.Ouroboros.Storage.ChainDB.Model
@@ -393,11 +404,13 @@ test-suite test-storage
                        Test.Util.Orphans.Arbitrary
                        Test.Util.Orphans.IOLike
                        Test.Util.Orphans.NoUnexpectedThunks
+                       Test.Util.Orphans.ToExpr
                        Test.Util.QuickCheck
                        Test.Util.Range
                        Test.Util.RefEnv
                        Test.Util.SOP
                        Test.Util.TestBlock
+                       Test.Util.Time
                        Test.Util.Tracer
                        Test.Util.WithEq
 

@@ -35,7 +35,7 @@ import           Control.Monad.IOSim (runSimOrThrow)
 import           Control.Tracer (Tracer (..))
 
 import           Ouroboros.Network.Block (pattern BlockPoint, HeaderHash,
-                     pointSlot)
+                     SlotNo, pointSlot)
 import           Ouroboros.Network.Point (WithOrigin (..))
 
 import           Ouroboros.Consensus.Ledger.Abstract
@@ -114,8 +114,8 @@ prop_Mempool_addTxs_result setup =
     withTestMempool (testSetup setup) $ \TestMempool { mempool } -> do
       result <- addTxs mempool (allTxs setup)
       return $ counterexample (ppTxs (txs setup)) $
-        [(tx, isTxAddedOrAlreadyInMempool res) | (tx, res) <- result] ===
-        [(testTx, valid)                       | (testTx, valid) <- txs setup]
+        [(tx, isMempoolTxAdded res) | (tx, res) <- result] ===
+        [(testTx, valid)            | (testTx, valid) <- txs setup]
 
 -- | Test that invalid transactions are never added to the 'Mempool'.
 prop_Mempool_InvalidTxsNeverAdded :: TestSetupWithTxs -> Property
@@ -186,13 +186,13 @@ prop_Mempool_Capacity (MempoolCapTestSetup testSetupWithTxs) =
     MempoolCapacityBytes capacity = testMempoolCap testSetup
 
     -- | Convert 'MempoolAddTxResult' into a 'Bool':
-    -- isTxAddedOrAlreadyInMempool -> True, isTxRejected -> False.
+    -- isMempoolTxAdded -> True, isMempoolTxRejected -> False.
     blindErrors
       :: ([(GenTx TestBlock, MempoolAddTxResult blk)], [GenTx TestBlock])
       -> ([(GenTx TestBlock, Bool)], [GenTx TestBlock])
     blindErrors (processed, toAdd) = (processed', toAdd)
       where
-        processed' = [ (tx, isTxAddedOrAlreadyInMempool txAddRes)
+        processed' = [ (tx, isMempoolTxAdded txAddRes)
                      | (tx, txAddRes) <- processed ]
 
     expectedResult
@@ -467,7 +467,7 @@ genValidTx ledgerState@(SimpleLedgerState MockState { mockUtxo = utxo }) = do
           = [outRecipient]
           | otherwise
           = [outRecipient, (sender, fortune - amount)]
-        tx = mkSimpleGenTx $ Tx ins outs
+        tx = mkSimpleGenTx $ Tx DoNotExpire ins outs
     return (tx, mustBeValid (applyTxToLedger ledgerState tx))
   where
     peopleWithFunds :: Map Addr [(TxIn, Amount)]
@@ -487,7 +487,7 @@ genInvalidTx ledgerState@(SimpleLedgerState MockState { mockUtxo = utxo }) = do
     -- more than 5 000 is invalid.
     amount <- choose (5_001, 10_000)
     let outs = [(recipient, amount)]
-        tx   = mkSimpleGenTx $ Tx ins outs
+        tx   = mkSimpleGenTx $ Tx DoNotExpire ins outs
     return $ assert (not (txIsValid ledgerState tx)) tx
 
 -- | Apply a transaction to the ledger
@@ -500,8 +500,13 @@ applyTxToLedger :: LedgerState TestBlock
                 -> TestTx
                 -> Except TestTxError (LedgerState TestBlock)
 applyTxToLedger (SimpleLedgerState mockState) tx =
-    mkNewLedgerState <$> updateMockUTxO tx mockState
+    mkNewLedgerState <$> updateMockUTxO dummy tx mockState
   where
+    -- All expiries in this test are 'DoNotExpire', so the current time is
+    -- irrelevant.
+    dummy :: SlotNo
+    dummy = 0
+
     mkNewLedgerState mockState' =
       SimpleLedgerState mockState' { mockTip = BlockPoint slot' hash' }
 
@@ -641,7 +646,7 @@ withTestMempool setup@TestSetup { testLedgerState, testInitialTxs, testMempoolCa
     classify (not (null testInitialTxs)) "non-empty Mempool" $
     runSimOrThrow setUpAndRun
   where
-    cfg = SimpleLedgerConfig ()
+    cfg = ()
 
     setUpAndRun :: forall m. IOLike m => m Property
     setUpAndRun = do
@@ -665,8 +670,8 @@ withTestMempool setup@TestSetup { testLedgerState, testInitialTxs, testMempoolCa
       result  <- addTxs mempool testInitialTxs
       -- the invalid transactions are reported in the same order they were
       -- added, so the first error is not the result of a cascade
-      whenJust (find (isTxRejected . snd) result) $ \(invalidTx, _) -> error $
-        "Invalid initial transaction: " <> condense invalidTx
+      whenJust (find (isMempoolTxRejected . snd) result) $ \(invalidTx, _) ->
+        error $ "Invalid initial transaction: " <> condense invalidTx
 
       -- Clear the trace
       atomically $ writeTVar varEvents []
@@ -711,7 +716,7 @@ withTestMempool setup@TestSetup { testLedgerState, testInitialTxs, testMempoolCa
                          -> Property
     checkMempoolValidity ledgerState MempoolSnapshot { snapshotTxs } =
         case runExcept $ repeatedlyM
-               (applyTx (SimpleLedgerConfig ()))
+               (applyTx ())
                txs
                (notReallyTicked ledgerState) of
           Right _ -> property True

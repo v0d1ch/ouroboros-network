@@ -9,19 +9,13 @@
 {-# LANGUAGE RecordWildCards            #-}
 {-# LANGUAGE ScopedTypeVariables        #-}
 {-# LANGUAGE StandaloneDeriving         #-}
-{-# OPTIONS_GHC -Wno-orphans -Wno-incomplete-uni-patterns #-}
+{-# OPTIONS_GHC -Wno-orphans #-}
 module Test.Consensus.Byron.Ledger (tests) where
 
-import           Codec.CBOR.Decoding (Decoder)
-import           Codec.CBOR.Encoding (Encoding)
-import           Codec.CBOR.Read (deserialiseFromBytes)
 import           Codec.CBOR.Write (toLazyByteString)
-import           Control.Monad.Except (runExcept)
 import qualified Data.Binary.Get as Get
 import qualified Data.Binary.Put as Put
 import qualified Data.ByteString.Lazy as Lazy
-import qualified Data.ByteString.Lazy.Char8 as Lazy8
-import qualified Data.Sequence.Strict as Seq
 
 import           Cardano.Binary (fromCBOR, toCBOR)
 import           Cardano.Chain.Block (ABlockOrBoundary (..),
@@ -35,47 +29,41 @@ import qualified Cardano.Chain.Update as CC.Update
 import qualified Cardano.Chain.Update.Validation.Interface as CC.UPI
 import           Cardano.Crypto (ProtocolMagicId (..))
 
-import           Ouroboros.Network.Block (HeaderHash, SlotNo)
-import           Ouroboros.Network.Point (WithOrigin (At))
+import           Ouroboros.Network.Block (HeaderHash)
 import           Ouroboros.Network.Protocol.LocalStateQuery.Codec (Some (..))
 
-import           Ouroboros.Consensus.Block (BlockProtocol, Header)
+import           Ouroboros.Consensus.Block (Header)
 import           Ouroboros.Consensus.Config
 import           Ouroboros.Consensus.Mempool.API (ApplyTxErr, GenTxId)
 import           Ouroboros.Consensus.Node.NetworkProtocolVersion
 import           Ouroboros.Consensus.Node.ProtocolInfo
-import           Ouroboros.Consensus.Protocol.Abstract
-import qualified Ouroboros.Consensus.Protocol.PBFT.State as S
-import           Ouroboros.Consensus.Protocol.PBFT.State.HeaderHashBytes
 
 import           Ouroboros.Consensus.Storage.ImmutableDB (BinaryInfo (..),
                      HashInfo (..))
 
 import           Ouroboros.Consensus.Byron.Ledger
-import qualified Ouroboros.Consensus.Byron.Ledger.DelegationHistory as DH
 import           Ouroboros.Consensus.Byron.Node
 
 import           Test.QuickCheck hiding (Result)
 import           Test.QuickCheck.Hedgehog (hedgehog)
 import           Test.Tasty
-import           Test.Tasty.Golden
-import           Test.Tasty.HUnit
 import           Test.Tasty.QuickCheck
 
 import qualified Test.Cardano.Chain.Block.Gen as CC
-import qualified Test.Cardano.Chain.Common.Example as CC
 import qualified Test.Cardano.Chain.Common.Gen as CC
 import qualified Test.Cardano.Chain.Delegation.Gen as CC
 import qualified Test.Cardano.Chain.Genesis.Dummy as CC
 import qualified Test.Cardano.Chain.MempoolPayload.Gen as CC
 import qualified Test.Cardano.Chain.Slotting.Gen as CC
 import qualified Test.Cardano.Chain.Update.Gen as UG
-import qualified Test.Cardano.Chain.UTxO.Example as CC
 import qualified Test.Cardano.Chain.UTxO.Gen as CC
 import qualified Test.Cardano.Crypto.Gen as CC
 
+import           Test.Util.Corruption
 import           Test.Util.Orphans.Arbitrary ()
 import           Test.Util.Roundtrip
+
+import qualified Test.Consensus.Byron.Ledger.Golden as Golden
 
 tests :: TestTree
 tests = testGroup "Byron"
@@ -98,19 +86,11 @@ tests = testGroup "Byron"
       , testProperty "hashSize"                  prop_byronHashInfo_hashSize
       ]
 
-  , testGroup "Golden tests"
-      -- Note that for most Byron types, we simply wrap the en/decoders from
-      -- cardano-ledger, which already has golden tests for them.
-      [ test_golden_ConsensusState
-      , test_golden_LedgerState
-      , test_golden_GenTxId
-      , test_golden_UPIState
-      ]
-
   , testGroup "Integrity"
       [ testProperty "detect corruption in RegularBlock" prop_detectCorruption_RegularBlock
       ]
 
+  , Golden.tests
   ]
 
 {-------------------------------------------------------------------------------
@@ -121,16 +101,17 @@ prop_roundtrip_Block :: ByronBlock -> Property
 prop_roundtrip_Block b =
     roundtrip' encodeByronBlock (decodeByronBlock epochSlots) b
 
-prop_roundtrip_Header :: SerialisationVersion ByronNetworkProtocolVersion
+prop_roundtrip_Header :: SerialisationVersion ByronBlock
                       -> Header ByronBlock -> Property
 prop_roundtrip_Header v h =
+    not (isNodeToClientVersion v) ==>
     roundtrip'
       (encodeByronHeader v)
       (decodeByronHeader epochSlots v)
       h'
   where
     h' = case v of
-           SentAcrossNetwork ByronNetworkProtocolVersion1 ->
+           SerialisedAcrossNetwork (SerialisedNodeToNode ByronNodeToNodeVersion1) ->
              -- This is a lossy format
              h { byronHeaderBlockSizeHint = fakeByronBlockSizeHint }
            _otherwise ->
@@ -215,106 +196,6 @@ prop_byronHashInfo_hashSize h =
     serialisedHash = Put.runPut (putHash h)
 
 {-------------------------------------------------------------------------------
-  Golden tests
--------------------------------------------------------------------------------}
-
--- | Note that we must use the same value for the 'SecurityParam' as for the
--- 'S.WindowSize', because 'decodeByronConsensusState' only takes the
--- 'SecurityParam' and uses it as the basis for the 'S.WindowSize'.
-secParam :: SecurityParam
-secParam = SecurityParam 2
-
-windowSize :: S.WindowSize
-windowSize = S.WindowSize 2
-
-exampleConsensusState :: ConsensusState (BlockProtocol ByronBlock)
-exampleConsensusState = withEBB
-  where
-    signers = map (`S.PBftSigner` CC.exampleKeyHash) [1..4]
-
-    withoutEBB = S.fromList
-      secParam
-      windowSize
-      (At 2, Seq.fromList signers, S.NothingEbbInfo)
-
-    -- info about an arbitrary hypothetical EBB
-    exampleEbbSlot            :: SlotNo
-    exampleEbbHeaderHashBytes :: HeaderHashBytes
-    exampleEbbSlot            = 6
-    exampleEbbHeaderHashBytes = mkHeaderHashBytesForTestingOnly
-                                  (Lazy8.pack "test_golden_ConsensusState6")
-
-    withEBB = S.appendEBB secParam windowSize
-                exampleEbbSlot exampleEbbHeaderHashBytes
-                withoutEBB
-
-test_golden_ConsensusState :: TestTree
-test_golden_ConsensusState = goldenTestCBOR
-    "ConsensusState"
-    encodeByronConsensusState
-    exampleConsensusState
-    "test/golden/cbor/byron/ConsensusState0"
-
-test_golden_LedgerState :: TestTree
-test_golden_LedgerState = goldenTestCBOR
-    "LedgerState"
-    encodeByronLedgerState
-    exampleLedgerState
-    "test/golden/cbor/byron/LedgerState"
-  where
-    exampleLedgerState = ByronLedgerState
-      { byronLedgerState       = initState
-      , byronDelegationHistory = DH.empty
-      }
-
-    initState :: CC.Block.ChainValidationState
-    Right initState = runExcept $
-      CC.Block.initialChainValidationState CC.dummyConfig
-
-test_golden_GenTxId :: TestTree
-test_golden_GenTxId = goldenTestCBOR
-    "GenTxId"
-    encodeByronGenTxId
-    exampleGenTxId
-    "test/golden/cbor/byron/GenTxId"
-  where
-    exampleGenTxId = ByronTxId CC.exampleTxId
-
-test_golden_UPIState :: TestTree
-test_golden_UPIState = goldenTestCBOR
-    "CC.UPI.State"
-    toCBOR
-    exampleUPIState
-    "test/golden/cbor/byron/UPIState"
-  where
-    exampleUPIState = CC.UPI.initialState CC.dummyConfig
-
-goldenTestCBOR :: String -> (a -> Encoding) -> a -> FilePath -> TestTree
-goldenTestCBOR name enc a path =
-    goldenVsString name path (return bs)
-  where
-    bs = toLazyByteString (enc a)
-
--- | Check whether we can successfully decode the contents of the given file.
--- This file will typically contain an older serialisation format.
-_goldenTestCBORBackwardsCompat
-  :: (Eq a, Show a)
-  => (forall s. Decoder s a)
-  -> a
-  -> FilePath
-  -> Assertion
-_goldenTestCBORBackwardsCompat dec a path = do
-    bytes <- Lazy.readFile path
-    case deserialiseFromBytes dec bytes of
-      Left failure
-        -> assertFailure (show failure)
-      Right (leftover, a')
-        | Lazy.null leftover
-        -> a' @?= a
-        | otherwise
-        -> assertFailure $ "Left-over bytes: " <> show leftover
-
-{-------------------------------------------------------------------------------
   Integrity
 -------------------------------------------------------------------------------}
 
@@ -337,52 +218,6 @@ testCfg = pInfoConfig $ protocolInfoByron
     (CC.Update.ProtocolVersion 1 0 0)
     (CC.Update.SoftwareVersion (CC.Update.ApplicationName "Cardano Test") 2)
     Nothing
-
-newtype Corruption = Corruption Word
-  deriving stock   (Show)
-  deriving newtype (Arbitrary)
-
--- | Increment (overflow if necessary) the byte at position @i@ in the
--- bytestring, where @i = n `mod` length bs@.
---
--- If the bytestring is empty, return it unmodified.
-applyCorruption :: Corruption -> Lazy.ByteString -> Lazy.ByteString
-applyCorruption (Corruption n) bs
-    | Lazy.null bs
-    = bs
-    | otherwise
-    = before <> Lazy.cons (Lazy.head atAfter + 1) (Lazy.tail atAfter)
-  where
-    offset = fromIntegral n `mod` Lazy.length bs
-    (before, atAfter) = Lazy.splitAt offset bs
-
--- | Serialise @a@, apply the given corruption, deserialise it, when that
--- fails, the corruption was detected. When deserialising the corrupted
--- bytestring succeeds, pass the deserialised value to the integrity checking
--- function. If that function returns 'False', the corruption was detected, if
--- it returns 'True', the corruption was not detected and the test fails.
-detectCorruption
-  :: Show a
-  => (a -> Encoding)
-  -> (forall s. Decoder s (Lazy.ByteString -> a))
-  -> (a -> Bool)
-     -- ^ Integrity check that should detect the corruption. Return 'False'
-     -- when corrupt.
-  -> a
-  -> Corruption
-  -> Property
-detectCorruption enc dec isValid a cor = case deserialiseFromBytes dec bs of
-    Right (_, mkA')
-        | not (isValid a')
-        -> label "corruption detected" $ property True
-        | otherwise
-        -> label "corruption not detected" $
-           counterexample ("Corruption not detected: " <> show a') False
-      where
-        a' = mkA' bs
-    Left _ -> label "corruption detected by decoder" $ property True
-  where
-    bs = applyCorruption cor $ toLazyByteString (enc a)
 
 {-------------------------------------------------------------------------------
   Generators
@@ -518,14 +353,23 @@ instance Arbitrary CC.UPI.State where
     <*> pure mempty -- TODO Endorsement is not exported
     <*> arbitrary
 
-instance Arbitrary (SerialisationVersion ByronNetworkProtocolVersion) where
-  arbitrary = elements $ SerialisedToDisk : map SentAcrossNetwork versions
+instance Arbitrary (SerialisationVersion ByronBlock) where
+  arbitrary =
+      elements $ concat [
+          [SerialisedToDisk]
+        , map (SerialisedAcrossNetwork . SerialisedNodeToNode)   nodeToNode
+        , map (SerialisedAcrossNetwork . SerialisedNodeToClient) nodeToClient
+        ]
     where
-      -- We enumerate /all/ versions here, not just the ones returned by
+      -- We enumerate /all/ nodeToNode here, not just the ones returned by
       -- 'supportedNetworkProtocolVersions', which may be fewer.
       -- We might want to reconsider that later.
-      versions :: [ByronNetworkProtocolVersion]
-      versions = [minBound .. maxBound]
+
+      nodeToNode :: [ByronNodeToNodeVersion]
+      nodeToNode = [minBound .. maxBound]
+
+      nodeToClient :: [ByronNodeToClientVersion]
+      nodeToClient = [minBound .. maxBound]
 
 {-------------------------------------------------------------------------------
   Orphans

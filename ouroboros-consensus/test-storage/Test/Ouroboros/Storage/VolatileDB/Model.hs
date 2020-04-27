@@ -17,7 +17,7 @@ module Test.Ouroboros.Storage.VolatileDB.Model
     , putBlockModel
     , garbageCollectModel
     , getBlockInfoModel
-    , getSuccessorsModel
+    , filterByPredecessorModel
     , getMaxSlotNoModel
       -- * Corruptions
     , runCorruptionsModel
@@ -49,7 +49,8 @@ import           Ouroboros.Consensus.Storage.Common (BinaryInfo (..),
                      BlockComponent (..), extractHeader)
 import           Ouroboros.Consensus.Storage.FS.API.Types (FsPath)
 import           Ouroboros.Consensus.Storage.VolatileDB.API
-import           Ouroboros.Consensus.Storage.VolatileDB.Util (filePath, parseFd)
+import           Ouroboros.Consensus.Storage.VolatileDB.Impl.Util (filePath,
+                     parseFd)
 
 import           Test.Ouroboros.Storage.TestBlock (Corruptions,
                      FileCorruption (..))
@@ -130,7 +131,7 @@ whenOpen dbm k
     | open dbm
     = return k
     | otherwise
-    = throwError $ UserError ClosedDBError
+    = throwError $ UserError $ ClosedDBError Nothing
 
 getDBFileIds :: DBModel blockId -> [FileId]
 getDBFileIds = Map.keys . fileIndex
@@ -302,11 +303,11 @@ garbageCollectModel slot dbm = whenOpen dbm $
       fileId /= getCurrentFileId dbm &&
       fileMaxSlotNo file < MaxSlotNo slot
 
-getSuccessorsModel
+filterByPredecessorModel
   :: forall blockId. Ord blockId
   => DBModel blockId
   -> Either VolatileDBError (WithOrigin blockId -> Set blockId)
-getSuccessorsModel dbm = whenOpen dbm $ \predecessor ->
+filterByPredecessorModel dbm = whenOpen dbm $ \predecessor ->
     fromMaybe Set.empty $ Map.lookup predecessor successors
   where
     successors :: Map (WithOrigin blockId) (Set blockId)

@@ -35,6 +35,9 @@ module Control.Monad.IOSim (
   selectTraceEventsDynamic,
   selectTraceEventsSay,
   printTraceEventsSay,
+  -- * Eventlog
+  EventlogEvent(..),
+  EventlogMarker(..),
   -- * Low-level API
   execReadTVar
   ) where
@@ -43,7 +46,6 @@ import           Prelude hiding (read)
 
 import           Data.Dynamic (Dynamic, fromDynamic, toDyn)
 import           Data.Foldable (traverse_)
-import           Data.Functor (void)
 import qualified Data.List as List
 import           Data.Map.Strict (Map)
 import qualified Data.Map.Strict as Map
@@ -72,6 +74,7 @@ import           Control.Monad.Fail as MonadFail
 
 import           Control.Monad.Class.MonadAsync hiding (Async)
 import qualified Control.Monad.Class.MonadAsync as MonadAsync
+import           Control.Monad.Class.MonadEventlog
 import           Control.Monad.Class.MonadFork hiding (ThreadId)
 import qualified Control.Monad.Class.MonadFork as MonadFork
 import           Control.Monad.Class.MonadSay
@@ -403,8 +406,11 @@ instance MonadDelay (SimM s) where
 
 instance MonadTimer (SimM s) where
   data Timeout (SimM s) = Timeout !(TVar s TimeoutState) !TimeoutId
+                        | NegativeTimeout !TimeoutId
+                        -- ^ a negative timeout
 
   readTimeout (Timeout var _key) = readTVar var
+  readTimeout (NegativeTimeout _key) = pure TimeoutCancelled
 
   newTimeout      d = SimM $ \k -> NewTimeout      d k
   updateTimeout t d = SimM $ \k -> UpdateTimeout t d (k ())
@@ -422,10 +428,12 @@ instance MonadTimer (SimM s) where
                                          else Nothing)
           (\_ -> return Nothing) $
           bracket
-            (void $ fork $ do
+            (fork $ do
                 fired <- atomically $ awaitTimeout t
                 when fired $ throwTo pid (TimeoutException tid))
-            (\_ -> cancelTimeout t)
+            (\pid' -> do
+                  cancelTimeout t
+                  throwTo pid' AsyncCancelled)
             (\_ -> Just <$> action)
 
 newtype TimeoutException = TimeoutException TimeoutId deriving Eq
@@ -436,6 +444,18 @@ instance Show TimeoutException where
 instance Exception TimeoutException where
   toException   = asyncExceptionToException
   fromException = asyncExceptionFromException
+
+-- | Wrapper for Eventlog events so they can be retrieved from the trace with
+-- 'selectTraceEventsDynamic'.
+newtype EventlogEvent = EventlogEvent String
+
+-- | Wrapper for Eventlog markers so they can be retrieved from the trace with
+-- 'selectTraceEventsDynamic'.
+newtype EventlogMarker = EventlogMarker String
+
+instance MonadEventlog (SimM s) where
+  traceEventM = traceM . EventlogEvent
+  traceMarkerM = traceM . EventlogMarker
 
 traceM :: Typeable a => a -> SimM s ()
 traceM x = SimM $ \k -> Output (toDyn x) (k ())
@@ -793,6 +813,18 @@ schedule thread@Thread{
           simstate' = simstate { clocks = Map.insert clockid' clockoff clocks }
       schedule thread' simstate'
 
+    -- we treat negative timers as cancelled ones; for the record we put
+    -- `EventTimerCreated` and `EventTimerCancelled` in the trace; This differs
+    -- from `GHC.Event` behaviour.
+    NewTimeout d k | d < 0 -> do
+      let t       = NegativeTimeout nextTmid
+          expiry  = d `addTime` time
+          thread' = thread { threadControl = ThreadControl (k t) ctl }
+      trace <- schedule thread' simstate { nextTmid = succ nextTmid }
+      return (Trace time tid tlbl (EventTimerCreated nextTmid nextVid expiry) $
+              Trace time tid tlbl (EventTimerCancelled nextTmid) $
+              trace)
+
     NewTimeout d k -> do
       tvar <- execNewTVar nextVid TimeoutPending
       let expiry  = d `addTime` time
@@ -803,6 +835,14 @@ schedule thread@Thread{
                                          , nextVid  = succ nextVid
                                          , nextTmid = succ nextTmid }
       return (Trace time tid tlbl (EventTimerCreated nextTmid nextVid expiry) trace)
+
+    -- we do not follow `GHC.Event` behaviour here; updating a timer to the past
+    -- effectively cancels it.
+    UpdateTimeout (Timeout _tvar tmid) d k | d < 0 -> do
+      let timers' = PSQ.delete tmid timers
+          thread' = thread { threadControl = ThreadControl k ctl }
+      trace <- schedule thread' simstate { timers = timers' }
+      return (Trace time tid tlbl (EventTimerCancelled tmid) trace)
 
     UpdateTimeout (Timeout _tvar tmid) d k -> do
           -- updating an expired timeout is a noop, so it is safe
@@ -815,11 +855,22 @@ schedule thread@Thread{
       trace <- schedule thread' simstate { timers = timers' }
       return (Trace time tid tlbl (EventTimerUpdated tmid expiry) trace)
 
+    -- updating a negative timer is a no-op, unlike in `GHC.Event`.
+    UpdateTimeout (NegativeTimeout _tmid) _d k -> do
+      let thread' = thread { threadControl = ThreadControl k ctl }
+      schedule thread' simstate
+
     CancelTimeout (Timeout _tvar tmid) k -> do
       let timers' = PSQ.delete tmid timers
           thread' = thread { threadControl = ThreadControl k ctl }
       trace <- schedule thread' simstate { timers = timers' }
       return (Trace time tid tlbl (EventTimerCancelled tmid) trace)
+
+    -- cancelling a negative timer is a no-op
+    CancelTimeout (NegativeTimeout _tmid) k -> do
+      -- negative timers are promptly removed from the state
+      let thread' = thread { threadControl = ThreadControl k ctl }
+      schedule thread' simstate
 
     Fork a k -> do
       let tid'     = nextTid

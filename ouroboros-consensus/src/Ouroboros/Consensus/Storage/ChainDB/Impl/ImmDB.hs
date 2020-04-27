@@ -31,10 +31,8 @@ module Ouroboros.Consensus.Storage.ChainDB.Impl.ImmDB (
   , streamAfterKnownBlock
     -- * Wrappers
   , closeDB
-  , reopen
   , iteratorNext
   , iteratorHasNext
-  , iteratorPeek
   , iteratorClose
     -- * Tracing
   , TraceEvent
@@ -68,7 +66,7 @@ import           Control.Monad.Except
 import           Control.Tracer (Tracer, nullTracer)
 import           Data.Bifunctor
 import qualified Data.ByteString.Lazy as Lazy
-import           Data.Functor (($>), (<&>))
+import           Data.Functor ((<&>))
 import           GHC.Stack
 import           System.FilePath ((</>))
 
@@ -83,7 +81,6 @@ import           Ouroboros.Network.Block (pattern BlockPoint,
 import           Ouroboros.Network.Point (WithOrigin (..))
 
 import           Ouroboros.Consensus.Block
-import           Ouroboros.Consensus.BlockchainTime (BlockchainTime)
 import           Ouroboros.Consensus.Util.IOLike
 import           Ouroboros.Consensus.Util.Orphans ()
 import           Ouroboros.Consensus.Util.ResourceRegistry (ResourceRegistry)
@@ -144,7 +141,7 @@ type TraceEvent blk =
 -- | Arguments to initialize the ImmutableDB
 --
 -- See also 'defaultArgs'.
-data ImmDbArgs m blk = forall h. ImmDbArgs {
+data ImmDbArgs m blk = forall h. Eq h => ImmDbArgs {
       immDecodeHash     :: forall s. Decoder s (HeaderHash blk)
     , immDecodeBlock    :: forall s. Decoder s (Lazy.ByteString -> blk)
     , immDecodeHeader   :: forall s. Decoder s (Lazy.ByteString -> Header blk)
@@ -160,7 +157,6 @@ data ImmDbArgs m blk = forall h. ImmDbArgs {
     , immTracer         :: Tracer m (TraceEvent blk)
     , immCacheConfig    :: Index.CacheConfig
     , immRegistry       :: ResourceRegistry m
-    , immBlockchainTime :: BlockchainTime m
     }
 
 -- | Default arguments when using the 'IO' monad
@@ -179,7 +175,6 @@ data ImmDbArgs m blk = forall h. ImmDbArgs {
 -- * 'immCheckIntegrity'
 -- * 'immAddHdrEnv'
 -- * 'immRegistry'
--- * 'immBlockchainTime'
 defaultArgs :: FilePath -> ImmDbArgs IO blk
 defaultArgs fp = ImmDbArgs{
       immHasFS          = ioHasFS $ MountPoint (fp </> "immutable")
@@ -198,7 +193,6 @@ defaultArgs fp = ImmDbArgs{
     , immCheckIntegrity = error "no default for immCheckIntegrity"
     , immAddHdrEnv      = error "no default for immAddHdrEnv"
     , immRegistry       = error "no default for immRegistry"
-    , immBlockchainTime = error "no default for immBlockchainTime"
     }
   where
     -- Cache 250 past chunks by default. This will take roughly 250 MB of RAM.
@@ -222,18 +216,9 @@ withImmDB args = bracket (openDB args) closeDB
 openDB :: (IOLike m, HasHeader blk, GetHeader blk)
        => ImmDbArgs m blk
        -> m (ImmDB m blk)
-openDB ImmDbArgs{..} = do
+openDB ImmDbArgs {..} = do
     createDirectoryIfMissing immHasFS True (mkFsPath [])
-    (immDB, _internal) <- ImmDB.openDBInternal
-      immRegistry
-      immHasFS
-      immChunkInfo
-      immHashInfo
-      immValidation
-      parser
-      immTracer
-      immCacheConfig
-      immBlockchainTime
+    (immDB, _internal) <- ImmDB.openDBInternal args
     return ImmDB
       { immDB     = immDB
       , decHeader = immDecodeHeader
@@ -244,10 +229,19 @@ openDB ImmDbArgs{..} = do
       , addHdrEnv = immAddHdrEnv
       }
   where
+    args = ImmDB.ImmutableDbArgs
+      { registry    = immRegistry
+      , hasFS       = immHasFS
+      , chunkInfo   = immChunkInfo
+      , hashInfo    = immHashInfo
+      , tracer      = immTracer
+      , cacheConfig = immCacheConfig
+      , valPol      = immValidation
+      , parser      = parser
+      }
     parser = ImmDB.chunkFileParser immHasFS immDecodeBlock (immIsEBB . getHeader)
       -- TODO a more efficient to accomplish this?
       (void . immEncodeBlock) immCheckIntegrity
-
 
 -- | For testing purposes
 mkImmDB :: ImmutableDB (HeaderHash blk) m
@@ -479,10 +473,9 @@ stream db registry blockComponent from to = runExceptT $ do
                  m
                  (ImmDB.Iterator (HeaderHash blk) m b)
     openStream start end = ExceptT $
-        bimap toUnknownRange (fmap snd . stopAt to) <$>
-      -- 'stopAt' needs to know the hash of each streamed block, so we \"Get\"
-      -- it in addition to @b@, but we drop it afterwards.
-        openIterator db registry ((,) <$> GetHash <*> blockComponent) start end
+        fmap (first toUnknownRange) $
+        traverse (stopAt to) =<<
+        openIterator db registry blockComponent start end
       where
         toUnknownRange :: ImmDB.WrongBoundError (HeaderHash blk) -> UnknownRange blk
         toUnknownRange e
@@ -500,32 +493,40 @@ stream db registry blockComponent from to = runExceptT $ do
           ImmDB.EmptySlotError slot     -> slot
           ImmDB.WrongHashError slot _ _ -> slot
 
-    -- | The ImmutableDB doesn't support an exclusive end bound, so we stop
-    -- the iterator when it reaches its exclusive end bound.
-    stopAt :: forall a.
-              StreamTo blk
-           -> ImmDB.Iterator (HeaderHash blk) m (HeaderHash blk, a)
-           -> ImmDB.Iterator (HeaderHash blk) m (HeaderHash blk, a)
+    -- | The ImmutableDB doesn't support an exclusive end bound, so we take
+    -- care of that here. We are given an iterator that uses the point of the
+    -- exclusive end bound as its inclusive end bound. We convert the iterator
+    -- into one obeying the exclusive end bound by always looking at the hash
+    -- of the next block to stream (which is cheap).
+    --
+    -- No-op if the end bound is inclusive.
+    stopAt :: StreamTo blk
+           -> ImmDB.Iterator (HeaderHash blk) m b
+           -> m (ImmDB.Iterator (HeaderHash blk) m b)
     stopAt = \case
-      StreamToInclusive _  -> id
-      StreamToExclusive pt -> \it -> it
-          { ImmDB.iteratorNext    = ignoreExclusiveBound <$> ImmDB.iteratorNext it
-          , ImmDB.iteratorPeek    = ignoreExclusiveBound <$> ImmDB.iteratorPeek it
-          , ImmDB.iteratorHasNext = ImmDB.iteratorHasNext it >>= \case
-              Nothing -> return Nothing
-              Just next@(_epochOrSlot, hash)
-                | isEnd hash
-                -> ImmDB.iteratorClose it $> Nothing
-                | otherwise
-                -> return $ Just next
-          }
+      StreamToInclusive _     -> return
+      StreamToExclusive endPt -> \it -> do
+          -- Whenever the iterator is moved to the next block, we check
+          -- whether the next block (cheap with 'ImmDB.iteratorHasNext') is
+          -- the end bound, in which case we close the iterator. All other
+          -- operations on the iterator can remain the same.
+          --
+          -- We must do the check immediately, because the very first block
+          -- might be the exclusive upper bound.
+          closeWhenEndIsNext it
+          return it
+            { ImmDB.iteratorNext =
+                ImmDB.iteratorNext it <* closeWhenEndIsNext it
+            }
         where
-          isEnd hash = realPointHash pt == hash
-          ignoreExclusiveBound = \case
-            ImmDB.IteratorResult (hash, _)
-              | isEnd hash
-              -> ImmDB.IteratorExhausted
-            itRes -> itRes
+          closeWhenEndIsNext it = ImmDB.iteratorHasNext it >>= \case
+            Nothing
+              -> return ()
+            Just (_epochOrSlot, hash)
+              | realPointHash endPt == hash
+              -> ImmDB.iteratorClose it
+              | otherwise
+              -> return ()
 
 -- | Stream headers/blocks after the given point
 --
@@ -632,10 +633,6 @@ parse db blockOrHeader blockRef bytes =
 closeDB :: (MonadCatch m, HasCallStack) => ImmDB m blk -> m ()
 closeDB db = withDB db ImmDB.closeDB
 
-reopen :: (MonadCatch m, HasCallStack) => ImmDB m blk -> m ()
-reopen db = withDB db $ \imm ->
-    ImmDB.reopen imm ImmDB.ValidateMostRecentChunk
-
 -- These wrappers ensure that we correctly rethrow exceptions using 'withDB'.
 
 iteratorNext :: (HasCallStack, MonadCatch m)
@@ -649,12 +646,6 @@ iteratorHasNext :: (HasCallStack, MonadCatch m)
                 -> ImmDB.Iterator (HeaderHash blk) m a
                 -> m (Maybe (Either EpochNo SlotNo, HeaderHash blk))
 iteratorHasNext db it = withDB db $ const $ ImmDB.iteratorHasNext it
-
-iteratorPeek :: (HasCallStack, MonadCatch m)
-             => ImmDB m blk
-             -> ImmDB.Iterator (HeaderHash blk) m a
-             -> m (ImmDB.IteratorResult a)
-iteratorPeek db it = withDB db $ const $ ImmDB.iteratorPeek it
 
 iteratorClose :: (HasCallStack, MonadCatch m)
               => ImmDB m blk

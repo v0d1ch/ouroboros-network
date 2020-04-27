@@ -25,7 +25,6 @@ module Ouroboros.Consensus.Storage.ChainDB.Impl.Types (
   , ChainDbEnv (..)
     -- * Exposed internals for testing purposes
   , Internal (..)
-  , intReopen
     -- * Iterator-related
   , IteratorKey (..)
     -- * Reader-related
@@ -105,10 +104,8 @@ getEnv :: forall m blk r. (IOLike m, HasCallStack)
        -> (ChainDbEnv m blk -> m r)
        -> m r
 getEnv (CDBHandle varState) f = atomically (readTVar varState) >>= \case
-    ChainDbOpen    env -> f env
-    ChainDbClosed _env -> throwM $ ClosedDBError callStack
-    -- See the docstring of 'ChainDbReopening'
-    ChainDbReopening   -> error "ChainDB used while reopening"
+    ChainDbOpen env -> f env
+    ChainDbClosed   -> throwM $ ClosedDBError callStack
 
 -- | Variant 'of 'getEnv' for functions taking one argument.
 getEnv1 :: (IOLike m, HasCallStack)
@@ -131,22 +128,12 @@ getEnvSTM :: forall m blk r. (IOLike m, HasCallStack)
           -> (ChainDbEnv m blk -> STM m r)
           -> STM m r
 getEnvSTM (CDBHandle varState) f = readTVar varState >>= \case
-    ChainDbOpen    env -> f env
-    ChainDbClosed _env -> throwM $ ClosedDBError callStack
-    -- See the docstring of 'ChainDbReopening'
-    ChainDbReopening   -> error "ChainDB used while reopening"
+    ChainDbOpen env -> f env
+    ChainDbClosed   -> throwM $ ClosedDBError callStack
 
 data ChainDbState m blk
   = ChainDbOpen   !(ChainDbEnv m blk)
-  | ChainDbClosed !(ChainDbEnv m blk)
-    -- ^ Note: this 'ChainDbEnv' will only be used to reopen the ChainDB.
-  | ChainDbReopening
-    -- ^ The ChainDB is being reopened, this should not be performed
-    -- concurrently with any other operations, including reopening itself.
-    --
-    -- This state can only be reached by the 'intReopen' function, which is an
-    -- internal function only exposed for testing. During normal use of the
-    -- 'ChainDB', it should /never/ be used.
+  | ChainDbClosed
   deriving (Generic, NoUnexpectedThunks)
 
 data ChainDbEnv m blk = CDB
@@ -222,6 +209,9 @@ data ChainDbEnv m blk = CDB
   , cdbGcDelay         :: !DiffTime
     -- ^ How long to wait between copying a block from the VolatileDB to
     -- ImmutableDB and garbage collecting it from the VolatileDB
+  , cdbGcInterval      :: !DiffTime
+    -- ^ Minimum time between two garbage collections. Is used to batch
+    -- garbage collections.
   , cdbKillBgThreads   :: !(StrictTVar m (m ()))
     -- ^ A handle to kill the background threads.
   , cdbChunkInfo       :: !ImmDB.ChunkInfo
@@ -253,17 +243,7 @@ instance (IOLike m, LedgerSupportsProtocol blk)
 -------------------------------------------------------------------------------}
 
 data Internal m blk = Internal
-  { intReopen_                 :: HasCallStack => Bool -> m ()
-    -- ^ Reopen a closed ChainDB.
-    --
-    -- A no-op if the ChainDB is still open.
-    --
-    -- NOTE: not thread-safe, no other operation should be called on the
-    -- ChainDB at the same time.
-    --
-    -- The 'Bool' arguments indicates whether the background tasks should be
-    -- relaunched after reopening the ChainDB.
-  , intCopyToImmDB             :: m (WithOrigin SlotNo)
+  { intCopyToImmDB             :: m (WithOrigin SlotNo)
     -- ^ Copy the blocks older than @k@ from to the VolatileDB to the
     -- ImmutableDB and update the in-memory chain fragment correspondingly.
     --
@@ -282,10 +262,6 @@ data Internal m blk = Internal
   , intKillBgThreads           :: StrictTVar m (m ())
     -- ^ A handle to kill the background threads.
   }
-
--- | Wrapper around 'intReopen_' to guarantee HasCallStack
-intReopen :: HasCallStack => Internal m blk -> Bool -> m ()
-intReopen = intReopen_
 
 {-------------------------------------------------------------------------------
   Iterator-related
@@ -360,6 +336,11 @@ data ReaderState m blk b
     --
     -- Note that the iterator includes 'Point blk' in addition to @b@, as it
     -- is needed to keep track of where the iterator is.
+    --
+    -- INVARIANT: for all @ReaderInImmDB rollState immIt@: the predecessor of
+    -- the next block streamed by @immIt@ must be the block identified by
+    -- @readerRollStatePoint rollState@. In other words: the iterator is
+    -- positioned /on/ @readerRollStatePoint rollState@.
   | ReaderInMem   !(ReaderRollState blk)
     -- ^ The 'Reader' is reading from the in-memory current chain fragment.
   deriving (Generic, NoUnexpectedThunks)
@@ -367,9 +348,11 @@ data ReaderState m blk b
 -- | Similar to 'Ouroboros.Network.MockChain.ProducerState.ReaderState'.
 data ReaderRollState blk
   = RollBackTo      !(Point blk)
-    -- ^ The reader should roll back to this point.
+    -- ^ We don't know at which point the user is, but the next message we'll
+    -- send is to roll back to this point.
   | RollForwardFrom !(Point blk)
-    -- ^ The reader should roll forward from this point.
+    -- ^ We know that the reader is at this point and the next message we'll
+    -- send is to roll forward to the point /after/ this point on our chain.
   deriving (Eq, Show, Generic, NoUnexpectedThunks)
 
 -- | Get the point the 'ReaderRollState' should roll back to or roll forward
@@ -409,6 +392,8 @@ newtype BlocksToAdd m blk = BlocksToAdd (TBQueue m (BlockToAdd m blk))
 -- to implement 'AddBlockPromise'.
 data BlockToAdd m blk = BlockToAdd
   { blockToAdd                 :: !blk
+  , varBlockWrittenToDisk      :: !(StrictTMVar m Bool)
+    -- ^ Used for the 'blockWrittenToDisk' field of 'AddBlockPromise'.
   , varBlockProcessed          :: !(StrictTMVar m (Point blk))
     -- ^ Used for the 'blockProcessed' field of 'AddBlockPromise'.
   , varChainSelectionPerformed :: !(StrictTMVar m (Point blk))
@@ -428,10 +413,12 @@ addBlockToAdd
   -> blk
   -> m (AddBlockPromise m blk)
 addBlockToAdd tracer (BlocksToAdd queue) blk = do
+    varBlockWrittenToDisk      <- newEmptyTMVarM
     varBlockProcessed          <- newEmptyTMVarM
     varChainSelectionPerformed <- newEmptyTMVarM
     let !toAdd = BlockToAdd
           { blockToAdd = blk
+          , varBlockWrittenToDisk
           , varBlockProcessed
           , varChainSelectionPerformed
           }
@@ -441,7 +428,8 @@ addBlockToAdd tracer (BlocksToAdd queue) blk = do
     traceWith tracer $
       AddedBlockToQueue (blockRealPoint blk) (fromIntegral queueSize)
     return AddBlockPromise
-      { blockProcessed          = readTMVar varBlockProcessed
+      { blockWrittenToDisk      = readTMVar varBlockWrittenToDisk
+      , blockProcessed          = readTMVar varBlockProcessed
       , chainSelectionPerformed = readTMVar varChainSelectionPerformed
       }
 
@@ -500,11 +488,6 @@ data TraceOpenEvent blk =
 
     -- | The ChainDB was closed.
   | ClosedDB
-      (Point blk)  -- ^ Immutable tip
-      (Point blk)  -- ^ Tip of the current chain
-
-    -- | The ChainDB was successfully reopened.
-  | ReopenedDB
       (Point blk)  -- ^ Immutable tip
       (Point blk)  -- ^ Tip of the current chain
 
@@ -693,9 +676,9 @@ data TraceCopyToImmDBEvent blk
   deriving (Generic, Eq, Show)
 
 data TraceGCEvent blk
-  = ScheduledGC SlotNo DiffTime
+  = ScheduledGC SlotNo Time
     -- ^ A garbage collection for the given 'SlotNo' was scheduled to happen
-    -- after the given delay.
+    -- at the given time.
   | PerformedGC SlotNo
     -- ^ A garbage collection for the given 'SlotNo' was performed.
   deriving (Generic, Eq, Show)

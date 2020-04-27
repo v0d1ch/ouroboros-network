@@ -13,9 +13,8 @@ import           Ouroboros.Network.Protocol.LocalStateQuery.Type
 
 import           Ouroboros.Network.Block (Point)
 
-import           Ouroboros.Consensus.Ledger.Abstract (LedgerState (..),
-                     QueryLedger (..))
-import           Ouroboros.Consensus.Ledger.Extended (ExtLedgerState (..))
+import           Ouroboros.Consensus.Ledger.Abstract
+import           Ouroboros.Consensus.Ledger.Extended
 import           Ouroboros.Consensus.Util.IOLike
 
 import           Ouroboros.Consensus.Storage.ChainDB (LedgerCursor (..),
@@ -23,9 +22,10 @@ import           Ouroboros.Consensus.Storage.ChainDB (LedgerCursor (..),
 
 localStateQueryServer
   :: forall m blk. (IOLike m, QueryLedger blk)
-  => m (LedgerCursor m blk)
+  => LedgerConfig blk
+  -> m (LedgerCursor m blk)
   -> LocalStateQueryServer blk (Query blk) m ()
-localStateQueryServer newLedgerCursor =
+localStateQueryServer cfg newLedgerCursor =
     LocalStateQueryServer $ idle <$> newLedgerCursor
   where
     idle
@@ -64,7 +64,7 @@ localStateQueryServer newLedgerCursor =
       -> m (ServerStQuerying blk (Query blk) m () result)
     handleQuery ledgerState ledgerCursor query = return $
       SendMsgResult
-        (answerQuery query ledgerState)
+        (answerQuery cfg query ledgerState)
         (acquired ledgerState ledgerCursor)
 
     translateFailure

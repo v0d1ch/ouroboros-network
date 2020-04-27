@@ -34,8 +34,8 @@ import qualified Network.DNS as DNS
 import qualified Network.Socket as Socket
 import           Text.Printf
 
-import           Ouroboros.Network.Connections.Trace
-import           Ouroboros.Network.ErrorPolicy
+-- import           Ouroboros.Network.Connections.Trace
+-- import           Ouroboros.Network.ErrorPolicy
 import           Ouroboros.Network.Subscription.Ip
 
 -- | Description of one DNS subscription target: a name to resolve and the

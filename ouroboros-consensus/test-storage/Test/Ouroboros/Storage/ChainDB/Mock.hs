@@ -14,12 +14,12 @@ import           GHC.Stack (callStack)
 import           Ouroboros.Network.Block (ChainUpdate)
 
 import           Ouroboros.Consensus.Block
-import           Ouroboros.Consensus.BlockchainTime
 import           Ouroboros.Consensus.Config
 import           Ouroboros.Consensus.Ledger.Extended
 import           Ouroboros.Consensus.Ledger.SupportsProtocol
 import           Ouroboros.Consensus.Util ((...:), (.:))
 import           Ouroboros.Consensus.Util.IOLike
+import           Ouroboros.Consensus.Util.ResourceRegistry
 import           Ouroboros.Consensus.Util.STM (blockUntilJust)
 
 import           Ouroboros.Consensus.Storage.ChainDB.API
@@ -28,17 +28,20 @@ import           Test.Ouroboros.Storage.ChainDB.Model (IteratorId,
                      LedgerCursorId, Model, ModelSupportsBlock, ReaderId)
 import qualified Test.Ouroboros.Storage.ChainDB.Model as Model
 
+import           Test.Util.Time
+
 openDB :: forall m blk. (
             IOLike m
           , LedgerSupportsProtocol blk
           , ModelSupportsBlock blk
           )
        => TopLevelConfig blk
+       -> ResourceRegistry m
        -> ExtLedgerState blk
-       -> BlockchainTime m
+       -> TestBlockchainTime m
        -> m (ChainDB m blk)
-openDB cfg initLedger btime = do
-    curSlot <- atomically $ getCurrentSlot btime
+openDB cfg registry initLedger btime = do
+    curSlot <- atomically $ testBlockchainTimeSlot btime
     let initM = (Model.empty initLedger) { Model.currentSlot = curSlot }
     db :: StrictTVar m (Model blk) <- uncheckedNewTVarM initM
 
@@ -116,7 +119,8 @@ openDB cfg initLedger btime = do
           , ledgerCursorMove  = update . Model.ledgerCursorMove cfg lcId
           }
 
-    void $ onSlotChange btime $ update_ . Model.advanceCurSlot cfg
+    void $ onSlotChange registry btime "ChainDB.Mock.advanceCurSlot" $
+      update_ . Model.advanceCurSlot cfg
 
     return ChainDB {
         addBlockAsync       = update   . Model.addBlockPromise cfg

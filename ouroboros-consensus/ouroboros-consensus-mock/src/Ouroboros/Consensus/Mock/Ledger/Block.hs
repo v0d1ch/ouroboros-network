@@ -1,3 +1,4 @@
+{-# LANGUAGE DataKinds                  #-}
 {-# LANGUAGE DeriveAnyClass             #-}
 {-# LANGUAGE DeriveGeneric              #-}
 {-# LANGUAGE DerivingStrategies         #-}
@@ -33,13 +34,13 @@ module Ouroboros.Consensus.Mock.Ledger.Block (
   , mkSimpleHeader
   , matchesSimpleHeader
   , countSimpleGenTxs
+  , defaultSimpleBlockConfig
     -- * Configuration
   , BlockConfig(..)
     -- * Protocol-specific part
   , MockProtocolSpecific(..)
     -- * 'UpdateLedger'
   , LedgerState(..)
-  , LedgerConfig(..)
   , updateSimpleLedgerState
   , genesisSimpleLedgerState
     -- * 'ApplyTx' (mempool support)
@@ -81,6 +82,7 @@ import           Ouroboros.Network.Block
 
 import           Ouroboros.Consensus.Block
 import           Ouroboros.Consensus.BlockchainTime
+import qualified Ouroboros.Consensus.HardFork.History as HardFork
 import           Ouroboros.Consensus.HeaderValidation
 import           Ouroboros.Consensus.Ledger.Abstract
 import           Ouroboros.Consensus.Mempool.API
@@ -88,6 +90,7 @@ import           Ouroboros.Consensus.Mock.Ledger.Address
 import           Ouroboros.Consensus.Mock.Ledger.State
 import qualified Ouroboros.Consensus.Mock.Ledger.UTxO as Mock
 import           Ouroboros.Consensus.Node.LedgerDerivedInfo
+import           Ouroboros.Consensus.Protocol.Abstract
 import           Ouroboros.Consensus.Util ((.:))
 import           Ouroboros.Consensus.Util.Condense
 import           Ouroboros.Consensus.Util.Orphans ()
@@ -219,20 +222,14 @@ instance (SimpleCrypto c, Typeable ext) => HasHeader (SimpleBlock c ext) where
 instance (SimpleCrypto c, Typeable ext) => StandardHash (SimpleBlock c ext)
 
 {-------------------------------------------------------------------------------
-  HasUTxO instance
+  HasMockTxs instance
 -------------------------------------------------------------------------------}
 
-instance Mock.HasUtxo (SimpleBlock' c ext ext') where
-  txIns      = Mock.txIns      . simpleBody
-  txOuts     = Mock.txOuts     . simpleBody
-  confirmed  = Mock.confirmed  . simpleBody
-  updateUtxo = Mock.updateUtxo . simpleBody
+instance Mock.HasMockTxs (SimpleBlock' c ext ext') where
+  getMockTxs = Mock.getMockTxs . simpleBody
 
-instance Mock.HasUtxo SimpleBody where
-  txIns      = Mock.txIns      . simpleTxs
-  txOuts     = Mock.txOuts     . simpleTxs
-  confirmed  = Mock.confirmed  . simpleTxs
-  updateUtxo = Mock.updateUtxo . simpleTxs
+instance Mock.HasMockTxs SimpleBody where
+  getMockTxs = simpleTxs
 
 {-------------------------------------------------------------------------------
   Envelope validation
@@ -250,8 +247,24 @@ instance (SimpleCrypto c, Typeable ext) => ValidateEnvelope (SimpleBlock c ext)
 
 data instance BlockConfig (SimpleBlock c ext) = SimpleBlockConfig {
       simpleBlockSlotLengths :: !SlotLengths
+
+      -- TODO: This should obsolete 'simpleBlockSlotLengths' (#1637)
+    , simpleBlockEraParams :: !HardFork.EraParams
     }
   deriving (Generic, NoUnexpectedThunks)
+
+defaultSimpleBlockConfig :: SecurityParam
+                         -> SlotLength
+                         -> BlockConfig (SimpleBlock c ext)
+defaultSimpleBlockConfig k slotLength = SimpleBlockConfig {
+      simpleBlockSlotLengths = singletonSlotLengths slotLength
+    , simpleBlockEraParams   = HardFork.defaultEraParams k slotLength
+    }
+
+instance HasHardForkHistory (SimpleBlock c ext) where
+  type HardForkIndices (SimpleBlock c ext) = '[()]
+  hardForkShape           = HardFork.singletonShape . simpleBlockEraParams
+  hardForkTransitions _ _ = HardFork.transitionsUnknown
 
 instance LedgerDerivedInfo (SimpleBlock c ext) where
   knownSlotLengths = simpleBlockSlotLengths
@@ -271,21 +284,15 @@ class ( SimpleCrypto c
   Update the ledger
 -------------------------------------------------------------------------------}
 
-instance MockProtocolSpecific c ext => UpdateLedger (SimpleBlock c ext) where
-  newtype LedgerState (SimpleBlock c ext) = SimpleLedgerState {
-        simpleLedgerState :: MockState (SimpleBlock c ext)
-      }
-    deriving stock   (Generic, Show, Eq)
-    deriving newtype (Serialise, NoUnexpectedThunks)
-
-  data LedgerConfig (SimpleBlock c ext) = SimpleLedgerConfig {
-        simpleMockLedgerConfig :: MockLedgerConfig c ext
-      }
-    deriving stock (Generic)
-
-  type LedgerError (SimpleBlock c ext) = MockError (SimpleBlock c ext)
+instance MockProtocolSpecific c ext
+      => IsLedger (LedgerState (SimpleBlock c ext)) where
+  type LedgerCfg (LedgerState (SimpleBlock c ext)) = MockLedgerConfig       c ext
+  type LedgerErr (LedgerState (SimpleBlock c ext)) = MockError (SimpleBlock c ext)
 
   applyChainTick _ = TickedLedgerState
+
+instance MockProtocolSpecific c ext
+      => ApplyBlock (LedgerState (SimpleBlock c ext)) (SimpleBlock c ext) where
   applyLedgerBlock _cfg = updateSimpleLedgerState
   reapplyLedgerBlock _cfg = (mustSucceed . runExcept) .: updateSimpleLedgerState
     where
@@ -293,26 +300,29 @@ instance MockProtocolSpecific c ext => UpdateLedger (SimpleBlock c ext) where
       mustSucceed (Right st)  = st
   ledgerTipPoint (SimpleLedgerState st) = mockTip st
 
-deriving instance MockProtocolSpecific c ext
-               => Show (LedgerConfig (SimpleBlock c ext))
-deriving instance MockProtocolSpecific c ext
-               => NoUnexpectedThunks (LedgerConfig (SimpleBlock c ext))
+instance MockProtocolSpecific c ext => UpdateLedger (SimpleBlock c ext) where
+  newtype LedgerState (SimpleBlock c ext) = SimpleLedgerState {
+        simpleLedgerState :: MockState (SimpleBlock c ext)
+      }
+    deriving stock   (Generic, Show, Eq)
+    deriving newtype (Serialise, NoUnexpectedThunks)
 
 updateSimpleLedgerState :: (SimpleCrypto c, Typeable ext)
                         => SimpleBlock c ext
-                        -> LedgerState (SimpleBlock c ext)
+                        -> TickedLedgerState (SimpleBlock c ext)
                         -> Except (MockError (SimpleBlock c ext))
                                   (LedgerState (SimpleBlock c ext))
-updateSimpleLedgerState b (SimpleLedgerState st) =
+updateSimpleLedgerState b (TickedLedgerState _ (SimpleLedgerState st)) =
     SimpleLedgerState <$> updateMockState b st
 
-updateSimpleUTxO :: Mock.HasUtxo a
+updateSimpleUTxO :: Mock.HasMockTxs a
                  => a
                  -> TickedLedgerState (SimpleBlock c ext)
                  -> Except (MockError (SimpleBlock c ext))
                            (TickedLedgerState (SimpleBlock c ext))
-updateSimpleUTxO b (TickedLedgerState slot (SimpleLedgerState st)) =
-    TickedLedgerState slot . SimpleLedgerState <$> updateMockUTxO b st
+updateSimpleUTxO x (TickedLedgerState slot (SimpleLedgerState st)) =
+    TickedLedgerState slot . SimpleLedgerState <$>
+      updateMockUTxO slot x st
 
 genesisSimpleLedgerState :: AddrDist -> LedgerState (SimpleBlock c ext)
 genesisSimpleLedgerState = SimpleLedgerState . genesisMockState
@@ -349,11 +359,8 @@ instance (Typeable p, Typeable c) => NoUnexpectedThunks (GenTx (SimpleBlock p c)
 instance HasTxs (SimpleBlock c ext) where
   extractTxs = map mkSimpleGenTx . simpleTxs . simpleBody
 
-instance Mock.HasUtxo (GenTx (SimpleBlock p c)) where
-  txIns      = Mock.txIns      . simpleGenTx
-  txOuts     = Mock.txOuts     . simpleGenTx
-  confirmed  = Mock.confirmed  . simpleGenTx
-  updateUtxo = Mock.updateUtxo . simpleGenTx
+instance Mock.HasMockTxs (GenTx (SimpleBlock p c)) where
+  getMockTxs = Mock.getMockTxs . simpleGenTx
 
 instance Condense (GenTx (SimpleBlock p c)) where
     condense = condense . simpleGenTx
@@ -378,8 +385,8 @@ instance MockProtocolSpecific c ext => QueryLedger (SimpleBlock c ext) where
   data Query (SimpleBlock c ext) result
     deriving (Show)
 
-  answerQuery = \case {}
-  eqQuery     = \case {}
+  answerQuery _ = \case {}
+  eqQuery       = \case {}
 
 instance ShowQuery (Query (SimpleBlock c ext)) where
   showResult = \case {}

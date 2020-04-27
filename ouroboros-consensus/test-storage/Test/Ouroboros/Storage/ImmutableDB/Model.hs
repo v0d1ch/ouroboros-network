@@ -40,8 +40,8 @@ module Test.Ouroboros.Storage.ImmutableDB.Model
   , appendBlockModel
   , appendEBBModel
   , streamModel
+  , streamAllModel
   , iteratorNextModel
-  , iteratorPeekModel
   , iteratorHasNextModel
   , iteratorCloseModel
   ) where
@@ -449,7 +449,7 @@ findCorruptionRollBackPoint :: FileCorruption -> FsPath -> DBModel hash
                             -> RollBackPoint
 findCorruptionRollBackPoint corr file dbm =
     case (Text.unpack . snd <$> fsPathSplit file) >>= parseDBFile of
-      Just ("epoch",      chunk) -> findChunkCorruptionRollBackPoint corr chunk dbm
+      Just ("chunk",      chunk) -> findChunkCorruptionRollBackPoint corr chunk dbm
       -- Index files are always recoverable
       Just ("primary",   _chunk) -> DontRollBack
       Just ("secondary", _chunk) -> DontRollBack
@@ -829,6 +829,27 @@ streamModel mbStart mbEnd dbm@DBModel {..} = swizzle $ do
         Nothing  -> id
         Just end -> takeWhile ((<= end) . fst . fst)
 
+streamAllModel
+  :: forall m hash b.
+     BlockComponent (ImmutableDB hash m) b
+  -> DBModel hash
+  -> [b]
+streamAllModel blockComponent =
+      map toBlockComponent
+    . Map.toAscList
+    . dbmBlobs
+  where
+    toBlockComponent
+      :: ((ChunkSlot, SlotNo),
+          Either (hash, BinaryInfo ByteString) (hash, BinaryInfo ByteString))
+      -> b
+    toBlockComponent ((_chunkSlot, slotNo), ebbOrBlock) =
+        extractBlockComponent hash slotNo isEBB binaryInfo blockComponent
+      where
+        (isEBB, hash, binaryInfo) = case ebbOrBlock of
+          Left  (h, b) -> (IsEBB,    h, b)
+          Right (h, b) -> (IsNotEBB, h, b)
+
 iteratorNextModel
   :: IteratorId
   -> BlockComponent (ImmutableDB hash m) b
@@ -852,23 +873,6 @@ iteratorNextModel itId blockComponent dbm@DBModel {..} =
           res = IteratorResult $
             extractBlockComponent hash slot isEBB bi blockComponent
 
-          (slot, isEBB) = case epochOrSlot of
-            Left epoch  -> (slotNoOfEBB' dbm epoch, IsEBB)
-            Right slot' -> (slot', IsNotEBB)
-
-iteratorPeekModel
-  :: IteratorId
-  -> BlockComponent (ImmutableDB hash m) b
-  -> DBModel hash
-  -> IteratorResult b
-iteratorPeekModel itId blockComponent dbm@DBModel { dbmIterators } =
-    case Map.lookup itId dbmIterators of
-      Nothing                      -> IteratorExhausted
-      Just (IteratorModel [])      -> IteratorExhausted
-      Just (IteratorModel ((epochOrSlot, hash, bi):_)) ->
-          IteratorResult $
-            extractBlockComponent hash slot isEBB bi blockComponent
-        where
           (slot, isEBB) = case epochOrSlot of
             Left epoch  -> (slotNoOfEBB' dbm epoch, IsEBB)
             Right slot' -> (slot', IsNotEBB)

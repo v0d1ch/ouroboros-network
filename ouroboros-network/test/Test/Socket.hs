@@ -144,11 +144,13 @@ demo chain0 updates = withIOManager $ \iocp -> do
     withServerNode
       snocket
       nullNetworkServerTracers
+      (AcceptedConnectionsLimit maxBound maxBound 0)
       producerAddress
+      nodeToNodeHandshakeCodec
       cborTermVersionDataCodec
       (\(DictVersion _) -> acceptableVersion)
       (simpleSingletonVersions
-        (0::Int)
+        NodeToNodeV_1
         (NodeToNodeVersionData $ NetworkMagic 0)
         (DictVersion nodeToNodeCodecCBORTerm)
         (\_peerid -> SomeResponderApplication responderApp))
@@ -156,11 +158,12 @@ demo chain0 updates = withIOManager $ \iocp -> do
       $ \realProducerAddress _ -> do
       withAsync
         (connectToNode
-          snocket
+          (socketSnocket iocp)
+          nodeToNodeHandshakeCodec
           cborTermVersionDataCodec
           nullNetworkConnectTracers
           (simpleSingletonVersions
-            (0::Int)
+            NodeToNodeV_1
             (NodeToNodeVersionData $ NetworkMagic 0)
             (DictVersion nodeToNodeCodecCBORTerm)
             (\_peerid -> initiatorApp))

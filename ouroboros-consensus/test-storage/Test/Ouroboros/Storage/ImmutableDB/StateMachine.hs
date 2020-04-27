@@ -2,6 +2,7 @@
 {-# LANGUAGE DeriveAnyClass       #-}
 {-# LANGUAGE DeriveGeneric        #-}
 {-# LANGUAGE DeriveTraversable    #-}
+{-# LANGUAGE DerivingVia          #-}
 {-# LANGUAGE FlexibleContexts     #-}
 {-# LANGUAGE FlexibleInstances    #-}
 {-# LANGUAGE GADTs                #-}
@@ -24,14 +25,14 @@ import           Prelude hiding (elem, notElem)
 
 import           Codec.CBOR.Write (toBuilder)
 import           Codec.Serialise (decode)
-import           Control.Monad (forM_, void, when)
+import           Control.Monad (forM_, void)
 import           Data.Bifunctor (first)
 import           Data.ByteString.Lazy (ByteString)
 import           Data.Coerce (Coercible, coerce)
 import           Data.Foldable (toList)
 import           Data.Function (on)
 import           Data.Functor.Classes (Eq1, Show1)
-import           Data.List (sortBy)
+import           Data.List (delete, sortBy)
 import qualified Data.List.NonEmpty as NE
 import           Data.Map (Map)
 import qualified Data.Map as Map
@@ -57,12 +58,11 @@ import qualified Test.StateMachine.Types.Rank2 as Rank2
 import           Test.Tasty (TestTree, testGroup)
 import           Test.Tasty.QuickCheck (testProperty)
 
+import           Cardano.Prelude (AllowThunk (..), NoUnexpectedThunks)
 import           Cardano.Slotting.Slot hiding (At)
 import qualified Cardano.Slotting.Slot as S
 
 import           Ouroboros.Consensus.Block (IsEBB (..), fromIsEBB, getHeader)
-import           Ouroboros.Consensus.BlockchainTime.Mock
-                     (settableBlockchainTime)
 import           Ouroboros.Consensus.Util.IOLike
 import           Ouroboros.Consensus.Util.ResourceRegistry
 
@@ -72,7 +72,8 @@ import qualified Ouroboros.Network.Block as Block
 
 import           Ouroboros.Consensus.Storage.Common
 import           Ouroboros.Consensus.Storage.FS.API (HasFS (..))
-import           Ouroboros.Consensus.Storage.FS.API.Types (FsError (..), FsPath)
+import           Ouroboros.Consensus.Storage.FS.API.Types (FsError (..), FsPath,
+                     mkFsPath)
 import           Ouroboros.Consensus.Storage.ImmutableDB hiding
                      (BlockOrEBB (..))
 import qualified Ouroboros.Consensus.Storage.ImmutableDB as ImmDB
@@ -82,10 +83,9 @@ import qualified Ouroboros.Consensus.Storage.ImmutableDB.Impl as ImmDB
                      (Internal (..))
 import qualified Ouroboros.Consensus.Storage.ImmutableDB.Impl.Index as Index
                      (CacheConfig (..))
-import           Ouroboros.Consensus.Storage.ImmutableDB.Impl.Util (renderFile,
-                     tryImmDB)
-import           Ouroboros.Consensus.Storage.ImmutableDB.Parser
-                     (chunkFileParser)
+import           Ouroboros.Consensus.Storage.ImmutableDB.Impl.Util
+import           Ouroboros.Consensus.Storage.ImmutableDB.Parser (ChunkFileError,
+                     chunkFileParser)
 
 import           Test.Util.ChunkInfo
 import           Test.Util.FS.Sim.Error (Errors, mkSimErrorHasFS, withErrors)
@@ -120,13 +120,12 @@ data Cmd it
   | AppendBlock            SlotNo  Hash TestBlock
   | AppendEBB              EpochNo Hash TestBlock
   | Stream                 (Maybe (SlotNo, Hash)) (Maybe (SlotNo, Hash))
+  | StreamAll
   | IteratorNext           it
-  | IteratorPeek           it
   | IteratorHasNext        it
   | IteratorClose          it
   | Reopen                 ValidationPolicy
-  | ReopenInThePast        ValidationPolicy SlotNo
-    -- ^ New current slot, will be in the past
+  | Migrate                ValidationPolicy
   | DeleteAfter            (ImmTipWithInfo Hash)
   | Corruption             Corruption
   deriving (Generic, Show, Functor, Foldable, Traversable)
@@ -144,17 +143,8 @@ newtype Corruption = MkCorruption { getCorruptions :: Corruptions }
 -- simulate file system errors thrown at the 'HasFS' level. When 'Nothing', no
 -- errors will be thrown.
 data CmdErr it = CmdErr
-  { cmdErr   :: Maybe Errors
-  , cmd      :: Cmd it
-  , cmdIters :: [it]
-    -- ^ A list of all open iterators. For some commands, e.g., corrupting the
-    -- database or simulating errors, we need to close and reopen the
-    -- database, which almost always requires truncation of the database.
-    -- During truncation we might need to delete a file that is still opened
-    -- by an iterator. As this is not allowed by the MockFS implementation, we
-    -- first close all open iterators in these cases.
-    --
-    -- See #328
+  { cmdErr :: Maybe Errors
+  , cmd    :: Cmd it
   } deriving (Show, Generic, Functor, Foldable, Traversable)
 
 type Hash = TestHeaderHash
@@ -167,6 +157,7 @@ data Success it
   | Iter            (Either (WrongBoundError Hash) it)
   | IterResult      (IteratorResult AllComponents)
   | IterHasNext     (Maybe (Either EpochNo SlotNo, Hash))
+  | IterResults     [AllComponents]
   | Tip             (ImmTipWithInfo Hash)
   deriving (Eq, Show, Functor, Foldable, Traversable)
 
@@ -201,61 +192,105 @@ type AllComponents =
 -- | Short-hand
 type TestIterator m = WithEq (Iterator Hash m AllComponents)
 
--- | How to run a 'Corruption' command.
-type RunCorruption m =
-     ImmutableDB    Hash m
-  -> ImmDB.Internal Hash m
-  -> Corruption
-  -> m (Success (TestIterator m))
+closeOpenIterators :: StrictTVar IO [TestIterator IO] -> IO ()
+closeOpenIterators varIters = do
+    its <- atomically $ readTVar varIters <* writeTVar varIters []
+    mapM_ iteratorClose (unWithEq <$> its)
+
+open
+  :: Eq h
+  => ImmutableDbArgs IO h Hash (ChunkFileError Hash)
+  -> IO ImmutableDBState
+open args = do
+    (db, internal) <- openDBInternal args
+    return ImmutableDBState { db, internal }
+
+-- | Opens a new ImmutableDB and stores it in 'varDB'.
+--
+-- Does not close the current VolatileDB stored in 'varDB'.
+reopen :: Eq h => ImmutableDBEnv h -> ValidationPolicy -> IO ()
+reopen ImmutableDBEnv { varDB, args } valPol = do
+    immutableDbState <- open args { valPol = valPol }
+    void $ swapMVar varDB immutableDbState
 
 -- | Run the command against the given database.
-run :: HasCallStack
+run :: (Eq h, HasCallStack)
     => ImmutableDBEnv h
-    -> RunCorruption IO
-    -> [TestIterator IO]
     -> Cmd (TestIterator IO)
     -> IO (Success (TestIterator IO))
-run ImmutableDBEnv { db, internal, registry, varNextId, varCurSlot } runCorruption its cmd = case cmd of
-    GetBlockComponent      s   -> MbAllComponents <$> getBlockComponent      db allComponents s
-    GetEBBComponent        e   -> MbAllComponents <$> getEBBComponent        db allComponents e
-    GetBlockOrEBBComponent s h -> MbAllComponents <$> getBlockOrEBBComponent db allComponents s h
-    AppendBlock         s h b  -> Unit            <$> appendBlock            db s (blockNo b) h (toBuilder <$> testBlockToBinaryInfo b)
-    AppendEBB           e h b  -> Unit            <$> appendEBB              db e (blockNo b) h (toBuilder <$> testBlockToBinaryInfo b)
-    Stream              s e    -> iter            =<< stream                 db registry allComponents s e
-    IteratorNext        it     -> IterResult      <$> iteratorNext           (unWithEq it)
-    IteratorPeek        it     -> IterResult      <$> iteratorPeek           (unWithEq it)
-    IteratorHasNext     it     -> IterHasNext     <$> iteratorHasNext        (unWithEq it)
-    IteratorClose       it     -> Unit            <$> iteratorClose          (unWithEq it)
-    DeleteAfter tip            -> do
-      mapM_ iteratorClose (unWithEq <$> its)
-      Unit <$> deleteAfter internal tip
-    Reopen valPol              -> do
-      mapM_ iteratorClose (unWithEq <$> its)
-      closeDB db
-      reopen db valPol
-      Tip <$> getTip db
-    ReopenInThePast valPol curSlot -> do
-      -- The @curSlot@ will be in the past, so there /will/ be truncation
-      mapM_ iteratorClose (unWithEq <$> its)
-      closeDB db
-      -- We only change the current slot here, we leave it set to 'maxBound'
-      -- in all other places so that we don't accidentally truncate blocks
-      -- from the \"future\" when reopening.
-      bracket_
-        (atomically $ writeTVar varCurSlot curSlot)
-        (atomically $ writeTVar varCurSlot maxBound)
-        (reopen db valPol)
-      Tip <$> getTip db
-    Corruption corr            -> do
-      mapM_ iteratorClose (unWithEq <$> its)
-      runCorruption db internal corr
+run env@ImmutableDBEnv { varDB, varNextId, varIters, args } cmd =
+    readMVar varDB >>= \ImmutableDBState { db, internal } -> case cmd of
+      GetBlockComponent      s   -> MbAllComponents <$> getBlockComponent      db allComponents s
+      GetEBBComponent        e   -> MbAllComponents <$> getEBBComponent        db allComponents e
+      GetBlockOrEBBComponent s h -> MbAllComponents <$> getBlockOrEBBComponent db allComponents s h
+      AppendBlock         s h b  -> Unit            <$> appendBlock            db s (blockNo b) h (toBuilder <$> testBlockToBinaryInfo b)
+      AppendEBB           e h b  -> Unit            <$> appendEBB              db e (blockNo b) h (toBuilder <$> testBlockToBinaryInfo b)
+      Stream              s e    -> iter            =<< stream                 db registry allComponents s e
+      StreamAll                  -> IterResults     <$> streamAll              db
+      IteratorNext        it     -> IterResult      <$> iteratorNext           (unWithEq it)
+      IteratorHasNext     it     -> IterHasNext     <$> iteratorHasNext        (unWithEq it)
+      IteratorClose       it     -> Unit            <$> iteratorClose'         it
+      DeleteAfter tip            -> do
+        closeOpenIterators varIters
+        Unit <$> deleteAfter internal tip
+      Reopen valPol              -> do
+        closeOpenIterators varIters
+        closeDB db
+        reopen env valPol
+        Tip <$> getTip db
+      Migrate valPol -> do
+        closeOpenIterators varIters
+        closeDB db
+        unmigrate hasFS
+        reopen env valPol
+        Tip <$> getTip db
+      Corruption (MkCorruption corrs) -> do
+        closeOpenIterators varIters
+        closeDB db
+        forM_ corrs $ \(corr, file) -> corruptFile hasFS corr file
+        reopen env ValidateAllChunks
+        Tip <$> getTip db
   where
-    iter = fmap Iter . traverse giveWithEq
+    ImmutableDbArgs { registry, hasFS } = args
+
+    -- Store the iterator in 'varIters'
+    iter :: Either (WrongBoundError Hash) (Iterator Hash IO AllComponents)
+         -> IO (Success (TestIterator IO))
+    iter (Left e)   = return (Iter (Left e))
+    iter (Right it) = do
+      it' <- giveWithEq it
+      atomically $ modifyTVar varIters (it':)
+      return (Iter (Right it'))
+
+    -- Remove the iterator from 'varIters'
+    iteratorClose' :: TestIterator IO -> IO ()
+    iteratorClose' it = do
+      atomically $ modifyTVar varIters (delete it)
+      iteratorClose (unWithEq it)
 
     giveWithEq :: a -> IO (WithEq a)
     giveWithEq a =
       fmap (`WithEq` a) $ atomically $ updateTVar varNextId $ \i -> (succ i, i)
 
+    streamAll :: ImmutableDB Hash IO -> IO [AllComponents]
+    streamAll db =
+      bracket
+        (noWrongBoundError <$> stream db registry allComponents Nothing Nothing)
+        iteratorClose
+        iteratorToList
+
+    noWrongBoundError :: Either (WrongBoundError Hash) a -> a
+    noWrongBoundError (Left e)  = error ("impossible: " <> show e)
+    noWrongBoundError (Right a) = a
+
+-- | To test migration from "XXXXX.epoch" to "XXXXX.chunk" do the opposite
+-- renaming, i.e., /unmigrate/ while the database is closed. When the database
+-- is reopened, it should trigger the migration code.
+unmigrate :: Monad m => HasFS m h -> m ()
+unmigrate HasFS { listDirectory, renameFile } = do
+    (chunkFiles, _, _) <- dbFilesOnDisk <$> listDirectory (mkFsPath [])
+    forM_ chunkFiles $ \chunk ->
+      renameFile (fsPathChunkFile chunk) (renderFile "epoch" chunk)
 
 {-------------------------------------------------------------------------------
   Instantiating the semantics
@@ -282,14 +317,14 @@ runPure = \case
     AppendBlock         s h b  -> ok Unit            $ updateE_ (appendBlockModel s (blockNo b) h (toBuilder <$> testBlockToBinaryInfo b))
     AppendEBB           e h b  -> ok Unit            $ updateE_ (appendEBBModel   e (blockNo b) h (toBuilder <$> testBlockToBinaryInfo b))
     Stream              s e    -> ok Iter            $ updateEE (streamModel s e)
+    StreamAll                  -> ok IterResults     $ query    (streamAllModel allComponents)
     IteratorNext        it     -> ok IterResult      $ update   (iteratorNextModel it allComponents)
-    IteratorPeek        it     -> ok IterResult      $ query    (iteratorPeekModel it allComponents)
     IteratorHasNext     it     -> ok IterHasNext     $ query    (iteratorHasNextModel it)
     IteratorClose       it     -> ok Unit            $ update_  (iteratorCloseModel it)
     DeleteAfter tip            -> ok Unit            $ update_  (deleteAfterModel tip)
     Corruption corr            -> ok Tip             $ update   (simulateCorruptions (getCorruptions corr))
     Reopen _                   -> ok Tip             $ update    reopenModel
-    ReopenInThePast _ s        -> ok Tip             $ update   (reopenInThePastModel s)
+    Migrate _                  -> ok Tip             $ update    reopenModel
   where
     query  f m = (Right (f m), m)
     queryE f m = (f m, m)
@@ -317,7 +352,7 @@ runPure = \case
 runPureErr :: DBModel Hash
            -> CmdErr IteratorId
            -> (Resp IteratorId, DBModel Hash)
-runPureErr dbm (CmdErr mbErrors cmd _its) =
+runPureErr dbm (CmdErr mbErrors cmd) =
     case (mbErrors, runPure cmd dbm) of
       -- No simulated errors, just step
       (Nothing, (resp, dbm')) -> (resp, dbm')
@@ -327,15 +362,13 @@ runPureErr dbm (CmdErr mbErrors cmd _its) =
       -- of the database will erase any changes.
       (Just _, (_resp, dbm')) ->
         -- We ignore the updated @dbm'@, because we have to roll back to the
-        -- state before executing cmd. Exception: DeleteAfter and
-        -- ReopenInThePast cmd, in which case we have may have to truncate the
-        -- tip.
+        -- state before executing cmd. The only exception is the DeleteAfter
+        -- cmd, in which case we have to roll back to the requested tip.
         --
         -- As the implementation closes all iterators, we do the same.
         let dbm'' = closeAllIterators $ case cmd of
-              DeleteAfter {}     -> dbm'
-              ReopenInThePast {} -> dbm'
-              _                  -> dbm
+              DeleteAfter _ -> dbm'
+              _             -> dbm
         in (Resp $ Right $ Tip $ dbmTip dbm'', dbm'')
 
 {-------------------------------------------------------------------------------
@@ -468,14 +501,12 @@ generator m@Model {..} = do
           , (1, Just <$> arbitrary)
           ]
        else return Nothing
-    let cmdIters = RE.keys knownIters
     return $ At CmdErr {..}
   where
     -- Don't simulate an error during corruption, because we don't want an
     -- error to happen while we corrupt a file.
-    errorFor Corruption {}      = False
-    errorFor ReopenInThePast {} = False  -- TODO #1567
-    errorFor _                  = True
+    errorFor Corruption {} = False
+    errorFor _             = True
 
 -- | Generate a 'Cmd'.
 generateCmd :: Model m Symbolic -> Gen (At Cmd m Symbolic)
@@ -519,6 +550,7 @@ generateCmd Model {..} = At <$> frequency
                 let slotNo = slotNoOfEBB dbmChunkInfo epoch
                 return (epoch, mkNextEBB canContainEBB prevBlock slotNo (TestBody 0 True))
             return $ AppendEBB epoch (blockHash ebb) ebb)
+    , (4, return StreamAll)
     , (4, frequency
             -- An iterator with a random and likely invalid range,
             [ (1, Stream
@@ -546,12 +578,11 @@ generateCmd Model {..} = At <$> frequency
     , (if Map.null dbmIterators then 0 else 8, do
          iter <- elements $ RE.keys knownIters
          frequency [ (4, return $ IteratorNext    iter)
-                   , (4, return $ IteratorPeek    iter)
                    , (4, return $ IteratorHasNext iter)
                    , (1, return $ IteratorClose   iter) ])
     , (1, Reopen <$> genValPol)
 
-    , (1, ReopenInThePast <$> genValPol <*> chooseSlot (0, lastSlot))
+    , (1, Migrate <$> genValPol)
 
     , (4, DeleteAfter <$> genTip)
 
@@ -655,9 +686,13 @@ generateCmd Model {..} = At <$> frequency
 -- created. For each epoch an epoch, primary index, and secondary index file.
 getDBFiles :: DBModel Hash -> [FsPath]
 getDBFiles dbm =
-    [ renderFile fileType epoch
-    | epoch <- chunksBetween firstChunkNo (dbmCurrentChunk dbm)
-    , fileType <- ["epoch", "primary", "secondary"]
+    [ file
+    | chunk <- chunksBetween firstChunkNo (dbmCurrentChunk dbm)
+    , file  <-
+      [ fsPathChunkFile chunk
+      , fsPathPrimaryIndexFile chunk
+      , fsPathSecondaryIndexFile chunk
+      ]
     ]
 
 {-------------------------------------------------------------------------------
@@ -666,11 +701,9 @@ getDBFiles dbm =
 
 -- | Shrinker
 shrinker :: Model m Symbolic -> At CmdErr m Symbolic -> [At CmdErr m Symbolic]
-shrinker m@Model {..} (At (CmdErr mbErrors cmd _)) = fmap At $
-    [ CmdErr mbErrors' cmd  its' | mbErrors' <- shrink mbErrors ] ++
-    [ CmdErr mbErrors  cmd' its' | At cmd'   <- shrinkCmd m (At cmd) ]
-  where
-    its' = RE.keys knownIters
+shrinker m@Model {..} (At (CmdErr mbErrors cmd)) = fmap At $
+    [CmdErr mbErrors' cmd  | mbErrors' <- shrink mbErrors] ++
+    [CmdErr mbErrors  cmd' | At cmd'   <- shrinkCmd m (At cmd)]
 
 -- | Shrink a 'Cmd'.
 shrinkCmd :: Model m Symbolic -> At Cmd m Symbolic -> [At Cmd m Symbolic]
@@ -678,19 +711,19 @@ shrinkCmd Model {..} (At cmd) = fmap At $ case cmd of
     AppendBlock _slot  _hash _b        -> []
     AppendEBB   _epoch _hash _ebb      -> []
     Stream  _mbStart _mbEnd            -> []
+    StreamAll                          -> []
     GetBlockComponent slot             ->
       [GetBlockComponent slot' | slot' <- shrink slot]
     GetEBBComponent epoch              ->
       [GetEBBComponent epoch' | epoch' <- shrink epoch]
     GetBlockOrEBBComponent _slot _hash -> []
     IteratorNext    {}                 -> []
-    IteratorPeek    {}                 -> []
     IteratorHasNext {}                 -> []
     IteratorClose   {}                 -> []
     DeleteAfter tip                    ->
       [DeleteAfter tip' | tip' <- shrinkTip tip]
     Reopen {}                          -> []
-    ReopenInThePast {}                 -> []
+    Migrate {}                         -> []
     Corruption corr                    ->
       [Corruption corr' | corr' <- shrinkCorruption corr]
   where
@@ -742,17 +775,12 @@ precondition Model {..} (At (CmdErr { cmd })) =
         forall
           (corruptionFiles (getCorruptions corr))
           (`member` getDBFiles dbModel)
-      ReopenInThePast _ curSlot ->
-        0 .<= curSlot .&& curSlot .<= lastSlot
       _ -> Top
   where
     fitsOnTip :: TestBlock -> Logic
     fitsOnTip b = case dbmTipBlock dbModel of
       Nothing    -> blockPrevHash b .== Block.GenesisHash
       Just bPrev -> blockPrevHash b .== Block.BlockHash (blockHash bPrev)
-
-    lastSlot :: SlotNo
-    lastSlot = fromIntegral $ length $ dbmRegular dbModel
 
 transition :: (Show1 r, Eq1 r)
            => Model m r -> At CmdErr m r -> At Resp m r -> Model m r
@@ -767,32 +795,45 @@ postcondition model cmdErr resp =
   where
     ev = lockstep model cmdErr resp
 
+data ImmutableDBState = ImmutableDBState
+    { db       :: ImmutableDB    Hash IO
+    , internal :: ImmDB.Internal Hash IO
+    }
+  deriving NoUnexpectedThunks via AllowThunk ImmutableDBState
+
 -- | Environment to run commands against the real ImmutableDB implementation.
 data ImmutableDBEnv h = ImmutableDBEnv
-  { varErrors  :: StrictTVar IO Errors
-  , varNextId  :: StrictTVar IO Id
-  , varCurSlot :: StrictTVar IO SlotNo
-    -- ^ Always 'maxBound'. Only when executing 'ReopenInThePast', it will
-    -- temporarily be reset to a slot in the past.
-  , registry   :: ResourceRegistry IO
-  , hasFS      :: HasFS IO h
-  , db         :: ImmutableDB    Hash IO
-  , internal   :: ImmDB.Internal Hash IO
+  { varErrors :: StrictTVar IO Errors
+  , varNextId :: StrictTVar IO Id
+  , varIters  :: StrictTVar IO [TestIterator IO]
+    -- ^ A list of all open iterators. For some commands, e.g., corrupting the
+    -- database or simulating errors, we need to close and reopen the
+    -- database, which almost always requires truncation of the database.
+    -- During truncation we might need to delete a file that is still opened
+    -- by an iterator. As this is not allowed by the MockFS implementation, we
+    -- first close all open iterators in these cases.
+  , varDB     :: StrictMVar IO ImmutableDBState
+  , args      :: ImmutableDbArgs IO h Hash (ChunkFileError Hash)
   }
 
-semantics :: ImmutableDBEnv h
+getImmDB :: ImmutableDBEnv h -> IO (ImmutableDB Hash IO)
+getImmDB = fmap db . readMVar . varDB
+
+getInternal :: ImmutableDBEnv h -> IO (ImmDB.Internal Hash IO)
+getInternal = fmap internal . readMVar . varDB
+
+semantics :: Eq h
+          => ImmutableDBEnv h
           -> At CmdErr IO Concrete
           -> IO (At Resp IO Concrete)
 semantics env@ImmutableDBEnv {..} (At cmdErr) =
     At . fmap (reference . Opaque) . Resp <$> case opaque <$> cmdErr of
 
-      CmdErr Nothing       cmd its -> tryImmDB $
-        run env (semanticsCorruption hasFS) its cmd
+      CmdErr Nothing       cmd -> tryImmDB $ run env cmd
 
-      CmdErr (Just errors) cmd its -> do
-        tipBefore <- getTip db
-        res       <- withErrors varErrors errors $ tryImmDB $
-          run env (semanticsCorruption hasFS) its cmd
+      CmdErr (Just errors) cmd -> do
+        tipBefore <- getImmDB env >>= getTip
+        res       <- withErrors varErrors errors $ tryImmDB $ run env cmd
         case res of
           -- If the command resulted in a 'UserError', we didn't even get the
           -- chance to run into a simulated error. Note that we still
@@ -800,58 +841,46 @@ semantics env@ImmutableDBEnv {..} (At cmdErr) =
           -- 'UserError' or an 'UnexpectedError', as it depends on the
           -- simulated error.
           Left (UserError {})       ->
-            truncateAndReopen cmd its tipBefore
+            truncateAndReopen cmd tipBefore
 
           -- We encountered a simulated error
-          Left (UnexpectedError {}) -> do
-            open <- isOpen db
-            when open $
-              fail "Database still open while it should have been closed"
-            truncateAndReopen cmd its tipBefore
+          Left (UnexpectedError {}) ->
+            truncateAndReopen cmd tipBefore
 
           -- TODO track somewhere which/how many errors were *actually* thrown
 
           -- By coincidence no error was thrown, try to mimic what would have
           -- happened if the error was thrown, so that we stay in sync with
           -- the model.
-          Right suc                 ->
-            truncateAndReopen cmd (its <> iters suc) tipBefore
+          Right _suc                 ->
+            truncateAndReopen cmd tipBefore
             -- Note that we might have created an iterator, make sure to close
             -- it as well
   where
-    truncateAndReopen cmd its tipBefore = tryImmDB $ do
+    ImmutableDbArgs { registry } = args
+
+    truncateAndReopen cmd tipBefore = tryImmDB $ do
       -- Close all open iterators as we will perform truncation
-      mapM_ iteratorClose (unWithEq <$> its)
+      closeOpenIterators varIters
       -- Close the database in case no errors occurred and it wasn't
       -- closed already. This is idempotent anyway.
-      closeDB db
+      getImmDB env >>= closeDB
       -- Release any handles that weren't closed because of a simulated error.
       releaseAll registry
-      reopen db ValidateAllChunks
-      deleteAfter internal tipBefore
+      reopen env ValidateAllChunks
+      getInternal env >>= flip deleteAfter tipBefore
       -- If the cmd deleted things, we must do it here to have a deterministic
       -- outcome and to stay in sync with the model. If no error was thrown,
       -- these things will have been deleted. If an error was thrown, they
       -- might not have been deleted or only part of them.
       case cmd of
-        DeleteAfter tip -> deleteAfter internal tip
+        DeleteAfter tip -> getInternal env >>= flip deleteAfter tip
         _               -> return ()
-      Tip <$> getTip db
-
-semanticsCorruption :: MonadCatch m
-                    => HasFS m h
-                    -> ImmutableDB    Hash m
-                    -> ImmDB.Internal Hash m
-                    -> Corruption
-                    -> m (Success (TestIterator m))
-semanticsCorruption hasFS db _internal (MkCorruption corrs) = do
-    closeDB db
-    forM_ corrs $ \(corr, file) -> corruptFile hasFS corr file
-    reopen db ValidateAllChunks
-    Tip <$> getTip db
+      Tip <$> (getImmDB env >>= getTip)
 
 -- | The state machine proper
-sm :: ImmutableDBEnv h
+sm :: Eq h
+   => ImmutableDBEnv h
    -> DBModel Hash
    -> StateMachine (Model IO) (At CmdErr IO) IO (At Resp IO)
 sm env dbm = StateMachine
@@ -866,28 +895,6 @@ sm env dbm = StateMachine
   , invariant     = Nothing
   , cleanup       = noCleanup
   }
-
-{-------------------------------------------------------------------------------
-  Validation
--------------------------------------------------------------------------------}
-
-validate :: forall m. IOLike m
-         => Model m Concrete -> ImmutableDB Hash m
-         -> m Property
-validate Model {..} realDB = do
-    dbContents <- getDBContents realDB
-    -- This message is clearer than the one produced by (===)
-    let msg = "Mismatch between database (" <> show dbContents <>
-              ") and model (" <> show modelContents <> ")"
-    return $ counterexample msg (dbContents == modelContents)
-  where
-    modelContents = dbmBlockList dbModel
-
-    getDBContents db = withRegistry $ \registry ->
-      stream db registry GetRawBlock Nothing Nothing >>= \case
-        -- This should never happen
-        Left e   -> error (show e)
-        Right it -> iteratorToList it
 
 {-------------------------------------------------------------------------------
   Labelling
@@ -918,7 +925,7 @@ data Tag
 
   | TagCorruption
 
-  | TagReopenInThePast
+  | TagMigrate
 
   | TagErrorDuringAppendBlock
 
@@ -933,8 +940,6 @@ data Tag
   | TagErrorDuringStream
 
   | TagErrorDuringIteratorNext
-
-  | TagErrorDuringIteratorPeek
 
   | TagErrorDuringIteratorClose
 
@@ -1002,7 +1007,7 @@ tag = QSM.classify
     , tagIteratorStreamedN Map.empty
     , tagIteratorWithoutBounds
     , tagCorruption
-    , tagReopenInThePast
+    , tagMigrate
     , tagErrorDuring TagErrorDuringAppendBlock $ \case
       { At (AppendBlock {}) -> True; _ -> False }
     , tagErrorDuring TagErrorDuringAppendEBB $ \case
@@ -1015,8 +1020,6 @@ tag = QSM.classify
       { At (Stream {}) -> True ; _ -> False }
     , tagErrorDuring TagErrorDuringIteratorNext $ \case
       { At (IteratorNext {}) -> True; _ -> False }
-    , tagErrorDuring TagErrorDuringIteratorPeek $ \case
-      { At (IteratorPeek {}) -> True; _ -> False }
     , tagErrorDuring TagErrorDuringIteratorClose $ \case
        { At (IteratorClose {}) -> True; _ -> False }
     ]
@@ -1102,11 +1105,11 @@ tag = QSM.classify
       , predFinish = Nothing
       }
 
-    tagReopenInThePast :: EventPred m
-    tagReopenInThePast = Predicate
+    tagMigrate :: EventPred m
+    tagMigrate = Predicate
       { predApply = \ev -> case eventCmdNoErr ev of
-          At (ReopenInThePast {}) -> Left  TagReopenInThePast
-          _                       -> Right tagReopenInThePast
+          At (Migrate {}) -> Left  TagMigrate
+          _               -> Right tagMigrate
       , predFinish = Nothing
       }
 
@@ -1186,7 +1189,7 @@ showLabelledExamples' :: Maybe Int
 showLabelledExamples' mReplay numTests focus chunkInfo =
     QSM.showLabelledExamples' smUnused mReplay numTests tag focus
   where
-    smUnused = sm unusedEnv $ initDBModel chunkInfo
+    smUnused = sm (unusedEnv @()) $ initDBModel chunkInfo
 
 showLabelledExamples :: ChunkInfo -> IO ()
 showLabelledExamples = showLabelledExamples' Nothing 1000 (const True)
@@ -1199,7 +1202,7 @@ prop_sequential cacheConfig (SmallChunkInfo chunkInfo) =
         $ tabulate "Tags" (map show $ tag (execCmds smUnused cmds))
         $ prop
   where
-    smUnused = sm unusedEnv $ initDBModel chunkInfo
+    smUnused = sm (unusedEnv @()) $ initDBModel chunkInfo
 
 test :: Index.CacheConfig
      -> ChunkInfo
@@ -1209,50 +1212,55 @@ test cacheConfig chunkInfo cmds = do
     fsVar              <- uncheckedNewTVarM Mock.empty
     varErrors          <- uncheckedNewTVarM mempty
     varNextId          <- uncheckedNewTVarM 0
-    varCurSlot         <- uncheckedNewTVarM maxBound
+    varIters           <- uncheckedNewTVarM []
     (tracer, getTrace) <- recordingTracerIORef
 
     let hasFS  = mkSimErrorHasFS fsVar varErrors
         parser = chunkFileParser hasFS (const <$> decode) isEBB
           getBinaryInfo testBlockIsValid
-        btime  = settableBlockchainTime varCurSlot
-
     withRegistry $ \registry -> do
-      bracket
-        (openDBInternal registry hasFS chunkInfo
-           testHashInfo ValidateMostRecentChunk parser tracer cacheConfig btime)
-        (closeDB . fst) $ \(db, internal) -> do
+      let args = ImmutableDbArgs
+            { registry
+            , hasFS
+            , chunkInfo
+            , hashInfo = testHashInfo
+            , tracer
+            , cacheConfig
+            , valPol   = ValidateMostRecentChunk
+            , parser
+            }
 
-        let env = ImmutableDBEnv
-              { varErrors, varNextId, varCurSlot, registry, hasFS, db, internal }
-            sm' = sm env (initDBModel chunkInfo)
+      (hist, model, res, trace) <- bracket
+        (open args >>= newMVar)
+        -- Note: we might be closing a different ImmutableDB than the one we
+        -- opened, as we can reopen it the ImmutableDB, swapping the
+        -- ImmutableDB in the MVar.
+        (\varDB -> readMVar varDB >>= closeDB . db)
+        $ \varDB -> do
+          let env = ImmutableDBEnv
+                { varErrors
+                , varNextId
+                , varIters
+                , varDB
+                , args
+                }
+              sm' = sm env (initDBModel chunkInfo)
 
-        (hist, model, res) <- QSM.runCommands' sm' cmds
+          (hist, model, res) <- QSM.runCommands' sm' cmds
 
-        trace <- getTrace
-        fs    <- atomically $ readTVar fsVar
+          trace <- getTrace
+          return (hist, model, res, trace)
 
-        let prop =
-              counterexample ("Trace: " <> unlines (map show trace)) $
-              counterexample ("FS: " <> Mock.pretty fs)              $
-              res === Ok .&&. openHandlesProp fs model
+      fs <- atomically $ readTVar fsVar
 
-        case res of
-          Ok -> do
-            closeDB db
-            reopen db ValidateAllChunks
-            validation <- validate model db
-            dbTip <- getTip db
+      let modelTip = dbmTip $ dbModel model
+          prop =
+            counterexample ("Trace: " <> unlines (map show trace)) $
+            counterexample ("FS: " <> Mock.pretty fs)              $
+            counterexample ("modelTip: " <> show modelTip)         $
+            res === Ok .&&. openHandlesProp fs model
 
-            let modelTip = dbmTip $ dbModel model
-                prop' =
-                  counterexample ("dbTip:    " <> show dbTip)    $
-                  counterexample ("modelTip: " <> show modelTip) $
-                  prop .&&. dbTip === modelTip .&&. validation
-            return (hist, prop')
-
-          -- If something went wrong, don't try to reopen the database
-          _ -> return (hist, prop)
+      return (hist, prop)
   where
     isEBB = testHeaderEpochNoIfEBB chunkInfo . getHeader
     getBinaryInfo = void . testBlockToBinaryInfo

@@ -23,8 +23,7 @@ import           System.IO.Error
 #endif
 import qualified Network.Socket as Socket
 #if defined(mingw32_HOST_OS)
-import qualified Data.ByteString as BS
-import qualified System.Win32.Async as Win32.Async
+import qualified System.Win32.Async.Socket.ByteString.Lazy as Win32.Async (sendAll)
 #else
 import qualified Network.Socket.ByteString.Lazy as Socket (sendAll)
 #endif
@@ -34,6 +33,7 @@ import           Control.Monad.Class.MonadAsync
 import           Control.Monad.Class.MonadFork hiding (ThreadId)
 import           Control.Monad.Class.MonadSTM.Strict
 import           Control.Monad.Class.MonadThrow
+import           Control.Monad.Class.MonadTimer (threadDelay)
 import           Control.Concurrent (ThreadId)
 import           Control.Exception (IOException)
 import           Control.Tracer
@@ -54,8 +54,12 @@ import           Ouroboros.Network.IOManager
 import           Ouroboros.Network.Mux
 import qualified Network.Mux as Mx (MuxError(..), MuxErrorType(..), muxStart)
 import qualified Network.Mux.Bearer.Socket as Mx (socketAsMuxBearer)
+import           Network.Mux.Types ( MiniProtocolMode (..) , MuxSDU (..), MuxSDUHeader (..)
+                                   , RemoteClockModel (..), write)
+import           Network.Mux.Timeout
 
 import           Ouroboros.Network.Protocol.Handshake.Type
+import           Ouroboros.Network.Protocol.Handshake.Unversioned
 import           Ouroboros.Network.Protocol.Handshake.Version
 
 import           Test.QuickCheck
@@ -89,7 +93,9 @@ tests =
   , testProperty "socket send receive Unix"              prop_socket_send_recv_unix
 #endif
   , after AllFinish LAST_IP_TEST $
-    testProperty "socket close during receive"           prop_socket_recv_close
+    testProperty "socket error during receive"           (withMaxSuccess 10 prop_socket_recv_error)
+  , after AllFinish LAST_IP_TEST $
+    testProperty "socket error during send"              (withMaxSuccess 10 prop_socket_send_error)
   , after AllFinish "socket close during receive" $
     testProperty "socket client connection failure"      prop_socket_client_connect_error
   ]
@@ -230,7 +236,9 @@ prop_socket_send_recv initiatorAddr responderAddr f xs =
       withServerNode
         snocket
         networkTracers
+        (AcceptedConnectionsLimit maxBound maxBound 0)
         responderAddr
+        unversionedHandshakeCodec
         cborTermVersionDataCodec
         (\(DictVersion _) -> acceptableVersion)
         (unversionedProtocol (\_peerid -> SomeResponderApplication responderApp))
@@ -238,6 +246,7 @@ prop_socket_send_recv initiatorAddr responderAddr f xs =
         $ \_ _ -> do
           connectToNode
             snocket
+            unversionedHandshakeCodec
             cborTermVersionDataCodec
             (NetworkConnectTracers activeMuxTracer nullTracer nullTracer)
             (unversionedProtocol (\_peerid -> initiatorApp))
@@ -249,9 +258,11 @@ prop_socket_send_recv initiatorAddr responderAddr f xs =
 
   where
     networkTracers = NetworkServerTracers {
-        nstMuxTracer        = activeMuxTracer,
-        nstHandshakeTracer  = nullTracer,
-        nstConnectionTracer = showTracing stdoutTracer
+        nstMuxTracer          = activeMuxTracer,
+        nstHandshakeTracer    = nullTracer,
+        nstConnectionTracer   = nullTracer,
+        -- nstErrorPolicyTracer  = showTracing stdoutTracer,
+        nstAcceptPolicyTracer = nullTracer
       }
 
 
@@ -262,13 +273,18 @@ prop_socket_send_recv initiatorAddr responderAddr f xs =
             cnt <- readTVar cntVar
             unless (cnt == 0) retry
 
+data RecvErrorType = RecvSocketClosed | RecvSDUTimeout deriving (Eq, Show)
+
+instance Arbitrary RecvErrorType where
+    arbitrary = oneof [pure RecvSocketClosed, pure RecvSDUTimeout]
+
 -- |
--- Verify that we raise the correct exception in case a socket closes during
+-- Verify that we raise the correct exception in case a socket closes or a timeout during
 -- a read.
-prop_socket_recv_close :: (Int -> Int -> (Int, Int))
-                       -> [Int]
+prop_socket_recv_error :: (Int -> Int -> (Int, Int))
+                       -> RecvErrorType
                        -> Property
-prop_socket_recv_close f _ =
+prop_socket_recv_error f rerr =
     ioProperty $
     withIOManager $ \iomgr -> do
 
@@ -290,7 +306,7 @@ prop_socket_recv_close f _ =
             atomically $ putTMVar sv r
 
     let snocket :: SocketSnocket
-        snocket = rawSocketSnocket iomgr
+        snocket = socketSnocket iomgr
 
     bracket
       (open snocket (SocketFamily Socket.AF_INET))
@@ -309,7 +325,9 @@ prop_socket_recv_close f _ =
                 (runAccept $ accept snocket sd)
                 (\(AcceptOk sd' _, _) -> Socket.close sd')
                 $ \(AcceptOk sd' _, _) -> do
-                  let bearer = Mx.socketAsMuxBearer nullTracer sd'
+                  let timeout = if rerr == RecvSDUTimeout then 0.10
+                                                          else (-1) -- No timeout
+                      bearer = Mx.socketAsMuxBearer timeout nullTracer sd'
                   Mx.muxStart nullTracer (toApplication app) bearer
           )
           $ \muxAsync -> do
@@ -319,20 +337,117 @@ prop_socket_recv_close f _ =
           _ <- connect snocket sd' (Socket.addrAddress muxAddress)
 
 #if defined(mingw32_HOST_OS)
-          Win32.Async.sendAll sd' $ BS.singleton 0xa
+          Win32.Async.sendAll sd' $ BL.singleton 0xa
 #else
           Socket.sendAll sd' $ BL.singleton 0xa
 #endif
-          Socket.close sd'
+
+          if rerr == RecvSocketClosed then Socket.close sd'
+                                      else threadDelay 0.2
 
           res <- waitCatch muxAsync
-          case res of
+          result <- case res of
               Left e  ->
                   case fromException e of
-                        Just me -> return $ Mx.errorType me === Mx.MuxBearerClosed
+                        Just me -> return $
+                            case Mx.errorType me of
+                                 Mx.MuxBearerClosed -> rerr ===RecvSocketClosed
+                                 MuxSDUReadTimeout  -> rerr === RecvSDUTimeout
+                                 _                  -> property False
                         Nothing -> return $ counterexample (show e) False
-              Right _ -> return $ property $ False
+              Right _ -> return $ property False
 
+          when (rerr /= RecvSocketClosed) $ Socket.close sd'
+          return result
+
+data SendErrorType = SendSocketClosed | SendSDUTimeout deriving (Eq, Show)
+
+instance Arbitrary SendErrorType where
+    arbitrary = oneof [pure SendSocketClosed, pure SendSDUTimeout]
+
+-- |
+-- Verify that we raise the correct exception in case a socket closes or a timeout during
+-- a write.
+prop_socket_send_error :: SendErrorType
+                       -> Property
+prop_socket_send_error rerr =
+    ioProperty $
+    withIOManager $ \iomgr -> do
+
+    let snocket :: SocketSnocket
+        snocket = socketSnocket iomgr
+
+    bracket
+      (open snocket (SocketFamily Socket.AF_INET))
+      (close snocket)
+      $ \sd -> do
+        -- bind the socket
+        muxAddress:_ <- Socket.getAddrInfo Nothing (Just "127.0.0.1") (Just "6061")
+        Socket.setSocketOption sd Socket.ReuseAddr 1
+        Socket.bind sd (Socket.addrAddress muxAddress)
+        Socket.listen sd 1
+
+        withAsync
+          (
+              -- accept a connection and start mux on it
+              bracket
+                (runAccept $ accept snocket sd)
+                (\(AcceptOk sd' _, __) -> Socket.close sd')
+                (\(AcceptOk sd' _, _) ->
+                  let sduTimeout = if rerr == SendSDUTimeout then 0.10
+                                                             else (-1) -- No timeout
+                      bearer = Mx.socketAsMuxBearer sduTimeout nullTracer sd'
+                      blob = BL.pack $ replicate 0xffff 0xa5 in
+                  withTimeoutSerial $ \timeout ->
+                    -- send maximum mux sdus until we've filled the window.
+                    replicateM 100 $ do
+                      void $ write bearer timeout (wrap blob ModeResponder (MiniProtocolNum 0))
+                )
+
+          )
+          $ \muxAsync -> do
+
+
+          sd' <- openToConnect snocket (Socket.addrAddress muxAddress)
+          -- connect to muxAddress
+          _ <- connect snocket sd' (Socket.addrAddress muxAddress)
+
+#if defined(mingw32_HOST_OS)
+          Win32.Async.sendAll sd' $ BL.singleton 0xa
+#else
+          Socket.sendAll sd' $ BL.singleton 0xa
+#endif
+
+          if rerr ==SendSocketClosed then Socket.close sd'
+                                     else threadDelay 0.2
+
+          res <- waitCatch muxAsync
+          result <- case res of
+              Left e  ->
+                  case fromException e of
+                        Just me -> return $
+                            case Mx.errorType me of
+                                 Mx.MuxIOException _ -> rerr === SendSocketClosed
+                                 MuxSDUWriteTimeout  -> rerr === SendSDUTimeout
+                                 _                   -> property False
+                        Nothing -> return $ counterexample (show e) False
+              Right _ -> return $ property False
+
+          when (rerr /= SendSocketClosed) $ Socket.close sd'
+          return result
+  where
+      -- wrap a 'ByteString' as 'MuxSDU'
+      wrap :: BL.ByteString -> MiniProtocolMode -> MiniProtocolNum -> MuxSDU
+      wrap blob mode protocolNum = MuxSDU {
+            -- it will be filled when the 'MuxSDU' is send by the 'bearer'
+            msHeader = MuxSDUHeader {
+                mhTimestamp = RemoteClockModel 0,
+                mhNum       = protocolNum,
+                mhMode      = mode,
+                mhLength    = fromIntegral $ BL.length blob
+              },
+            msBlob = blob
+          }
 
 prop_socket_client_connect_error :: (Int -> Int -> (Int, Int))
                                  -> [Int]
@@ -364,6 +479,7 @@ prop_socket_client_connect_error _ xs =
     (res :: Either IOException Bool)
       <- try $ False <$ connectToNode
         (socketSnocket iomgr)
+        unversionedHandshakeCodec
         cborTermVersionDataCodec
         nullNetworkConnectTracers
         (unversionedProtocol (\_peerid -> app))

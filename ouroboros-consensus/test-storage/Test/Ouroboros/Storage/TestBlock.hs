@@ -1,3 +1,4 @@
+{-# LANGUAGE DataKinds                  #-}
 {-# LANGUAGE DeriveAnyClass             #-}
 {-# LANGUAGE DeriveGeneric              #-}
 {-# LANGUAGE DerivingStrategies         #-}
@@ -41,8 +42,9 @@ module Test.Ouroboros.Storage.TestBlock (
   , testBlockToLazyByteString
     -- * Ledger
   , TestBlockError(..)
-  , LedgerConfig(..)
   , testInitExtLedger
+  , TestBlockOtherHeaderEnvelopeError(..)
+  , mkTestConfig
     -- * Corruptions
   , Corruptions
   , FileCorruption(..)
@@ -56,7 +58,8 @@ import qualified Codec.CBOR.Encoding as CBOR
 import qualified Codec.CBOR.Read as CBOR
 import qualified Codec.CBOR.Write as CBOR
 import           Codec.Serialise (Serialise (decode, encode), serialise)
-import           Control.Monad (forM)
+import           Control.Arrow ((&&&))
+import           Control.Monad (forM, when)
 import           Control.Monad.Except (throwError)
 import           Data.Binary (Binary (get, put))
 import           Data.ByteString.Builder (Builder)
@@ -67,6 +70,7 @@ import           Data.Hashable
 import           Data.Int (Int64)
 import           Data.List.NonEmpty (NonEmpty)
 import qualified Data.List.NonEmpty as NE
+import qualified Data.Map as Map
 import           Data.Maybe (maybeToList)
 import           Data.Word
 import           GHC.Generics (Generic)
@@ -86,13 +90,19 @@ import           Ouroboros.Network.Point (WithOrigin (..))
 
 import           Ouroboros.Consensus.Block
 import           Ouroboros.Consensus.BlockchainTime
+import           Ouroboros.Consensus.Config
+import           Ouroboros.Consensus.Forecast
+import qualified Ouroboros.Consensus.HardFork.History as HardFork
 import           Ouroboros.Consensus.HeaderValidation
 import           Ouroboros.Consensus.Ledger.Abstract
 import           Ouroboros.Consensus.Ledger.Extended
 import           Ouroboros.Consensus.Ledger.SupportsProtocol
 import           Ouroboros.Consensus.Node.LedgerDerivedInfo
 import           Ouroboros.Consensus.Node.ProtocolInfo
+import           Ouroboros.Consensus.NodeId
+import           Ouroboros.Consensus.Protocol.Abstract
 import           Ouroboros.Consensus.Protocol.BFT
+import           Ouroboros.Consensus.Protocol.ModChainSel
 import           Ouroboros.Consensus.Protocol.Signed
 import           Ouroboros.Consensus.Util.Condense
 import           Ouroboros.Consensus.Util.Orphans ()
@@ -192,7 +202,16 @@ instance HasHeader (Header TestBlock) where
   blockInvariant = const True
 
 data instance BlockConfig TestBlock = TestBlockConfig {
-      testBlockSlotLengths :: !SlotLengths
+      testBlockSlotLength  :: !SlotLength
+
+      -- | Era parameters
+      --
+      -- TODO: This should obsolete 'testBlockSlotLengths' (#1637)
+    , testBlockEraParams    :: !HardFork.EraParams
+
+      -- | Whether the test block can be EBBs or not. This can vary per test
+      -- case. It will be used by 'validateEnvelope' to forbid EBBs 'False'.
+    , testBlockEBBsAllowed  :: !Bool
 
       -- | Number of core nodes
       --
@@ -329,7 +348,7 @@ firstBlock canContainEBB slotNo testBody = mkBlock canContainEBB
     testBody
     GenesisHash
     slotNo
-    1
+    0
     IsNotEBB
 
 mkNextBlock :: (SlotNo -> Bool)
@@ -366,10 +385,41 @@ mkNextEBB canContainEBB prev slotNo testBody = mkBlock canContainEBB
 
 
 {-------------------------------------------------------------------------------
-  Test infrastructure: ledger state
+  Test infrastructure: protocol
 -------------------------------------------------------------------------------}
 
-type instance BlockProtocol TestBlock = Bft BftMockCrypto
+data BftWithEBBs
+
+ebbAwareCompareCandidates :: (BlockNo, IsEBB) -> (BlockNo, IsEBB) -> Ordering
+ebbAwareCompareCandidates (lBlockNo, lIsEBB) (rBlockNo, rIsEBB) =
+    -- Prefer the highest block number, as it is a proxy for chain length
+    case lBlockNo `compare` rBlockNo of
+      LT -> LT
+      GT -> GT
+      -- If the block numbers are the same, check if one of them is an EBB.
+      -- An EBB has the same block number as the block before it, so the
+      -- chain ending with an EBB is actually longer than the one ending
+      -- with a regular block.
+      EQ -> score lIsEBB `compare` score rIsEBB
+   where
+     score :: IsEBB -> Int
+     score IsEBB    = 1
+     score IsNotEBB = 0
+
+instance ChainSelection (Bft BftMockCrypto) BftWithEBBs where
+  type SelectView' (Bft BftMockCrypto) = (BlockNo, IsEBB)
+
+  compareCandidates' _ _ = ebbAwareCompareCandidates
+
+  preferCandidate' _ _ ours cand =
+    ebbAwareCompareCandidates ours cand == LT
+
+type instance BlockProtocol TestBlock =
+  ModChainSel (Bft BftMockCrypto) BftWithEBBs
+
+{-------------------------------------------------------------------------------
+  Test infrastructure: ledger state
+-------------------------------------------------------------------------------}
 
 type instance Signed (Header TestBlock) = ()
 instance SignedHeader (Header TestBlock) where
@@ -391,6 +441,8 @@ instance BlockSupportsProtocol TestBlock where
       signKey :: SlotNo -> SignKeyDSIGN MockDSIGN
       signKey (SlotNo n) = SignKeyMockDSIGN $ fromIntegral (n `mod` numCore)
 
+  selectView _ hdr = (blockNo hdr, thIsEBB (unTestHeader hdr))
+
 data TestBlockError =
     -- | The hashes don't line up
     InvalidHash
@@ -401,25 +453,14 @@ data TestBlockError =
   | InvalidBlock
   deriving (Eq, Show, Generic, NoUnexpectedThunks)
 
-instance UpdateLedger TestBlock where
-  data LedgerState TestBlock =
-      TestLedger {
-          -- The ledger state simply consists of the last applied block
-          lastAppliedPoint :: !(Point TestBlock)
-        , lastAppliedHash  :: !(ChainHash TestBlock)
-        }
-    deriving stock    (Show, Eq, Generic)
-    deriving anyclass (Serialise, NoUnexpectedThunks)
-
-  data LedgerConfig TestBlock = LedgerConfig
-    deriving stock    (Generic)
-    deriving anyclass (NoUnexpectedThunks)
-
-  type LedgerError TestBlock = TestBlockError
+instance IsLedger (LedgerState TestBlock) where
+  type LedgerCfg (LedgerState TestBlock) = ()
+  type LedgerErr (LedgerState TestBlock) = TestBlockError
 
   applyChainTick _ = TickedLedgerState
 
-  applyLedgerBlock _ tb@TestBlock{..} TestLedger{..}
+instance ApplyBlock (LedgerState TestBlock) TestBlock where
+  applyLedgerBlock _ tb@TestBlock{..} (TickedLedgerState _ TestLedger{..})
     | blockPrevHash tb /= lastAppliedHash
     = throwError $ InvalidHash lastAppliedHash (blockPrevHash tb)
     | not $ tbIsValid testBody
@@ -432,20 +473,98 @@ instance UpdateLedger TestBlock where
 
   ledgerTipPoint = lastAppliedPoint
 
+instance UpdateLedger TestBlock where
+  data LedgerState TestBlock =
+      TestLedger {
+          -- The ledger state simply consists of the last applied block
+          lastAppliedPoint :: !(Point TestBlock)
+        , lastAppliedHash  :: !(ChainHash TestBlock)
+        }
+    deriving stock    (Show, Eq, Generic)
+    deriving anyclass (Serialise, NoUnexpectedThunks)
+
 instance HasAnnTip TestBlock where
-  -- Use defaults
+  type TipInfo TestBlock = IsEBB
+  getTipInfo = thIsEBB . unTestHeader
+
+data TestBlockOtherHeaderEnvelopeError =
+    UnexpectedEBBInSlot !SlotNo
+  deriving (Eq, Show, Generic, NoUnexpectedThunks)
 
 instance ValidateEnvelope TestBlock where
-  -- Use defaults
+  type OtherHeaderEnvelopeError TestBlock = TestBlockOtherHeaderEnvelopeError
+
+  -- Not used in the storage tests, only the default implementation of
+  -- 'validateEnvelope' and block production use it.
+  firstBlockNo _ = error "unused"
+
+  validateEnvelope cfg _ledgerView oldTip hdr = do
+      when (actualBlockNo /= expectedBlockNo) $
+        throwError $ UnexpectedBlockNo expectedBlockNo actualBlockNo
+      when (actualSlotNo < expectedSlotNo) $
+        throwError $ UnexpectedSlotNo expectedSlotNo actualSlotNo
+      when (actualPrevHash /= expectedPrevHash) $
+        throwError $ UnexpectedPrevHash expectedPrevHash actualPrevHash
+      when (fromIsEBB newIsEBB && not (canBeEBB actualSlotNo)) $
+        throwError $ OtherHeaderEnvelopeError $ UnexpectedEBBInSlot actualSlotNo
+    where
+      newIsEBB :: IsEBB
+      newIsEBB = thIsEBB (unTestHeader hdr)
+
+      actualSlotNo   :: SlotNo
+      actualBlockNo  :: BlockNo
+      actualPrevHash :: ChainHash TestBlock
+
+      actualSlotNo   =            blockSlot     hdr
+      actualBlockNo  =            blockNo       hdr
+      actualPrevHash = castHash $ blockPrevHash hdr
+
+      expectedSlotNo   :: SlotNo           -- Lower bound only
+      expectedBlockNo  :: BlockNo
+      expectedPrevHash :: ChainHash TestBlock
+
+      (expectedSlotNo, expectedBlockNo, expectedPrevHash) = (
+            nextSlotNo  ((annTipInfo &&& annTipSlotNo)  <$> oldTip) newIsEBB
+          , nextBlockNo ((annTipInfo &&& annTipBlockNo) <$> oldTip) newIsEBB
+          , withOrigin GenesisHash (BlockHash . annTipHash) oldTip
+          )
+
+      -- EBB shares its slot number with its successor
+      nextSlotNo :: WithOrigin (IsEBB, SlotNo) -> IsEBB -> SlotNo
+      nextSlotNo Origin          _        = SlotNo 0
+      nextSlotNo (At (IsEBB, s)) IsNotEBB = s
+      nextSlotNo (At (_    , s)) _        = succ s
+
+      -- EBB shares its block number with its predecessor. The chain always
+      -- starts with block number 0.
+      nextBlockNo :: WithOrigin (IsEBB, BlockNo) -> IsEBB -> BlockNo
+      nextBlockNo Origin             _     = BlockNo 0
+      nextBlockNo (At (IsNotEBB, b)) IsEBB = b
+      nextBlockNo (At (_       , b)) _     = succ b
+
+      canBeEBB :: SlotNo -> Bool
+      canBeEBB (SlotNo s) = testBlockEBBsAllowed (configBlock cfg)
+                         && s `mod` epochSlots == 0
+
+      epochSlots :: Word64
+      epochSlots =
+          unEpochSize
+        . HardFork.eraEpochSize
+        . testBlockEraParams
+        . configBlock
+        $ cfg
 
 instance LedgerSupportsProtocol TestBlock where
-  protocolLedgerView _ _ =
-      ()
-  anachronisticProtocolLedgerView_ _ _ _ =
-      return ()
+  protocolLedgerView _ _ = ()
+  ledgerViewForecastAt_ _ _ = Just . trivialForecast
+
+instance HasHardForkHistory TestBlock where
+  type HardForkIndices TestBlock = '[()]
+  hardForkShape           = HardFork.singletonShape . testBlockEraParams
+  hardForkTransitions _ _ = HardFork.transitionsUnknown
 
 instance LedgerDerivedInfo TestBlock where
-  knownSlotLengths = testBlockSlotLengths
+  knownSlotLengths = singletonSlotLengths . testBlockSlotLength
 
 testInitLedger :: LedgerState TestBlock
 testInitLedger = TestLedger GenesisPoint GenesisHash
@@ -455,6 +574,42 @@ testInitExtLedger = ExtLedgerState {
       ledgerState = testInitLedger
     , headerState = genesisHeaderState ()
     }
+
+-- Only for a single node
+mkTestConfig :: SecurityParam -> ChunkSize -> TopLevelConfig TestBlock
+mkTestConfig k ChunkSize { chunkCanContainEBB, numRegularBlocks } =
+    TopLevelConfig {
+        configConsensus = McsConsensusConfig BftConfig {
+            bftParams   = BftParams {
+                bftSecurityParam = k
+              , bftNumNodes      = numCoreNodes
+              }
+          , bftNodeId   = CoreId (CoreNodeId 0)
+          , bftSignKey  = SignKeyMockDSIGN 0
+          , bftVerKeys  = Map.singleton (CoreId (CoreNodeId 0)) (VerKeyMockDSIGN 0)
+          }
+      , configLedger = ()
+      , configBlock  = TestBlockConfig {
+            testBlockSlotLength   = slotLength
+          , testBlockEraParams    = eraParams
+          , testBlockEBBsAllowed  = chunkCanContainEBB
+          , testBlockNumCoreNodes = numCoreNodes
+          }
+      }
+  where
+    slotLength :: SlotLength
+    slotLength = slotLengthFromSec 20
+
+    numCoreNodes :: NumCoreNodes
+    numCoreNodes = NumCoreNodes 1
+
+    eraParams :: HardFork.EraParams
+    eraParams = HardFork.EraParams {
+        eraEpochSize  = EpochSize numRegularBlocks
+      , eraSlotLength = slotLength
+      , eraSafeZone   =
+          HardFork.SafeZone (maxRollbacks k * 2) HardFork.NoLowerBound
+      }
 
 {-------------------------------------------------------------------------------
   Corruption

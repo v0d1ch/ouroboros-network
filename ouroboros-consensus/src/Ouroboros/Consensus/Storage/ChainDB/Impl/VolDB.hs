@@ -38,11 +38,10 @@ module Ouroboros.Consensus.Storage.ChainDB.Impl.VolDB (
   , getBlockInfo
   , getIsMember
   , getPredecessor
-  , getSuccessors
+  , filterByPredecessor
   , getMaxSlotNo
   , putBlock
   , closeDB
-  , reopen
   , garbageCollect
     -- * Tracing
   , TraceEvent
@@ -138,7 +137,7 @@ type TraceEvent blk =
   Initialization
 -------------------------------------------------------------------------------}
 
-data VolDbArgs m blk = forall h. VolDbArgs {
+data VolDbArgs m blk = forall h. Eq h => VolDbArgs {
       volHasFS          :: HasFS m h
     , volCheckIntegrity :: blk -> Bool
     , volBlocksPerFile  :: BlocksPerFile
@@ -178,14 +177,11 @@ defaultArgs fp = VolDbArgs {
     , volValidation     = error "no default for volValidation"
     }
 
-openDB :: (IOLike m, HasHeader blk) => VolDbArgs m blk -> m (VolDB m blk)
+openDB :: forall m blk. (IOLike m, HasHeader blk)
+       => VolDbArgs m blk -> m (VolDB m blk)
 openDB args@VolDbArgs{..} = do
     createDirectoryIfMissing volHasFS True (mkFsPath [])
-    volDB <- VolDB.openDB
-               volHasFS
-               (blockFileParser args)
-               volTracer
-               volBlocksPerFile
+    volDB <- VolDB.openDB volatileDbArgs
     return VolDB
       { volDB     = volDB
       , decHeader = volDecodeHeader
@@ -193,6 +189,13 @@ openDB args@VolDbArgs{..} = do
       , encBlock  = volEncodeBlock
       , addHdrEnv = volAddHdrEnv
       , isEBB     = volIsEBB
+      }
+  where
+    volatileDbArgs = VolDB.VolatileDbArgs
+      { hasFS            = volHasFS
+      , maxBlocksPerFile = volBlocksPerFile
+      , tracer           = volTracer
+      , parser           = blockFileParser args
       }
 
 -- | For testing purposes
@@ -222,9 +225,10 @@ getPredecessor :: Functor (STM m)
                -> STM m (HeaderHash blk -> Maybe (WithOrigin (HeaderHash blk)))
 getPredecessor = fmap (fmap VolDB.bpreBid .) . getBlockInfo
 
-getSuccessors :: VolDB m blk
-              -> STM m (WithOrigin (HeaderHash blk) -> Set (HeaderHash blk))
-getSuccessors db = withSTM db VolDB.getSuccessors
+filterByPredecessor :: VolDB m blk
+                    -> STM m (WithOrigin (HeaderHash blk)
+                    -> Set (HeaderHash blk))
+filterByPredecessor db = withSTM db VolDB.filterByPredecessor
 
 getMaxSlotNo :: VolDB m blk
              -> STM m MaxSlotNo
@@ -238,9 +242,6 @@ putBlock db@VolDB{..} b = withDB db $ \vol ->
 
 closeDB :: (MonadCatch m, HasCallStack) => VolDB m blk -> m ()
 closeDB db = withDB db VolDB.closeDB
-
-reopen :: (MonadCatch m, HasCallStack) => VolDB m blk -> m ()
-reopen db = withDB db VolDB.reOpenDB
 
 garbageCollect :: MonadCatch m => VolDB m blk -> SlotNo -> m ()
 garbageCollect db slotNo = withDB db $ \vol ->
@@ -263,8 +264,9 @@ garbageCollect db slotNo = withDB db $ \vol ->
 -- the chain (fragment) ending with @B@ is also a potential candidate.
 candidates
   :: forall blk.
-     (WithOrigin (HeaderHash blk) -> Set (HeaderHash blk)) -- ^ @getSuccessors@
-  -> Point blk                                             -- ^ @B@
+     (WithOrigin (HeaderHash blk) -> Set (HeaderHash blk))
+     -- ^ @filterByPredecessor@
+  -> Point blk -- ^ @B@
   -> [NonEmpty (HeaderHash blk)]
      -- ^ Each element in the list is a list of hashes from which we can
      -- construct a fragment anchored at the point @B@.

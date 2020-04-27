@@ -24,6 +24,7 @@ module Ouroboros.Network.Socket (
     , ConnectionId' (..)
     , SomeVersionedApplication (..)
     , SomeResponderApplication (..)
+    , AcceptedConnectionsLimit (..)
     , RejectConnection (..)
     , withConnections
     , connection
@@ -42,6 +43,7 @@ module Ouroboros.Network.Socket (
     , NetworkServerTracers (..)
     , nullNetworkServerTracers
     , debuggingNetworkServerTracers
+    , AcceptConnectionsPolicyTrace (..)
 
     -- * Quick setup functions for demo'ing (and, at the moment, testing)
     , withServerNode
@@ -59,11 +61,10 @@ import           Control.Monad.Class.MonadSTM.Strict
 import           Control.Monad.Class.MonadTime
 import           Control.Monad.Class.MonadThrow
 import           Control.Exception (throwIO)
+import qualified Codec.CBOR.Read     as CBOR
 import qualified Codec.CBOR.Term     as CBOR
-import           Codec.Serialise (Serialise)
 import           Data.Typeable (Typeable)
 import qualified Data.ByteString.Lazy as BL
-import           Data.Int
 import           Data.Foldable (traverse_)
 import           Data.Void
 
@@ -74,9 +75,11 @@ import           Control.Tracer
 
 import qualified Network.Mux as Mx
 import Network.Mux.DeltaQ.TraceTransformer
+import           Network.Mux.Timeout (withTimeoutSerial)
 import qualified Network.Mux.Types as Mx
 import           Network.Mux.Types (MuxBearer)
 
+import           Ouroboros.Network.Codec hiding (encode, decode)
 import           Ouroboros.Network.Channel
 import           Ouroboros.Network.Driver.Limits
 import           Ouroboros.Network.Driver (TraceSendRecv)
@@ -85,9 +88,12 @@ import           Ouroboros.Network.ErrorPolicy
 import           Ouroboros.Network.Protocol.Handshake.Type
 import           Ouroboros.Network.Protocol.Handshake.Version
 import           Ouroboros.Network.Protocol.Handshake.Codec
-import           Ouroboros.Network.IOManager (AssociateWithIOCP)
+import           Ouroboros.Network.IOManager (IOManager)
 import           Ouroboros.Network.Snocket (Snocket)
 import qualified Ouroboros.Network.Snocket as Snocket
+import           Ouroboros.Network.Server.RateLimiting ( AcceptedConnectionsLimit (..)
+                                                       , AcceptConnectionsPolicyTrace (..)
+                                                       )
 
 import           Ouroboros.Network.ConnectionId
 import           Ouroboros.Network.Connections.Concurrent hiding (Accept, Reject)
@@ -143,6 +149,31 @@ handshakeProtocolNum :: MiniProtocolNum
 handshakeProtocolNum = MiniProtocolNum 0
 
 -- |
+-- Timeout for the complete handshake exchange.
+handshakeTimeout :: DiffTime
+handshakeTimeout = 10 -- 10 seconds
+
+-- | Wrapper around initiator and responder errors experienced by tryHandshake.
+data HandshakeException a =
+    HandshakeProtocolLimit ProtocolLimitFailure
+  | HandshakeProtocolError a
+  | HandshakeTimeout
+
+
+-- | Try to complete either initiator or responder side of the Handshake protocol
+-- within `handshakeTimeout` seconds.
+tryHandshake ::  IO (Either a r) -> IO (Either (HandshakeException a) r)
+tryHandshake doHandshake = do
+    mapp <- withTimeoutSerial $ \timeout -> timeout handshakeTimeout $ try doHandshake
+    case mapp of
+         Nothing -> return $ Left HandshakeTimeout
+         Just (Left (err :: ProtocolLimitFailure)) ->
+             return $ Left $ HandshakeProtocolLimit err
+         Just (Right (Left err)) ->
+             return $ Left $ HandshakeProtocolError err
+         Just (Right (Right r)) -> return $ Right r
+
+-- |
 -- Connect to a remote node.  It is using bracket to enclose the underlying
 -- socket acquisition.  This implies that when the continuation exits the
 -- underlying bearer will get closed.
@@ -159,12 +190,12 @@ connectToNode
   :: forall appType vNumber extra fd addr a b.
      ( Ord vNumber
      , Enum vNumber
-     , Serialise vNumber
      , Typeable vNumber
      , Show vNumber
      , Mx.HasInitiator appType ~ True
      )
   => Snocket IO fd addr
+  -> Codec (Handshake vNumber CBOR.Term) CBOR.DeserialiseFailure IO BL.ByteString
   -> VersionDataCodec extra CBOR.Term
   -> NetworkConnectTracers addr vNumber
   -> Versions vNumber extra
@@ -175,7 +206,7 @@ connectToNode
   -> addr
   -- ^ remote address
   -> IO ()
-connectToNode sn versionDataCodec tracers versions localAddr remoteAddr =
+connectToNode sn handshakeCodec versionDataCodec tracers versions localAddr remoteAddr =
     bracket
       (Snocket.openToConnect sn remoteAddr)
       (Snocket.close sn)
@@ -194,6 +225,7 @@ connectToNode sn versionDataCodec tracers versions localAddr remoteAddr =
               throwIO err
           runInitiator
             sn
+            handshakeCodec
             versionDataCodec
             tracers
             versions
@@ -206,12 +238,12 @@ connectToNodeSocket
   :: forall appType vNumber extra a b.
      ( Ord vNumber
      , Enum vNumber
-     , Serialise vNumber
      , Typeable vNumber
      , Show vNumber
      , Mx.HasInitiator appType ~ True
      )
-  => AssociateWithIOCP
+  => IOManager
+  -> Codec (Handshake vNumber CBOR.Term) CBOR.DeserialiseFailure IO BL.ByteString
   -> VersionDataCodec extra CBOR.Term
   -> NetworkConnectTracers Socket.SockAddr vNumber
   -> Versions vNumber extra
@@ -221,9 +253,10 @@ connectToNodeSocket
   -> Maybe Socket.SockAddr
   -> Socket.SockAddr
   -> IO ()
-connectToNodeSocket iocp versionDataCodec tracers versions localAddr remoteAddr =
+connectToNodeSocket ioManager handshakeCodec versionDataCodec tracers versions localAddr remoteAddr =
     connectToNode
-      (Snocket.socketSnocket iocp)
+      (Snocket.socketSnocket ioManager)
+      handshakeCodec
       versionDataCodec
       tracers
       versions
@@ -235,7 +268,7 @@ connectToNodeSocket iocp versionDataCodec tracers versions localAddr remoteAddr 
 --
 data SomeResponderApplication bytes m b where
      SomeResponderApplication
-       :: forall appType ptcl m bytes a b.
+       :: forall appType m bytes a b.
           Mx.HasResponder appType ~ True
        => (OuroborosApplication appType bytes m a b)
        -> SomeResponderApplication bytes m b
@@ -252,17 +285,28 @@ data NetworkServerTracers addr vNumber = NetworkServerTracers {
       -- ^ handshake protocol tracer; it is important for analysing version
       -- negotation mismatches.
 
-      nstConnectionTracer :: Tracer IO (WithConnectionId' addr (MaybeAddress addr) ConnectionTrace)
-    -- ^ trace 'ConnectionTrace' events which happen either in the life time of
-    -- a connection or in the accept loop.  In the former case we don't know the
-    -- remote address, that's why we use 'MaybeAddress'.
+      nstConnectionTracer :: Tracer IO (WithConnectionId' addr (MaybeAddress addr) ConnectionTrace),
+      -- ^ trace 'ConnectionTrace' events which happen either in the life time of
+      -- a connection or in the accept loop.  In the former case we don't know the
+      -- remote address, that's why we use 'MaybeAddress'.
+
+      -- nstErrorPolicyTracer :: Tracer IO (WithAddr addr ErrorPolicyTrace),
+      -- TODO enable error policy tracing
+      -- ^ error policy tracer; must not be 'nullTracer', otherwise all the
+      -- exceptions which are not matched by any error policy will be caught
+      -- and not logged or rethrown.
+
+      nstAcceptPolicyTracer :: Tracer IO AcceptConnectionsPolicyTrace
+      -- ^ tracing rate limiting of accepting connections.
     }
 
 nullNetworkServerTracers :: NetworkServerTracers addr vNumber
 nullNetworkServerTracers = NetworkServerTracers {
-      nstMuxTracer        = nullTracer,
-      nstHandshakeTracer  = nullTracer,
-      nstConnectionTracer = nullTracer
+      nstMuxTracer          = nullTracer,
+      nstHandshakeTracer    = nullTracer,
+      nstConnectionTracer   = nullTracer,
+      -- nstErrorPolicyTracer  = nullTracer,
+      nstAcceptPolicyTracer = nullTracer
     }
 
 -- | Domain-specific rejection type. Only incoming connections can be rejected.
@@ -276,9 +320,11 @@ data RejectConnection (p :: Provenance) where
 debuggingNetworkServerTracers :: (Show addr, Show vNumber)
                               =>  NetworkServerTracers addr vNumber
 debuggingNetworkServerTracers = NetworkServerTracers {
-      nstMuxTracer        = showTracing stdoutTracer,
-      nstHandshakeTracer  = showTracing stdoutTracer,
-      nstConnectionTracer = showTracing stdoutTracer
+      nstMuxTracer          = showTracing stdoutTracer,
+      nstHandshakeTracer    = showTracing stdoutTracer,
+      nstConnectionTracer   = showTracing stdoutTracer,
+      -- nstErrorPolicyTracer  = showTracing stdoutTracer,
+      nstAcceptPolicyTracer = showTracing stdoutTracer
     }
 
 data SomeVersionedApplication vNumber vDataT addr provenance where
@@ -342,19 +388,19 @@ withConnections
   :: forall vNumber reject request fd addr t.
      ( Ord vNumber
      , Enum vNumber
-     , Serialise vNumber
      , Typeable vNumber
      , Show vNumber
      , Ord addr
      )
   => Snocket IO fd addr
+  -> Codec (Handshake vNumber CBOR.Term) CBOR.DeserialiseFailure IO BL.ByteString
   -> (forall provenance. request provenance -> ConnectionData vNumber provenance addr)
   -> (Connections (ConnectionId addr) fd request
         (Connection.Reject reject)
         (Connection.Accept (ConnectionHandle IO))
         IO -> IO t)
   -> IO t
-withConnections sn mk = Connection.concurrent (connection sn mk)
+withConnections sn handshakeCodec mk = Connection.concurrent (connection sn handshakeCodec mk)
 
 -- | Handle any connection (remotely- or locally-initiated).
 -- After filling in the first 7 parameters, you get a function that can be
@@ -367,27 +413,27 @@ connection
   :: forall vNumber provenance reject request fd addr.
      ( Ord vNumber
      , Enum vNumber
-     , Serialise vNumber
      , Typeable vNumber
      , Show vNumber
      , Ord addr
      )
   => Snocket IO fd addr
+  -> Codec (Handshake vNumber CBOR.Term) CBOR.DeserialiseFailure IO BL.ByteString
   -> (forall provenance'. request provenance' -> ConnectionData vNumber provenance' addr)
   -> Initiated provenance
   -> ConnectionId addr
   -> fd
   -> request provenance
   -> IO (Connection.Decision IO provenance reject (ConnectionHandle IO))
-connection sn mk _ connid socket request = case mk request of
+connection sn handshakeCodec mk _ connid socket request = case mk request of
 
     -- TODO should take an error policy. We'll use it for exception handling,
     -- to figure out when to blow everything up.
     ConnectionDataLocal tracers errPolicies vCodec versions ->
-        outgoingConnection sn tracers vCodec versions errPolicies connid socket
+        outgoingConnection sn tracers handshakeCodec vCodec versions errPolicies connid socket
 
     ConnectionDataRemote tracers errPolicies vCodec accept versions ->
-        incomingConnection sn tracers vCodec accept versions errPolicies connid socket
+        incomingConnection sn tracers handshakeCodec vCodec accept versions errPolicies connid socket
 
 
 -- | What to do for outgoing (locally-initiated) connections.
@@ -396,12 +442,12 @@ outgoingConnection
      ( Mx.HasInitiator appType ~ True
      , Ord vNumber
      , Enum vNumber
-     , Serialise vNumber
      , Typeable vNumber
      , Show vNumber
      )
   => Snocket IO fd addr
   -> NetworkConnectTracers addr vNumber
+  -> Codec (Handshake vNumber CBOR.Term) CBOR.DeserialiseFailure IO BL.ByteString
   -> VersionDataCodec vDataT CBOR.Term
   -> Versions vNumber vDataT
               (ConnectionId addr -> OuroborosApplication appType BL.ByteString IO a b)
@@ -412,7 +458,7 @@ outgoingConnection
   -> ConnectionId addr
   -> fd -- ^ Socket to peer; could have been established by us or them.
   -> IO (Connection.Decision IO Local reject (ConnectionHandle IO))
-outgoingConnection sn tracers versionDataCodec versions errorPolicies connId sd =
+outgoingConnection sn tracers handshakeCodec versionDataCodec versions errorPolicies connId sd =
     -- Always accept and run initiator mode mux on the socket.
     pure $ Connection.Accept $ \_connThread -> do
         -- io-sim-classes STM interface thinks this is ambgiuous in the monad
@@ -422,7 +468,7 @@ outgoingConnection sn tracers versionDataCodec versions errorPolicies connId sd 
         let connectionHandle = ConnectionHandle
               { status = readTVar statusVar }
             action = mask $ \restore -> do
-              result <- try (restore (runInitiator sn versionDataCodec tracers versions connId sd))
+              result <- try (restore (runInitiator sn handshakeCodec versionDataCodec tracers versions connId sd))
               case result of
                 Left (exception :: SomeException) -> do
                   atomically (writeTVar statusVar (Finished (Just exception)))
@@ -448,11 +494,11 @@ runInitiator
      ( Mx.HasInitiator appType ~ True
      , Ord vNumber
      , Enum vNumber
-     , Serialise vNumber
      , Typeable vNumber
      , Show vNumber
      )
   => Snocket IO fd addr
+  -> Codec (Handshake vNumber CBOR.Term) CBOR.DeserialiseFailure IO BL.ByteString
   -> VersionDataCodec vDataT CBOR.Term
   -> NetworkConnectTracers addr vNumber
   -> Versions vNumber vDataT
@@ -461,33 +507,41 @@ runInitiator
   -> ConnectionId addr
   -> fd -- ^ Socket to peer; could have been established by us or them.
   -> IO ()
-runInitiator sn versionDataCodec NetworkConnectTracers {nctMuxTracer, nctHandshakeTracer } versions connectionId sd = do
+runInitiator sn handshakeCodec versionDataCodec NetworkConnectTracers {nctMuxTracer, nctHandshakeTracer } versions connectionId sd = do
   muxTracer <- initDeltaQTracer' $ Mx.WithMuxBearer connectionId `contramap` nctMuxTracer
   let bearer :: MuxBearer IO
       bearer = Snocket.toBearer sn muxTracer sd
   Mx.traceMuxBearerState muxTracer Mx.Connected
   traceWith muxTracer $ Mx.MuxTraceHandshakeStart
   ts_start <- getMonotonicTime
-  mapp <- try $ runPeerWithLimits
-            (contramap (Mx.WithMuxBearer connectionId) nctHandshakeTracer)
-            codecHandshake
-            byteLimitsHandshake
-            timeLimitsHandshake
-            (fromChannel (Mx.muxBearerAsChannel bearer handshakeProtocolNum Mx.ModeInitiator))
-            (handshakeClientPeer versionDataCodec versions)
+  mapp <- tryHandshake $
+            runPeerWithLimits
+              (contramap (Mx.WithMuxBearer connectionId) nctHandshakeTracer)
+              handshakeCodec
+              byteLimitsHandshake
+              timeLimitsHandshake
+              (fromChannel (Mx.muxBearerAsChannel bearer handshakeProtocolNum Mx.ModeInitiator))
+              (handshakeClientPeer versionDataCodec versions)
   ts_end <- getMonotonicTime
   case mapp of
-       Left (errDrv :: ProtocolLimitFailure) -> do 
-          traceWith muxTracer $ Mx.MuxTraceHandshakeClientError errDrv (diffTime ts_end ts_start)
-          throwIO errDrv
-       Right (Left err) -> do
-           traceWith muxTracer $ Mx.MuxTraceHandshakeClientError err (diffTime ts_end ts_start)
-           -- FIXME is it right to throw an exception here? Or would it be
-           -- better to return Connection.Reject
-           throwIO err
-       Right (Right app) -> do
-           traceWith muxTracer $ Mx.MuxTraceHandshakeClientEnd (diffTime ts_end ts_start)
-           Mx.muxStart muxTracer (toApplication (app connectionId)) bearer
+    -- FIXME is it right to throw an exception here? Or would it be
+    -- better to return Connection.Reject
+    Left HandshakeTimeout -> do
+      traceWith muxTracer $ Mx.MuxTraceHandshakeClientError ExceededTimeLimit
+        (diffTime ts_end ts_start)
+      throwIO ExceededTimeLimit
+
+    Left (HandshakeProtocolLimit err) -> do
+      traceWith muxTracer $ Mx.MuxTraceHandshakeClientError err (diffTime ts_end ts_start)
+      throwIO err
+
+    Left (HandshakeProtocolError err) -> do
+      traceWith muxTracer $ Mx.MuxTraceHandshakeClientError err (diffTime ts_end ts_start)
+      throwIO err
+
+    Right app -> do
+      traceWith muxTracer $ Mx.MuxTraceHandshakeClientEnd (diffTime ts_end ts_start)
+      Mx.muxStart muxTracer (toApplication (app connectionId)) bearer
 
 -- | What to do on an incoming connection: run the given versions, which is
 -- known to have a responder side.
@@ -495,13 +549,13 @@ incomingConnection
     :: forall vNumber vDataT reject fd addr b.
        ( Ord vNumber
        , Enum vNumber
-       , Serialise vNumber
        , Typeable vNumber
        , Show vNumber
        , Ord addr
        )
     => Snocket IO fd addr
     -> NetworkServerTracers addr vNumber
+    -> Codec (Handshake vNumber CBOR.Term) CBOR.DeserialiseFailure IO BL.ByteString
     -> VersionDataCodec vDataT CBOR.Term
     -> (forall vData . vDataT vData -> vData -> vData -> Accept)
     -> Versions vNumber vDataT
@@ -517,6 +571,7 @@ incomingConnection sn
                                         , nstHandshakeTracer
                                         , nstConnectionTracer
                                         }
+                   handshakeCodec
                    versionDataCodec
                    acceptVersion
                    versions
@@ -558,26 +613,33 @@ incomingConnection sn
               bearer = Snocket.toBearer sn muxTracer' sd
           Mx.traceMuxBearerState muxTracer' Mx.Connected
           traceWith muxTracer' $ Mx.MuxTraceHandshakeStart
-          ts_start <- getMonotonicTime
-          mapp <- try $ runPeerWithLimits
-                  (contramap (Mx.WithMuxBearer connid) nstHandshakeTracer)
-                  codecHandshake
-                  byteLimitsHandshake
-                  timeLimitsHandshake
-                  (fromChannel (Mx.muxBearerAsChannel bearer handshakeProtocolNum Mx.ModeResponder))
-                  (handshakeServerPeer versionDataCodec acceptVersion versions)
-          ts_end <- getMonotonicTime
+          mapp <- tryHandshake $
+                    runPeerWithLimits
+                      (contramap (Mx.WithMuxBearer connid) nstHandshakeTracer)
+                      handshakeCodec
+                      byteLimitsHandshake
+                      timeLimitsHandshake
+                      (fromChannel (Mx.muxBearerAsChannel bearer handshakeProtocolNum Mx.ModeResponder))
+                      (handshakeServerPeer versionDataCodec acceptVersion versions)
           case mapp of
-            Left (errDrv :: ProtocolLimitFailure)-> do
-               traceWith muxTracer' $ Mx.MuxTraceHandshakeClientError errDrv (diffTime ts_end ts_start)
-               throwIO errDrv
-            Right (Left err) -> do
-               traceWith muxTracer' $ Mx.MuxTraceHandshakeClientError err (diffTime ts_end ts_start)
-               throwIO err
-            Right (Right mkapp) -> case mkapp connid of
-              SomeResponderApplication app -> do
-                traceWith muxTracer' $ Mx.MuxTraceHandshakeServerEnd
-                Mx.muxStart muxTracer' (toApplication app) bearer
+            Left HandshakeTimeout -> do
+              traceWith muxTracer' $ Mx.MuxTraceHandshakeServerError ExceededTimeLimit
+              throwIO ExceededTimeLimit
+
+            Left (HandshakeProtocolLimit err) -> do
+              traceWith muxTracer' $ Mx.MuxTraceHandshakeServerError err
+              throwIO err
+
+            Left (HandshakeProtocolError err) -> do
+              traceWith muxTracer' $ Mx.MuxTraceHandshakeServerError err
+              throwIO err
+
+            Right mkapp ->
+              case mkapp connid of
+                SomeResponderApplication app -> do
+                  traceWith muxTracer' Mx.MuxTraceHandshakeServerEnd
+                  Mx.muxStart muxTracer' (toApplication app) bearer
+
   pure $ Handler { handle = connectionHandle, action = action }
 
 -- | Connection request type for use by `withServerNode`. Only
@@ -609,17 +671,18 @@ data WithServerNodeRequest (p :: Provenance) where
 -- up and running. Not suitable if you want to do concurrent outgoing and
 -- incoming connections, as in a peer-to-peer node.
 withServerNode
-    :: forall vNumber extra t fd addr a b.
+    :: forall vNumber extra t fd addr.
        ( Ord vNumber
        , Enum vNumber
-       , Serialise vNumber
        , Typeable vNumber
        , Show vNumber
        , Ord addr
        )
     => Snocket IO fd addr
     -> NetworkServerTracers addr vNumber
+    -> AcceptedConnectionsLimit
     -> addr
+    -> Codec (Handshake vNumber CBOR.Term) CBOR.DeserialiseFailure IO BL.ByteString
     -> VersionDataCodec extra CBOR.Term
     -> (forall vData. extra vData -> vData -> vData -> Accept)
     -> Versions vNumber extra
@@ -633,7 +696,8 @@ withServerNode
     -- Note: the server thread will terminate when the callback returns or
     -- throws an exception.
     -> IO t
-withServerNode sn tracers addr versionDataCodec acceptVersion versions errorPolicies k =
+-- TODO enforce connection limits
+withServerNode sn tracers _acceptedConnectionsLimit addr handshakeCodec versionDataCodec acceptVersion versions errorPolicies k =
     Connection.concurrent handleConnection $ \connections ->
       -- When the continuation runs here, the socket is bound and listening.
       withSocket sn addr $ \boundAddr socket -> withAsync
@@ -652,9 +716,11 @@ withServerNode sn tracers addr versionDataCodec acceptVersion versions errorPoli
         -> fd
         -> WithServerNodeRequest provenance
         -> IO (Decision IO provenance CannotReject (ConnectionHandle IO))
-    handleConnection _ connid socket WithServerNodeRequest = incomingConnection
+    handleConnection _ connid socket WithServerNodeRequest =
+      incomingConnection
         sn
         tracers
+        handshakeCodec
         versionDataCodec
         acceptVersion
         versions

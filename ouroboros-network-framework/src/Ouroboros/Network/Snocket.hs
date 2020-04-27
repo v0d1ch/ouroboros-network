@@ -7,26 +7,32 @@ module Ouroboros.Network.Snocket
   ( -- * Snocket Interface
     Accept (..)
   , Accepted (..)
+  , fmapAccept
   , AddressFamily (..)
   , Snocket (..)
     -- ** Socket based Snocktes
   , SocketSnocket
   , socketSnocket
-  , rawSocketSnocket
     -- ** Local Snockets
     -- Using unix sockets (posix) or named pipes (windows)
     --
   , LocalSnocket
   , localSnocket
-  , LocalAddress
+  , LocalAddress (..)
   , LocalFD
   , localAddressFromPath
   ) where
 
 import           Control.Exception
 import           Control.Monad (when)
+import           Control.Monad.Class.MonadTime (DiffTime)
 import           Control.Tracer (Tracer)
-import           Network.Socket (Socket, SockAddr)
+#if !defined(mingw32_HOST_OS)
+import           Network.Socket ( Family (AF_UNIX) )
+#endif
+import           Network.Socket ( Socket
+                                , SockAddr (..)
+                                )
 import qualified Network.Socket as Socket
 #if defined(mingw32_HOST_OS)
 import           Data.Bits
@@ -88,12 +94,28 @@ data Accepted err addr fd where
   AcceptException :: !err -> Accepted err addr fd
   AcceptOk        :: !fd -> !addr -> Accepted err addr fd
 
+-- | Arguments of 'Accept' are in the wrong order.
+--
+-- TODO: this can be fixed later.
+--
+fmapAccept :: Functor m
+           => (addr -> addr')
+           -> Accept m err addr fd -> Accept m err addr' fd
+fmapAccept f ac = Accept $ g <$> runAccept ac
+  where
+    g (AcceptException acceptException, next) =
+      (AcceptException acceptException, f `fmapAccept` next)
+    g (AcceptOk fd addr,     next) =
+      (AcceptOk fd (f addr), f `fmapAccept` next)
+
+
+
 -- | BSD accept loop.
 --
-berkeleyAccept :: AssociateWithIOCP
+berkeleyAccept :: IOManager
                -> Socket
                -> Accept IO SomeException SockAddr Socket
-berkeleyAccept iocp sock = go
+berkeleyAccept ioManager sock = go
     where
       go = Accept (acceptOne `catch` handleAcceptException)
       acceptOne = mask $ \restore -> do
@@ -105,7 +127,7 @@ berkeleyAccept iocp sock = go
 #endif
         -- TODO explain why we're catching these two types of exception in
         -- particular... why not do this for all exceptions?
-        restore (associateWithIOCP iocp (Right sock'))
+        restore (associateWithIOManager ioManager (Right sock'))
           `catch` \(e :: IOException) -> do
             Socket.close sock'
             throwIO e
@@ -122,23 +144,30 @@ berkeleyAccept iocp sock = go
         -> IO (Accepted SomeException SockAddr Socket, Accept IO SomeException SockAddr Socket)
       handleAcceptException err = pure (AcceptException (toException err), go)
 
+-- | Local address, on Unix is associated with `Socket.AF_UNIX` family, on
+--
+-- Windows with `named-pipes`.
+--
+newtype LocalAddress = LocalAddress { getFilePath :: FilePath }
+  deriving (Show, Eq, Ord)
+
+
 -- | We support either sockets or named pipes.
 --
 data AddressFamily addr where
 
-    SocketFamily    :: !Socket.Family
-                    -> AddressFamily Socket.SockAddr
+    SocketFamily :: !Socket.Family
+                 -> AddressFamily Socket.SockAddr
 
-    NamedPipeFamily :: AddressFamily FilePath
+    LocalFamily  :: AddressFamily LocalAddress
 
 instance Eq (AddressFamily addr) where
     SocketFamily fam0 == SocketFamily fam1 = fam0 == fam1
-    NamedPipeFamily   == NamedPipeFamily   = True
+    LocalFamily       == LocalFamily       = True
 
 instance Show (AddressFamily addr) where
     show (SocketFamily fam) = show fam
-    show NamedPipeFamily  = "NamedPipeFamily"
-
+    show LocalFamily        = "LocalFamily"
 
 -- | Abstract communication interface that can be used by more than
 -- 'Socket'.  Snockets are polymorphic over monad which is used, this feature
@@ -201,15 +230,15 @@ type SocketSnocket = Snocket IO Socket SockAddr
 -- 'Socket.ReuseAddr` and 'Socket.ReusePort'.
 --
 socketSnocket
-  :: AssociateWithIOCP
-  -- ^ associate the socket with I/O CP.  We use it when we create a new socket
-  -- and when we accept a connection.
+  :: IOManager
+  -- ^ 'IOManager' interface.  We use it when we create a new socket and when we
+  -- accept a connection.
   --
   -- Though it could be used in `open`, but that is going to be used in
   -- a bracket so it's better to keep it simple.
   --
   -> SocketSnocket
-socketSnocket iocp = Snocket {
+socketSnocket ioManager = Snocket {
       getLocalAddr   = Socket.getSocketName
     , getRemoteAddr  = Socket.getPeerName
     , addrFamily     = socketAddrFamily
@@ -238,15 +267,34 @@ socketSnocket iocp = Snocket {
 
         Socket.bind sd addr
     , listen   = \s -> Socket.listen s 8
-    , accept   = berkeleyAccept iocp
+    , accept   = berkeleyAccept ioManager
     , close    = Socket.close
-    , toBearer = Mx.socketAsMuxBearer
+    , toBearer = Mx.socketAsMuxBearer sduTimeout
     }
   where
+
+    -- We place an upper limit of 30s on the time we wait on receiving an SDU.
+    -- There is no upper bound on the time we wait when waiting for a new SDU.
+    -- This makes it possible for miniprotocols to use timeouts that are larger
+    -- than 30s or wait forever.
+    --
+    -- 30s for receiving an SDU corresponds to a minimum speed limit of 17kbps.
+    --
+    -- ( 8      -- mux header length
+    -- + 0xffff -- maximum SDU payload
+    -- )
+    -- * 8
+    -- = 524_344 -- maximum bits in an SDU
+    --
+    --  524_344 / 30 / 1024 = 17kbps
+    --
+    sduTimeout :: DiffTime
+    sduTimeout = 30
+
     openSocket :: AddressFamily SockAddr -> IO Socket
     openSocket (SocketFamily family_) = do
       sd <- Socket.socket family_ Socket.Stream Socket.defaultProtocol
-      associateWithIOCP iocp (Right sd)
+      associateWithIOManager ioManager (Right sd)
         -- open is designed to be used in `bracket`, and thus it's called with
         -- async exceptions masked.  The 'associteWithIOCP' is a blocking
         -- operation and thus it may throw.
@@ -259,47 +307,6 @@ socketSnocket iocp = Snocket {
       return sd
 
 
-
--- | Create a snocket for the given 'Socket.Family'.  This snocket does not set
--- any options on the underlying socket.
---
-rawSocketSnocket
-  :: AssociateWithIOCP
-  -> SocketSnocket
-rawSocketSnocket iocp = Snocket {
-      getLocalAddr  = Socket.getSocketName
-    , getRemoteAddr = Socket.getPeerName
-    , addrFamily    = socketAddrFamily
-    , connect       = \s a -> do
-#if !defined(mingw32_HOST_OS)
-        Socket.connect s a
-#else
-        Win32.Async.connect s a
-#endif
-    , bind          = \fd addr -> Socket.bind fd addr
-    , listen        = flip Socket.listen 1
-    , accept        = berkeleyAccept iocp
-    , open          = openSocket
-    , openToConnect = \addr -> openSocket (socketAddrFamily addr)
-    , close         = Socket.close
-    , toBearer      = Mx.socketAsMuxBearer
-    }
-  where
-    openSocket :: AddressFamily SockAddr -> IO Socket
-    openSocket (SocketFamily family_) = do
-      sd <- Socket.socket family_ Socket.Stream Socket.defaultProtocol
-      associateWithIOCP iocp (Right sd)
-        -- open is designed to be used in `bracket`, and thus it's called with
-        -- async exceptions masked.  The 'associteWithIOCP' is a blocking
-        -- operation and thus it may throw.
-        `catch` \(e :: IOException) -> do
-          Socket.close sd
-          throwIO e
-        `catch` \(SomeAsyncException _) -> do
-          Socket.close sd
-          throwIO e
-      return sd
-      
 
 --
 -- NamedPipes based Snocket
@@ -307,30 +314,30 @@ rawSocketSnocket iocp = Snocket {
 
 
 #if defined(mingw32_HOST_OS)
-type HANDLESnocket = Snocket IO Win32.HANDLE FilePath
+type HANDLESnocket = Snocket IO Win32.HANDLE LocalAddress
 
 -- | Create a Windows Named Pipe Snocket.
 --
 namedPipeSnocket
-  :: AssociateWithIOCP
+  :: IOManager
   -> FilePath
   -> HANDLESnocket
-namedPipeSnocket iocp name = Snocket {
-      getLocalAddr  = \_ -> return name
-    , getRemoteAddr = \_ -> return name
-    , addrFamily  = \_ -> NamedPipeFamily
+namedPipeSnocket ioManager path = Snocket {
+      getLocalAddr  = \_ -> return localAddress
+    , getRemoteAddr = \_ -> return localAddress
+    , addrFamily  = \_ -> LocalFamily
 
     , open = \_addrFamily -> do
         hpipe <- Win32.createNamedPipe
-                   name
+                   path
                    (Win32.pIPE_ACCESS_DUPLEX .|. Win32.fILE_FLAG_OVERLAPPED)
                    (Win32.pIPE_TYPE_BYTE .|. Win32.pIPE_READMODE_BYTE)
                    Win32.pIPE_UNLIMITED_INSTANCES
-                   maxBound
-                   maxBound
-                   0
-                   Nothing
-        associateWithIOCP iocp (Left hpipe)
+                   65536   -- outbound pipe size
+                   16384   -- inbound pipe size
+                   0       -- default timeout
+                   Nothing -- default security
+        associateWithIOManager ioManager (Left hpipe)
           `catch` \(e :: IOException) -> do
             Win32.closeHandle hpipe
             throwIO e
@@ -340,15 +347,15 @@ namedPipeSnocket iocp name = Snocket {
         pure hpipe
 
     -- To connect, simply create a file whose name is the named pipe name.
-    , openToConnect  = \pipeName -> do
-        hpipe <- Win32.createFile pipeName
+    , openToConnect  = \(LocalAddress pipeName) -> do
+        hpipe <- Win32.connect pipeName
                    (Win32.gENERIC_READ .|. Win32.gENERIC_WRITE )
                    Win32.fILE_SHARE_NONE
                    Nothing
                    Win32.oPEN_EXISTING
                    Win32.fILE_FLAG_OVERLAPPED
                    Nothing
-        associateWithIOCP iocp (Left hpipe)
+        associateWithIOManager ioManager (Left hpipe)
           `catch` \(e :: IOException) -> do
             Win32.closeHandle hpipe
             throwIO e
@@ -364,30 +371,33 @@ namedPipeSnocket iocp name = Snocket {
 
     , accept   = \hpipe -> Accept $ do
           Win32.Async.connectNamedPipe hpipe
-          return (hpipe, name, acceptNext)
+          return (hpipe, localAddress, acceptNext)
 
     , close    = Win32.closeHandle
 
     , toBearer = namedPipeAsBearer
     }
   where
+    localAddress :: LocalAddress
+    localAddress = LocalAddress path
+
     acceptNext :: Accept IO FilePath Win32.HANDLE
     acceptNext = Accept $ do
       hpipe <- Win32.createNamedPipe
-                 name
+                 path
                  (Win32.pIPE_ACCESS_DUPLEX .|. Win32.fILE_FLAG_OVERLAPPED)
                  (Win32.pIPE_TYPE_BYTE .|. Win32.pIPE_READMODE_BYTE)
                  Win32.pIPE_UNLIMITED_INSTANCES
-                 maxBound
-                 maxBound
-                 0
-                 Nothing
+                 65536   -- outbound pipe size
+                 16384   -- inbound pipe size
+                 0       -- default timeout
+                 Nothing -- default security
               `catch` \(e :: IOException) -> do
                  putStrLn $ "accept: " ++ show e
                  throwIO e
-      associateWithIOCP iocp (Left hpipe)
+      associateWithIOManager ioManager (Left hpipe)
       Win32.Async.connectNamedPipe hpipe
-      return (hpipe, name, acceptNext)
+      return (hpipe, localAddress, acceptNext)
 #endif
 
 
@@ -395,31 +405,54 @@ namedPipeSnocket iocp name = Snocket {
 -- Windows/POSIX type aliases
 --
 
-
+localSnocket :: IOManager -> FilePath -> LocalSnocket
 -- | System dependent LocalSnocket type
 #if defined(mingw32_HOST_OS)
 type LocalSnocket = HANDLESnocket
 type LocalFD      = Win32.HANDLE
 
-localSnocket :: AssociateWithIOCP -> FilePath -> LocalSnocket
 localSnocket = namedPipeSnocket
 #else
-type LocalSnocket = SocketSnocket
+type LocalSnocket = Snocket IO Socket LocalAddress
 type LocalFD      = Socket
 
-localSnocket :: AssociateWithIOCP -> FilePath -> LocalSnocket
-localSnocket iocp _  = rawSocketSnocket iocp
-#endif
+localSnocket ioManager _ = Snocket {
+      getLocalAddr  = fmap toLocalAddress . Socket.getSocketName
+    , getRemoteAddr = fmap toLocalAddress . Socket.getPeerName
+    , addrFamily    = const LocalFamily
+    , connect       = \s addr -> do
+        Socket.connect s (fromLocalAddress addr)
+    , bind          = \fd addr -> Socket.bind fd (fromLocalAddress addr)
+    , listen        = flip Socket.listen 1
+    , accept        = fmapAccept toLocalAddress . (berkeleyAccept ioManager)
+    , open          = openSocket
+    , openToConnect = \_addr -> openSocket LocalFamily
+    , close         = Socket.close
+    , toBearer      = Mx.socketAsMuxBearer (-1) -- Negative values means no timeout.
+    }
+  where
+    toLocalAddress :: SockAddr -> LocalAddress
+    toLocalAddress (SockAddrUnix path) = LocalAddress path
+    toLocalAddress _                   = error "localSnocket.toLocalAddr: impossible happend"
 
-#if defined(mingw32_HOST_OS)
-type LocalAddress = FilePath
-#else
-type LocalAddress = Socket.SockAddr
+    fromLocalAddress :: LocalAddress -> SockAddr
+    fromLocalAddress = SockAddrUnix . getFilePath
+
+    openSocket :: AddressFamily LocalAddress -> IO Socket
+    openSocket LocalFamily = do
+      sd <- Socket.socket AF_UNIX Socket.Stream Socket.defaultProtocol
+      associateWithIOManager ioManager (Right sd)
+        -- open is designed to be used in `bracket`, and thus it's called with
+        -- async exceptions masked.  The 'associteWithIOManager' is a blocking
+        -- operation and thus it may throw.
+        `catch` \(e :: IOException) -> do
+          Socket.close sd
+          throwIO e
+        `catch` \(SomeAsyncException _) -> do
+          Socket.close sd
+          throwIO e
+      return sd
 #endif
 
 localAddressFromPath :: FilePath -> LocalAddress
-#if defined(mingw32_HOST_OS)
-localAddressFromPath = id
-#else
-localAddressFromPath = Socket.SockAddrUnix
-#endif
+localAddressFromPath = LocalAddress

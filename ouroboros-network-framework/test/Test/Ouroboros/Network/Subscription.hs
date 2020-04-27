@@ -46,6 +46,7 @@ import qualified Network.TypedProtocol.ReqResp.Codec.CBOR as ReqResp
 import qualified Network.TypedProtocol.ReqResp.Examples   as ReqResp
 
 import           Ouroboros.Network.Protocol.Handshake.Type
+import           Ouroboros.Network.Protocol.Handshake.Unversioned
 import           Ouroboros.Network.Protocol.Handshake.Version
 
 import           Ouroboros.Network.Connections.Types (Initiated, LocalOnlyRequest (..))
@@ -56,6 +57,7 @@ import           Ouroboros.Network.Driver
 import           Ouroboros.Network.ErrorPolicy
 import           Ouroboros.Network.IOManager
 import           Ouroboros.Network.Mux
+import           Ouroboros.Network.Server.RateLimiting
 import           Ouroboros.Network.Snocket
 import           Ouroboros.Network.Socket as Socket
 import           Ouroboros.Network.Subscription
@@ -114,8 +116,11 @@ activeTracer = nullTracer
 tests :: TestTree
 tests =
     testGroup "Subscription"
-        [ testProperty "Resolve (Sim)"      prop_resolv_sim
-        , testProperty "Resolve (IO)"       _prop_resolv_io
+        [
+          testProperty "Resolve (Sim)"      prop_resolv_sim
+        --, testProperty "Resolve (IO)"      _prop_resolv_io
+        -- the above tests takes about 10 minutes to run due to delays in
+        -- realtime.
         , testProperty "Resolve Subscribe (IO)" prop_sub_io
         -- ^ takes about 10 minutes to run due to delays in realtime.
         , testProperty "Send Recive with Dns worker (IO)" prop_send_recv
@@ -586,12 +591,14 @@ prop_send_recv f xs _first = ioProperty $ withIOManager $ \iocp -> do
       withServerNode
         sn
         nullNetworkServerTracers
+        (AcceptedConnectionsLimit maxBound maxBound 0)
         (Socket.addrAddress responderAddr)
+        unversionedHandshakeCodec
         cborTermVersionDataCodec
         (\(DictVersion _) -> acceptableVersion)
         (unversionedProtocol (\_peerid -> SomeResponderApplication responderApp))
         nullErrorPolicies $ \_ _ -> do
-          let subThread = Socket.withConnections sn connectionRequest $ \connections -> do
+          let subThread = Socket.withConnections sn unversionedHandshakeCodec connectionRequest $ \connections -> do
                 let resolver = mockResolverIO serverPortMap lr
                 addrs <- dnsResolve activeTracer resolver "shelley-0.iohk.example"
                 case ipSubscriptionTargets addrs localAddresses of
@@ -709,10 +716,17 @@ prop_send_recv_init_and_rsp f xs = ioProperty $ withIOManager $ \iocp -> do
             )
 
 
+    startPassiveServer :: IOManager
+                       -> Socket.AddrInfo
+                       -> StrictTMVar IO Socket.SockAddr
+                       -> ReqRspCfg
+                       -> IO (Int, [Int])
     startPassiveServer iocp responderAddr localAddrVar rrcfg = withServerNode
         (socketSnocket iocp)
         nullNetworkServerTracers
+        (AcceptedConnectionsLimit maxBound maxBound 0)
         (Socket.addrAddress responderAddr)
+        unversionedHandshakeCodec
         cborTermVersionDataCodec
         (\(DictVersion _) -> acceptableVersion)
         (unversionedProtocol (\_peerid -> SomeResponderApplication (appX rrcfg)))
@@ -728,7 +742,9 @@ prop_send_recv_init_and_rsp f xs = ioProperty $ withIOManager $ \iocp -> do
     startActiveServer iocp responderAddr localAddrVar remoteAddrVar rrcfg = withServerNode
         (socketSnocket iocp)
         nullNetworkServerTracers
+        (AcceptedConnectionsLimit maxBound maxBound 0)
         (Socket.addrAddress responderAddr)
+        unversionedHandshakeCodec
         cborTermVersionDataCodec
         (\(DictVersion _) -> acceptableVersion)
         (unversionedProtocol (\_peerid -> SomeResponderApplication (appX rrcfg)))
@@ -749,7 +765,7 @@ prop_send_recv_init_and_rsp f xs = ioProperty $ withIOManager $ \iocp -> do
                 cborTermVersionDataCodec
                 (unversionedProtocol (\_peerid -> appX rrcfg))
 
-              subThread = Socket.withConnections (socketSnocket iocp) connectionRequest $ \connections ->
+              subThread = Socket.withConnections (socketSnocket iocp) unversionedHandshakeCodec connectionRequest $ \connections ->
                 Subscription.worker
                   activeTracer
                   activeTracer
@@ -769,7 +785,9 @@ prop_send_recv_init_and_rsp f xs = ioProperty $ withIOManager $ \iocp -> do
           sn
           nullNetworkServerTracers
           (NetworkMutableState tbl stVar)
+          (AcceptedConnectionsLimit maxBound maxBound 0)
           responderAddr
+          unversionedHandshakeCodec
           cborTermVersionDataCodec
           (\(DictVersion _) -> acceptableVersion)
           (unversionedProtocol (\_peerid -> SomeResponderApplication (appX rrcfg)))
@@ -794,6 +812,7 @@ prop_send_recv_init_and_rsp f xs = ioProperty $ withIOManager $ \iocp -> do
               (\_ -> waitSiblingSTM (rrcSiblingVar rrcfg))
               (connectToNodeSocket
                   iocp
+                  unversionedHandshakeCodec
                   cborTermVersionDataCodec
                   nullNetworkConnectTracers
                   (unversionedProtocol (\_peerid -> appX rrcfg)))
@@ -860,7 +879,7 @@ _demo = ioProperty $ withIOManager $ \iocp -> do
           (unversionedProtocol (\_peerid -> appReq))
 
 
-    Socket.withConnections (socketSnocket iocp) connectionRequest $ \connections -> do
+    Socket.withConnections (socketSnocket iocp) unversionedHandshakeCodec connectionRequest $ \connections -> do
       mkResolverIO 6064 $ \resolver -> do
         addrs <- dnsResolve activeTracer resolver "shelley-0.iohk.example"
         case ipSubscriptionTargets addrs localAddresses of
@@ -911,6 +930,7 @@ _demo = ioProperty $ withIOManager $ \iocp -> do
               }
             (connectToNodeSocket
                 iocp
+                unversionedHandshakeCodec
                 cborTermVersionDataCodec
                 nullNetworkConnectTracers
                 (unversionedProtocol (\_peerid -> appReq)))
@@ -929,7 +949,9 @@ _demo = ioProperty $ withIOManager $ \iocp -> do
         void $ async $ withServerNode
             (socketSnocket iocp)
             nullNetworkServerTracers
+            (AcceptedConnectionsLimit maxBound maxBound 0)
             (Socket.addrAddress addr)
+            unversionedHandshakeCodec
             cborTermVersionDataCodec
             (\(DictVersion _) -> acceptableVersion)
             (unversionedProtocol (\_peerid -> SomeResponderApplication appRsp))

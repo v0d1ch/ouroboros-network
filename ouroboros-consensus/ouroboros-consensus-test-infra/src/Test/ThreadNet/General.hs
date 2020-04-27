@@ -7,7 +7,8 @@
 {-# LANGUAGE TypeApplications          #-}
 
 module Test.ThreadNet.General (
-    prop_general
+    PropGeneralArgs (..)
+  , prop_general
   , runTestNetwork
     -- * TestConfig
   , Rekeying (..)
@@ -43,7 +44,6 @@ import           Ouroboros.Network.Point (WithOrigin (..))
 
 import           Ouroboros.Consensus.Block
 import           Ouroboros.Consensus.BlockchainTime
-import           Ouroboros.Consensus.BlockchainTime.Mock
 import           Ouroboros.Consensus.Ledger.Extended (ExtValidationError)
 import           Ouroboros.Consensus.Node.ProtocolInfo
 import           Ouroboros.Consensus.Node.Run
@@ -74,6 +74,7 @@ import           Test.Util.Orphans.NoUnexpectedThunks ()
 import           Test.Util.Range
 import           Test.Util.Shrink (andId, dropId)
 import           Test.Util.Stream
+import           Test.Util.Time
 
 {-------------------------------------------------------------------------------
   Configuring tests
@@ -86,7 +87,7 @@ data TestConfig = TestConfig
   , nodeJoinPlan :: !NodeJoinPlan
   , nodeRestarts :: !NodeRestarts
   , nodeTopology :: !NodeTopology
-  , slotLengths  :: !SlotLengths
+  , slotLength   :: !SlotLength
   , initSeed     :: !Seed
   }
   deriving (Show)
@@ -116,7 +117,7 @@ instance Arbitrary TestConfig where
       numSlots     <- arbitrary
       nodeJoinPlan <- genNodeJoinPlan numCoreNodes numSlots
       nodeTopology <- genNodeTopology numCoreNodes
-      slotLengths  <- arbitrary
+      slotLength   <- arbitrary
       initSeed     <- arbitrary
       pure TestConfig
         { numCoreNodes
@@ -125,7 +126,7 @@ instance Arbitrary TestConfig where
           -- TODO how to enrich despite variable schedules?
         , nodeRestarts = noRestarts
         , nodeTopology
-        , slotLengths
+        , slotLength
         , initSeed
         }
 
@@ -135,7 +136,7 @@ instance Arbitrary TestConfig where
     , nodeJoinPlan
     , nodeRestarts
     , nodeTopology
-    , slotLengths
+    , slotLength
     , initSeed
     } =
       dropId $
@@ -145,7 +146,7 @@ instance Arbitrary TestConfig where
           , nodeJoinPlan = p'
           , nodeRestarts = r'
           , nodeTopology = top'
-          , slotLengths  = ls'
+          , slotLength   = len'
           , initSeed
           }
       | n'             <- andId shrink numCoreNodes
@@ -156,7 +157,7 @@ instance Arbitrary TestConfig where
       , p'             <- andId shrinkNodeJoinPlan adjustedP
       , r'             <- andId shrinkNodeRestarts adjustedR
       , top'           <- andId shrinkNodeTopology adjustedTop
-      , ls'            <- andId shrink slotLengths
+      , len'           <- andId shrink slotLength
       ]
 
 {-------------------------------------------------------------------------------
@@ -167,6 +168,7 @@ data TestConfigBlock blk = TestConfigBlock
   { forgeEbbEnv :: Maybe (ForgeEbbEnv blk)
   , nodeInfo    :: CoreNodeId -> TestNodeInitialization blk
   , rekeying    :: Maybe (Rekeying blk)
+  , txGenExtra  :: TxGenExtra blk
   }
 
 data Rekeying blk = forall opKey. Rekeying
@@ -211,11 +213,11 @@ runTestNetwork
     , nodeJoinPlan
     , nodeRestarts
     , nodeTopology
-    , slotLengths
+    , slotLength
     , initSeed
     }
   epochSize
-  TestConfigBlock{forgeEbbEnv, nodeInfo, rekeying}
+  TestConfigBlock{forgeEbbEnv, nodeInfo, rekeying, txGenExtra}
   = runSimOrThrow $ do
     let tna = ThreadNetworkArgs
           { tnaForgeEbbEnv    = forgeEbbEnv
@@ -226,9 +228,10 @@ runTestNetwork
           , tnaRNG            = seedToChaCha initSeed
           , tnaRekeyM         = Nothing
           , tnaRestarts       = nodeRestarts
-          , tnaSlotLengths    = slotLengths
+          , tnaSlotLength     = slotLength
           , tnaTopology       = nodeTopology
           , tnaEpochSize      = epochSize
+          , tnaTxGenExtra     = txGenExtra
           }
 
     case rekeying of
@@ -262,13 +265,60 @@ data BlockRejection blk = BlockRejection
   }
   deriving (Show)
 
+data PropGeneralArgs blk = PropGeneralArgs
+  { pgaBlockProperty          :: blk -> Property
+    -- ^ test if the block is as expected
+    --
+    -- For example, it may fail if the block includes transactions that should
+    -- have expired before/when the block was forged.
+    --
+  , pgaCountTxs               :: blk -> Word64
+    -- ^ the number of transactions in the block
+    --
+  , pgaExpectedBlockRejection :: BlockRejection blk -> Bool
+    -- ^ whether this block rejection was expected
+    --
+  , pgaFirstBlockNo           :: BlockNo
+    -- ^ the block number of the first proper block on the chain
+    --
+    -- At time of writing this comment... For example, this is 1 for Byron
+    -- tests and 0 for mock tests. The epoch boundary block (EBB) in slot 0
+    -- specifies itself as having block number 0, which implies the genesis
+    -- block is block number 0, and so the first proper block is number 1. For
+    -- the mock tests, the first proper block is block number 0.
+    --
+    -- TODO This implies the mock genesis block does not have a number?
+    --
+  , pgaFixedMaxForkLength     :: Maybe NumBlocks
+    -- ^ the maximum length of a unique suffix among the final chains
+    --
+    -- If not provided, it will be crudely estimated. For example, this
+    -- estimation is known to be incorrect for PBFT; it does not anticipate
+    -- 'Ouroboros.Consensus.Protocol.PBFT.PBftExceededSignThreshold'.
+    --
+  , pgaFixedSchedule          :: Maybe LeaderSchedule
+    -- ^ the leader schedule of the nodes
+    --
+    -- If not provided, it will be recovered from the nodes' 'Tracer' data.
+    --
+  , pgaSecurityParam          :: SecurityParam
+  , pgaTestConfig             :: TestConfig
+  }
+
 -- | The properties always required
 --
 -- Includes:
 --
 -- * The competitive chains at the end of the simulation respect the expected
 --   bound on fork length
+--
 -- * The nodes do not leak file handles
+--
+-- * Blocks are exchanged without unexpected delays.
+--
+-- * The nodes' chains grow without unexpected delays.
+--
+-- * No blocks are unduly rejected (see 'pgaExpectedBlockRejection').
 --
 prop_general ::
   forall blk.
@@ -277,19 +327,10 @@ prop_general ::
      , HasHeader blk
      , RunNode blk
      )
-  => (blk -> Word64) -- ^ Count transactions
-  -> SecurityParam
-  -> TestConfig
-  -> Maybe LeaderSchedule
-  -> Maybe NumBlocks
-  -> (BlockRejection blk -> Bool)
-  -> BlockNo
-     -- ^ block number of the first proper block after genesis
+  => PropGeneralArgs blk
   -> TestOutput blk
   -> Property
-prop_general countTxs k TestConfig{numSlots, nodeJoinPlan, nodeRestarts, nodeTopology}
-  mbSchedule mbMaxForkLength expectedBlockRejection firstBlockNo
-  TestOutput{testOutputNodes, testOutputTipBlockNos} =
+prop_general pga testOutput =
     counterexample ("nodeChains: " <> unlines ("" : map (\x -> "  " <> condense x) (Map.toList nodeChains))) $
     counterexample ("nodeJoinPlan: " <> condense nodeJoinPlan) $
     counterexample ("nodeRestarts: " <> condense nodeRestarts) $
@@ -309,6 +350,7 @@ prop_general countTxs k TestConfig{numSlots, nodeJoinPlan, nodeRestarts, nodeTop
     tabulate "involves >=1 re-delegation" [show hasNodeRekey] $
     tabulate "average #txs/block" [show (range averageNumTxs)] $
     prop_no_unexpected_BlockRejections .&&.
+    prop_no_invalid_blocks .&&.
     prop_all_common_prefix
         maxForkLength
         (Map.elems nodeChains) .&&.
@@ -319,6 +361,27 @@ prop_general countTxs k TestConfig{numSlots, nodeJoinPlan, nodeRestarts, nodeTop
       | (nid, nodeDBs) <- Map.toList nodeOutputDBs ]
   where
     _ = keepRedundantConstraint (Proxy @(Show (LedgerView (BlockProtocol blk))))
+
+    PropGeneralArgs
+      { pgaBlockProperty          = prop_valid_block
+      , pgaCountTxs               = countTxs
+      , pgaExpectedBlockRejection = expectedBlockRejection
+      , pgaFirstBlockNo           = firstBlockNo
+      , pgaFixedMaxForkLength     = mbMaxForkLength
+      , pgaFixedSchedule          = mbSchedule
+      , pgaSecurityParam          = k
+      , pgaTestConfig
+      } = pga
+    TestConfig
+      { numSlots
+      , nodeJoinPlan
+      , nodeRestarts
+      , nodeTopology
+      } = pgaTestConfig
+    TestOutput
+      { testOutputNodes
+      , testOutputTipBlockNos
+      } = testOutput
 
     prop_no_unexpected_BlockRejections =
         counterexample msg $
@@ -619,3 +682,17 @@ prop_general countTxs k TestConfig{numSlots, nodeJoinPlan, nodeRestarts, nodeTop
         average :: [Double] -> Double
         average [] = 0
         average xs = sum xs / fromIntegral (length xs)
+
+    -- The 'prop_valid_block' argument could, for example, check for no expired
+    -- transactions.
+    prop_no_invalid_blocks :: Property
+    prop_no_invalid_blocks = conjoin $
+        [ counterexample
+            ("In slot " <> condense s <> ", node " <> condense nid) $
+          counterexample ("forged an invalid block " <> condense blk) $
+          prop_valid_block blk
+        | (nid, NodeOutput{nodeOutputForges}) <- Map.toList testOutputNodes
+          -- checking all forged blocks, even if they were never or only
+          -- temporarily selected.
+        , (s, blk) <- Map.toAscList nodeOutputForges
+        ]

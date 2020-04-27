@@ -44,8 +44,11 @@ import           Data.Set (Set)
 import           Control.Applicative
 import           Control.Monad
 import           Control.Monad.Class.MonadAsync
+import           Control.Monad.Class.MonadFork
 import           Control.Monad.Class.MonadSTM.Strict
 import           Control.Monad.Class.MonadThrow
+import           Control.Monad.Class.MonadTime
+import           Control.Monad.Class.MonadTimer
 import           Control.Tracer
 import           GHC.Stack
 
@@ -94,9 +97,13 @@ import qualified Network.Mux.JobPool as JobPool
 muxStart
     :: forall m appType a b.
        ( MonadAsync m
+       , MonadCatch m
+       , MonadFork m
        , MonadSTM m
        , MonadThrow m
        , MonadThrow (STM m)
+       , MonadTime  m
+       , MonadTimer m
        , MonadMask m
        , Eq (Async m ())
        )
@@ -177,11 +184,11 @@ muxStart tracer (MuxApplication ptcls) bearer = do
 
     muxerJob tq cnt =
       JobPool.Job (mux cnt MuxState { egressQueue   = tq,  Egress.bearer })
-                  MuxerException
+                  MuxerException "muxer"
 
     demuxerJob tbl =
       JobPool.Job (demux DemuxState { dispatchTable = tbl, Ingress.bearer })
-                  DemuxerException
+                  DemuxerException "demuxer"
 
     miniProtocolInitiatorJob = miniProtocolJob selectInitiator ModeInitiator
     miniProtocolResponderJob = miniProtocolJob selectResponder ModeResponder
@@ -216,6 +223,7 @@ muxStart tracer (MuxApplication ptcls) bearer = do
       where
         job run = JobPool.Job (jobAction run)
                               (MiniProtocolException pnum pix pmode)
+                              ((show pix) ++ "." ++ (show pmode))
 
         jobAction run = do
           chan    <- mkChannel
@@ -381,7 +389,7 @@ muxChannel tracer tq mc md q cnt = do
         -- We send CBOR encoded messages by encoding them into by ByteString
         -- forwarding them to the 'mux' thread, see 'Desired servicing semantics'.
 
-        traceWith tracer $ MuxTraceChannelSendStart mc encoding
+        traceWith tracer $ MuxTraceChannelSendStart mc (fromIntegral $ BL.length encoding)
 
         atomically $ do
             buf <- readTVar w
@@ -407,7 +415,7 @@ muxChannel tracer tq mc md q cnt = do
                 then retry
                 else writeTVar q BL.empty >> return blob
         -- say $ printf "recv mid %s mode %s blob len %d" (show mid) (show md) (BL.length blob)
-        traceWith tracer $ MuxTraceChannelRecvEnd mc blob
+        traceWith tracer $ MuxTraceChannelRecvEnd mc (fromIntegral $ BL.length blob)
         return $ Just blob
 
 traceMuxBearerState :: Tracer m MuxTrace -> MuxBearerState -> m ()

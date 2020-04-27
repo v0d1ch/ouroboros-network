@@ -11,7 +11,6 @@ module Ouroboros.Network.Connections.Socket.Client
 
 import Control.Exception (SomeException)
 import Control.Monad.Class.MonadThrow
-import qualified Network.Socket as Socket (SockAddr)
 
 import Ouroboros.Network.ConnectionId
 import Ouroboros.Network.Connections.Types

@@ -30,16 +30,15 @@ import           Cardano.Slotting.Slot
 import qualified Cardano.Chain.ProtocolConstants as Impl
 import qualified Cardano.Chain.UTxO as Impl
 
-import qualified Cardano.Spec.Chain.STS.Rule.Chain as Spec
+import qualified Byron.Spec.Chain.STS.Rule.Chain as Spec
+import qualified Byron.Spec.Ledger.Core as Spec
+import qualified Byron.Spec.Ledger.UTxO as Spec
 import qualified Control.State.Transition.Extended as Spec
 import qualified Control.State.Transition.Generator as Spec.QC
-import qualified Ledger.Core as Spec
-import qualified Ledger.UTxO as Spec
 
 import qualified Test.Cardano.Chain.Elaboration.UTxO as Spec.Test
 
 import           Ouroboros.Consensus.BlockchainTime
-import           Ouroboros.Consensus.BlockchainTime.Mock (NumSlots (..))
 import           Ouroboros.Consensus.Config
 import           Ouroboros.Consensus.Ledger.Abstract
 import           Ouroboros.Consensus.Ledger.Dual
@@ -67,6 +66,8 @@ import           Test.ThreadNet.Util
 import           Test.ThreadNet.Util.NodeRestarts
 import           Test.ThreadNet.Util.NodeTopology
 
+import           Test.Util.Time
+
 tests :: TestTree
 tests = testGroup "DualPBFT" [
       testProperty "convergence" $ prop_convergence
@@ -79,17 +80,20 @@ prop_convergence :: SetupDualPBft -> Property
 prop_convergence setup = withMaxSuccess 10 $
     (\prop -> if mightForgeInSlot0 then discard else prop) $
     tabulate "Ref.PBFT result" [Ref.resultConstrName refResult] $
-    prop_general
-      (countByronGenTxs . dualBlockMain)
-      (setupSecurityParam      setup)
-      cfg
-      (setupSchedule           setup)
-      (Just $ NumBlocks $ case refResult of
-         Ref.Forked{} -> 1
-         _            -> 0)
-      (setupExpectedRejections setup)
-      1
-      (setupTestOutput         setup)
+    prop_general PropGeneralArgs
+      { pgaBlockProperty          = const $ property True
+      , pgaCountTxs               = countByronGenTxs . dualBlockMain
+      , pgaExpectedBlockRejection = setupExpectedRejections setup
+      , pgaFirstBlockNo           = 1
+      , pgaFixedMaxForkLength     =
+          Just $ NumBlocks $ case refResult of
+            Ref.Forked{} -> 1
+            _            -> 0
+      , pgaFixedSchedule          = setupSchedule setup
+      , pgaSecurityParam          = setupSecurityParam setup
+      , pgaTestConfig             = cfg
+      }
+      (setupTestOutput setup)
   where
     cfg = setupConfig setup
 
@@ -158,6 +162,7 @@ setupTestOutput setup@SetupDualPBft{..} =
             setupGenesis
             setupParams
             (Just coreNodeId)
+      , txGenExtra  = ()
       }
 
 -- | Override 'TestConfig'
@@ -217,18 +222,18 @@ instance Arbitrary SetupDualPBft where
         -- The number of slots is a parameter to everything else we generate
         -- also, so we have to be careful:
         --
-        -- * The CHAIN environment just uses the number of slots to optimize
-        --   some test parameter, for instance to guarantee that the test
-        --   contains epoch boundaries. Once we have a failing test case,
-        --   reducing the number of slots won't affect that.
-        -- * The PBFT parameters are derived from the genesis (which in turn
-        --   derives from the number of slots), but really only depends on
-        --   @k@ and the number of genesis keys, so we can shrink the number of
-        --   slots independently from the PBFT parameters.
-        -- * The TestConfig /does/ depend on the number of slots quite a lot,
-        --   but we already have a shrinker 'shrinkTestConfigSlotsOnly' for
-        --   the test config that does precisely this: reduce the number of
-        --   slots and readjust the rest.
+        --   * The CHAIN environment just uses the number of slots to optimize
+        --     some test parameter, for instance to guarantee that the test
+        --     contains epoch boundaries. Once we have a failing test case,
+        --     reducing the number of slots won't affect that.
+        --   * The PBFT parameters are derived from the genesis (which in turn
+        --     derives from the number of slots), but really only depends on
+        --     @k@ and the number of genesis keys, so we can shrink the number of
+        --     slots independently from the PBFT parameters.
+        --   * The TestConfig /does/ depend on the number of slots quite a lot,
+        --     but we already have a shrinker 'shrinkTestConfigSlotsOnly' for
+        --     the test config that does precisely this: reduce the number of
+        --     slots and readjust the rest.
         --
         -- Therefore here we can just piggy-back on 'shrinkTestConfigSlotsOnly'.
         [ setupOverrideConfig config' setup
@@ -274,7 +279,7 @@ genDualPBFTTestConfig numSlots params = do
 
     return TestConfig {
           nodeRestarts = noRestarts
-        , slotLengths  = singletonSlotLengths (slotLengthFromSec 20)
+        , slotLength   = slotLengthFromSec 20
         , numCoreNodes = pbftNumNodes params
         , ..
         }
@@ -293,11 +298,8 @@ realPBftParams ByronSpecGenesis{..} =
   Generate transactions
 -------------------------------------------------------------------------------}
 
--- | Redefine 'testGenTxs' rather than 'testGenTx' as the generator can fail
 instance TxGen DualByronBlock where
-  testGenTx = error "testGenTx not defined; use testGenTxs instead"
-
-  testGenTxs _numCoreNodes curSlotNo cfg = \st -> do
+  testGenTxs _numCoreNodes curSlotNo cfg () = \st -> do
       n <- generateBetween 0 20
       go [] n $ applyChainTick (configLedger cfg) curSlotNo st
     where
@@ -347,8 +349,8 @@ genTx cfg st = HH.choice [
     cfg' :: ByronSpecGenesis
     st'  :: Spec.State Spec.CHAIN
 
-    cfg' = unByronSpecLedgerConfig $ dualLedgerConfigAux (configLedger cfg)
-    st'  = byronSpecLedgerState    $ dualLedgerStateAux st
+    cfg' = dualLedgerConfigAux (configLedger cfg)
+    st'  = byronSpecLedgerState $ dualLedgerStateAux st
 
     bridge :: ByronSpecBridge
     bridge = dualLedgerStateBridge st

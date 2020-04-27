@@ -26,6 +26,9 @@ import           Test.Tasty.QuickCheck
 
 import           Control.Monad.IOSim (runSimOrThrow)
 
+import           Cardano.Crypto.DSIGN.Mock
+import           Cardano.Slotting.Slot
+
 import           Ouroboros.Network.AnchoredFragment (AnchoredFragment)
 import qualified Ouroboros.Network.AnchoredFragment as AF
 import           Ouroboros.Network.Block hiding (ChainUpdate (..))
@@ -46,11 +49,10 @@ import           Ouroboros.Network.Protocol.ChainSync.PipelineDecision
 import           Ouroboros.Network.Protocol.ChainSync.Server
 import           Ouroboros.Network.Protocol.ChainSync.Type (ChainSync)
 
-import           Cardano.Crypto.DSIGN.Mock
-
 import           Ouroboros.Consensus.BlockchainTime
-import           Ouroboros.Consensus.BlockchainTime.Mock
 import           Ouroboros.Consensus.Config
+import qualified Ouroboros.Consensus.HardFork.History as HardFork
+import           Ouroboros.Consensus.Ledger.Abstract
 import           Ouroboros.Consensus.Ledger.Extended hiding (ledgerState)
 import           Ouroboros.Consensus.MiniProtocol.ChainSync.Client
 import           Ouroboros.Consensus.Node.ProtocolInfo
@@ -64,10 +66,10 @@ import           Ouroboros.Consensus.Util.ResourceRegistry
 import           Ouroboros.Consensus.Util.STM (Fingerprint (..),
                      WithFingerprint (..))
 
-import           Test.Util.BlockchainTime
 import           Test.Util.Orphans.Arbitrary ()
 import           Test.Util.Orphans.IOLike ()
 import           Test.Util.TestBlock
+import           Test.Util.Time
 import           Test.Util.Tracer (recordingTracerTVar)
 
 {-------------------------------------------------------------------------------
@@ -261,8 +263,7 @@ runChainSync
 runChainSync securityParam maxClockSkew (ClientUpdates clientUpdates)
     (ServerUpdates serverUpdates) startSyncingAt = withRegistry $ \registry -> do
 
-    testBtime <- newTestBlockchainTime registry numSlots slotLengths
-    let btime = testBlockchainTime testBtime
+    testBtime <- newTestBlockchainTime registry numSlots slotLength
 
     -- Set up the client
     varCandidates      <- uncheckedNewTVarM Map.empty
@@ -274,7 +275,7 @@ runChainSync securityParam maxClockSkew (ClientUpdates clientUpdates)
     -- at the final state of each candidate.
     varFinalCandidates <- uncheckedNewTVarM Map.empty
 
-    (tracer, getTrace) <- first (addSlotNo btime) <$> recordingTracerTVar
+    (tracer, getTrace) <- first (addSlotNo testBtime) <$> recordingTracerTVar
     let chainSyncTracer = contramap Left  tracer
         protocolTracer  = contramap Right tracer
 
@@ -300,7 +301,7 @@ runChainSync securityParam maxClockSkew (ClientUpdates clientUpdates)
                    (pipelineDecisionLowHighMark 10 20)
                    chainSyncTracer
                    (nodeCfg clientId)
-                   btime
+                   (testBlockchainTime testBtime)
                    maxClockSkew
                    chainDbView
 
@@ -311,7 +312,7 @@ runChainSync securityParam maxClockSkew (ClientUpdates clientUpdates)
 
     -- Schedule updates of the client and server chains
     varLastUpdate <- uncheckedNewTVarM 0
-    void $ onSlotChange btime $ \slot -> do
+    void $ onSlotChange registry testBtime "scheduled updates" $ \slot -> do
       -- Stop updating the client and server chains when the chain sync client
       -- has thrown an exception, so that at the end, we can read the chains
       -- in the states they were in when the exception was thrown.
@@ -339,7 +340,7 @@ runChainSync securityParam maxClockSkew (ClientUpdates clientUpdates)
         atomically $ writeTVar varLastUpdate slot
 
     -- Connect client to server and run the chain sync protocol
-    onSlot btime startSyncingAt $ do
+    onSlot registry testBtime "startSyncing" startSyncingAt $ do
       -- When updates are planned at the same slot that we start syncing, we
       -- wait until these updates are done before we start syncing.
       when (isJust (Map.lookup startSyncingAt clientUpdates) ||
@@ -352,7 +353,7 @@ runChainSync securityParam maxClockSkew (ClientUpdates clientUpdates)
       -- Don't link the thread (which will cause the exception to be rethrown
       -- in the main thread), just catch the exception and store it, because
       -- we want a "regular ending".
-      void $ forkThread registry $
+      void $ forkThread registry "ChainSyncClient" $
         bracketChainSyncClient
            chainSyncTracer
            chainDbView
@@ -367,7 +368,7 @@ runChainSync securityParam maxClockSkew (ClientUpdates clientUpdates)
           atomically $ writeTVar varClientException (Just e)
           -- Rethrow, but it will be ignored anyway.
           throwM e
-      void $ forkLinkedThread registry $
+      void $ forkLinkedThread registry "ChainSyncServer" $
         runPeer nullTracer codecChainSyncId serverChannel
                 (chainSyncServerPeer server)
 
@@ -393,8 +394,8 @@ runChainSync securityParam maxClockSkew (ClientUpdates clientUpdates)
   where
     k = maxRollbacks securityParam
 
-    slotLengths :: SlotLengths
-    slotLengths = singletonSlotLengths $ slotLengthFromSec 20
+    slotLength :: SlotLength
+    slotLength = slotLengthFromSec 20
 
     nodeCfg :: CoreNodeId -> TopLevelConfig TestBlock
     nodeCfg coreNodeId = TopLevelConfig {
@@ -410,9 +411,12 @@ runChainSync securityParam maxClockSkew (ClientUpdates clientUpdates)
                           , (CoreId (CoreNodeId 1), VerKeyMockDSIGN 1)
                           ]
           }
-      , configLedger = LedgerConfig
-      , configBlock  = TestBlockConfig slotLengths numCoreNodes
+      , configLedger = ()
+      , configBlock  = TestBlockConfig slotLength eraParams numCoreNodes
       }
+
+    eraParams :: HardFork.EraParams
+    eraParams = HardFork.defaultEraParams securityParam slotLength
 
     numCoreNodes :: NumCoreNodes
     numCoreNodes = NumCoreNodes 2
@@ -426,11 +430,11 @@ runChainSync securityParam maxClockSkew (ClientUpdates clientUpdates)
       , startSyncingAt
       ]
 
-    addSlotNo :: forall ev. BlockchainTime m
+    addSlotNo :: forall ev. TestBlockchainTime m
               -> Tracer m (SlotNo, ev)
               -> Tracer m ev
     addSlotNo btime tr = Tracer $ \ev -> do
-      slot <- atomically $ getCurrentSlot btime
+      slot <- atomically $ testBlockchainTimeSlot btime
       traceWith tr (slot, ev)
 
 getAddBlock :: ChainUpdate -> Maybe TestBlock
@@ -449,14 +453,13 @@ updateClientState cfg chain ledgerState chainUpdates =
       Just bs -> (chain', ledgerState')
         where
           chain'       = foldl' (flip Chain.addBlock) chain bs
-          ledgerState' = runValidate $
-            foldExtLedgerState BlockNotPreviouslyApplied cfg bs ledgerState
+          ledgerState' = runValidate $ foldLedger cfg bs ledgerState
       Nothing
       -- There was a roll back in the updates, so validate the chain from
       -- scratch
         | Just chain' <- Chain.applyChainUpdates (toChainUpdates chainUpdates) chain
         -> let ledgerState' = runValidate $
-                 foldExtLedgerState BlockNotPreviouslyApplied cfg (Chain.toOldestFirst chain') testInitExtLedger
+                 foldLedger cfg (Chain.toOldestFirst chain') testInitExtLedger
            in (chain', ledgerState')
         | otherwise
         -> error "Client chain update failed"

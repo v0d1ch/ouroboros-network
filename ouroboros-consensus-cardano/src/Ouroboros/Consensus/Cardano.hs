@@ -8,6 +8,7 @@ module Ouroboros.Consensus.Cardano (
   , ProtocolLeaderSchedule
   , ProtocolMockPBFT
   , ProtocolRealPBFT
+  , ProtocolRealTPraos
     -- * Abstract over the various protocols
   , Protocol(..)
   , verifyProtocol
@@ -24,7 +25,6 @@ import qualified Cardano.Chain.Genesis as Genesis
 import qualified Cardano.Chain.Update as Update
 
 import           Ouroboros.Consensus.Block
-import           Ouroboros.Consensus.BlockchainTime
 import           Ouroboros.Consensus.Byron.Ledger
 import           Ouroboros.Consensus.Byron.Node as X
 import           Ouroboros.Consensus.Byron.Protocol (PBftByronCrypto)
@@ -42,6 +42,10 @@ import           Ouroboros.Consensus.Protocol.Abstract as X
 import           Ouroboros.Consensus.Protocol.BFT as X
 import           Ouroboros.Consensus.Protocol.LeaderSchedule as X
 import           Ouroboros.Consensus.Protocol.PBFT as X
+import           Ouroboros.Consensus.Shelley.Ledger (ShelleyBlock)
+import           Ouroboros.Consensus.Shelley.Node as X
+import           Ouroboros.Consensus.Shelley.Protocol (TPraos,
+                     TPraosStandardCrypto)
 import           Ouroboros.Consensus.Util
 
 {-------------------------------------------------------------------------------
@@ -58,6 +62,7 @@ type ProtocolMockPraos      = Praos PraosMockCrypto
 type ProtocolLeaderSchedule = WithLeaderSchedule (Praos PraosCryptoUnused)
 type ProtocolMockPBFT       = PBft PBftMockCrypto
 type ProtocolRealPBFT       = PBft PBftByronCrypto
+type ProtocolRealTPraos     = TPraos TPraosStandardCrypto
 
 {-------------------------------------------------------------------------------
   Abstract over the various protocols
@@ -70,42 +75,34 @@ data Protocol blk p where
     :: NumCoreNodes
     -> CoreNodeId
     -> SecurityParam
-    -> SlotLengths
-    -> Protocol
-         (SimpleBftBlock SimpleMockCrypto BftMockCrypto)
-         ProtocolMockBFT
+    -> BlockConfig MockBftBlock
+    -> Protocol MockBftBlock ProtocolMockBFT
 
   -- | Run Praos against the mock ledger
   ProtocolMockPraos
     :: NumCoreNodes
     -> CoreNodeId
     -> PraosParams
-    -> SlotLengths
-    -> Protocol
-         (SimplePraosBlock SimpleMockCrypto PraosMockCrypto)
-         ProtocolMockPraos
+    -> BlockConfig MockPraosBlock
+    -> Protocol MockPraosBlock ProtocolMockPraos
 
   -- | Run Praos against the mock ledger but with an explicit leader schedule
   ProtocolLeaderSchedule
     :: NumCoreNodes
     -> CoreNodeId
     -> PraosParams
-    -> SlotLengths
+    -> BlockConfig MockPraosRuleBlock
     -> LeaderSchedule
-    -> Protocol
-         (SimplePraosRuleBlock SimpleMockCrypto)
-         ProtocolLeaderSchedule
+    -> Protocol MockPraosRuleBlock ProtocolLeaderSchedule
 
   -- | Run PBFT against the mock ledger
   ProtocolMockPBFT
     :: PBftParams
-    -> SlotLengths
+    -> BlockConfig MockPBftBlock
     -> CoreNodeId
-    -> Protocol
-         (SimplePBftBlock SimpleMockCrypto PBftMockCrypto)
-         ProtocolMockPBFT
+    -> Protocol MockPBftBlock ProtocolMockPBFT
 
-  -- | Run PBFT against the real ledger
+  -- | Run PBFT against the real Byron ledger
   ProtocolRealPBFT
     :: Genesis.Config
     -> Maybe PBftSignatureThreshold
@@ -116,12 +113,22 @@ data Protocol blk p where
          ByronBlock
          ProtocolRealPBFT
 
+  -- | Run TPraos against the real Shelley ledger
+  ProtocolRealTPraos
+    :: ShelleyGenesis TPraosStandardCrypto
+    -> ProtVer
+    -> Maybe (TPraosLeaderCredentials TPraosStandardCrypto)
+    -> Protocol
+         (ShelleyBlock TPraosStandardCrypto)
+         ProtocolRealTPraos
+
 verifyProtocol :: Protocol blk p -> (p :~: BlockProtocol blk)
 verifyProtocol ProtocolMockBFT{}        = Refl
 verifyProtocol ProtocolMockPraos{}      = Refl
 verifyProtocol ProtocolLeaderSchedule{} = Refl
 verifyProtocol ProtocolMockPBFT{}       = Refl
 verifyProtocol ProtocolRealPBFT{}       = Refl
+verifyProtocol ProtocolRealTPraos{}     = Refl
 
 {-------------------------------------------------------------------------------
   Data required to run a protocol
@@ -129,20 +136,23 @@ verifyProtocol ProtocolRealPBFT{}       = Refl
 
 -- | Data required to run the selected protocol
 protocolInfo :: Protocol blk p -> ProtocolInfo blk
-protocolInfo (ProtocolMockBFT nodes nid params slotLengths) =
-    protocolInfoBft nodes nid params slotLengths
+protocolInfo (ProtocolMockBFT nodes nid params cfg) =
+    protocolInfoBft nodes nid params cfg
 
-protocolInfo (ProtocolMockPraos nodes nid params slotLengths) =
-    protocolInfoPraos nodes nid params slotLengths
+protocolInfo (ProtocolMockPraos nodes nid params cfg) =
+    protocolInfoPraos nodes nid params cfg
 
-protocolInfo (ProtocolLeaderSchedule nodes nid params slotLengths schedule) =
-    protocolInfoPraosRule nodes nid params slotLengths schedule
+protocolInfo (ProtocolLeaderSchedule nodes nid params cfg schedule) =
+    protocolInfoPraosRule nodes nid params cfg schedule
 
-protocolInfo (ProtocolMockPBFT params slotLengths nid) =
-    protocolInfoMockPBFT params slotLengths nid
+protocolInfo (ProtocolMockPBFT params cfg nid) =
+    protocolInfoMockPBFT params cfg nid
 
 protocolInfo (ProtocolRealPBFT gc mthr prv swv mplc) =
     protocolInfoByron gc mthr prv swv mplc
+
+protocolInfo (ProtocolRealTPraos genesis protVer mbLeaderCredentials) =
+    protocolInfoShelley genesis protVer mbLeaderCredentials
 
 {-------------------------------------------------------------------------------
   Evidence that we can run all the supported protocols
@@ -154,3 +164,4 @@ runProtocol ProtocolMockPraos{}      = Dict
 runProtocol ProtocolLeaderSchedule{} = Dict
 runProtocol ProtocolMockPBFT{}       = Dict
 runProtocol ProtocolRealPBFT{}       = Dict
+runProtocol ProtocolRealTPraos{}     = Dict

@@ -40,6 +40,7 @@ module Ouroboros.Consensus.Storage.ImmutableDB.Types
 import           Control.Exception (Exception (..))
 import           Data.Binary (Get, Put)
 import           Data.List.NonEmpty (NonEmpty)
+import           Data.Text (Text)
 import           Data.Word
 import           GHC.Generics (Generic)
 import           GHC.Stack (CallStack, prettyCallStack)
@@ -130,8 +131,6 @@ newtype ChunkFileParser e m entry hash = ChunkFileParser
   { runChunkFileParser
       :: forall r.
          FsPath
-      -> SlotNo
-         -- Current slot (wall clock)
       -> [CRC]
          -- The expected checksums are given as input. This list can be empty
          -- when the secondary index file is missing. If the expected checksum
@@ -352,6 +351,9 @@ data TraceEvent e hash
     | InvalidSecondaryIndex ChunkNo
     | RewritePrimaryIndex   ChunkNo
     | RewriteSecondaryIndex ChunkNo
+    | Migrating Text
+      -- ^ Performing a migration of the on-disk files
+
       -- Delete after
     | DeletingAfter (ImmTipWithInfo hash)
       -- Closing the DB

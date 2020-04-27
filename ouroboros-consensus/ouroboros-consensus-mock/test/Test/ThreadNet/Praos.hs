@@ -13,7 +13,6 @@ import           Test.Tasty.QuickCheck
 import           Cardano.Slotting.Slot
 
 import           Ouroboros.Consensus.BlockchainTime
-import           Ouroboros.Consensus.BlockchainTime.Mock
 import           Ouroboros.Consensus.Mock.Ledger
 import           Ouroboros.Consensus.Mock.Node ()
 import           Ouroboros.Consensus.Mock.Node.Praos (protocolInfoPraos)
@@ -29,8 +28,10 @@ import           Test.ThreadNet.Util.HasCreator.Mock ()
 import           Test.ThreadNet.Util.NodeJoinPlan
 import           Test.ThreadNet.Util.NodeRestarts
 import           Test.ThreadNet.Util.NodeTopology
+import           Test.ThreadNet.Util.SimpleBlock
 
 import           Test.Util.Orphans.Arbitrary ()
+import           Test.Util.Time
 
 tests :: TestTree
 tests = testGroup "Praos"
@@ -54,7 +55,7 @@ tests = testGroup "Praos"
             , nodeJoinPlan
             , nodeRestarts = noRestarts
             , nodeTopology
-            , slotLengths  = singletonSlotLengths praosSlotLength
+            , slotLength   = praosSlotLength
             , initSeed
             }
     ]
@@ -66,7 +67,7 @@ tests = testGroup "Praos"
       , nodeJoinPlan = trivialNodeJoinPlan numCoreNodes
       , nodeRestarts = noRestarts
       , nodeTopology = meshNodeTopology numCoreNodes
-      , slotLengths  = singletonSlotLengths praosSlotLength
+      , slotLength   = praosSlotLength
       , initSeed     = seed
       }
 
@@ -94,14 +95,16 @@ prop_simple_praos_convergence
   params@PraosParams{praosSecurityParam}
   testConfig@TestConfig{numCoreNodes} =
     counterexample (tracesToDot testOutputNodes) $
-    prop_general
-      countSimpleGenTxs
-      praosSecurityParam
-      testConfig
-      Nothing
-      Nothing
-      (const False)
-      0
+    prop_general PropGeneralArgs
+      { pgaBlockProperty          = prop_validSimpleBlock
+      , pgaCountTxs               = countSimpleGenTxs
+      , pgaExpectedBlockRejection = const False
+      , pgaFirstBlockNo           = 0
+      , pgaFixedMaxForkLength     = Nothing
+      , pgaFixedSchedule          = Nothing
+      , pgaSecurityParam          = praosSecurityParam
+      , pgaTestConfig             = testConfig
+      }
       testOutput
   where
     testOutput@TestOutput{testOutputNodes} =
@@ -112,8 +115,11 @@ prop_simple_praos_convergence
                                       numCoreNodes
                                       nid
                                       params
-                                      (singletonSlotLengths praosSlotLength)
+                                      (defaultSimpleBlockConfig
+                                        praosSecurityParam
+                                        praosSlotLength)
             , rekeying    = Nothing
+            , txGenExtra  = ()
             }
 
     -- TODO: Right now mock Praos has an explicit epoch size in its parameters

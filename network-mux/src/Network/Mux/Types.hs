@@ -3,6 +3,8 @@
 {-# LANGUAGE DataKinds                  #-}
 {-# LANGUAGE KindSignatures             #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE NamedFieldPuns             #-}
+{-# LANGUAGE RankNTypes                 #-}
 
 module Network.Mux.Types (
       MiniProtocolLimits (..)
@@ -20,6 +22,12 @@ module Network.Mux.Types (
     , MuxBearer (..)
     , muxBearerAsChannel
     , MuxSDU (..)
+    , MuxSDUHeader (..)
+    , msTimestamp
+    , setTimestamp
+    , msNum
+    , msMode
+    , msLength
     , RemoteClockModel (..)
     , remoteClockPrecision
     ) where
@@ -36,6 +44,7 @@ import qualified Data.ByteString.Lazy as BL
 import           Control.Monad.Class.MonadTime
 
 import           Network.Mux.Channel (Channel(..))
+import           Network.Mux.Timeout (TimeoutFn)
 
 
 newtype RemoteClockModel
@@ -150,13 +159,35 @@ newtype MiniProtocolIx = MiniProtocolIx Int
 data MiniProtocolMode = ModeInitiator | ModeResponder
   deriving (Eq, Ord, Ix, Enum, Bounded, Show)
 
-data MuxSDU = MuxSDU {
-      msTimestamp :: !RemoteClockModel
-    , msNum       :: !MiniProtocolNum
-    , msMode      :: !MiniProtocolMode
-    , msLength    :: !Word16
-    , msBlob      :: !BL.ByteString
+
+data MuxSDUHeader = MuxSDUHeader {
+      mhTimestamp :: !RemoteClockModel
+    , mhNum       :: !MiniProtocolNum
+    , mhMode      :: !MiniProtocolMode
+    , mhLength    :: !Word16
     }
+
+
+data MuxSDU = MuxSDU {
+      msHeader :: !MuxSDUHeader
+    , msBlob   :: !BL.ByteString
+    }
+
+msTimestamp :: MuxSDU -> RemoteClockModel
+msTimestamp = mhTimestamp . msHeader
+
+setTimestamp :: MuxSDU -> RemoteClockModel -> MuxSDU
+setTimestamp sdu@MuxSDU { msHeader } mhTimestamp =
+    sdu { msHeader = msHeader { mhTimestamp } } 
+
+msNum :: MuxSDU -> MiniProtocolNum
+msNum = mhNum . msHeader
+
+msMode :: MuxSDU -> MiniProtocolMode
+msMode = mhMode . msHeader
+
+msLength :: MuxSDU -> Word16
+msLength = mhLength . msHeader
 
 
 -- | Low level access to underlying socket or pipe.  There are three smart
@@ -168,9 +199,9 @@ data MuxSDU = MuxSDU {
 --
 data MuxBearer m = MuxBearer {
     -- | Timestamp and send MuxSDU.
-      write   :: MuxSDU -> m Time
+      write   :: TimeoutFn m -> MuxSDU -> m Time
     -- | Read a MuxSDU
-    , read    :: m (MuxSDU, Time)
+    , read    :: TimeoutFn m -> m (MuxSDU, Time)
     -- | Return a suitable MuxSDU payload size.
     , sduSize :: Word16
     }
@@ -186,18 +217,22 @@ muxBearerAsChannel
   -> Channel IO
 muxBearerAsChannel bearer protocolNum mode =
       Channel {
-        send = \blob -> void $ write bearer (wrap blob),
-        recv = Just . msBlob . fst <$> read bearer
+        send = \blob -> void $ write bearer noTimeout (wrap blob),
+        recv = Just . msBlob . fst <$> read bearer noTimeout
       }
     where
       -- wrap a 'ByteString' as 'MuxSDU'
       wrap :: BL.ByteString -> MuxSDU
       wrap blob = MuxSDU {
             -- it will be filled when the 'MuxSDU' is send by the 'bearer'
-            msTimestamp = RemoteClockModel 0,
-            msNum  = protocolNum,
-            msMode = mode,
-            msLength = fromIntegral $ BL.length blob,
+            msHeader = MuxSDUHeader {
+                mhTimestamp = RemoteClockModel 0,
+                mhNum       = protocolNum,
+                mhMode      = mode,
+                mhLength    = fromIntegral $ BL.length blob
+              },
             msBlob = blob
           }
 
+      noTimeout :: TimeoutFn IO
+      noTimeout _ r = Just <$> r

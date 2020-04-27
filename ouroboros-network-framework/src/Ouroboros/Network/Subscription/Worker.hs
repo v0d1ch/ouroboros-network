@@ -36,7 +36,6 @@ import           Data.List.NonEmpty (NonEmpty)
 import qualified Data.List.NonEmpty as NE
 import           Data.Void (absurd)
 import           GHC.Stack
-import           Network.Socket (Family( AF_UNIX ))
 import           Text.Printf
 
 import           Control.Monad.Class.MonadTime
@@ -60,7 +59,7 @@ import           Ouroboros.Network.Socket (ConnectionHandle, waitForConnection)
 -- info.
 --
 defaultConnectionAttemptDelay :: DiffTime
-defaultConnectionAttemptDelay = 0.250 -- 250ms delay
+defaultConnectionAttemptDelay = 0.025 -- 25ms delay
 
 -- | Minimum time to wait between connection attempts.
 --

@@ -19,6 +19,12 @@ let
     # the Haskell.nix package set, reduced to local packages.
     (selectProjectPackages ouroborosNetworkHaskellPackages);
 
+  validate-mainnet = import ./nix/validate-mainnet.nix {
+    inherit pkgs;
+    byron-db-converter = haskellPackages.ouroboros-consensus-byron.components.exes.db-converter;
+    onlyImmDB = false;
+  };
+
   self = {
     inherit haskellPackages;
 
@@ -38,9 +44,15 @@ let
       tests = collectChecks haskellPackages;
     };
 
+    # These are not run on hydra, but will be built separately in a nightly
+    # build job.
+    nightly-checks = {
+      inherit validate-mainnet;
+    };
+
     shell = import ./shell.nix {
       inherit pkgs;
       withHoogle = true;
     };
-};
+  };
 in self

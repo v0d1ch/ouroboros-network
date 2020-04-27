@@ -12,7 +12,6 @@ module Ouroboros.Network.Connections.Socket.Server
 
 import Control.Monad.Class.MonadThrow
 import Data.Void (Void, absurd)
-import qualified Network.Socket as Socket (SockAddr)
 
 import Ouroboros.Network.ConnectionId
 import Ouroboros.Network.Connections.Types

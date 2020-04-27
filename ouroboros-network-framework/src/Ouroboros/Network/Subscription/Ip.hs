@@ -35,7 +35,7 @@ import qualified Network.Socket as Socket
 import           Text.Printf
 
 import           Ouroboros.Network.ConnectionId
-import           Ouroboros.Network.ErrorPolicy
+-- import           Ouroboros.Network.ErrorPolicy
 import           Ouroboros.Network.Subscription.Worker
 
 -- | Minimum time to wait between ip reconnects

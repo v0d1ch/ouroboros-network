@@ -1,3 +1,4 @@
+{-# LANGUAGE BangPatterns        #-}
 {-# LANGUAGE DeriveTraversable   #-}
 {-# LANGUAGE FlexibleContexts    #-}
 {-# LANGUAGE LambdaCase          #-}
@@ -10,8 +11,12 @@ module Ouroboros.Consensus.Storage.ImmutableDB.Impl.Util
   ( -- * Utilities
     Two (..)
   , renderFile
+  , fsPathChunkFile
+  , fsPathPrimaryIndexFile
+  , fsPathSecondaryIndexFile
   , throwUserError
   , throwUnexpectedError
+  , wrapFsError
   , tryImmDB
   , parseDBFile
   , validateIteratorRange
@@ -27,6 +32,7 @@ import           Control.Monad.Except (runExceptT, throwError)
 import           Data.Binary.Get (Get)
 import qualified Data.Binary.Get as Get
 import qualified Data.ByteString.Lazy as Lazy
+import           Data.List (foldl')
 import           Data.Set (Set)
 import qualified Data.Set as Set
 import           Data.Text (Text)
@@ -57,16 +63,69 @@ import           Ouroboros.Consensus.Storage.ImmutableDB.Types
 data Two a = Two a a
   deriving (Functor, Foldable, Traversable)
 
+fsPathChunkFile :: ChunkNo -> FsPath
+fsPathChunkFile = renderFile "chunk"
+
+fsPathPrimaryIndexFile :: ChunkNo -> FsPath
+fsPathPrimaryIndexFile = renderFile "primary"
+
+fsPathSecondaryIndexFile :: ChunkNo -> FsPath
+fsPathSecondaryIndexFile = renderFile "secondary"
+
+-- | Opposite of 'parseDBFile'.
 renderFile :: Text -> ChunkNo -> FsPath
 renderFile fileType (ChunkNo chunk) = fsPathFromList [name]
   where
     name = T.justifyRight 5 '0' (T.pack (show chunk)) <> "." <> fileType
+
+-- | Parse the prefix and chunk number from the filename of an index or chunk
+-- file.
+--
+-- > parseDBFile "00001.chunk"
+-- Just ("chunk", 1)
+-- > parseDBFile "00012.primary"
+-- Just ("primary", 12)
+parseDBFile :: String -> Maybe (String, ChunkNo)
+parseDBFile s = case T.splitOn "." $ T.pack s of
+    [n, ext] -> (T.unpack ext,) . ChunkNo <$> readMaybe (T.unpack n)
+    _        -> Nothing
+
+-- | Go through all files, making three sets: the set of chunk files, primary
+-- index files, and secondary index files, discarding all others.
+dbFilesOnDisk :: Set String -> (Set ChunkNo, Set ChunkNo, Set ChunkNo)
+dbFilesOnDisk = foldl' categorise mempty
+  where
+    categorise fs@(!chunk, !primary, !secondary) file =
+      case parseDBFile file of
+        Just ("chunk",     n) -> (Set.insert n chunk, primary, secondary)
+        Just ("primary",   n) -> (chunk, Set.insert n primary, secondary)
+        Just ("secondary", n) -> (chunk, primary, Set.insert n secondary)
+        _                     -> fs
+
+-- | Remove all chunk and index starting from the given chunk (included).
+removeFilesStartingFrom :: (HasCallStack, Monad m)
+                        => HasFS m h
+                        -> ChunkNo
+                        -> m ()
+removeFilesStartingFrom HasFS { removeFile, listDirectory } chunk = do
+    filesInDBFolder <- listDirectory (mkFsPath [])
+    let (chunkFiles, primaryFiles, secondaryFiles) = dbFilesOnDisk filesInDBFolder
+    forM_ (takeWhile (>= chunk) (Set.toDescList chunkFiles)) $ \e ->
+      removeFile (fsPathChunkFile e)
+    forM_ (takeWhile (>= chunk) (Set.toDescList primaryFiles)) $ \i ->
+      removeFile (fsPathPrimaryIndexFile i)
+    forM_ (takeWhile (>= chunk) (Set.toDescList secondaryFiles)) $ \i ->
+      removeFile (fsPathSecondaryIndexFile i)
 
 throwUserError :: (MonadThrow m, HasCallStack) => UserError -> m a
 throwUserError e = throwM $ UserError e callStack
 
 throwUnexpectedError :: MonadThrow m => UnexpectedError -> m a
 throwUnexpectedError = throwM . UnexpectedError
+
+-- | Rewrap 'FsError' in a 'ImmutableDBError'.
+wrapFsError :: MonadCatch m => m a -> m a
+wrapFsError = handle $ throwUnexpectedError . FileSystemError
 
 -- | Execute an action and catch the 'ImmutableDBError' and 'FsError' that can
 -- be thrown by it, and wrap the 'FsError' in an 'ImmutableDBError' using the
@@ -76,25 +135,7 @@ throwUnexpectedError = throwM . UnexpectedError
 -- and catch the 'ImmutableDBError' and the 'FsError' (wrapped in the former)
 -- it may thrown.
 tryImmDB :: MonadCatch m => m a -> m (Either ImmutableDBError a)
-tryImmDB = fmap squash . try . try
-  where
-    fromFS = UnexpectedError . FileSystemError
-
-    squash :: Either FsError (Either ImmutableDBError a)
-           -> Either ImmutableDBError a
-    squash = either (Left . fromFS) id
-
--- | Parse the prefix and chunk number from the filename of an index or chunk
--- file.
---
--- > parseDBFile "00001.epoch"
--- Just ("epoch", 1)
--- > parseDBFile "00012.primary"
--- Just ("primary", 12)
-parseDBFile :: String -> Maybe (String, ChunkNo)
-parseDBFile s = case T.splitOn "." $ T.pack s of
-    [n, ext] -> (T.unpack ext,) . ChunkNo <$> readMaybe (T.unpack n)
-    _        -> Nothing
+tryImmDB = try . wrapFsError
 
 -- | Check whether the given iterator range is valid.
 --
@@ -135,33 +176,6 @@ validateIteratorRange chunkInfo tip mbStart mbEnd = runExceptT $ do
     isNewerThanTip slot = case tip of
       Origin -> True
       At b   -> slot > slotNoOfBlockOrEBB chunkInfo b
-
--- | Go through all files, making three sets: the set of chunk files, primary
--- index files, and secondary index files,, discarding all others.
-dbFilesOnDisk :: Set String -> (Set ChunkNo, Set ChunkNo, Set ChunkNo)
-dbFilesOnDisk = foldr categorise mempty
-  where
-    categorise file fs@(chunk, primary, secondary) =
-      case parseDBFile file of
-        Just ("epoch",     n) -> (Set.insert n chunk, primary, secondary)
-        Just ("primary",   n) -> (chunk, Set.insert n primary, secondary)
-        Just ("secondary", n) -> (chunk, primary, Set.insert n secondary)
-        _                     -> fs
-
--- | Remove all chunk and index starting from the given chunk (included).
-removeFilesStartingFrom :: (HasCallStack, Monad m)
-                        => HasFS m h
-                        -> ChunkNo
-                        -> m ()
-removeFilesStartingFrom HasFS { removeFile, listDirectory } chunk = do
-    filesInDBFolder <- listDirectory (mkFsPath [])
-    let (chunkFiles, primaryFiles, secondaryFiles) = dbFilesOnDisk filesInDBFolder
-    forM_ (takeWhile (>= chunk) (Set.toDescList chunkFiles)) $ \e ->
-      removeFile (renderFile "epoch" e)
-    forM_ (takeWhile (>= chunk) (Set.toDescList primaryFiles)) $ \i ->
-      removeFile (renderFile "primary" i)
-    forM_ (takeWhile (>= chunk) (Set.toDescList secondaryFiles)) $ \i ->
-      removeFile (renderFile "secondary" i)
 
 -- | Wrapper around 'Get.runGetOrFail' that throws an 'InvalidFileError' when
 -- it failed or when there was unconsumed input.

@@ -17,6 +17,7 @@ import           Data.List
 import qualified Data.Map as Map
 import           Data.Set (Set)
 import qualified Data.Set as Set
+import           Text.Read (readMaybe)
 import           Data.Void (Void)
 
 import           Control.Concurrent (threadDelay)
@@ -53,6 +54,7 @@ import           Ouroboros.Network.Testing.ConcreteBlock
 import           Ouroboros.Network.Codec
 import           Ouroboros.Network.Driver
 import           Ouroboros.Network.Protocol.Handshake.Type
+import           Ouroboros.Network.Protocol.Handshake.Unversioned
 import           Ouroboros.Network.Protocol.Handshake.Version
 
 import qualified Ouroboros.Network.Protocol.ChainSync.Client as ChainSync
@@ -75,8 +77,12 @@ main = do
     case args of
       "chainsync":"client":_  ->
         case restArgs of
-          []        -> clientChainSync [defaultLocalSocketAddrPath]
-          sockAddrs -> clientChainSync sockAddrs
+          []             -> clientChainSync [defaultLocalSocketAddrPath]
+          [sockAddrOrNr] -> clientChainSync $
+                              case readMaybe sockAddrOrNr of
+                                Just nr -> replicate nr defaultLocalSocketAddrPath
+                                Nothing -> [sockAddrOrNr]
+          sockAddrs      -> clientChainSync sockAddrs
       "chainsync":"server":_          -> do
         let sockAddr = case restArgs of
               addr:_ -> addr
@@ -145,13 +151,15 @@ demoProtocol2 chainSync =
 
 clientChainSync :: [FilePath] -> IO ()
 clientChainSync sockPaths = withIOManager $ \iocp ->
-    forConcurrently_ sockPaths $ \sockPath ->
+    forConcurrently_ (zip [0..] sockPaths) $ \(index, sockPath) -> do
+      threadDelay (50000 * index)
       connectToNode
         (localSnocket iocp sockPath)
+        unversionedHandshakeCodec
         cborTermVersionDataCodec
         nullNetworkConnectTracers
         (simpleSingletonVersions
-           (0::Int)
+           UnversionedProtocol
            (NodeToNodeVersionData $ NetworkMagic 0)
            (DictVersion nodeToNodeCodecCBORTerm)
            (\_peerid -> app))
@@ -174,11 +182,13 @@ serverChainSync sockAddr = withIOManager $ \iocp -> do
     withServerNode
       (localSnocket iocp defaultLocalSocketAddrPath)
       nullNetworkServerTracers
+      (AcceptedConnectionsLimit maxBound maxBound 0)
       (localAddressFromPath sockAddr)
+      unversionedHandshakeCodec
       cborTermVersionDataCodec
       (\(DictVersion _) -> acceptableVersion)
       (simpleSingletonVersions
-        (0::Int)
+        UnversionedProtocol
         (NodeToNodeVersionData $ NetworkMagic 0)
         (DictVersion nodeToNodeCodecCBORTerm)
         (\_peerid -> SomeResponderApplication app))
@@ -345,10 +355,11 @@ clientBlockFetch sockAddrs = withIOManager $ \iocp -> do
                     [ async $
                         connectToNode
                           (localSnocket iocp defaultLocalSocketAddrPath)
+                          unversionedHandshakeCodec
                           cborTermVersionDataCodec
                           nullNetworkConnectTracers
                           (simpleSingletonVersions
-                            (0 :: Int)
+                            UnversionedProtocol
                             (NodeToNodeVersionData (NetworkMagic 0))
                             (DictVersion nodeToNodeCodecCBORTerm)
                             app)
@@ -362,7 +373,7 @@ clientBlockFetch sockAddrs = withIOManager $ \iocp -> do
                       (contramap show stdoutTracer) -- state tracer
                       blockFetchPolicy
                       registry
-                      (BlockFetchConfiguration 1 1)
+                      (BlockFetchConfiguration 1 1 10)
                  >> return ()
 
     chainAsync <- async (chainSelection Map.empty)
@@ -388,11 +399,13 @@ serverBlockFetch sockAddr = withIOManager $ \iocp -> do
     withServerNode
       (localSnocket iocp defaultLocalSocketAddrPath)
       nullNetworkServerTracers
+      (AcceptedConnectionsLimit maxBound maxBound 0)
       (localAddressFromPath sockAddr)
+      unversionedHandshakeCodec
       cborTermVersionDataCodec
       (\(DictVersion _) -> acceptableVersion)
       (simpleSingletonVersions
-        (0::Int)
+        UnversionedProtocol
         (NodeToNodeVersionData $ NetworkMagic 0)
         (DictVersion nodeToNodeCodecCBORTerm)
         (\_peerid -> SomeResponderApplication app))

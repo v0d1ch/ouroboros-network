@@ -1,9 +1,11 @@
+{-# LANGUAGE BangPatterns      #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE RecordWildCards   #-}
 
 {-# OPTIONS_GHC -Wno-orphans #-}
 module Ouroboros.Consensus.Mock.Node.Praos (
-    protocolInfoPraos
+    MockPraosBlock
+  , protocolInfoPraos
   ) where
 
 import           Data.Map (Map)
@@ -12,7 +14,6 @@ import qualified Data.Map as Map
 import           Cardano.Crypto.KES
 import           Cardano.Crypto.VRF
 
-import           Ouroboros.Consensus.BlockchainTime
 import           Ouroboros.Consensus.Config
 import           Ouroboros.Consensus.HeaderValidation
 import           Ouroboros.Consensus.Ledger.Extended
@@ -21,13 +22,14 @@ import           Ouroboros.Consensus.Mock.Protocol.Praos
 import           Ouroboros.Consensus.Node.ProtocolInfo
 import           Ouroboros.Consensus.NodeId (CoreNodeId (..), NodeId (..))
 
+type MockPraosBlock = SimplePraosBlock SimpleMockCrypto PraosMockCrypto
+
 protocolInfoPraos :: NumCoreNodes
                   -> CoreNodeId
                   -> PraosParams
-                  -> SlotLengths
-                  -> ProtocolInfo (SimplePraosBlock SimpleMockCrypto
-                                                    PraosMockCrypto)
-protocolInfoPraos numCoreNodes nid params slotLengths =
+                  -> BlockConfig MockPraosBlock
+                  -> ProtocolInfo MockPraosBlock
+protocolInfoPraos numCoreNodes nid params cfg =
     ProtocolInfo {
         pInfoConfig = TopLevelConfig {
             configConsensus = PraosConfig {
@@ -38,8 +40,8 @@ protocolInfoPraos numCoreNodes nid params slotLengths =
               , praosInitialStake = genesisStakeDist addrDist
               , praosVerKeys      = verKeys
               }
-          , configLedger = SimpleLedgerConfig addrDist
-          , configBlock  = SimpleBlockConfig slotLengths
+          , configLedger = addrDist
+          , configBlock  = cfg
           }
       , pInfoInitLedger = ExtLedgerState {
             ledgerState = genesisSimpleLedgerState addrDist
@@ -64,6 +66,9 @@ protocolInfoPraos numCoreNodes nid params slotLengths =
     addrDist = mkAddrDist numCoreNodes
 
     verKeys :: Map CoreNodeId (VerKeyKES MockKES, VerKeyVRF MockVRF)
-    verKeys = Map.fromList [ (nid', (verKeyKES nid', verKeyVRF nid'))
-                           | nid' <- enumCoreNodes numCoreNodes
-                           ]
+    verKeys = Map.fromList
+      [ (nid', (kesKey, vrfKey))
+      | nid' <- enumCoreNodes numCoreNodes
+      , let !kesKey = verKeyKES nid'
+            !vrfKey = verKeyVRF nid'
+      ]

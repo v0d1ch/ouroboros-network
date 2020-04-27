@@ -18,7 +18,6 @@ import           Cardano.Slotting.Slot
 import           Ouroboros.Network.Block (SlotNo (..))
 
 import           Ouroboros.Consensus.BlockchainTime
-import           Ouroboros.Consensus.BlockchainTime.Mock
 import           Ouroboros.Consensus.Mock.Ledger
 import           Ouroboros.Consensus.Mock.Node ()
 import           Ouroboros.Consensus.Mock.Node.PraosRule
@@ -35,8 +34,10 @@ import           Test.ThreadNet.Util.HasCreator.Mock ()
 import           Test.ThreadNet.Util.NodeJoinPlan
 import           Test.ThreadNet.Util.NodeRestarts
 import           Test.ThreadNet.Util.NodeTopology
+import           Test.ThreadNet.Util.SimpleBlock
 
 import           Test.Util.Orphans.Arbitrary ()
+import           Test.Util.Time
 
 tests :: TestTree
 tests = testGroup "LeaderSchedule"
@@ -61,7 +62,7 @@ tests = testGroup "LeaderSchedule"
             , nodeJoinPlan
             , nodeRestarts = noRestarts
             , nodeTopology
-            , slotLengths
+            , slotLength
             , initSeed
             }
               schedule
@@ -77,7 +78,7 @@ tests = testGroup "LeaderSchedule"
     numCoreNodes = NumCoreNodes 3
     numSlots     = NumSlots $ maxRollbacks k * praosSlotsPerEpoch * numEpochs
     numEpochs    = 3
-    slotLengths  = singletonSlotLengths praosSlotLength
+    slotLength   = praosSlotLength
 
 praosSlotLength :: SlotLength
 praosSlotLength = slotLengthFromSec 2
@@ -90,14 +91,16 @@ prop_simple_leader_schedule_convergence
   params@PraosParams{praosSecurityParam}
   testConfig@TestConfig{numCoreNodes} schedule =
     counterexample (tracesToDot testOutputNodes) $
-    prop_general
-      countSimpleGenTxs
-      praosSecurityParam
-      testConfig
-      (Just schedule)
-      Nothing
-      (const False)
-      0
+    prop_general PropGeneralArgs
+      { pgaBlockProperty          = prop_validSimpleBlock
+      , pgaCountTxs               = countSimpleGenTxs
+      , pgaExpectedBlockRejection = const False
+      , pgaFirstBlockNo           = 0
+      , pgaFixedMaxForkLength     = Nothing
+      , pgaFixedSchedule          = Just schedule
+      , pgaSecurityParam          = praosSecurityParam
+      , pgaTestConfig             = testConfig
+      }
       testOutput
   where
     testOutput@TestOutput{testOutputNodes} =
@@ -108,9 +111,12 @@ prop_simple_leader_schedule_convergence
                                       numCoreNodes
                                       nid
                                       params
-                                      (singletonSlotLengths praosSlotLength)
+                                      (defaultSimpleBlockConfig
+                                        praosSecurityParam
+                                        praosSlotLength)
                                       schedule
             , rekeying    = Nothing
+            , txGenExtra  = ()
             }
 
     -- I don't think this value actually matters if we override the leader

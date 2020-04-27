@@ -9,6 +9,7 @@
 module Ouroboros.Network.Diffusion
   ( DiffusionTracers (..)
   , DiffusionArguments (..)
+  , AcceptedConnectionsLimit (..)
   , DiffusionApplications (..)
   , OuroborosApplication (..)
   , runDataDiffusion
@@ -53,7 +54,10 @@ import           Ouroboros.Network.IOManager
 import           Ouroboros.Network.Mux
 import           Ouroboros.Network.NodeToClient (NodeToClientVersion (..) )
 import qualified Ouroboros.Network.NodeToClient as NodeToClient
-import           Ouroboros.Network.NodeToNode (NodeToNodeVersion (..))
+import           Ouroboros.Network.NodeToNode ( NodeToNodeVersion (..)
+                                              , AcceptedConnectionsLimit (..)
+                                              , AcceptConnectionsPolicyTrace (..)
+                                              )
 import qualified Ouroboros.Network.NodeToNode   as NodeToNode
 import           Ouroboros.Network.Socket ( ConnectionHandle
                                           , NetworkServerTracers (..)
@@ -80,11 +84,18 @@ data DiffusionTracers = DiffusionTracers {
       -- ^ Handshake protocol tracer
     , dtHandshakeLocalTracer   :: Tracer IO NodeToClient.HandshakeTr
       -- ^ Handshake protocol tracer for local clients
-    , dtConnectionTracer      :: Tracer IO (WithConnectionId'
+    , dtConnectionTracer       :: Tracer IO (WithConnectionId'
                                              Socket.SockAddr
                                              (MaybeAddress Socket.SockAddr)
                                              ConnectionTrace)
-    , dtLocalConnectionTracer :: Tracer IO (WithAddress LocalAddress ConnectionTrace)
+    , dtLocalConnectionTracer  :: Tracer IO (WithConnectionId'
+                                             LocalAddress
+                                             (MaybeAddress LocalAddress)
+                                             ConnectionTrace)
+    , dtErrorPolicyTracer      :: Tracer IO (WithAddress Socket.SockAddr ErrorPolicyTrace)
+    , dtLocalErrorPolicyTracer :: Tracer IO (WithAddress LocalAddress    ErrorPolicyTrace)
+    , dtAcceptPolicyTracer     :: Tracer IO AcceptConnectionsPolicyTrace
+      -- ^ Trace rate limiting of accepted connections
     }
 
 
@@ -99,6 +110,8 @@ data DiffusionArguments = DiffusionArguments {
       -- ^ ip subscription addresses
     , daDnsProducers :: [DnsSubscriptionTarget]
       -- ^ list of domain names to subscribe to
+    , daAcceptedConnectionsLimit :: AcceptedConnectionsLimit
+      -- ^ parameters for limiting number of accepted connections
     }
 
 data DiffusionApplications = DiffusionApplications {
@@ -157,6 +170,7 @@ runDataDiffusion tracers
                                     , daLocalAddress
                                     , daIpProducers
                                     , daDnsProducers
+                                    -- , daAcceptedConnectionsLimit
                                     }
                  applications@DiffusionApplications { daErrorPolicies } =
     withIOManager $ \iocp -> do
@@ -178,13 +192,17 @@ runDataDiffusion tracers
         -- node-to-client protocol.
         localConnectionRequest
           :: LocalRequest provenance
-          -> SomeVersionedApplication NodeToClientVersion DictVersion LocalAddress provenance
-        localConnectionRequest ClientConnection = SomeVersionedResponderApp
-          (NetworkServerTracers
-            dtMuxLocalTracer
-            dtHandshakeLocalTracer
-            dtConnectionTracer)
-          ((fmap . fmap) SomeResponderApplication (daLocalResponderApplication applications))
+          -> SomeVersionedApplication
+              NodeToClientVersion
+              DictVersion LocalAddress provenance
+        localConnectionRequest ClientConnection =
+          SomeVersionedResponderApp
+            (NetworkServerTracers
+              dtMuxLocalTracer
+              dtHandshakeLocalTracer
+              dtLocalConnectionTracer
+              dtAcceptPolicyTracer)
+            ((fmap . fmap) SomeResponderApplication (daLocalResponderApplication applications))
 
         -- Note-to-node connections request: for a PeerConnection we do the
         -- responder app `daResponderApplication`, and for the others we choose
@@ -196,7 +214,8 @@ runDataDiffusion tracers
           (NetworkServerTracers
             dtMuxTracer
             dtHandshakeTracer
-            dtConnectionTracer)
+            dtConnectionTracer
+            dtAcceptPolicyTracer)
           ((fmap . fmap) SomeResponderApplication (daResponderApplication applications))
         -- IP or DNS subscription requests are locally-initiated (requests
         -- from subscribers to _us_ are `PeerConnection` above.
@@ -218,14 +237,19 @@ runDataDiffusion tracers
           Just (e' :: IOException) ->
             traceWith
               dtLocalConnectionTracer
-              (WithAddress a (ConnectionTraceAcceptException e'))
+              (WithConnectionId
+                (ConnectionId a UnknownAddress)
+                (ConnectionTraceAcceptException e'))
           Nothing -> pure ()
 
         acceptException :: Socket.SockAddr -> SomeException -> IO ()
         acceptException a e = case fromException e of
           Just (e' :: IOException) ->
-            traceWith (WithConnectionId (ConnectionId a UnknownAddress) `contramap` dtConnectionTracer) $
-              ConnectionTraceAcceptException e'
+            traceWith
+              dtConnectionTracer
+              (WithConnectionId
+                (ConnectionId a UnknownAddress)
+                (ConnectionTraceAcceptException e'))
           Nothing -> pure ()
 
         -- How to run a local server: take the `daLocalAddress` and run an
@@ -233,10 +257,15 @@ runDataDiffusion tracers
         runLocalServer
           :: Connections (ConnectionId LocalAddress) LocalFD LocalRequest accept reject IO
           -> IO Void
-        runLocalServer n2cConnections = Server.withSocket localSnocket addr $
-          \boundAddr socket -> Server.acceptLoop localSnocket n2cConnections
-            boundAddr ClientConnection (localAcceptException boundAddr)
-            (Snocket.accept snocket socket)
+        runLocalServer n2cConnections =
+          Server.withSocket localSnocket addr $ \boundAddr socket ->
+            Server.acceptLoop
+              localSnocket
+              n2cConnections
+              boundAddr
+              ClientConnection
+              (localAcceptException boundAddr)
+              (Snocket.accept localSnocket socket)
           where
             addr = Snocket.localAddressFromPath daLocalAddress
 
@@ -247,10 +276,15 @@ runDataDiffusion tracers
           :: Connections (ConnectionId Socket.SockAddr) Socket.Socket Request accept reject IO
           -> AddrInfo
           -> IO Void
-        runServer n2nConnections addrInfo = Server.withSocket snocket addr $
-          \boundAddr socket -> Server.acceptLoop snocket n2nConnections
-            boundAddr PeerConnection (acceptException boundAddr)
-            (Snocket.accept snocket socket)
+        runServer n2nConnections addrInfo =
+          Server.withSocket snocket addr $ \boundAddr socket ->
+            Server.acceptLoop
+              snocket
+              n2nConnections
+              boundAddr
+              PeerConnection
+              (acceptException boundAddr)
+              (Snocket.accept snocket socket)
           where
             addr = Socket.addrAddress addrInfo
 
@@ -289,6 +323,9 @@ runDataDiffusion tracers
                      , dtHandshakeLocalTracer
                      , dtConnectionTracer
                      , dtLocalConnectionTracer
+                     -- , dtErrorPolicyTracer
+                     -- , dtLocalErrorPolicyTracer
+                     , dtAcceptPolicyTracer
                      } = tracers
 
     initiatorLocalAddresses :: LocalAddresses

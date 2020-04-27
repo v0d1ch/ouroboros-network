@@ -50,6 +50,7 @@ data family ConsensusConfig p :: *
 class ( Show (ConsensusState p)
       , Show (ValidationErr  p)
       , Show (LedgerView     p)
+      , Eq   (ConsensusState p)
       , Eq   (ValidationErr  p)
       , Eq   (LedgerView     p)
       , NoUnexpectedThunks (ConsensusConfig p)
@@ -156,6 +157,9 @@ class ( Show (ConsensusState p)
                 -> LedgerView      p
                 -> ConsensusState  p
                 -> m (Maybe (IsLeader p))
+
+  -- | Check if a node is configured such that it can be a leader.
+  checkIfCanBeLeader :: ConsensusConfig p -> Bool
 
   -- | Apply a header
   updateConsensusState :: HasCallStack

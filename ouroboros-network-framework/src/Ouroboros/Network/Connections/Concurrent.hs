@@ -20,7 +20,8 @@ import Control.Exception (Exception, fromException)
 import Control.Monad.Class.MonadSTM.Strict
 import Control.Monad.Class.MonadAsync
 import Control.Monad.Class.MonadFork (MonadFork, ThreadId, myThreadId, throwTo)
-import Control.Monad.Class.MonadThrow hiding (handle)
+import Control.Monad.Class.MonadThrow hiding (Handler (..), handle)
+import Control.Monad.Class.MonadThrow (MonadCatch (catch, onException))
 import Control.Monad (forM_)
 import Control.Monad.Fix (MonadFix)
 import Data.Map.Strict (Map)

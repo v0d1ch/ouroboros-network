@@ -16,6 +16,7 @@ module Ouroboros.Consensus.Util.IOLike (
   , MonadSTMTxExtended(..)
     -- *** MonadFork
   , MonadFork(..) -- TODO: Should we hide this in favour of MonadAsync?
+  , labelThisThread
   , MonadThread(..)
     -- *** MonadAsync
   , MonadAsyncSTM(..)
@@ -34,6 +35,8 @@ module Ouroboros.Consensus.Util.IOLike (
   , diffTime
     -- *** MonadDelay
   , MonadDelay(..)
+    -- *** MonadEventlog
+  , MonadEventlog(..)
     -- *** Cardano prelude
   , NoUnexpectedThunks(..)
   ) where
@@ -43,6 +46,7 @@ import qualified Control.Concurrent.STM as IO
 import           Cardano.Prelude (Natural, NoUnexpectedThunks (..))
 
 import           Control.Monad.Class.MonadAsync
+import           Control.Monad.Class.MonadEventlog
 import           Control.Monad.Class.MonadFork
 import           Control.Monad.Class.MonadST
 import           Control.Monad.Class.MonadThrow
@@ -70,15 +74,16 @@ instance MonadSTMTxExtended IO.STM where
   IOLike
 -------------------------------------------------------------------------------}
 
-class ( MonadAsync  m
-      , MonadFork   m
-      , MonadST     m
-      , MonadTime   m
-      , MonadDelay  m
-      , MonadThread m
-      , MonadThrow  m
-      , MonadCatch  m
-      , MonadMask   m
+class ( MonadAsync    m
+      , MonadEventlog m
+      , MonadFork     m
+      , MonadST       m
+      , MonadTime     m
+      , MonadDelay    m
+      , MonadThread   m
+      , MonadThrow    m
+      , MonadCatch    m
+      , MonadMask     m
       , MonadThrow (STM m)
       , MonadSTMTxExtended (STM m)
       , forall a. NoUnexpectedThunks (m a)

@@ -1,8 +1,10 @@
-{-# LANGUAGE DeriveAnyClass  #-}
-{-# LANGUAGE DeriveGeneric   #-}
-{-# LANGUAGE DerivingVia     #-}
-{-# LANGUAGE RecordWildCards #-}
-{-# LANGUAGE TypeFamilies    #-}
+{-# LANGUAGE DeriveAnyClass        #-}
+{-# LANGUAGE DeriveGeneric         #-}
+{-# LANGUAGE DerivingVia           #-}
+{-# LANGUAGE FlexibleInstances     #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE RecordWildCards       #-}
+{-# LANGUAGE TypeFamilies          #-}
 
 {-# OPTIONS -Wno-orphans #-}
 
@@ -13,7 +15,6 @@ module Ouroboros.Consensus.ByronSpec.Ledger.Ledger (
   , updateByronSpecLedgerStateNewTip
     -- * Type family instances
   , LedgerState(..)
-  , LedgerConfig(..)
   ) where
 
 import           Codec.Serialise
@@ -22,8 +23,7 @@ import           GHC.Generics (Generic)
 
 import           Cardano.Prelude (AllowThunk (..), NoUnexpectedThunks)
 
-import qualified Cardano.Ledger.Spec.STS.UTXO as Spec
-import qualified Cardano.Spec.Chain.STS.Rule.Chain as Spec
+import qualified Byron.Spec.Chain.STS.Rule.Chain as Spec
 import qualified Control.State.Transition as Spec
 
 import           Ouroboros.Network.Block
@@ -43,38 +43,28 @@ newtype ByronSpecLedgerError = ByronSpecLedgerError {
   deriving (Show, Eq)
   deriving NoUnexpectedThunks via AllowThunk ByronSpecLedgerError
 
-instance UpdateLedger ByronSpecBlock where
-  data LedgerState ByronSpecBlock = ByronSpecLedgerState {
-        -- | Tip of the ledger (most recently applied block, if any)
-        --
-        -- The spec state stores the last applied /hash/, but not the /slot/.
-        byronSpecLedgerTip :: Maybe SlotNo
-
-        -- | The spec state proper
-      , byronSpecLedgerState :: Spec.State Spec.CHAIN
-      }
-    deriving stock (Show, Eq, Generic)
-    deriving anyclass (Serialise)
-    deriving NoUnexpectedThunks via AllowThunk (LedgerState ByronSpecBlock)
-
-  newtype LedgerConfig ByronSpecBlock = ByronSpecLedgerConfig {
-        unByronSpecLedgerConfig :: ByronSpecGenesis
-      }
-    deriving NoUnexpectedThunks via AllowThunk (LedgerConfig ByronSpecBlock)
-
-  type LedgerError ByronSpecBlock = ByronSpecLedgerError
+instance IsLedger (LedgerState ByronSpecBlock) where
+  type LedgerErr (LedgerState ByronSpecBlock) = ByronSpecLedgerError
+  type LedgerCfg (LedgerState ByronSpecBlock) = ByronSpecGenesis
 
   applyChainTick cfg slot state = TickedLedgerState slot $
       updateByronSpecLedgerStateKeepTip state $
         Rules.applyChainTick
-          (unByronSpecLedgerConfig cfg)
+          cfg
           (toByronSpecSlotNo       slot)
           (byronSpecLedgerState    state)
 
-  applyLedgerBlock cfg block state = withExcept ByronSpecLedgerError $
-      updateByronSpecLedgerStateNewTip (blockSlot block) <$>
+instance ApplyBlock (LedgerState ByronSpecBlock) ByronSpecBlock where
+  applyLedgerBlock cfg block (TickedLedgerState slot state) =
+    withExcept ByronSpecLedgerError $
+      updateByronSpecLedgerStateNewTip slot <$>
+        -- Note that the CHAIN rule also applies the chain tick. So even
+        -- though the ledger we received has already been ticked with
+        -- 'applyChainTick', we do it again as part of CHAIN. This is safe, as
+        -- it is idempotent. If we wanted to avoid the repeated tick, we would
+        -- have to call the subtransitions of CHAIN (except for ticking).
         Rules.liftCHAIN
-          (unByronSpecLedgerConfig cfg)
+          cfg
           (byronSpecBlock          block)
           (byronSpecLedgerState    state)
 
@@ -93,6 +83,20 @@ instance UpdateLedger ByronSpecBlock where
         Just slot -> BlockPoint
                        slot
                        (getChainStateHash (byronSpecLedgerState state))
+
+instance UpdateLedger ByronSpecBlock where
+  data LedgerState ByronSpecBlock = ByronSpecLedgerState {
+        -- | Tip of the ledger (most recently applied block, if any)
+        --
+        -- The spec state stores the last applied /hash/, but not the /slot/.
+        byronSpecLedgerTip :: Maybe SlotNo
+
+        -- | The spec state proper
+      , byronSpecLedgerState :: Spec.State Spec.CHAIN
+      }
+    deriving stock (Show, Eq, Generic)
+    deriving anyclass (Serialise)
+    deriving NoUnexpectedThunks via AllowThunk (LedgerState ByronSpecBlock)
 
 {-------------------------------------------------------------------------------
   Working with the ledger state

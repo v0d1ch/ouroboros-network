@@ -138,7 +138,7 @@ protocolInfoByron genesisConfig mSigThresh pVer sVer mLeader =
                                   Nothing   -> PBftIsNotALeader
                                   Just cred -> PBftIsALeader $ pbftLeaderOrNot cred
               }
-          , configLedger = ByronLedgerConfig genesisConfig
+          , configLedger = genesisConfig
           , configBlock  = byronConfig
           }
       , pInfoInitLedger = ExtLedgerState {
@@ -243,20 +243,20 @@ instance RunNode ByronBlock where
   nodeEncodeGenTx           = encodeByronGenTx
   nodeEncodeGenTxId         = encodeByronGenTxId
   nodeEncodeHeaderHash      = const encodeByronHeaderHash
-  nodeEncodeLedgerState     = const encodeByronLedgerState
+  nodeEncodeLedgerState     = encodeByronLedgerState
   nodeEncodeConsensusState  = \_proxy _cfg -> encodeByronConsensusState
   nodeEncodeApplyTxError    = const encodeByronApplyTxError
   nodeEncodeTipInfo         = const encode
   nodeEncodeQuery           = encodeByronQuery
   nodeEncodeResult          = encodeByronResult
 
-  nodeDecodeBlock           = decodeByronBlock   . extractEpochSlots
+  nodeDecodeBlock           = decodeByronBlock . extractEpochSlots
   nodeDecodeHeader          = \ cfg -> decodeByronHeader (extractEpochSlots cfg)
   nodeDecodeWrappedHeader   = \_cfg -> decodeWrappedByronHeader
   nodeDecodeGenTx           = decodeByronGenTx
   nodeDecodeGenTxId         = decodeByronGenTxId
   nodeDecodeHeaderHash      = const decodeByronHeaderHash
-  nodeDecodeLedgerState     = const decodeByronLedgerState
+  nodeDecodeLedgerState     = decodeByronLedgerState
   nodeDecodeConsensusState  = \_proxy cfg ->
                                  let k = configSecurityParam cfg
                                  in decodeByronConsensusState k
@@ -271,7 +271,5 @@ extractGenesisData = Genesis.configGenesisData
                    . byronGenesisConfig
                    . configBlock
 
-extractEpochSlots :: TopLevelConfig ByronBlock -> EpochSlots
-extractEpochSlots = Genesis.configEpochSlots
-                  . byronGenesisConfig
-                  . configBlock
+extractEpochSlots :: BlockConfig ByronBlock -> EpochSlots
+extractEpochSlots = Genesis.configEpochSlots . byronGenesisConfig
