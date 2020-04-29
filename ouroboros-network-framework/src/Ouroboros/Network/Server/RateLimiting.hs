@@ -7,8 +7,7 @@
 --
 module Ouroboros.Network.Server.RateLimiting
   ( AcceptedConnectionsLimit (..)
-  , NumberOfConnections (..)
-  , getNumberOfConnections
+  , NumberOfConnections
   , runConnectionRateLimits
 
     -- * Tracing
@@ -30,10 +29,6 @@ import           Text.Printf
 newtype NumberOfConnections = NumberOfConnections Word
   deriving stock   Show
   deriving newtype (Eq, Ord, Enum, Num, Real, Integral)
-
-
-getNumberOfConnections :: NumberOfConnections -> Word
-getNumberOfConnections (NumberOfConnections a) = a
 
 
 -- | Policy which governs how to limit the number of accepted connections.

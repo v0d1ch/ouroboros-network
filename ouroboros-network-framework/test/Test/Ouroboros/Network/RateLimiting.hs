@@ -51,7 +51,7 @@ data Event
 
 data WithNumberOfConnections a = WithNumberOfConnections {
     message :: a,
-    numberOfConnections :: Int
+    numberOfConnections :: NumberOfConnections
   }
 
 
@@ -164,9 +164,9 @@ rateLimittingExperiment
     -> [Event]
     -> m ()
 rateLimittingExperiment tracer policy events0 = do
-    v <- atomically $ newTVar 0
+    v <- atomically $ newTVar (0 :: NumberOfConnections)
 
-    let numberOfConnectionsSTM :: STM m Int
+    let numberOfConnectionsSTM :: STM m NumberOfConnections
         numberOfConnectionsSTM = readTVar v
 
     runConnectionRateLimits (getTracer v) numberOfConnectionsSTM policy
@@ -174,7 +174,7 @@ rateLimittingExperiment tracer policy events0 = do
       shedulingThread v events0
   where
     -- thread which schedules events
-    shedulingThread :: TVar m Int -> [Event] -> m ()
+    shedulingThread :: TVar m NumberOfConnections -> [Event] -> m ()
     shedulingThread _v [] = pure ()
     shedulingThread v  (IncomingConnection delay : events) = do
       when (delay > 0)
@@ -188,7 +188,7 @@ rateLimittingExperiment tracer policy events0 = do
       shedulingThread v events
 
     -- tracer
-    getTracer :: TVar m Int
+    getTracer :: TVar m NumberOfConnections
               -> Tracer m AcceptConnectionsPolicyTrace
     getTracer v =
       contramapM
