@@ -95,6 +95,7 @@ data State m identifier handle = State
   , connectionNumber :: !ConnectionNumber
   }
 
+
 insertConnection
   :: ( Ord identifier )
   => identifier
@@ -142,6 +143,7 @@ data ExceptionInHandler e where
 deriving instance Show e => Show (ExceptionInHandler e)
 instance Exception e => Exception (ExceptionInHandler e)
 
+
 -- | Generic concurrent connection manager in which at most one connection for
 -- a given identifier is allowed. New connections will re-use existing
 -- connections, and existing connections will be rejected if there is already
@@ -188,7 +190,13 @@ concurrent withResource k = do
     { connectionMap    = Map.empty
     , connectionNumber = 0
     }
-  let connections = Connections { include = includeOne tid stateVar }
+  let connections = Connections {
+          include = includeOne tid stateVar,
+
+          numberOfConnectionsSTM =
+            (fromIntegral . Map.size . connectionMap)
+              <$> readTMVar stateVar
+        }
   k connections `finally` killThreads stateVar
 
   where

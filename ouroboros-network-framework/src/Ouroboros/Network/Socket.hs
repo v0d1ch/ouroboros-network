@@ -698,15 +698,20 @@ withServerNode
     -- throws an exception.
     -> IO t
 -- TODO enforce connection limits
-withServerNode sn tracers _acceptedConnectionsLimit addr handshakeCodec versionDataCodec acceptVersion versions errorPolicies k =
+withServerNode sn tracers acceptedConnectionsLimit addr handshakeCodec versionDataCodec acceptVersion versions errorPolicies k =
     Connection.concurrent handleConnection $ \connections ->
       -- When the continuation runs here, the socket is bound and listening.
       withSocket sn addr $ \boundAddr socket -> withAsync
-        (acceptLoop sn connections boundAddr WithServerNodeRequest
-          -- TODO: We should use a type which allows to omit remote address, since we
-          -- don't know it.
-          (acceptException (ConnectionId boundAddr UnknownAddress))
-          (Snocket.accept sn socket))
+        (acceptLoop sn
+                    (nstAcceptPolicyTracer tracers)
+                    acceptedConnectionsLimit
+                    connections
+                    boundAddr
+                    WithServerNodeRequest
+                    -- TODO: We should use a type which allows to omit remote address, since we
+                    -- don't know it.
+                    (acceptException (ConnectionId boundAddr UnknownAddress))
+                    (Snocket.accept sn socket))
         (k boundAddr)
 
   where

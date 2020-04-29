@@ -10,7 +10,11 @@ module Ouroboros.Network.Connections.Socket.Server
   , withSocket
   ) where
 
+import Control.Monad.Class.MonadSTM
+import Control.Monad.Class.MonadTime
+import Control.Monad.Class.MonadTimer
 import Control.Monad.Class.MonadThrow
+import Control.Tracer (Tracer)
 import Data.Void (Void, absurd)
 
 import Ouroboros.Network.ConnectionId
@@ -62,14 +66,25 @@ withSocket snocket bindaddr k = bracket openSocket (closeSocket . snd) (uncurry 
 -- appear as NotAcquired outcomes.
 acceptOne
   :: forall m socket addr err request reject accept .
-     ( MonadMask m )
+     ( MonadDelay m
+     , MonadMask  m
+     , MonadSTM   m
+     , MonadTime  m
+     )
   => Snocket m socket addr
+  -> Tracer m AcceptConnectionsPolicyTrace 
+  -> AcceptedConnectionsLimit
   -> Connections (ConnectionId addr) socket request reject accept m
   -> addr -- Bind address; needed to construct ConnectionId
   -> request Remote
   -> Snocket.Accept m err addr socket
   -> m (Outcome Remote err reject accept socket m, Snocket.Accept m err addr socket)
-acceptOne snocket connections bindaddr request accept = mask $ \restore -> do
+acceptOne snocket acceptedConnectionsTracer acceptedConnectionsLimit connections bindaddr request accept = mask $ \restore -> do
+  -- limit the accepted connections
+  runConnectionRateLimits
+    acceptedConnectionsTracer
+    (numberOfConnectionsSTM connections)
+    acceptedConnectionsLimit
   (accepted, accept') <- restore (Snocket.runAccept accept)
   case accepted of
     Snocket.AcceptException err ->
@@ -94,17 +109,23 @@ acceptOne snocket connections bindaddr request accept = mask $ \restore -> do
 -- The error case handler allows you to deal with errors given by the Accept
 -- term. Actual exceptions are fatal.
 acceptLoop
-  :: ( MonadMask m )
+  :: ( MonadDelay m
+     , MonadMask  m
+     , MonadSTM   m
+     , MonadTime  m
+     )
   => Snocket m socket addr
+  -> Tracer m AcceptConnectionsPolicyTrace 
+  -> AcceptedConnectionsLimit
   -> Connections (ConnectionId addr) socket request reject accept m
   -> addr -- Bind address; needed to construct ConnectionId
   -> request Remote
   -> (err -> m ())
   -> Snocket.Accept m err addr socket
   -> m Void
-acceptLoop snocket connections bindaddr request handleErr accept = do
-  (outcome, accept') <- acceptOne snocket connections bindaddr request accept
+acceptLoop snocket acceptedConnectionsTracer acceptedConnectionsLimit connections bindaddr request handleErr accept = do
+  (outcome, accept') <- acceptOne snocket acceptedConnectionsTracer acceptedConnectionsLimit connections bindaddr request accept
   case outcome of
     NotAcquired err -> handleErr err
     _ -> pure ()
-  acceptLoop snocket connections bindaddr request handleErr accept'
+  acceptLoop snocket acceptedConnectionsTracer acceptedConnectionsLimit connections bindaddr request handleErr accept'

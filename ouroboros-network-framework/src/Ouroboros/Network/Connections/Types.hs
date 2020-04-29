@@ -12,6 +12,7 @@ module Ouroboros.Network.Connections.Types
   , Resource (..)
   , AcquiredResource (..)
   , Decision (..)
+  , NumberOfConnections
   , Connections (..)
 
   , Outcome (..)
@@ -27,7 +28,10 @@ module Ouroboros.Network.Connections.Types
   , mapDecision
   ) where
 
-import Data.Void (Void, absurd)
+import           Control.Monad.Class.MonadSTM
+import           Data.Void (Void, absurd)
+import           Ouroboros.Network.Connections.Socket.RateLimiting (NumberOfConnections)
+
 
 -- | Used as a data kind to distinguish between incoming (remotely-initiated)
 -- and outgoing (locally-initiated) connections.
@@ -129,6 +133,7 @@ data Outcome (provenance :: Provenance) err reject accept resource m where
   Acquired    :: Decision provenance reject accept resource m
               -> Outcome provenance err reject accept resource m
 
+
 -- | Connections identified by `id`, carried by `resource`, supported by `m`.
 -- `resource` might be a file handle / socket, STM queue, etc. anything that
 -- can transport data in `m`.
@@ -139,7 +144,7 @@ data Outcome (provenance :: Provenance) err reject accept resource m where
 -- When you get the handle back, the underlying connection and its handler
 -- thread may of course have died, but that's always a possibility even if
 -- you `include`. 
-newtype Connections id resource request reject accept m = Connections
+data Connections id resource request reject accept m = Connections
   { -- Since provenance ~ Remote implies err ~ Void (by the Resource GADT),
     -- a Connections term may never give a Left for a remotely-initiated
     -- resource, i.e. the Outcome shall always be Acquired (see
@@ -148,7 +153,10 @@ newtype Connections id resource request reject accept m = Connections
                id
             -> Resource provenance err resource m
             -> request provenance
-            -> m (Either err (Decision provenance reject accept resource m))
+            -> m (Either err (Decision provenance reject accept resource m)),
+
+    numberOfConnectionsSTM :: STM m NumberOfConnections
+
   }
 
 -- | Connections is a contravariant functor in request, but sadly it's not the
