@@ -1,10 +1,14 @@
-{-# LANGUAGE BangPatterns   #-}
-{-# LANGUAGE NamedFieldPuns #-}
+{-# LANGUAGE BangPatterns               #-}
+{-# LANGUAGE DerivingStrategies         #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE NamedFieldPuns             #-}
 
 -- | Rage limiting of accepted connections
 --
 module Ouroboros.Network.Server.RateLimiting
   ( AcceptedConnectionsLimit (..)
+  , NumberOfConnections (..)
+  , getNumberOfConnections
   , runConnectionRateLimits
 
     -- * Tracing
@@ -20,6 +24,16 @@ import           Control.Tracer (Tracer, traceWith)
 import           Data.Word
 import           Data.Typeable (Typeable)
 import           Text.Printf
+
+
+-- | Used designate the number of running connections.
+newtype NumberOfConnections = NumberOfConnections Word
+  deriving stock   Show
+  deriving newtype (Eq, Ord, Enum, Num, Real, Integral)
+
+
+getNumberOfConnections :: NumberOfConnections -> Word
+getNumberOfConnections (NumberOfConnections a) = a
 
 
 -- | Policy which governs how to limit the number of accepted connections.
@@ -65,7 +79,7 @@ data RateLimitDelay =
 
 -- | Interpretation of the 'AcceptedConnectionsLimit' policy.
 --
-getRateLimitDecision :: Int
+getRateLimitDecision :: NumberOfConnections
                      -- ^ number of served concurrent connections
                      -> AcceptedConnectionsLimit
                      -- ^ limits
@@ -89,7 +103,7 @@ getRateLimitDecision numberOfConnections
           * acceptedConnectionsDelay
           / fromIntegral ((hardLimit - softLimit) `max` 1)
   where
-    hardLimit, softLimit :: Int
+    hardLimit, softLimit :: NumberOfConnections
     hardLimit = fromIntegral acceptedConnectionsHardLimit
     softLimit = fromIntegral acceptedConnectionsSoftLimit
 
@@ -103,7 +117,7 @@ runConnectionRateLimits
        , MonadTime  m
        )
     => Tracer m AcceptConnectionsPolicyTrace
-    -> STM m Int
+    -> STM m NumberOfConnections
     -> AcceptedConnectionsLimit
     -> m ()
 runConnectionRateLimits tracer
@@ -142,14 +156,14 @@ runConnectionRateLimits tracer
 -- | Trace for the 'AcceptConnectionsLimit' policy.
 --
 data AcceptConnectionsPolicyTrace
-      = ServerTraceAcceptConnectionRateLimiting DiffTime Int
+      = ServerTraceAcceptConnectionRateLimiting DiffTime NumberOfConnections
       | ServerTraceAcceptConnectionHardLimit Word32
   deriving (Eq, Ord, Typeable)
 
 instance Show AcceptConnectionsPolicyTrace where
     show (ServerTraceAcceptConnectionRateLimiting delay numberOfConnections) =
       printf
-        "rate limiting accepting connections, dalaying next accept for %s, currently serving %s connections"
+        "rate limiting accepting connections, dalaying next accept for %s, currently serving (%s) connections"
         (show delay) (show numberOfConnections)
     show (ServerTraceAcceptConnectionHardLimit limit) =
       printf
