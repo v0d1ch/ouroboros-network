@@ -79,27 +79,33 @@ acceptOne
   -> request Remote
   -> Snocket.Accept m err addr socket
   -> m (Outcome Remote err reject accept socket m, Snocket.Accept m err addr socket)
-acceptOne snocket acceptedConnectionsTracer acceptedConnectionsLimit connections bindaddr request accept = mask $ \restore -> do
-  -- limit the accepted connections
-  runConnectionRateLimits
-    acceptedConnectionsTracer
-    (numberOfConnectionsSTM connections)
-    acceptedConnectionsLimit
-  (accepted, accept') <- restore (Snocket.runAccept accept)
-  case accepted of
-    Snocket.AcceptException err ->
-      pure (NotAcquired err, accept')
-    Snocket.AcceptOk sock peeraddr -> do
-      let connid = ConnectionId { localAddress = bindaddr, remoteAddress = peeraddr }
-          resource = Existing (AcquiredResource sock (Snocket.close snocket sock))
-      outcome <- restore (includeResource connections connid resource request)
-        `onException`
-        Snocket.close snocket sock
-      -- The type of `outcome` has the `err` type specialized to Void, so
-      -- we have to free it up.
-      case outcome of
-        NotAcquired void  -> absurd void
-        Acquired decision -> pure (Acquired decision, accept')
+acceptOne snocket
+          acceptedConnectionsTracer
+          acceptedConnectionsLimit
+          connections bindaddr
+          request
+          accept =
+    mask $ \restore -> do
+      -- limit the accepted connections
+      runConnectionRateLimits
+        acceptedConnectionsTracer
+        (numberOfConnectionsSTM connections)
+        acceptedConnectionsLimit
+      (accepted, accept') <- restore (Snocket.runAccept accept)
+      case accepted of
+        Snocket.AcceptException err ->
+          pure (NotAcquired err, accept')
+        Snocket.AcceptOk sock peeraddr -> do
+          let connid = ConnectionId { localAddress = bindaddr, remoteAddress = peeraddr }
+              resource = Existing (AcquiredResource sock (Snocket.close snocket sock))
+          outcome <- restore (includeResource connections connid resource request)
+            `onException`
+            Snocket.close snocket sock
+          -- The type of `outcome` has the `err` type specialized to Void, so
+          -- we have to free it up.
+          case outcome of
+            NotAcquired void  -> absurd void
+            Acquired decision -> pure (Acquired decision, accept')
 
 -- | A common pattern: accept in a loop, passing each connection through a
 -- Connections term.
@@ -123,9 +129,16 @@ acceptLoop
   -> (err -> m ())
   -> Snocket.Accept m err addr socket
   -> m Void
-acceptLoop snocket acceptedConnectionsTracer acceptedConnectionsLimit connections bindaddr request handleErr accept = do
-  (outcome, accept') <- acceptOne snocket acceptedConnectionsTracer acceptedConnectionsLimit connections bindaddr request accept
-  case outcome of
-    NotAcquired err -> handleErr err
-    _ -> pure ()
-  acceptLoop snocket acceptedConnectionsTracer acceptedConnectionsLimit connections bindaddr request handleErr accept'
+acceptLoop snocket
+           acceptedConnectionsTracer
+           acceptedConnectionsLimit
+           connections
+           bindaddr
+           request
+           handleErr
+           accept = do
+    (outcome, accept') <- acceptOne snocket acceptedConnectionsTracer acceptedConnectionsLimit connections bindaddr request accept
+    case outcome of
+      NotAcquired err -> handleErr err
+      _ -> pure ()
+    acceptLoop snocket acceptedConnectionsTracer acceptedConnectionsLimit connections bindaddr request handleErr accept'
