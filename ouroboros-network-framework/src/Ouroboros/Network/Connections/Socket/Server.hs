@@ -15,6 +15,7 @@ import Data.Void (Void, absurd)
 
 import Ouroboros.Network.ConnectionId
 import Ouroboros.Network.Connections.Types
+import Ouroboros.Network.Connections.Socket.RateLimiting
 import Ouroboros.Network.Snocket (Snocket)
 import qualified Ouroboros.Network.Snocket as Snocket
 

@@ -91,14 +91,15 @@ import           Ouroboros.Network.Protocol.Handshake.Codec
 import           Ouroboros.Network.IOManager (IOManager)
 import           Ouroboros.Network.Snocket (Snocket)
 import qualified Ouroboros.Network.Snocket as Snocket
-import           Ouroboros.Network.Server.RateLimiting ( AcceptedConnectionsLimit (..)
-                                                       , AcceptConnectionsPolicyTrace (..)
-                                                       )
 
 import           Ouroboros.Network.ConnectionId
 import           Ouroboros.Network.Connections.Concurrent hiding (Accept, Reject)
 import qualified Ouroboros.Network.Connections.Concurrent as Connection
                    (Accept, Reject, Decision(Accept), concurrent)
+import           Ouroboros.Network.Connections.Socket.RateLimiting
+                   ( AcceptedConnectionsLimit (..)
+                   , AcceptConnectionsPolicyTrace (..)
+                   )
 import           Ouroboros.Network.Connections.Socket.Server (acceptLoop, withSocket)
 import           Ouroboros.Network.Connections.Types hiding (Decision(..))
 import           Ouroboros.Network.Connections.Trace

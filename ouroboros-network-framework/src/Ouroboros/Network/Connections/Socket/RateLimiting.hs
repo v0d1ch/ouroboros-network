@@ -5,7 +5,7 @@
 
 -- | Rage limiting of accepted connections
 --
-module Ouroboros.Network.Server.RateLimiting
+module Ouroboros.Network.Connections.Socket.RateLimiting
   ( AcceptedConnectionsLimit (..)
   , NumberOfConnections
   , runConnectionRateLimits

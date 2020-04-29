@@ -15,7 +15,7 @@ import           Control.Monad.Class.MonadTimer
 import           Control.Monad.IOSim
 import           Data.List (scanl')
 
-import           Ouroboros.Network.Server.RateLimiting
+import           Ouroboros.Network.Connections.Socket.RateLimiting
 
 import           Test.QuickCheck
 import           Text.Show.Functions ()

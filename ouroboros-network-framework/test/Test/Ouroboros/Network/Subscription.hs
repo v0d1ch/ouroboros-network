@@ -51,13 +51,13 @@ import           Ouroboros.Network.Protocol.Handshake.Version
 
 import           Ouroboros.Network.Connections.Types (Initiated, LocalOnlyRequest (..))
 import           Ouroboros.Network.Connections.Socket.Client (Bind (..))
+import           Ouroboros.Network.Connections.Socket.RateLimiting
 import qualified Ouroboros.Network.Connections.Concurrent as Connections (concurrent)
 import qualified Ouroboros.Network.Connections.Concurrent as Concurrent
 import           Ouroboros.Network.Driver
 import           Ouroboros.Network.ErrorPolicy
 import           Ouroboros.Network.IOManager
 import           Ouroboros.Network.Mux
-import           Ouroboros.Network.Server.RateLimiting
 import           Ouroboros.Network.Snocket
 import           Ouroboros.Network.Socket as Socket
 import           Ouroboros.Network.Subscription
