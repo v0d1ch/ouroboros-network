@@ -26,7 +26,8 @@ module Ouroboros.Consensus.Node
   , MempoolCapacityBytesOverride (..)
   , IPSubscriptionTarget (..)
   , DnsSubscriptionTarget (..)
-  , ConnectionId (..)
+  , ConnectionId
+  , ConnectionId' (..)
   , RemoteConnectionId
     -- * Internal helpers
   , openChainDB

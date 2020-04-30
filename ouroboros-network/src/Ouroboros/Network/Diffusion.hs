@@ -27,7 +27,7 @@ module Ouroboros.Network.Diffusion
 
 import qualified Control.Concurrent.Async as Async
 import           Control.Exception (IOException, SomeException, fromException)
-import           Control.Tracer (Tracer, traceWith)
+import           Control.Tracer (Tracer, traceWith, nullTracer)
 import           Data.Functor (void)
 import           Data.Functor.Contravariant (contramap)
 import           Data.Void (Void)
@@ -170,7 +170,7 @@ runDataDiffusion tracers
                                     , daLocalAddress
                                     , daIpProducers
                                     , daDnsProducers
-                                    -- , daAcceptedConnectionsLimit
+                                    , daAcceptedConnectionsLimit
                                     }
                  applications@DiffusionApplications { daErrorPolicies } =
     withIOManager $ \iocp -> do
@@ -261,6 +261,10 @@ runDataDiffusion tracers
           Server.withSocket localSnocket addr $ \boundAddr socket ->
             Server.acceptLoop
               localSnocket
+              -- we are not doing any rate limiting, so no reason for using
+              -- a tracer
+              nullTracer
+              (AcceptedConnectionsLimit maxBound maxBound 0)
               n2cConnections
               boundAddr
               ClientConnection
@@ -280,6 +284,8 @@ runDataDiffusion tracers
           Server.withSocket snocket addr $ \boundAddr socket ->
             Server.acceptLoop
               snocket
+              dtAcceptPolicyTracer
+              daAcceptedConnectionsLimit
               n2nConnections
               boundAddr
               PeerConnection
