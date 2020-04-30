@@ -34,8 +34,6 @@ import           Data.Typeable ( Proxy (..)
                                , typeRep
                                )
 
-import           Text.Printf
-
 
 -- | Semigroup of commands which acts on 'PeerState'.  The @t@ variable might
 -- be initiated to 'DiffTime' or @Time m@.
@@ -189,12 +187,3 @@ traceErrorPolicy (Left e) Throw =
     Just $ ErrorPolicyLocalNodeError e
 traceErrorPolicy _ _ =
     Nothing
-
-data WithAddr addr a = WithAddr {
-      wiaAddr  :: !addr
-    , wiaEvent :: !a
-    }
-
-instance (Show addr, Show a) => Show (WithAddr addr a) where
-    show WithAddr { wiaAddr, wiaEvent } =
-        printf "IP %s %s" (show wiaAddr) (show wiaEvent)
