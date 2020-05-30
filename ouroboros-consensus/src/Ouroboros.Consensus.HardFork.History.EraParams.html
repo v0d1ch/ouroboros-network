@@ -1,0 +1,221 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-pragma">{-# LANGUAGE DeriveAnyClass     #-}</span><span>
+</span><a name="line-2"></a><span class="hs-pragma">{-# LANGUAGE DeriveGeneric      #-}</span><span>
+</span><a name="line-3"></a><span class="hs-pragma">{-# LANGUAGE DerivingStrategies #-}</span><span>
+</span><a name="line-4"></a><span class="hs-pragma">{-# LANGUAGE TypeOperators      #-}</span><span>
+</span><a name="line-5"></a><span>
+</span><a name="line-6"></a><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Ouroboros.Consensus.HardFork.History.EraParams</span><span> </span><span class="hs-special">(</span><span>
+</span><a name="line-7"></a><span>    </span><span class="hs-comment">-- * API</span><span>
+</span><a name="line-8"></a><span>    </span><a href="Ouroboros.Consensus.HardFork.History.EraParams.html#EraParams"><span class="hs-identifier hs-type">EraParams</span></a><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
+</span><a name="line-9"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Ouroboros.Consensus.HardFork.History.EraParams.html#SafeZone"><span class="hs-identifier hs-type">SafeZone</span></a><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
+</span><a name="line-10"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Ouroboros.Consensus.HardFork.History.EraParams.html#SafeBeforeEpoch"><span class="hs-identifier hs-type">SafeBeforeEpoch</span></a><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
+</span><a name="line-11"></a><span>    </span><span class="hs-comment">-- * Defaults</span><span>
+</span><a name="line-12"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Ouroboros.Consensus.HardFork.History.EraParams.html#defaultSafeZone"><span class="hs-identifier hs-var">defaultSafeZone</span></a><span>
+</span><a name="line-13"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Ouroboros.Consensus.HardFork.History.EraParams.html#defaultEraParams"><span class="hs-identifier hs-var">defaultEraParams</span></a><span>
+</span><a name="line-14"></a><span>    </span><span class="hs-comment">-- * Queries</span><span>
+</span><a name="line-15"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Ouroboros.Consensus.HardFork.History.EraParams.html#maxMaybeEpoch"><span class="hs-identifier hs-var">maxMaybeEpoch</span></a><span>
+</span><a name="line-16"></a><span>  </span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
+</span><a name="line-17"></a><span>
+</span><a name="line-18"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data.Word</span><span>
+</span><a name="line-19"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">GHC.Generics</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Generic</span><span class="hs-special">)</span><span>
+</span><a name="line-20"></a><span>
+</span><a name="line-21"></a><span class="hs-keyword">import</span><span>           </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-prelude-0.1.0.0/noopt/doc/html/cardano-prelude/src/Cardano.Prelude.html"><span class="hs-identifier">Cardano.Prelude</span></a><span> </span><span class="hs-special">(</span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-prelude-0.1.0.0/noopt/doc/html/cardano-prelude/src/Cardano.Prelude.GHC.Heap.NormalForm.Classy.html#NoUnexpectedThunks"><span class="hs-identifier hs-type">NoUnexpectedThunks</span></a><span class="hs-special">)</span><span>
+</span><a name="line-22"></a><span class="hs-keyword">import</span><span>           </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-slotting-0.1.0.0/noopt/doc/html/cardano-slotting/src/Cardano.Slotting.Slot.html"><span class="hs-identifier">Cardano.Slotting.Slot</span></a><span>
+</span><a name="line-23"></a><span>
+</span><a name="line-24"></a><span class="hs-keyword">import</span><span>           </span><a href="Ouroboros.Consensus.BlockchainTime.WallClock.Types.html"><span class="hs-identifier">Ouroboros.Consensus.BlockchainTime.WallClock.Types</span></a><span>
+</span><a name="line-25"></a><span class="hs-keyword">import</span><span>           </span><a href="Ouroboros.Consensus.Config.SecurityParam.html"><span class="hs-identifier">Ouroboros.Consensus.Config.SecurityParam</span></a><span>
+</span><a name="line-26"></a><span>
+</span><a name="line-27"></a><span class="hs-comment">{-------------------------------------------------------------------------------
+  OVERVIEW
+
+  The overall chain consists of various /era/s. Each era has its own set of era
+  parameters such as the slot length and epoch size, as well as its own block
+  format, ledger format, ledger rules, etc. It is assumed that the overall
+  /shape/ of the chain is known. In other words, we statically know which eras
+  we expect and what their parameters are; adding an additional era would
+  require a code update. What we /don't/ know precisely is /when/ we transition
+  from one era to the next, i.e., the hard fork transition points.
+
+  When we are at genesis, the chain therefore looks something like this:
+
+  &gt; *-------------------?--------------------?--------------------
+  &gt; ^
+  &gt; \-- tip
+
+  where we have (in this example) three eras (say, Byron, Shelley and Goguen)
+  and therefore two hard fork transitions. Hard forks happen at epoch
+  boundaries; the exact 'EpochNo' of each hard fork is determined by the era
+  preceding it. Naturally, the exact 'EpochNo' of /past/ hard forks is known:
+
+  &gt; ---------------A--------------*----------?--------------------
+  &gt;                               ^
+  &gt;                               \-- tip
+
+  where A is a known hard fork transition, and the next hard fork transition
+  is still unknown.
+
+  SAFE ZONES
+
+  Future hard fork points may be known or unknown, where &quot;known&quot; means
+  &quot;certain&quot;; i.e., for Byron, it would mean an update proposal has been voted
+  on, confirmed, endorsed, and that endorsement is at least @k@ blocks deep into
+  the chain; for Shelley it means an update proposal is voted on and accepted,
+  and that acceptance is at least @k@ blocks deep into the chain.
+
+  When a hard fork point is still unknown, we assume that each era determines a
+  &quot;safe zone&quot;: a number of slots from the tip of the ledger in which it is
+  guaranteed that the hard fork will not happen.
+
+  &gt; CASE (i)
+  &gt;
+  &gt; ---------------A--------------*----------?--------------------
+  &gt;                               \..../
+  &gt;                                safe
+  &gt;                                zone
+
+  Since the hard fork will not happen in the safe zone, we can extend the use of
+  the current set of era parameters past the tip into the safe zone, giving us a
+  limited ability to make predictions for the future (such as converting between
+  slot numbers and wallclock time).
+
+  We assume that once a transition point is known (and no longer subject to
+  roll-back), this is guaranteed not to change anymore and we can use the era's
+  parameters up to the transition point:
+
+  &gt; CASE (ii)
+  &gt;
+  &gt; ---------------A--------------*----------------B--------------
+  &gt;                               \.............../
+  &gt;                                implicitly safe
+
+  Moreover, we assume that we can extend B's safe zone from the point of the
+  hard fork transition:
+
+  &gt; CASE (iii)
+  &gt;
+  &gt; ---------------A--------------*----------------B--------------
+  &gt;                               \.............../\..../
+  &gt;                                implicitly safe  safe
+  &gt;                                                 zone
+
+  This is justified because the safe zones arise from stability requirements
+  for the transactions that establish the transition point. The earliest point
+  such a transaction could be included in the chain is after the hard fork
+  transition, since it must be a transaction from the /new/ era.
+
+  NOTE ON STABILITY
+
+  If we used as yet /unconfirmed/ update proposals to determine hard fork
+  transition points, then any of the resulting time conversions would be
+  subject to rollback; if we switched to a different fork, time conversions
+  might suddenly look different. Whilst this /may/ be doable, in practice this
+  is a headache we would very much like to avoid. For example, it might mean
+  that when a block comes in and we determine that it's from the future,
+  we might have prematurely marked it as invalid. So, we insist that time
+  conversions must be based on update propsals that are /certain/ (no longer
+  subject to rollback). This means that the &quot;safe zone&quot; we have been discussing
+  above must extend from the point of stability forward. Moreover, the safe zone
+  must be long enough to include a sufficient number of blocks such that we can
+  evaluate enough headers of an alternative fork (without having its blocks)
+  to decide that we want to switch to that fork; since in the worst case that
+  means we have to evaluate @k@ headers (or @k+1@), the safe zone must be long
+  enough to cover @k@ blocks (and therefore a safe zone of @2k@ slots for Byron,
+  and (probably) a safe zone of @3k/f@ slots for Shelley). Effectively, this
+  means that consensus wants &quot;stability itself to be stable&quot;; we need a double
+  safe zone after an update proposal has been confirmed.
+-------------------------------------------------------------------------------}</span><span>
+</span><a name="line-126"></a><span>
+</span><a name="line-127"></a><span class="hs-comment">-- | Parameters that can vary across hard forks</span><span>
+</span><a name="line-128"></a><span class="hs-keyword">data</span><span> </span><a name="EraParams"><a href="Ouroboros.Consensus.HardFork.History.EraParams.html#EraParams"><span class="hs-identifier">EraParams</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><a name="EraParams"><a href="Ouroboros.Consensus.HardFork.History.EraParams.html#EraParams"><span class="hs-identifier">EraParams</span></a></a><span> </span><span class="hs-special">{</span><span>
+</span><a name="line-129"></a><span>      </span><a name="eraEpochSize"><a href="Ouroboros.Consensus.HardFork.History.EraParams.html#eraEpochSize"><span class="hs-identifier">eraEpochSize</span></a></a><span>  </span><span class="hs-glyph">::</span><span> </span><span class="hs-glyph">!</span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-slotting-0.1.0.0/noopt/doc/html/cardano-slotting/src/Cardano.Slotting.Slot.html#EpochSize"><span class="hs-identifier hs-type">EpochSize</span></a><span>
+</span><a name="line-130"></a><span>    </span><span class="hs-special">,</span><span> </span><a name="eraSlotLength"><a href="Ouroboros.Consensus.HardFork.History.EraParams.html#eraSlotLength"><span class="hs-identifier">eraSlotLength</span></a></a><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-glyph">!</span><a href="Ouroboros.Consensus.BlockchainTime.WallClock.Types.html#SlotLength"><span class="hs-identifier hs-type">SlotLength</span></a><span>
+</span><a name="line-131"></a><span>    </span><span class="hs-special">,</span><span> </span><a name="eraSafeZone"><a href="Ouroboros.Consensus.HardFork.History.EraParams.html#eraSafeZone"><span class="hs-identifier">eraSafeZone</span></a></a><span>   </span><span class="hs-glyph">::</span><span> </span><span class="hs-glyph">!</span><a href="Ouroboros.Consensus.HardFork.History.EraParams.html#SafeZone"><span class="hs-identifier hs-type">SafeZone</span></a><span>
+</span><a name="line-132"></a><span>    </span><span class="hs-special">}</span><span>
+</span><a name="line-133"></a><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-keyword">stock</span><span>    </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Show</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Eq</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Generic</span><span class="hs-special">)</span><span>
+</span><a name="line-134"></a><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-keyword">anyclass</span><span> </span><span class="hs-special">(</span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-prelude-0.1.0.0/noopt/doc/html/cardano-prelude/src/Cardano.Prelude.GHC.Heap.NormalForm.Classy.html#NoUnexpectedThunks"><span class="hs-identifier hs-type">NoUnexpectedThunks</span></a><span class="hs-special">)</span><span>
+</span><a name="line-135"></a><span>
+</span><a name="line-136"></a><span class="hs-comment">-- | Default 'EraParams'</span><span>
+</span><a name="line-137"></a><span class="hs-comment">--</span><span>
+</span><a name="line-138"></a><span class="hs-comment">-- We set</span><span>
+</span><a name="line-139"></a><span class="hs-comment">--</span><span>
+</span><a name="line-140"></a><span class="hs-comment">-- * epoch size to @10k@ slots</span><span>
+</span><a name="line-141"></a><span class="hs-comment">-- * the safe zone to @2k@ slots</span><span>
+</span><a name="line-142"></a><span class="hs-comment">-- * the upper bound to 'UnsafeUnbounded'</span><span>
+</span><a name="line-143"></a><span class="hs-comment">--</span><span>
+</span><a name="line-144"></a><span class="hs-comment">-- This is primarily useful for tests.</span><span>
+</span><a name="line-145"></a><span class="hs-identifier">defaultEraParams</span><span> </span><span class="hs-glyph">::</span><span> </span><a href="Ouroboros.Consensus.Config.SecurityParam.html#SecurityParam"><span class="hs-identifier hs-type">SecurityParam</span></a><span> </span><span class="hs-glyph">-&gt;</span><span> </span><a href="Ouroboros.Consensus.BlockchainTime.WallClock.Types.html#SlotLength"><span class="hs-identifier hs-type">SlotLength</span></a><span> </span><span class="hs-glyph">-&gt;</span><span> </span><a href="Ouroboros.Consensus.HardFork.History.EraParams.html#EraParams"><span class="hs-identifier hs-type">EraParams</span></a><span>
+</span><a name="line-146"></a><a name="defaultEraParams"><a href="Ouroboros.Consensus.HardFork.History.EraParams.html#defaultEraParams"><span class="hs-identifier">defaultEraParams</span></a></a><span> </span><span class="hs-special">(</span><a href="Ouroboros.Consensus.Config.SecurityParam.html#SecurityParam"><span class="hs-identifier hs-var">SecurityParam</span></a><span> </span><a name="local-6989586621679120383"><a href="#local-6989586621679120383"><span class="hs-identifier">k</span></a></a><span class="hs-special">)</span><span> </span><a name="local-6989586621679120384"><a href="#local-6989586621679120384"><span class="hs-identifier">slotLength</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><a href="Ouroboros.Consensus.HardFork.History.EraParams.html#EraParams"><span class="hs-identifier hs-var">EraParams</span></a><span> </span><span class="hs-special">{</span><span>
+</span><a name="line-147"></a><span>      </span><span class="hs-identifier">eraEpochSize</span><span>  </span><span class="hs-glyph">=</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-slotting-0.1.0.0/noopt/doc/html/cardano-slotting/src/Cardano.Slotting.Slot.html#EpochSize"><span class="hs-identifier hs-var">EpochSize</span></a><span> </span><span class="hs-special">(</span><a href="#local-6989586621679120383"><span class="hs-identifier hs-var">k</span></a><span> </span><span class="hs-operator hs-var">*</span><span> </span><span class="hs-number">10</span><span class="hs-special">)</span><span>
+</span><a name="line-148"></a><span>    </span><span class="hs-special">,</span><span> </span><span class="hs-identifier">eraSlotLength</span><span> </span><span class="hs-glyph">=</span><span> </span><a href="#local-6989586621679120384"><span class="hs-identifier hs-var">slotLength</span></a><span>
+</span><a name="line-149"></a><span>    </span><span class="hs-special">,</span><span> </span><span class="hs-identifier">eraSafeZone</span><span>   </span><span class="hs-glyph">=</span><span> </span><a href="Ouroboros.Consensus.HardFork.History.EraParams.html#defaultSafeZone"><span class="hs-identifier hs-var">defaultSafeZone</span></a><span> </span><span class="hs-special">(</span><a href="#local-6989586621679120383"><span class="hs-identifier hs-var">k</span></a><span> </span><span class="hs-operator hs-var">*</span><span> </span><span class="hs-number">2</span><span class="hs-special">)</span><span>
+</span><a name="line-150"></a><span>    </span><span class="hs-special">}</span><span>
+</span><a name="line-151"></a><span>
+</span><a name="line-152"></a><span class="hs-comment">-- | Zone in which it is guaranteed that no hard fork can take place</span><span>
+</span><a name="line-153"></a><span class="hs-keyword">data</span><span> </span><a name="SafeZone"><a href="Ouroboros.Consensus.HardFork.History.EraParams.html#SafeZone"><span class="hs-identifier">SafeZone</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><a name="SafeZone"><a href="Ouroboros.Consensus.HardFork.History.EraParams.html#SafeZone"><span class="hs-identifier">SafeZone</span></a></a><span> </span><span class="hs-special">{</span><span>
+</span><a name="line-154"></a><span>      </span><span class="hs-comment">-- | Number of slots from the tip of the ledger</span><span>
+</span><a name="line-155"></a><span>      </span><span class="hs-comment">--</span><span>
+</span><a name="line-156"></a><span>      </span><span class="hs-comment">-- This should be (at least) the number of slots in which we are</span><span>
+</span><a name="line-157"></a><span>      </span><span class="hs-comment">-- guaranteed to have @k@ blocks.</span><span>
+</span><a name="line-158"></a><span>      </span><a name="safeFromTip"><a href="Ouroboros.Consensus.HardFork.History.EraParams.html#safeFromTip"><span class="hs-identifier">safeFromTip</span></a></a><span>     </span><span class="hs-glyph">::</span><span> </span><span class="hs-glyph">!</span><span class="hs-identifier hs-type">Word64</span><span>
+</span><a name="line-159"></a><span>
+</span><a name="line-160"></a><span>      </span><span class="hs-comment">-- | Optionally, an 'EpochNo' before which no hard fork can take place</span><span>
+</span><a name="line-161"></a><span>    </span><span class="hs-special">,</span><span> </span><a name="safeBeforeEpoch"><a href="Ouroboros.Consensus.HardFork.History.EraParams.html#safeBeforeEpoch"><span class="hs-identifier">safeBeforeEpoch</span></a></a><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-glyph">!</span><a href="Ouroboros.Consensus.HardFork.History.EraParams.html#SafeBeforeEpoch"><span class="hs-identifier hs-type">SafeBeforeEpoch</span></a><span>
+</span><a name="line-162"></a><span>    </span><span class="hs-special">}</span><span>
+</span><a name="line-163"></a><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-keyword">stock</span><span>    </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Show</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Eq</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Generic</span><span class="hs-special">)</span><span>
+</span><a name="line-164"></a><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-keyword">anyclass</span><span> </span><span class="hs-special">(</span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-prelude-0.1.0.0/noopt/doc/html/cardano-prelude/src/Cardano.Prelude.GHC.Heap.NormalForm.Classy.html#NoUnexpectedThunks"><span class="hs-identifier hs-type">NoUnexpectedThunks</span></a><span class="hs-special">)</span><span>
+</span><a name="line-165"></a><span>
+</span><a name="line-166"></a><span class="hs-comment">-- | Default safe zone with no 'safeBeforeEpoch\</span><span>
+</span><a name="line-167"></a><span class="hs-identifier">defaultSafeZone</span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">Word64</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><a href="Ouroboros.Consensus.HardFork.History.EraParams.html#SafeZone"><span class="hs-identifier hs-type">SafeZone</span></a><span>
+</span><a name="line-168"></a><a name="defaultSafeZone"><a href="Ouroboros.Consensus.HardFork.History.EraParams.html#defaultSafeZone"><span class="hs-identifier">defaultSafeZone</span></a></a><span> </span><a name="local-6989586621679120385"><a href="#local-6989586621679120385"><span class="hs-identifier">n</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><a href="Ouroboros.Consensus.HardFork.History.EraParams.html#SafeZone"><span class="hs-identifier hs-var">SafeZone</span></a><span> </span><a href="#local-6989586621679120385"><span class="hs-identifier hs-var">n</span></a><span> </span><a href="Ouroboros.Consensus.HardFork.History.EraParams.html#NoLowerBound"><span class="hs-identifier hs-var">NoLowerBound</span></a><span>
+</span><a name="line-169"></a><span>
+</span><a name="line-170"></a><span class="hs-comment">-- | Lower bound on when a transition can take place</span><span>
+</span><a name="line-171"></a><span class="hs-keyword">data</span><span> </span><a name="SafeBeforeEpoch"><a href="Ouroboros.Consensus.HardFork.History.EraParams.html#SafeBeforeEpoch"><span class="hs-identifier">SafeBeforeEpoch</span></a></a><span> </span><span class="hs-glyph">=</span><span>
+</span><a name="line-172"></a><span>    </span><span class="hs-comment">-- | No such lower bound is known</span><span>
+</span><a name="line-173"></a><span>    </span><a name="NoLowerBound"><a href="Ouroboros.Consensus.HardFork.History.EraParams.html#NoLowerBound"><span class="hs-identifier">NoLowerBound</span></a></a><span>
+</span><a name="line-174"></a><span>
+</span><a name="line-175"></a><span>    </span><span class="hs-comment">-- | 'EpochNo' before which a transition is guaranteed not to take place</span><span>
+</span><a name="line-176"></a><span>    </span><span class="hs-comment">--</span><span>
+</span><a name="line-177"></a><span>    </span><span class="hs-comment">-- Often such a value is available, since a new era is planned only after</span><span>
+</span><a name="line-178"></a><span>    </span><span class="hs-comment">-- the current era has already been running for a while. For example, at</span><span>
+</span><a name="line-179"></a><span>    </span><span class="hs-comment">-- the time of writing, we know the Byron to Shelley transition cannot</span><span>
+</span><a name="line-180"></a><span>    </span><span class="hs-comment">-- happen before epoch 180, since we are currently already in epoch 179.</span><span>
+</span><a name="line-181"></a><span>    </span><span class="hs-comment">--</span><span>
+</span><a name="line-182"></a><span>    </span><span class="hs-comment">-- Moreover, for epoch transitions that have /already/ taken place, the</span><span>
+</span><a name="line-183"></a><span>    </span><span class="hs-comment">-- exact 'EpochNo' of the transition can be used.</span><span>
+</span><a name="line-184"></a><span>    </span><span class="hs-comment">--</span><span>
+</span><a name="line-185"></a><span>    </span><span class="hs-comment">-- Providing this value is strictly an optimization; for example, it will</span><span>
+</span><a name="line-186"></a><span>    </span><span class="hs-comment">-- reduce the frequency with which 'summaryToEpochInfo' must update its</span><span>
+</span><a name="line-187"></a><span>    </span><span class="hs-comment">-- summary of the hard fork history.</span><span>
+</span><a name="line-188"></a><span>  </span><span class="hs-glyph">|</span><span> </span><a name="LowerBound"><a href="Ouroboros.Consensus.HardFork.History.EraParams.html#LowerBound"><span class="hs-identifier">LowerBound</span></a></a><span> </span><span class="hs-glyph">!</span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-slotting-0.1.0.0/noopt/doc/html/cardano-slotting/src/Cardano.Slotting.Slot.html#EpochNo"><span class="hs-identifier hs-type">EpochNo</span></a><span>
+</span><a name="line-189"></a><span>
+</span><a name="line-190"></a><span>    </span><span class="hs-comment">-- | Pretend the transition to the next era will not take place.</span><span>
+</span><a name="line-191"></a><span>    </span><span class="hs-comment">--</span><span>
+</span><a name="line-192"></a><span>    </span><span class="hs-comment">-- This constructor is marked as unsafe because it effectively extends</span><span>
+</span><a name="line-193"></a><span>    </span><span class="hs-comment">-- the safe zone of this era indefinitely into the future. This means that</span><span>
+</span><a name="line-194"></a><span>    </span><span class="hs-comment">-- we might reach invalid conclusions when doing</span><span>
+</span><a name="line-195"></a><span>    </span><span class="hs-comment">--</span><span>
+</span><a name="line-196"></a><span>    </span><span class="hs-comment">-- * slot to time conversions for blocks that are past the actual safe zone</span><span>
+</span><a name="line-197"></a><span>    </span><span class="hs-comment">-- * time to slot conversions for the current time, when behind in syncing</span><span>
+</span><a name="line-198"></a><span>    </span><span class="hs-comment">--</span><span>
+</span><a name="line-199"></a><span>    </span><span class="hs-comment">-- This is safe when the code is simply not yet ready to transition to the</span><span>
+</span><a name="line-200"></a><span>    </span><span class="hs-comment">-- next era, because in that case, we can be sure that blocks that come in</span><span>
+</span><a name="line-201"></a><span>    </span><span class="hs-comment">-- are still from this era. It also means that we can always /produce/ a</span><span>
+</span><a name="line-202"></a><span>    </span><span class="hs-comment">-- block, no matter how far ahead of the current ledger we are.</span><span>
+</span><a name="line-203"></a><span>    </span><span class="hs-comment">--</span><span>
+</span><a name="line-204"></a><span>    </span><span class="hs-comment">-- If the code is ready for the transition, just awaiting an update</span><span>
+</span><a name="line-205"></a><span>    </span><span class="hs-comment">-- proposal, then 'LowerBound' can be used instead.</span><span>
+</span><a name="line-206"></a><span>    </span><span class="hs-comment">--</span><span>
+</span><a name="line-207"></a><span>    </span><span class="hs-comment">-- This constructor can be regarded as an &quot; extreme &quot; version of</span><span>
+</span><a name="line-208"></a><span>    </span><span class="hs-comment">-- 'LowerBound', and can be used for similar reasons.</span><span>
+</span><a name="line-209"></a><span>  </span><span class="hs-glyph">|</span><span> </span><a name="UnsafeUnbounded"><a href="Ouroboros.Consensus.HardFork.History.EraParams.html#UnsafeUnbounded"><span class="hs-identifier">UnsafeUnbounded</span></a></a><span>
+</span><a name="line-210"></a><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-keyword">stock</span><span>    </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Show</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Eq</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Generic</span><span class="hs-special">)</span><span>
+</span><a name="line-211"></a><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-keyword">anyclass</span><span> </span><span class="hs-special">(</span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-prelude-0.1.0.0/noopt/doc/html/cardano-prelude/src/Cardano.Prelude.GHC.Heap.NormalForm.Classy.html#NoUnexpectedThunks"><span class="hs-identifier hs-type">NoUnexpectedThunks</span></a><span class="hs-special">)</span><span>
+</span><a name="line-212"></a><span>
+</span><a name="line-213"></a><span class="hs-comment">{-------------------------------------------------------------------------------
+  Queries
+-------------------------------------------------------------------------------}</span><span>
+</span><a name="line-216"></a><span>
+</span><a name="line-217"></a><span class="hs-identifier">maxMaybeEpoch</span><span> </span><span class="hs-glyph">::</span><span> </span><a href="Ouroboros.Consensus.HardFork.History.EraParams.html#SafeBeforeEpoch"><span class="hs-identifier hs-type">SafeBeforeEpoch</span></a><span> </span><span class="hs-glyph">-&gt;</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-slotting-0.1.0.0/noopt/doc/html/cardano-slotting/src/Cardano.Slotting.Slot.html#EpochNo"><span class="hs-identifier hs-type">EpochNo</span></a><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">Maybe</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-slotting-0.1.0.0/noopt/doc/html/cardano-slotting/src/Cardano.Slotting.Slot.html#EpochNo"><span class="hs-identifier hs-type">EpochNo</span></a><span>
+</span><a name="line-218"></a><a name="maxMaybeEpoch"><a href="Ouroboros.Consensus.HardFork.History.EraParams.html#maxMaybeEpoch"><span class="hs-identifier">maxMaybeEpoch</span></a></a><span> </span><a href="Ouroboros.Consensus.HardFork.History.EraParams.html#NoLowerBound"><span class="hs-identifier hs-var">NoLowerBound</span></a><span>    </span><a name="local-6989586621679120386"><a href="#local-6989586621679120386"><span class="hs-identifier">e</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-identifier hs-var">Just</span><span> </span><span class="hs-operator hs-var">$</span><span> </span><a href="#local-6989586621679120386"><span class="hs-identifier hs-var">e</span></a><span>
+</span><a name="line-219"></a><span class="hs-identifier">maxMaybeEpoch</span><span> </span><span class="hs-special">(</span><a href="Ouroboros.Consensus.HardFork.History.EraParams.html#LowerBound"><span class="hs-identifier hs-var">LowerBound</span></a><span> </span><a name="local-6989586621679120387"><a href="#local-6989586621679120387"><span class="hs-identifier">e'</span></a></a><span class="hs-special">)</span><span> </span><a name="local-6989586621679120388"><a href="#local-6989586621679120388"><span class="hs-identifier">e</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-identifier hs-var">Just</span><span> </span><span class="hs-operator hs-var">$</span><span> </span><span class="hs-identifier hs-var">max</span><span> </span><a href="#local-6989586621679120387"><span class="hs-identifier hs-var">e'</span></a><span> </span><a href="#local-6989586621679120388"><span class="hs-identifier hs-var">e</span></a><span>
+</span><a name="line-220"></a><span class="hs-identifier">maxMaybeEpoch</span><span> </span><a href="Ouroboros.Consensus.HardFork.History.EraParams.html#UnsafeUnbounded"><span class="hs-identifier hs-var">UnsafeUnbounded</span></a><span> </span><span class="hs-identifier">_</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-identifier hs-var">Nothing</span><span>
+</span><a name="line-221"></a></pre></body></html>
