@@ -1,0 +1,445 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-pragma">{-# LANGUAGE DataKinds #-}</span><span>
+</span><span id="line-2"></span><span class="hs-pragma">{-# LANGUAGE DerivingVia #-}</span><span>
+</span><span id="line-3"></span><span class="hs-pragma">{-# LANGUAGE ScopedTypeVariables #-}</span><span>
+</span><span id="line-4"></span><span class="hs-pragma">{-# LANGUAGE TypeApplications #-}</span><span>
+</span><span id="line-5"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Cardano.Crypto.Libsodium.MLockedBytes.Internal</span><span> </span><span class="hs-special">(</span><span>
+</span><span id="line-6"></span><span>    </span><span class="annot"><a href="Cardano.Crypto.Libsodium.MLockedBytes.Internal.html#MLockedSizedBytes"><span class="hs-identifier">MLockedSizedBytes</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span>
+</span><span id="line-7"></span><span>    </span><span class="annot"><a href="Cardano.Crypto.Libsodium.MLockedBytes.Internal.html#mlsbZero"><span class="hs-identifier">mlsbZero</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-8"></span><span>    </span><span class="annot"><a href="Cardano.Crypto.Libsodium.MLockedBytes.Internal.html#mlsbFromByteString"><span class="hs-identifier">mlsbFromByteString</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-9"></span><span>    </span><span class="annot"><a href="Cardano.Crypto.Libsodium.MLockedBytes.Internal.html#mlsbFromByteStringCheck"><span class="hs-identifier">mlsbFromByteStringCheck</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-10"></span><span>    </span><span class="annot"><a href="Cardano.Crypto.Libsodium.MLockedBytes.Internal.html#mlsbToByteString"><span class="hs-identifier">mlsbToByteString</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-11"></span><span>    </span><span class="annot"><a href="Cardano.Crypto.Libsodium.MLockedBytes.Internal.html#mlsbUseAsCPtr"><span class="hs-identifier">mlsbUseAsCPtr</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-12"></span><span>    </span><span class="annot"><a href="Cardano.Crypto.Libsodium.MLockedBytes.Internal.html#mlsbUseAsSizedPtr"><span class="hs-identifier">mlsbUseAsSizedPtr</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-13"></span><span>    </span><span class="annot"><a href="Cardano.Crypto.Libsodium.MLockedBytes.Internal.html#mlsbFinalize"><span class="hs-identifier">mlsbFinalize</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-14"></span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-15"></span><span>
+</span><span id="line-16"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Control.DeepSeq</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">NFData</span></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-17"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Proxy</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Proxy</span></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-18"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Foreign.C.Types</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">CSize</span></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-19"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Foreign.ForeignPtr</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">castForeignPtr</span></span><span class="hs-special">)</span><span>
+</span><span id="line-20"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Foreign.Ptr</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Ptr</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">castPtr</span></span><span class="hs-special">)</span><span>
+</span><span id="line-21"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">GHC.TypeLits</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">KnownNat</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">natVal</span></span><span class="hs-special">)</span><span>
+</span><span id="line-22"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">NoThunks.Class</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">NoThunks</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">OnlyCheckWhnfNamed</span></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-23"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">System.IO.Unsafe</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">unsafeDupablePerformIO</span></span><span class="hs-special">)</span><span>
+</span><span id="line-24"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Word</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Word8</span></span><span class="hs-special">)</span><span>
+</span><span id="line-25"></span><span>
+</span><span id="line-26"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Cardano.Foreign.html"><span class="hs-identifier">Cardano.Foreign</span></a></span><span>
+</span><span id="line-27"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Cardano.Crypto.Libsodium.Memory.Internal.html"><span class="hs-identifier">Cardano.Crypto.Libsodium.Memory.Internal</span></a></span><span>
+</span><span id="line-28"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Cardano.Crypto.Libsodium.C.html"><span class="hs-identifier">Cardano.Crypto.Libsodium.C</span></a></span><span>
+</span><span id="line-29"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Cardano.Crypto.PinnedSizedBytes.html"><span class="hs-identifier">Cardano.Crypto.PinnedSizedBytes</span></a></span><span>
+</span><span id="line-30"></span><span>
+</span><span id="line-31"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Data.ByteString</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">BS</span></span><span>
+</span><span id="line-32"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Data.ByteString.Internal</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">BSI</span></span><span>
+</span><span id="line-33"></span><span>
+</span><span id="line-34"></span><span class="hs-keyword">newtype</span><span> </span><span id="MLockedSizedBytes"><span class="annot"><a href="Cardano.Crypto.Libsodium.MLockedBytes.Internal.html#MLockedSizedBytes"><span class="hs-identifier hs-var">MLockedSizedBytes</span></a></span></span><span> </span><span id="local-6989586621679138928"><span class="annot"><a href="#local-6989586621679138928"><span class="hs-identifier hs-type">n</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="MLSB"><span class="annot"><a href="Cardano.Crypto.Libsodium.MLockedBytes.Internal.html#MLSB"><span class="hs-identifier hs-var">MLSB</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cardano.Crypto.Libsodium.Memory.Internal.html#MLockedForeignPtr"><span class="hs-identifier hs-type">MLockedForeignPtr</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cardano.Crypto.PinnedSizedBytes.html#PinnedSizedBytes"><span class="hs-identifier hs-type">PinnedSizedBytes</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679138928"><span class="hs-identifier hs-type">n</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-35"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span id="local-6989586621679138889"><span id="local-6989586621679138891"><span id="local-6989586621679138893"><span class="annot"><span class="annottext">Context -&gt; MLockedSizedBytes n -&gt; IO (Maybe ThunkInfo)
+Proxy (MLockedSizedBytes n) -&gt; String
+(Context -&gt; MLockedSizedBytes n -&gt; IO (Maybe ThunkInfo))
+-&gt; (Context -&gt; MLockedSizedBytes n -&gt; IO (Maybe ThunkInfo))
+-&gt; (Proxy (MLockedSizedBytes n) -&gt; String)
+-&gt; NoThunks (MLockedSizedBytes n)
+forall a.
+(Context -&gt; a -&gt; IO (Maybe ThunkInfo))
+-&gt; (Context -&gt; a -&gt; IO (Maybe ThunkInfo))
+-&gt; (Proxy a -&gt; String)
+-&gt; NoThunks a
+forall (n :: Nat).
+Context -&gt; MLockedSizedBytes n -&gt; IO (Maybe ThunkInfo)
+forall (n :: Nat). Proxy (MLockedSizedBytes n) -&gt; String
+showTypeOf :: Proxy (MLockedSizedBytes n) -&gt; String
+$cshowTypeOf :: forall (n :: Nat). Proxy (MLockedSizedBytes n) -&gt; String
+wNoThunks :: Context -&gt; MLockedSizedBytes n -&gt; IO (Maybe ThunkInfo)
+$cwNoThunks :: forall (n :: Nat).
+Context -&gt; MLockedSizedBytes n -&gt; IO (Maybe ThunkInfo)
+noThunks :: Context -&gt; MLockedSizedBytes n -&gt; IO (Maybe ThunkInfo)
+$cnoThunks :: forall (n :: Nat).
+Context -&gt; MLockedSizedBytes n -&gt; IO (Maybe ThunkInfo)
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">NoThunks</span></span></span></span></span><span> </span><span class="hs-keyword">via</span><span> </span><span class="annot"><span class="hs-identifier hs-type">OnlyCheckWhnfNamed</span></span><span> </span><span class="annot"><span class="hs-string">&quot;MLockedSizedBytes&quot;</span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cardano.Crypto.Libsodium.MLockedBytes.Internal.html#MLockedSizedBytes"><span class="hs-identifier hs-type">MLockedSizedBytes</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679138928"><span class="hs-identifier hs-type">n</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-36"></span><span>
+</span><span id="line-37"></span><span id="local-6989586621679138887"><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679138884"><span class="annot"><span class="hs-identifier hs-type">KnownNat</span></span><span> </span><span class="annot"><a href="#local-6989586621679138887"><span class="hs-identifier hs-type">n</span></a></span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Eq</span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cardano.Crypto.Libsodium.MLockedBytes.Internal.html#MLockedSizedBytes"><span class="hs-identifier hs-type">MLockedSizedBytes</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679138887"><span class="hs-identifier hs-type">n</span></a></span><span class="hs-special">)</span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-38"></span><span>    </span><span id="local-6989586621679138882"><span class="annot"><span class="annottext">MLockedSizedBytes n
+</span><a href="#local-6989586621679138882"><span class="hs-identifier hs-var">x</span></a></span></span><span> </span><span id="local-6989586621679138881"><span class="annot"><span class="annottext">== :: MLockedSizedBytes n -&gt; MLockedSizedBytes n -&gt; Bool
+</span><span class="hs-operator hs-var hs-var hs-var hs-var">==</span></span></span><span> </span><span id="local-6989586621679138880"><span class="annot"><span class="annottext">MLockedSizedBytes n
+</span><a href="#local-6989586621679138880"><span class="hs-identifier hs-var">y</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">MLockedSizedBytes n -&gt; MLockedSizedBytes n -&gt; Ordering
+forall a. Ord a =&gt; a -&gt; a -&gt; Ordering
+</span><span class="hs-identifier hs-var">compare</span></span><span> </span><span class="annot"><span class="annottext">MLockedSizedBytes n
+</span><a href="#local-6989586621679138882"><span class="hs-identifier hs-var">x</span></a></span><span> </span><span class="annot"><span class="annottext">MLockedSizedBytes n
+</span><a href="#local-6989586621679138880"><span class="hs-identifier hs-var">y</span></a></span><span> </span><span class="annot"><span class="annottext">Ordering -&gt; Ordering -&gt; Bool
+forall a. Eq a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">==</span></span><span> </span><span class="annot"><span class="annottext">Ordering
+</span><span class="hs-identifier hs-var">EQ</span></span></span><span>
+</span><span id="line-39"></span><span>
+</span><span id="line-40"></span><span id="local-6989586621679138878"><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679138864"><span id="local-6989586621679138866"><span id="local-6989586621679138868"><span id="local-6989586621679138870"><span id="local-6989586621679138872"><span id="local-6989586621679138874"><span class="annot"><span class="hs-identifier hs-type">KnownNat</span></span><span> </span><span class="annot"><a href="#local-6989586621679138878"><span class="hs-identifier hs-type">n</span></a></span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Ord</span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cardano.Crypto.Libsodium.MLockedBytes.Internal.html#MLockedSizedBytes"><span class="hs-identifier hs-type">MLockedSizedBytes</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679138878"><span class="hs-identifier hs-type">n</span></a></span><span class="hs-special">)</span></span></span></span></span></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-41"></span><span>    </span><span id="local-6989586621679138862"><span class="annot"><span class="annottext">compare :: MLockedSizedBytes n -&gt; MLockedSizedBytes n -&gt; Ordering
+</span><a href="#local-6989586621679138862"><span class="hs-identifier hs-var hs-var hs-var hs-var">compare</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cardano.Crypto.Libsodium.MLockedBytes.Internal.html#MLSB"><span class="hs-identifier hs-type">MLSB</span></a></span><span> </span><span id="local-6989586621679138861"><span class="annot"><span class="annottext">MLockedForeignPtr (PinnedSizedBytes n)
+</span><a href="#local-6989586621679138861"><span class="hs-identifier hs-var">x</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cardano.Crypto.Libsodium.MLockedBytes.Internal.html#MLSB"><span class="hs-identifier hs-type">MLSB</span></a></span><span> </span><span id="local-6989586621679138860"><span class="annot"><span class="annottext">MLockedForeignPtr (PinnedSizedBytes n)
+</span><a href="#local-6989586621679138860"><span class="hs-identifier hs-var">y</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">IO Ordering -&gt; Ordering
+forall a. IO a -&gt; a
+</span><span class="hs-identifier hs-var">unsafeDupablePerformIO</span></span><span> </span><span class="annot"><span class="annottext">(IO Ordering -&gt; Ordering) -&gt; IO Ordering -&gt; Ordering
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span>
+</span><span id="line-42"></span><span>        </span><span class="annot"><span class="annottext">MLockedForeignPtr (PinnedSizedBytes n)
+-&gt; (Ptr (PinnedSizedBytes n) -&gt; IO Ordering) -&gt; IO Ordering
+forall a b. MLockedForeignPtr a -&gt; (Ptr a -&gt; IO b) -&gt; IO b
+</span><a href="Cardano.Crypto.Libsodium.Memory.Internal.html#withMLockedForeignPtr"><span class="hs-identifier hs-var">withMLockedForeignPtr</span></a></span><span> </span><span class="annot"><span class="annottext">MLockedForeignPtr (PinnedSizedBytes n)
+</span><a href="#local-6989586621679138861"><span class="hs-identifier hs-var">x</span></a></span><span> </span><span class="annot"><span class="annottext">((Ptr (PinnedSizedBytes n) -&gt; IO Ordering) -&gt; IO Ordering)
+-&gt; (Ptr (PinnedSizedBytes n) -&gt; IO Ordering) -&gt; IO Ordering
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679138858"><span class="annot"><span class="annottext">Ptr (PinnedSizedBytes n)
+</span><a href="#local-6989586621679138858"><span class="hs-identifier hs-var">x'</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-43"></span><span>        </span><span class="annot"><span class="annottext">MLockedForeignPtr (PinnedSizedBytes n)
+-&gt; (Ptr (PinnedSizedBytes n) -&gt; IO Ordering) -&gt; IO Ordering
+forall a b. MLockedForeignPtr a -&gt; (Ptr a -&gt; IO b) -&gt; IO b
+</span><a href="Cardano.Crypto.Libsodium.Memory.Internal.html#withMLockedForeignPtr"><span class="hs-identifier hs-var">withMLockedForeignPtr</span></a></span><span> </span><span class="annot"><span class="annottext">MLockedForeignPtr (PinnedSizedBytes n)
+</span><a href="#local-6989586621679138860"><span class="hs-identifier hs-var">y</span></a></span><span> </span><span class="annot"><span class="annottext">((Ptr (PinnedSizedBytes n) -&gt; IO Ordering) -&gt; IO Ordering)
+-&gt; (Ptr (PinnedSizedBytes n) -&gt; IO Ordering) -&gt; IO Ordering
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679138857"><span class="annot"><span class="annottext">Ptr (PinnedSizedBytes n)
+</span><a href="#local-6989586621679138857"><span class="hs-identifier hs-var">y'</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-44"></span><span>            </span><span id="local-6989586621679138856"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679138856"><span class="hs-identifier hs-var">res</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Ptr (PinnedSizedBytes n)
+-&gt; Ptr (PinnedSizedBytes n) -&gt; CSize -&gt; IO Int
+forall a. Ptr a -&gt; Ptr a -&gt; CSize -&gt; IO Int
+</span><a href="Cardano.Crypto.Libsodium.C.html#c_sodium_compare"><span class="hs-identifier hs-var">c_sodium_compare</span></a></span><span> </span><span class="annot"><span class="annottext">Ptr (PinnedSizedBytes n)
+</span><a href="#local-6989586621679138858"><span class="hs-identifier hs-var">x'</span></a></span><span> </span><span class="annot"><span class="annottext">Ptr (PinnedSizedBytes n)
+</span><a href="#local-6989586621679138857"><span class="hs-identifier hs-var">y'</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Word64 -&gt; CSize
+</span><span class="hs-identifier hs-var">CSize</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Integer -&gt; Word64
+forall a b. (Integral a, Num b) =&gt; a -&gt; b
+</span><span class="hs-identifier hs-var">fromIntegral</span></span><span> </span><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679138853"><span class="hs-identifier hs-var">size</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-45"></span><span>            </span><span class="annot"><span class="annottext">Ordering -&gt; IO Ordering
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Ordering
+forall a. Ord a =&gt; a -&gt; a -&gt; Ordering
+</span><span class="hs-identifier hs-var">compare</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679138856"><span class="hs-identifier hs-var">res</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span class="hs-special">)</span><span>
+</span><span id="line-46"></span><span>      </span><span class="hs-keyword">where</span><span>
+</span><span id="line-47"></span><span>        </span><span id="local-6989586621679138853"><span class="annot"><span class="annottext">size :: Integer
+</span><a href="#local-6989586621679138853"><span class="hs-identifier hs-var hs-var">size</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Proxy n -&gt; Integer
+forall (n :: Nat) (proxy :: Nat -&gt; *).
+KnownNat n =&gt;
+proxy n -&gt; Integer
+</span><span class="hs-identifier hs-var">natVal</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Proxy n
+forall k (t :: k). Proxy t
+</span><span class="hs-identifier hs-var">Proxy</span></span><span> </span><span class="hs-glyph">@</span><span class="annot"><a href="#local-6989586621679138878"><span class="hs-identifier hs-type">n</span></a></span><span class="hs-special">)</span></span><span>
+</span><span id="line-48"></span><span>
+</span><span id="line-49"></span><span id="local-6989586621679138851"><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679138846"><span id="local-6989586621679138848"><span class="annot"><span class="hs-identifier hs-type">KnownNat</span></span><span> </span><span class="annot"><a href="#local-6989586621679138851"><span class="hs-identifier hs-type">n</span></a></span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Show</span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cardano.Crypto.Libsodium.MLockedBytes.Internal.html#MLockedSizedBytes"><span class="hs-identifier hs-type">MLockedSizedBytes</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679138851"><span class="hs-identifier hs-type">n</span></a></span><span class="hs-special">)</span></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-50"></span><span>    </span><span id="local-6989586621679138844"><span class="annot"><span class="annottext">showsPrec :: Int -&gt; MLockedSizedBytes n -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">showsPrec</span></span></span><span> </span><span id="local-6989586621679138842"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679138842"><span class="hs-identifier hs-var">d</span></a></span></span><span> </span><span class="annot"><span class="annottext">MLockedSizedBytes n
+</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Bool -&gt; ShowS -&gt; ShowS
+</span><span class="hs-identifier hs-var">showParen</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679138842"><span class="hs-identifier hs-var">d</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">&gt;</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">10</span></span><span class="hs-special">)</span><span>
+</span><span id="line-51"></span><span>        </span><span class="annot"><span class="annottext">(ShowS -&gt; ShowS) -&gt; ShowS -&gt; ShowS
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">String -&gt; ShowS
+</span><span class="hs-identifier hs-var">showString</span></span><span> </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;_ :: MLockedSizedBytes &quot;</span></span><span>
+</span><span id="line-52"></span><span>        </span><span class="annot"><span class="annottext">ShowS -&gt; ShowS -&gt; ShowS
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Integer -&gt; ShowS
+forall a. Show a =&gt; Int -&gt; a -&gt; ShowS
+</span><span class="hs-identifier hs-var">showsPrec</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">11</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Proxy n -&gt; Integer
+forall (n :: Nat) (proxy :: Nat -&gt; *).
+KnownNat n =&gt;
+proxy n -&gt; Integer
+</span><span class="hs-identifier hs-var">natVal</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Proxy n
+forall k (t :: k). Proxy t
+</span><span class="hs-identifier hs-var">Proxy</span></span><span> </span><span class="hs-glyph">@</span><span class="annot"><a href="#local-6989586621679138851"><span class="hs-identifier hs-type">n</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span></span><span>
+</span><span id="line-53"></span><span>
+</span><span id="line-54"></span><span id="local-6989586621679138837"><span class="hs-keyword">instance</span><span> </span><span class="annot"><span class="hs-identifier hs-type">NFData</span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cardano.Crypto.Libsodium.MLockedBytes.Internal.html#MLockedSizedBytes"><span class="hs-identifier hs-type">MLockedSizedBytes</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679138837"><span class="hs-identifier hs-type">n</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-55"></span><span>    </span><span id="local-6989586621679138834"><span class="annot"><span class="annottext">rnf :: MLockedSizedBytes n -&gt; ()
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">rnf</span></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cardano.Crypto.Libsodium.MLockedBytes.Internal.html#MLSB"><span class="hs-identifier hs-type">MLSB</span></a></span><span> </span><span id="local-6989586621679138832"><span class="annot"><span class="annottext">MLockedForeignPtr (PinnedSizedBytes n)
+</span><a href="#local-6989586621679138832"><span class="hs-identifier hs-var">p</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">MLockedForeignPtr (PinnedSizedBytes n) -&gt; () -&gt; ()
+</span><span class="hs-identifier hs-var">seq</span></span><span> </span><span class="annot"><span class="annottext">MLockedForeignPtr (PinnedSizedBytes n)
+</span><a href="#local-6989586621679138832"><span class="hs-identifier hs-var">p</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span></span><span>
+</span><span id="line-56"></span><span>
+</span><span id="line-57"></span><span class="hs-comment">-- | Note: this doesn't need to allocate mlocked memory,</span><span>
+</span><span id="line-58"></span><span class="hs-comment">-- but we do that for consistency</span><span>
+</span><span id="line-59"></span><span class="annot"><a href="Cardano.Crypto.Libsodium.MLockedBytes.Internal.html#mlsbZero"><span class="hs-identifier hs-type">mlsbZero</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-keyword">forall</span><span> </span><span id="local-6989586621679138831"><span class="annot"><a href="#local-6989586621679138831"><span class="hs-identifier hs-type">n</span></a></span></span><span class="hs-operator">.</span><span> </span><span class="annot"><span class="hs-identifier hs-type">KnownNat</span></span><span> </span><span class="annot"><a href="#local-6989586621679138831"><span class="hs-identifier hs-type">n</span></a></span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Cardano.Crypto.Libsodium.MLockedBytes.Internal.html#MLockedSizedBytes"><span class="hs-identifier hs-type">MLockedSizedBytes</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679138831"><span class="hs-identifier hs-type">n</span></a></span><span>
+</span><span id="line-60"></span><span id="mlsbZero"><span class="annot"><span class="annottext">mlsbZero :: MLockedSizedBytes n
+</span><a href="Cardano.Crypto.Libsodium.MLockedBytes.Internal.html#mlsbZero"><span class="hs-identifier hs-var hs-var">mlsbZero</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">IO (MLockedSizedBytes n) -&gt; MLockedSizedBytes n
+forall a. IO a -&gt; a
+</span><span class="hs-identifier hs-var">unsafeDupablePerformIO</span></span><span> </span><span class="annot"><span class="annottext">(IO (MLockedSizedBytes n) -&gt; MLockedSizedBytes n)
+-&gt; IO (MLockedSizedBytes n) -&gt; MLockedSizedBytes n
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-61"></span><span>    </span><span id="local-6989586621679138830"><span class="annot"><span class="annottext">MLockedForeignPtr (PinnedSizedBytes n)
+</span><a href="#local-6989586621679138830"><span class="hs-identifier hs-var">fptr</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">IO (MLockedForeignPtr (PinnedSizedBytes n))
+forall a. Storable a =&gt; IO (MLockedForeignPtr a)
+</span><a href="Cardano.Crypto.Libsodium.Memory.Internal.html#allocMLockedForeignPtr"><span class="hs-identifier hs-var">allocMLockedForeignPtr</span></a></span><span>
+</span><span id="line-62"></span><span>    </span><span class="annot"><span class="annottext">MLockedForeignPtr (PinnedSizedBytes n)
+-&gt; (Ptr (PinnedSizedBytes n) -&gt; IO ()) -&gt; IO ()
+forall a b. MLockedForeignPtr a -&gt; (Ptr a -&gt; IO b) -&gt; IO b
+</span><a href="Cardano.Crypto.Libsodium.Memory.Internal.html#withMLockedForeignPtr"><span class="hs-identifier hs-var">withMLockedForeignPtr</span></a></span><span> </span><span class="annot"><span class="annottext">MLockedForeignPtr (PinnedSizedBytes n)
+</span><a href="#local-6989586621679138830"><span class="hs-identifier hs-var">fptr</span></a></span><span> </span><span class="annot"><span class="annottext">((Ptr (PinnedSizedBytes n) -&gt; IO ()) -&gt; IO ())
+-&gt; (Ptr (PinnedSizedBytes n) -&gt; IO ()) -&gt; IO ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679138828"><span class="annot"><span class="annottext">Ptr (PinnedSizedBytes n)
+</span><a href="#local-6989586621679138828"><span class="hs-identifier hs-var">ptr</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-63"></span><span>        </span><span class="annot"><span class="annottext">Ptr ()
+</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Ptr Any -&gt; Int -&gt; CSize -&gt; IO (Ptr ())
+forall a. Ptr a -&gt; Int -&gt; CSize -&gt; IO (Ptr ())
+</span><a href="Cardano.Foreign.html#c_memset"><span class="hs-identifier hs-var">c_memset</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Ptr (PinnedSizedBytes n) -&gt; Ptr Any
+forall a b. Ptr a -&gt; Ptr b
+</span><span class="hs-identifier hs-var">castPtr</span></span><span> </span><span class="annot"><span class="annottext">Ptr (PinnedSizedBytes n)
+</span><a href="#local-6989586621679138828"><span class="hs-identifier hs-var">ptr</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span> </span><span class="annot"><span class="annottext">CSize
+</span><a href="#local-6989586621679138826"><span class="hs-identifier hs-var">size</span></a></span><span>
+</span><span id="line-64"></span><span>        </span><span class="annot"><span class="annottext">() -&gt; IO ()
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
+</span><span id="line-65"></span><span>    </span><span class="annot"><span class="annottext">MLockedSizedBytes n -&gt; IO (MLockedSizedBytes n)
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">MLockedForeignPtr (PinnedSizedBytes n) -&gt; MLockedSizedBytes n
+forall (n :: Nat).
+MLockedForeignPtr (PinnedSizedBytes n) -&gt; MLockedSizedBytes n
+</span><a href="Cardano.Crypto.Libsodium.MLockedBytes.Internal.html#MLSB"><span class="hs-identifier hs-var">MLSB</span></a></span><span> </span><span class="annot"><span class="annottext">MLockedForeignPtr (PinnedSizedBytes n)
+</span><a href="#local-6989586621679138830"><span class="hs-identifier hs-var">fptr</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-66"></span><span>  </span><span class="hs-keyword">where</span><span>
+</span><span id="line-67"></span><span>    </span><span class="annot"><a href="#local-6989586621679138826"><span class="hs-identifier hs-type">size</span></a></span><span>  </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">CSize</span></span><span>
+</span><span id="line-68"></span><span>    </span><span id="local-6989586621679138826"><span class="annot"><span class="annottext">size :: CSize
+</span><a href="#local-6989586621679138826"><span class="hs-identifier hs-var hs-var">size</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Integer -&gt; CSize
+forall a. Num a =&gt; Integer -&gt; a
+</span><span class="hs-identifier hs-var">fromInteger</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Proxy n -&gt; Integer
+forall (n :: Nat) (proxy :: Nat -&gt; *).
+KnownNat n =&gt;
+proxy n -&gt; Integer
+</span><span class="hs-identifier hs-var">natVal</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Proxy n
+forall k (t :: k). Proxy t
+</span><span class="hs-identifier hs-var">Proxy</span></span><span> </span><span class="hs-glyph">@</span><span class="annot"><a href="#local-6989586621679138831"><span class="hs-identifier hs-type">n</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-69"></span><span>
+</span><span id="line-70"></span><span class="annot"><a href="Cardano.Crypto.Libsodium.MLockedBytes.Internal.html#mlsbFromByteString"><span class="hs-identifier hs-type">mlsbFromByteString</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-keyword">forall</span><span> </span><span id="local-6989586621679138825"><span class="annot"><a href="#local-6989586621679138825"><span class="hs-identifier hs-type">n</span></a></span></span><span class="hs-operator">.</span><span> </span><span class="annot"><span class="hs-identifier hs-type">KnownNat</span></span><span> </span><span class="annot"><a href="#local-6989586621679138825"><span class="hs-identifier hs-type">n</span></a></span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">BS.ByteString</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cardano.Crypto.Libsodium.MLockedBytes.Internal.html#MLockedSizedBytes"><span class="hs-identifier hs-type">MLockedSizedBytes</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679138825"><span class="hs-identifier hs-type">n</span></a></span><span>
+</span><span id="line-71"></span><span id="mlsbFromByteString"><span class="annot"><span class="annottext">mlsbFromByteString :: ByteString -&gt; MLockedSizedBytes n
+</span><a href="Cardano.Crypto.Libsodium.MLockedBytes.Internal.html#mlsbFromByteString"><span class="hs-identifier hs-var hs-var">mlsbFromByteString</span></a></span></span><span> </span><span id="local-6989586621679138824"><span class="annot"><span class="annottext">ByteString
+</span><a href="#local-6989586621679138824"><span class="hs-identifier hs-var">bs</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">IO (MLockedSizedBytes n) -&gt; MLockedSizedBytes n
+forall a. IO a -&gt; a
+</span><span class="hs-identifier hs-var">unsafeDupablePerformIO</span></span><span> </span><span class="annot"><span class="annottext">(IO (MLockedSizedBytes n) -&gt; MLockedSizedBytes n)
+-&gt; IO (MLockedSizedBytes n) -&gt; MLockedSizedBytes n
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">ByteString
+-&gt; (CStringLen -&gt; IO (MLockedSizedBytes n))
+-&gt; IO (MLockedSizedBytes n)
+forall a. ByteString -&gt; (CStringLen -&gt; IO a) -&gt; IO a
+</span><span class="hs-identifier hs-var">BS.useAsCStringLen</span></span><span> </span><span class="annot"><span class="annottext">ByteString
+</span><a href="#local-6989586621679138824"><span class="hs-identifier hs-var">bs</span></a></span><span> </span><span class="annot"><span class="annottext">((CStringLen -&gt; IO (MLockedSizedBytes n))
+ -&gt; IO (MLockedSizedBytes n))
+-&gt; (CStringLen -&gt; IO (MLockedSizedBytes n))
+-&gt; IO (MLockedSizedBytes n)
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-glyph">\</span><span class="hs-special">(</span><span id="local-6989586621679138822"><span class="annot"><span class="annottext">Ptr CChar
+</span><a href="#local-6989586621679138822"><span class="hs-identifier hs-var">ptrBS</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679138821"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679138821"><span class="hs-identifier hs-var">len</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-72"></span><span>    </span><span id="local-6989586621679138820"><span class="annot"><span class="annottext">MLockedForeignPtr (PinnedSizedBytes n)
+</span><a href="#local-6989586621679138820"><span class="hs-identifier hs-var">fptr</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">IO (MLockedForeignPtr (PinnedSizedBytes n))
+forall a. Storable a =&gt; IO (MLockedForeignPtr a)
+</span><a href="Cardano.Crypto.Libsodium.Memory.Internal.html#allocMLockedForeignPtr"><span class="hs-identifier hs-var">allocMLockedForeignPtr</span></a></span><span>
+</span><span id="line-73"></span><span>    </span><span class="annot"><span class="annottext">MLockedForeignPtr (PinnedSizedBytes n)
+-&gt; (Ptr (PinnedSizedBytes n) -&gt; IO ()) -&gt; IO ()
+forall a b. MLockedForeignPtr a -&gt; (Ptr a -&gt; IO b) -&gt; IO b
+</span><a href="Cardano.Crypto.Libsodium.Memory.Internal.html#withMLockedForeignPtr"><span class="hs-identifier hs-var">withMLockedForeignPtr</span></a></span><span> </span><span class="annot"><span class="annottext">MLockedForeignPtr (PinnedSizedBytes n)
+</span><a href="#local-6989586621679138820"><span class="hs-identifier hs-var">fptr</span></a></span><span> </span><span class="annot"><span class="annottext">((Ptr (PinnedSizedBytes n) -&gt; IO ()) -&gt; IO ())
+-&gt; (Ptr (PinnedSizedBytes n) -&gt; IO ()) -&gt; IO ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679138819"><span class="annot"><span class="annottext">Ptr (PinnedSizedBytes n)
+</span><a href="#local-6989586621679138819"><span class="hs-identifier hs-var">ptr</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-74"></span><span>        </span><span class="annot"><span class="annottext">Ptr ()
+</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Ptr CChar -&gt; Ptr CChar -&gt; CSize -&gt; IO (Ptr ())
+forall a. Ptr a -&gt; Ptr a -&gt; CSize -&gt; IO (Ptr ())
+</span><a href="Cardano.Foreign.html#c_memcpy"><span class="hs-identifier hs-var">c_memcpy</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Ptr (PinnedSizedBytes n) -&gt; Ptr CChar
+forall a b. Ptr a -&gt; Ptr b
+</span><span class="hs-identifier hs-var">castPtr</span></span><span> </span><span class="annot"><span class="annottext">Ptr (PinnedSizedBytes n)
+</span><a href="#local-6989586621679138819"><span class="hs-identifier hs-var">ptr</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Ptr CChar
+</span><a href="#local-6989586621679138822"><span class="hs-identifier hs-var">ptrBS</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; CSize
+forall a b. (Integral a, Num b) =&gt; a -&gt; b
+</span><span class="hs-identifier hs-var">fromIntegral</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Ord a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-identifier hs-var">min</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679138821"><span class="hs-identifier hs-var">len</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679138816"><span class="hs-identifier hs-var">size</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-75"></span><span>        </span><span class="annot"><span class="annottext">() -&gt; IO ()
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
+</span><span id="line-76"></span><span>    </span><span class="annot"><span class="annottext">MLockedSizedBytes n -&gt; IO (MLockedSizedBytes n)
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">MLockedForeignPtr (PinnedSizedBytes n) -&gt; MLockedSizedBytes n
+forall (n :: Nat).
+MLockedForeignPtr (PinnedSizedBytes n) -&gt; MLockedSizedBytes n
+</span><a href="Cardano.Crypto.Libsodium.MLockedBytes.Internal.html#MLSB"><span class="hs-identifier hs-var">MLSB</span></a></span><span> </span><span class="annot"><span class="annottext">MLockedForeignPtr (PinnedSizedBytes n)
+</span><a href="#local-6989586621679138820"><span class="hs-identifier hs-var">fptr</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-77"></span><span>  </span><span class="hs-keyword">where</span><span>
+</span><span id="line-78"></span><span>    </span><span class="annot"><a href="#local-6989586621679138816"><span class="hs-identifier hs-type">size</span></a></span><span>  </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span>
+</span><span id="line-79"></span><span>    </span><span id="local-6989586621679138816"><span class="annot"><span class="annottext">size :: Int
+</span><a href="#local-6989586621679138816"><span class="hs-identifier hs-var hs-var">size</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Int
+forall a. Num a =&gt; Integer -&gt; a
+</span><span class="hs-identifier hs-var">fromInteger</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Proxy n -&gt; Integer
+forall (n :: Nat) (proxy :: Nat -&gt; *).
+KnownNat n =&gt;
+proxy n -&gt; Integer
+</span><span class="hs-identifier hs-var">natVal</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Proxy n
+forall k (t :: k). Proxy t
+</span><span class="hs-identifier hs-var">Proxy</span></span><span> </span><span class="hs-glyph">@</span><span class="annot"><a href="#local-6989586621679138825"><span class="hs-identifier hs-type">n</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-80"></span><span>
+</span><span id="line-81"></span><span class="annot"><a href="Cardano.Crypto.Libsodium.MLockedBytes.Internal.html#mlsbFromByteStringCheck"><span class="hs-identifier hs-type">mlsbFromByteStringCheck</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-keyword">forall</span><span> </span><span id="local-6989586621679138815"><span class="annot"><a href="#local-6989586621679138815"><span class="hs-identifier hs-type">n</span></a></span></span><span class="hs-operator">.</span><span> </span><span class="annot"><span class="hs-identifier hs-type">KnownNat</span></span><span> </span><span class="annot"><a href="#local-6989586621679138815"><span class="hs-identifier hs-type">n</span></a></span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">BS.ByteString</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cardano.Crypto.Libsodium.MLockedBytes.Internal.html#MLockedSizedBytes"><span class="hs-identifier hs-type">MLockedSizedBytes</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679138815"><span class="hs-identifier hs-type">n</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-82"></span><span id="mlsbFromByteStringCheck"><span class="annot"><span class="annottext">mlsbFromByteStringCheck :: ByteString -&gt; Maybe (MLockedSizedBytes n)
+</span><a href="Cardano.Crypto.Libsodium.MLockedBytes.Internal.html#mlsbFromByteStringCheck"><span class="hs-identifier hs-var hs-var">mlsbFromByteStringCheck</span></a></span></span><span> </span><span id="local-6989586621679138814"><span class="annot"><span class="annottext">ByteString
+</span><a href="#local-6989586621679138814"><span class="hs-identifier hs-var">bs</span></a></span></span><span>
+</span><span id="line-83"></span><span>    </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">ByteString -&gt; Int
+</span><span class="hs-identifier hs-var">BS.length</span></span><span> </span><span class="annot"><span class="annottext">ByteString
+</span><a href="#local-6989586621679138814"><span class="hs-identifier hs-var">bs</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+forall a. Eq a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">/=</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679138811"><span class="hs-identifier hs-var">size</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Maybe (MLockedSizedBytes n)
+forall a. Maybe a
+</span><span class="hs-identifier hs-var">Nothing</span></span><span>
+</span><span id="line-84"></span><span>    </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">otherwise</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">MLockedSizedBytes n -&gt; Maybe (MLockedSizedBytes n)
+forall a. a -&gt; Maybe a
+</span><span class="hs-identifier hs-var">Just</span></span><span> </span><span class="annot"><span class="annottext">(MLockedSizedBytes n -&gt; Maybe (MLockedSizedBytes n))
+-&gt; MLockedSizedBytes n -&gt; Maybe (MLockedSizedBytes n)
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">IO (MLockedSizedBytes n) -&gt; MLockedSizedBytes n
+forall a. IO a -&gt; a
+</span><span class="hs-identifier hs-var">unsafeDupablePerformIO</span></span><span> </span><span class="annot"><span class="annottext">(IO (MLockedSizedBytes n) -&gt; MLockedSizedBytes n)
+-&gt; IO (MLockedSizedBytes n) -&gt; MLockedSizedBytes n
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">ByteString
+-&gt; (CStringLen -&gt; IO (MLockedSizedBytes n))
+-&gt; IO (MLockedSizedBytes n)
+forall a. ByteString -&gt; (CStringLen -&gt; IO a) -&gt; IO a
+</span><span class="hs-identifier hs-var">BS.useAsCStringLen</span></span><span> </span><span class="annot"><span class="annottext">ByteString
+</span><a href="#local-6989586621679138814"><span class="hs-identifier hs-var">bs</span></a></span><span> </span><span class="annot"><span class="annottext">((CStringLen -&gt; IO (MLockedSizedBytes n))
+ -&gt; IO (MLockedSizedBytes n))
+-&gt; (CStringLen -&gt; IO (MLockedSizedBytes n))
+-&gt; IO (MLockedSizedBytes n)
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-glyph">\</span><span class="hs-special">(</span><span id="local-6989586621679138810"><span class="annot"><span class="annottext">Ptr CChar
+</span><a href="#local-6989586621679138810"><span class="hs-identifier hs-var">ptrBS</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679138809"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679138809"><span class="hs-identifier hs-var">len</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-85"></span><span>    </span><span id="local-6989586621679138808"><span class="annot"><span class="annottext">MLockedForeignPtr (PinnedSizedBytes n)
+</span><a href="#local-6989586621679138808"><span class="hs-identifier hs-var">fptr</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">IO (MLockedForeignPtr (PinnedSizedBytes n))
+forall a. Storable a =&gt; IO (MLockedForeignPtr a)
+</span><a href="Cardano.Crypto.Libsodium.Memory.Internal.html#allocMLockedForeignPtr"><span class="hs-identifier hs-var">allocMLockedForeignPtr</span></a></span><span>
+</span><span id="line-86"></span><span>    </span><span class="annot"><span class="annottext">MLockedForeignPtr (PinnedSizedBytes n)
+-&gt; (Ptr (PinnedSizedBytes n) -&gt; IO ()) -&gt; IO ()
+forall a b. MLockedForeignPtr a -&gt; (Ptr a -&gt; IO b) -&gt; IO b
+</span><a href="Cardano.Crypto.Libsodium.Memory.Internal.html#withMLockedForeignPtr"><span class="hs-identifier hs-var">withMLockedForeignPtr</span></a></span><span> </span><span class="annot"><span class="annottext">MLockedForeignPtr (PinnedSizedBytes n)
+</span><a href="#local-6989586621679138808"><span class="hs-identifier hs-var">fptr</span></a></span><span> </span><span class="annot"><span class="annottext">((Ptr (PinnedSizedBytes n) -&gt; IO ()) -&gt; IO ())
+-&gt; (Ptr (PinnedSizedBytes n) -&gt; IO ()) -&gt; IO ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679138807"><span class="annot"><span class="annottext">Ptr (PinnedSizedBytes n)
+</span><a href="#local-6989586621679138807"><span class="hs-identifier hs-var">ptr</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-87"></span><span>        </span><span class="annot"><span class="annottext">Ptr ()
+</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Ptr CChar -&gt; Ptr CChar -&gt; CSize -&gt; IO (Ptr ())
+forall a. Ptr a -&gt; Ptr a -&gt; CSize -&gt; IO (Ptr ())
+</span><a href="Cardano.Foreign.html#c_memcpy"><span class="hs-identifier hs-var">c_memcpy</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Ptr (PinnedSizedBytes n) -&gt; Ptr CChar
+forall a b. Ptr a -&gt; Ptr b
+</span><span class="hs-identifier hs-var">castPtr</span></span><span> </span><span class="annot"><span class="annottext">Ptr (PinnedSizedBytes n)
+</span><a href="#local-6989586621679138807"><span class="hs-identifier hs-var">ptr</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Ptr CChar
+</span><a href="#local-6989586621679138810"><span class="hs-identifier hs-var">ptrBS</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; CSize
+forall a b. (Integral a, Num b) =&gt; a -&gt; b
+</span><span class="hs-identifier hs-var">fromIntegral</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Ord a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-identifier hs-var">min</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679138809"><span class="hs-identifier hs-var">len</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679138811"><span class="hs-identifier hs-var">size</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-88"></span><span>        </span><span class="annot"><span class="annottext">() -&gt; IO ()
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
+</span><span id="line-89"></span><span>    </span><span class="annot"><span class="annottext">MLockedSizedBytes n -&gt; IO (MLockedSizedBytes n)
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">MLockedForeignPtr (PinnedSizedBytes n) -&gt; MLockedSizedBytes n
+forall (n :: Nat).
+MLockedForeignPtr (PinnedSizedBytes n) -&gt; MLockedSizedBytes n
+</span><a href="Cardano.Crypto.Libsodium.MLockedBytes.Internal.html#MLSB"><span class="hs-identifier hs-var">MLSB</span></a></span><span> </span><span class="annot"><span class="annottext">MLockedForeignPtr (PinnedSizedBytes n)
+</span><a href="#local-6989586621679138808"><span class="hs-identifier hs-var">fptr</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-90"></span><span>  </span><span class="hs-keyword">where</span><span>
+</span><span id="line-91"></span><span>    </span><span class="annot"><a href="#local-6989586621679138811"><span class="hs-identifier hs-type">size</span></a></span><span>  </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span>
+</span><span id="line-92"></span><span>    </span><span id="local-6989586621679138811"><span class="annot"><span class="annottext">size :: Int
+</span><a href="#local-6989586621679138811"><span class="hs-identifier hs-var hs-var">size</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Int
+forall a. Num a =&gt; Integer -&gt; a
+</span><span class="hs-identifier hs-var">fromInteger</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Proxy n -&gt; Integer
+forall (n :: Nat) (proxy :: Nat -&gt; *).
+KnownNat n =&gt;
+proxy n -&gt; Integer
+</span><span class="hs-identifier hs-var">natVal</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Proxy n
+forall k (t :: k). Proxy t
+</span><span class="hs-identifier hs-var">Proxy</span></span><span> </span><span class="hs-glyph">@</span><span class="annot"><a href="#local-6989586621679138815"><span class="hs-identifier hs-type">n</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-93"></span><span>
+</span><span id="line-94"></span><span class="hs-comment">-- | /Note:/ the resulting 'BS.ByteString' will still refer to secure memory,</span><span>
+</span><span id="line-95"></span><span class="hs-comment">-- but the types don't prevent it from be exposed.</span><span>
+</span><span id="line-96"></span><span class="hs-comment">--</span><span>
+</span><span id="line-97"></span><span class="annot"><a href="Cardano.Crypto.Libsodium.MLockedBytes.Internal.html#mlsbToByteString"><span class="hs-identifier hs-type">mlsbToByteString</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-keyword">forall</span><span> </span><span id="local-6989586621679138806"><span class="annot"><a href="#local-6989586621679138806"><span class="hs-identifier hs-type">n</span></a></span></span><span class="hs-operator">.</span><span> </span><span class="annot"><span class="hs-identifier hs-type">KnownNat</span></span><span> </span><span class="annot"><a href="#local-6989586621679138806"><span class="hs-identifier hs-type">n</span></a></span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Cardano.Crypto.Libsodium.MLockedBytes.Internal.html#MLockedSizedBytes"><span class="hs-identifier hs-type">MLockedSizedBytes</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679138806"><span class="hs-identifier hs-type">n</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">BS.ByteString</span></span><span>
+</span><span id="line-98"></span><span id="mlsbToByteString"><span class="annot"><span class="annottext">mlsbToByteString :: MLockedSizedBytes n -&gt; ByteString
+</span><a href="Cardano.Crypto.Libsodium.MLockedBytes.Internal.html#mlsbToByteString"><span class="hs-identifier hs-var hs-var">mlsbToByteString</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cardano.Crypto.Libsodium.MLockedBytes.Internal.html#MLSB"><span class="hs-identifier hs-type">MLSB</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cardano.Crypto.Libsodium.Memory.Internal.html#SFP"><span class="hs-identifier hs-type">SFP</span></a></span><span> </span><span id="local-6989586621679138804"><span class="annot"><span class="annottext">ForeignPtr (PinnedSizedBytes n)
+</span><a href="#local-6989586621679138804"><span class="hs-identifier hs-var">fptr</span></a></span></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">ForeignPtr Word8 -&gt; Int -&gt; Int -&gt; ByteString
+</span><span class="hs-identifier hs-var">BSI.PS</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">ForeignPtr (PinnedSizedBytes n) -&gt; ForeignPtr Word8
+forall a b. ForeignPtr a -&gt; ForeignPtr b
+</span><span class="hs-identifier hs-var">castForeignPtr</span></span><span> </span><span class="annot"><span class="annottext">ForeignPtr (PinnedSizedBytes n)
+</span><a href="#local-6989586621679138804"><span class="hs-identifier hs-var">fptr</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679138802"><span class="hs-identifier hs-var">size</span></a></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-99"></span><span>    </span><span class="annot"><a href="#local-6989586621679138802"><span class="hs-identifier hs-type">size</span></a></span><span>  </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span>
+</span><span id="line-100"></span><span>    </span><span id="local-6989586621679138802"><span class="annot"><span class="annottext">size :: Int
+</span><a href="#local-6989586621679138802"><span class="hs-identifier hs-var hs-var">size</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Int
+forall a. Num a =&gt; Integer -&gt; a
+</span><span class="hs-identifier hs-var">fromInteger</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Proxy n -&gt; Integer
+forall (n :: Nat) (proxy :: Nat -&gt; *).
+KnownNat n =&gt;
+proxy n -&gt; Integer
+</span><span class="hs-identifier hs-var">natVal</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Proxy n
+forall k (t :: k). Proxy t
+</span><span class="hs-identifier hs-var">Proxy</span></span><span> </span><span class="hs-glyph">@</span><span class="annot"><a href="#local-6989586621679138806"><span class="hs-identifier hs-type">n</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-101"></span><span>
+</span><span id="line-102"></span><span id="local-6989586621679138800"><span id="local-6989586621679138801"><span class="annot"><a href="Cardano.Crypto.Libsodium.MLockedBytes.Internal.html#mlsbUseAsCPtr"><span class="hs-identifier hs-type">mlsbUseAsCPtr</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cardano.Crypto.Libsodium.MLockedBytes.Internal.html#MLockedSizedBytes"><span class="hs-identifier hs-type">MLockedSizedBytes</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679138801"><span class="hs-identifier hs-type">n</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Ptr</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Word8</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">IO</span></span><span> </span><span class="annot"><a href="#local-6989586621679138800"><span class="hs-identifier hs-type">r</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">IO</span></span><span> </span><span class="annot"><a href="#local-6989586621679138800"><span class="hs-identifier hs-type">r</span></a></span></span></span><span>
+</span><span id="line-103"></span><span id="mlsbUseAsCPtr"><span class="annot"><span class="annottext">mlsbUseAsCPtr :: MLockedSizedBytes n -&gt; (Ptr Word8 -&gt; IO r) -&gt; IO r
+</span><a href="Cardano.Crypto.Libsodium.MLockedBytes.Internal.html#mlsbUseAsCPtr"><span class="hs-identifier hs-var hs-var">mlsbUseAsCPtr</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cardano.Crypto.Libsodium.MLockedBytes.Internal.html#MLSB"><span class="hs-identifier hs-type">MLSB</span></a></span><span> </span><span id="local-6989586621679138799"><span class="annot"><span class="annottext">MLockedForeignPtr (PinnedSizedBytes n)
+</span><a href="#local-6989586621679138799"><span class="hs-identifier hs-var">x</span></a></span></span><span class="hs-special">)</span><span> </span><span id="local-6989586621679138798"><span class="annot"><span class="annottext">Ptr Word8 -&gt; IO r
+</span><a href="#local-6989586621679138798"><span class="hs-identifier hs-var">k</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">MLockedForeignPtr (PinnedSizedBytes n)
+-&gt; (Ptr (PinnedSizedBytes n) -&gt; IO r) -&gt; IO r
+forall a b. MLockedForeignPtr a -&gt; (Ptr a -&gt; IO b) -&gt; IO b
+</span><a href="Cardano.Crypto.Libsodium.Memory.Internal.html#withMLockedForeignPtr"><span class="hs-identifier hs-var">withMLockedForeignPtr</span></a></span><span> </span><span class="annot"><span class="annottext">MLockedForeignPtr (PinnedSizedBytes n)
+</span><a href="#local-6989586621679138799"><span class="hs-identifier hs-var">x</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Ptr Word8 -&gt; IO r
+</span><a href="#local-6989586621679138798"><span class="hs-identifier hs-var">k</span></a></span><span> </span><span class="annot"><span class="annottext">(Ptr Word8 -&gt; IO r)
+-&gt; (Ptr (PinnedSizedBytes n) -&gt; Ptr Word8)
+-&gt; Ptr (PinnedSizedBytes n)
+-&gt; IO r
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Ptr (PinnedSizedBytes n) -&gt; Ptr Word8
+forall a b. Ptr a -&gt; Ptr b
+</span><span class="hs-identifier hs-var">castPtr</span></span><span class="hs-special">)</span><span>
+</span><span id="line-104"></span><span>
+</span><span id="line-105"></span><span id="local-6989586621679138796"><span id="local-6989586621679138797"><span class="annot"><a href="Cardano.Crypto.Libsodium.MLockedBytes.Internal.html#mlsbUseAsSizedPtr"><span class="hs-identifier hs-type">mlsbUseAsSizedPtr</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cardano.Crypto.Libsodium.MLockedBytes.Internal.html#MLockedSizedBytes"><span class="hs-identifier hs-type">MLockedSizedBytes</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679138797"><span class="hs-identifier hs-type">n</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cardano.Foreign.html#SizedPtr"><span class="hs-identifier hs-type">SizedPtr</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679138797"><span class="hs-identifier hs-type">n</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">IO</span></span><span> </span><span class="annot"><a href="#local-6989586621679138796"><span class="hs-identifier hs-type">r</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">IO</span></span><span> </span><span class="annot"><a href="#local-6989586621679138796"><span class="hs-identifier hs-type">r</span></a></span></span></span><span>
+</span><span id="line-106"></span><span id="mlsbUseAsSizedPtr"><span class="annot"><span class="annottext">mlsbUseAsSizedPtr :: MLockedSizedBytes n -&gt; (SizedPtr n -&gt; IO r) -&gt; IO r
+</span><a href="Cardano.Crypto.Libsodium.MLockedBytes.Internal.html#mlsbUseAsSizedPtr"><span class="hs-identifier hs-var hs-var">mlsbUseAsSizedPtr</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cardano.Crypto.Libsodium.MLockedBytes.Internal.html#MLSB"><span class="hs-identifier hs-type">MLSB</span></a></span><span> </span><span id="local-6989586621679138795"><span class="annot"><span class="annottext">MLockedForeignPtr (PinnedSizedBytes n)
+</span><a href="#local-6989586621679138795"><span class="hs-identifier hs-var">x</span></a></span></span><span class="hs-special">)</span><span> </span><span id="local-6989586621679138794"><span class="annot"><span class="annottext">SizedPtr n -&gt; IO r
+</span><a href="#local-6989586621679138794"><span class="hs-identifier hs-var">k</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">MLockedForeignPtr (PinnedSizedBytes n)
+-&gt; (Ptr (PinnedSizedBytes n) -&gt; IO r) -&gt; IO r
+forall a b. MLockedForeignPtr a -&gt; (Ptr a -&gt; IO b) -&gt; IO b
+</span><a href="Cardano.Crypto.Libsodium.Memory.Internal.html#withMLockedForeignPtr"><span class="hs-identifier hs-var">withMLockedForeignPtr</span></a></span><span> </span><span class="annot"><span class="annottext">MLockedForeignPtr (PinnedSizedBytes n)
+</span><a href="#local-6989586621679138795"><span class="hs-identifier hs-var">x</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">SizedPtr n -&gt; IO r
+</span><a href="#local-6989586621679138794"><span class="hs-identifier hs-var">k</span></a></span><span> </span><span class="annot"><span class="annottext">(SizedPtr n -&gt; IO r)
+-&gt; (Ptr (PinnedSizedBytes n) -&gt; SizedPtr n)
+-&gt; Ptr (PinnedSizedBytes n)
+-&gt; IO r
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Ptr (PinnedSizedBytes n) -&gt; SizedPtr n
+forall (n :: Nat). Ptr (PinnedSizedBytes n) -&gt; SizedPtr n
+</span><a href="Cardano.Crypto.PinnedSizedBytes.html#ptrPsbToSizedPtr"><span class="hs-identifier hs-var">ptrPsbToSizedPtr</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-107"></span><span>
+</span><span id="line-108"></span><span class="hs-comment">-- | Calls 'finalizeMLockedForeignPtr' on underlying pointer.</span><span>
+</span><span id="line-109"></span><span class="hs-comment">-- This function invalidates argument.</span><span>
+</span><span id="line-110"></span><span class="hs-comment">--</span><span>
+</span><span id="line-111"></span><span id="local-6989586621679138792"><span class="annot"><a href="Cardano.Crypto.Libsodium.MLockedBytes.Internal.html#mlsbFinalize"><span class="hs-identifier hs-type">mlsbFinalize</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cardano.Crypto.Libsodium.MLockedBytes.Internal.html#MLockedSizedBytes"><span class="hs-identifier hs-type">MLockedSizedBytes</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679138792"><span class="hs-identifier hs-type">n</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">IO</span></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span></span><span>
+</span><span id="line-112"></span><span id="mlsbFinalize"><span class="annot"><span class="annottext">mlsbFinalize :: MLockedSizedBytes n -&gt; IO ()
+</span><a href="Cardano.Crypto.Libsodium.MLockedBytes.Internal.html#mlsbFinalize"><span class="hs-identifier hs-var hs-var">mlsbFinalize</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cardano.Crypto.Libsodium.MLockedBytes.Internal.html#MLSB"><span class="hs-identifier hs-type">MLSB</span></a></span><span> </span><span id="local-6989586621679138791"><span class="annot"><span class="annottext">MLockedForeignPtr (PinnedSizedBytes n)
+</span><a href="#local-6989586621679138791"><span class="hs-identifier hs-var">ptr</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">MLockedForeignPtr (PinnedSizedBytes n) -&gt; IO ()
+forall a. MLockedForeignPtr a -&gt; IO ()
+</span><a href="Cardano.Crypto.Libsodium.Memory.Internal.html#finalizeMLockedForeignPtr"><span class="hs-identifier hs-var">finalizeMLockedForeignPtr</span></a></span><span> </span><span class="annot"><span class="annottext">MLockedForeignPtr (PinnedSizedBytes n)
+</span><a href="#local-6989586621679138791"><span class="hs-identifier hs-var">ptr</span></a></span><span>
+</span><span id="line-113"></span></pre></body></html>

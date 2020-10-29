@@ -1,68 +1,207 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-pragma">{-# LANGUAGE DeriveAnyClass    #-}</span><span>
-</span><a name="line-2"></a><span class="hs-pragma">{-# LANGUAGE DeriveGeneric     #-}</span><span>
-</span><a name="line-3"></a><span class="hs-pragma">{-# LANGUAGE NamedFieldPuns    #-}</span><span>
-</span><a name="line-4"></a><span class="hs-pragma">{-# LANGUAGE OverloadedStrings #-}</span><span>
-</span><a name="line-5"></a><span>
-</span><a name="line-6"></a><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Cardano.Chain.Delegation.Validation.Activation</span><span>
-</span><a name="line-7"></a><span>  </span><span class="hs-special">(</span><span>
-</span><a name="line-8"></a><span>  </span><span class="hs-comment">-- * Activation</span><span>
-</span><a name="line-9"></a><span>    </span><a href="Cardano.Chain.Delegation.Validation.Activation.html#State"><span class="hs-identifier hs-type">State</span></a><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
-</span><a name="line-10"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Cardano.Chain.Delegation.Validation.Activation.html#activateDelegation"><span class="hs-identifier hs-var">activateDelegation</span></a><span>
-</span><a name="line-11"></a><span>  </span><span class="hs-special">)</span><span>
-</span><a name="line-12"></a><span class="hs-keyword">where</span><span>
-</span><a name="line-13"></a><span>
-</span><a name="line-14"></a><span class="hs-keyword">import</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-prelude-0.1.0.0/noopt/doc/html/cardano-prelude/src/Cardano.Prelude.html"><span class="hs-identifier">Cardano.Prelude</span></a><span> </span><span class="hs-keyword">hiding</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">State</span><span class="hs-special">)</span><span>
-</span><a name="line-15"></a><span>
-</span><a name="line-16"></a><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-identifier">Data.Map.Strict</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">M</span><span>
-</span><a name="line-17"></a><span>
-</span><a name="line-18"></a><span class="hs-keyword">import</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.html"><span class="hs-identifier">Cardano.Binary</span></a><span> </span><span class="hs-special">(</span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.FromCBOR.html#FromCBOR"><span class="hs-identifier hs-type">FromCBOR</span></a><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.ToCBOR.html#ToCBOR"><span class="hs-identifier hs-type">ToCBOR</span></a><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-var">encodeListLen</span><span class="hs-special">,</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.FromCBOR.html#enforceSize"><span class="hs-identifier hs-var">enforceSize</span></a><span class="hs-special">)</span><span>
-</span><a name="line-19"></a><span class="hs-keyword">import</span><span> </span><a href="Cardano.Chain.Common.html"><span class="hs-identifier">Cardano.Chain.Common</span></a><span> </span><span class="hs-special">(</span><a href="Cardano.Chain.Common.KeyHash.html#KeyHash"><span class="hs-identifier hs-type">KeyHash</span></a><span class="hs-special">)</span><span>
-</span><a name="line-20"></a><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><a href="Cardano.Chain.Delegation.html"><span class="hs-identifier">Cardano.Chain.Delegation</span></a><span> </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">Delegation</span><span>
-</span><a name="line-21"></a><span class="hs-keyword">import</span><span> </span><a href="Cardano.Chain.Delegation.Validation.Scheduling.html"><span class="hs-identifier">Cardano.Chain.Delegation.Validation.Scheduling</span></a><span> </span><span class="hs-special">(</span><a href="Cardano.Chain.Delegation.Validation.Scheduling.html#ScheduledDelegation"><span class="hs-identifier hs-type">ScheduledDelegation</span></a><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
-</span><a name="line-22"></a><span class="hs-keyword">import</span><span> </span><a href="Cardano.Chain.Slotting.html"><span class="hs-identifier">Cardano.Chain.Slotting</span></a><span> </span><span class="hs-special">(</span><a href="Cardano.Chain.Slotting.SlotNumber.html#SlotNumber"><span class="hs-identifier hs-type">SlotNumber</span></a><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
-</span><a name="line-23"></a><span>
-</span><a name="line-24"></a><span>
-</span><a name="line-25"></a><span class="hs-comment">--------------------------------------------------------------------------------</span><span>
-</span><a name="line-26"></a><span class="hs-comment">-- Activation</span><span>
-</span><a name="line-27"></a><span class="hs-comment">--------------------------------------------------------------------------------</span><span>
-</span><a name="line-28"></a><span>
-</span><a name="line-29"></a><span class="hs-comment">-- | Maps containing, for each delegator, the active delegation and the slot it</span><span>
-</span><a name="line-30"></a><span class="hs-comment">--   became active in.</span><span>
-</span><a name="line-31"></a><span class="hs-keyword">data</span><span> </span><a name="State"><a href="Cardano.Chain.Delegation.Validation.Activation.html#State"><span class="hs-identifier">State</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><a name="State"><a href="Cardano.Chain.Delegation.Validation.Activation.html#State"><span class="hs-identifier">State</span></a></a><span>
-</span><a name="line-32"></a><span>  </span><span class="hs-special">{</span><span> </span><a name="delegationMap"><a href="Cardano.Chain.Delegation.Validation.Activation.html#delegationMap"><span class="hs-identifier">delegationMap</span></a></a><span>   </span><span class="hs-glyph">::</span><span> </span><span class="hs-glyph">!</span><a href="Cardano.Chain.Delegation.Map.html#Map"><span class="hs-identifier hs-type">Delegation.Map</span></a><span>
-</span><a name="line-33"></a><span>  </span><span class="hs-special">,</span><span> </span><a name="delegationSlots"><a href="Cardano.Chain.Delegation.Validation.Activation.html#delegationSlots"><span class="hs-identifier">delegationSlots</span></a></a><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-glyph">!</span><span class="hs-special">(</span><span class="hs-identifier hs-type">Map</span><span> </span><a href="Cardano.Chain.Common.KeyHash.html#KeyHash"><span class="hs-identifier hs-type">KeyHash</span></a><span> </span><a href="Cardano.Chain.Slotting.SlotNumber.html#SlotNumber"><span class="hs-identifier hs-type">SlotNumber</span></a><span class="hs-special">)</span><span>
-</span><a name="line-34"></a><span>  </span><span class="hs-special">}</span><span> </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Eq</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Show</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Generic</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">NFData</span><span class="hs-special">,</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-prelude-0.1.0.0/noopt/doc/html/cardano-prelude/src/Cardano.Prelude.GHC.Heap.NormalForm.Classy.html#NoUnexpectedThunks"><span class="hs-identifier hs-type">NoUnexpectedThunks</span></a><span class="hs-special">)</span><span>
-</span><a name="line-35"></a><span>
-</span><a name="line-36"></a><span class="hs-keyword">instance</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.FromCBOR.html#FromCBOR"><span class="hs-identifier hs-type">FromCBOR</span></a><span> </span><a href="Cardano.Chain.Delegation.Validation.Activation.html#State"><span class="hs-identifier hs-type">State</span></a><span> </span><span class="hs-keyword">where</span><span>
-</span><a name="line-37"></a><span>  </span><a name="local-8214565720323797139"><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.FromCBOR.html#fromCBOR"><span class="hs-identifier">fromCBOR</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
-</span><a name="line-38"></a><span>    </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.FromCBOR.html#enforceSize"><span class="hs-identifier hs-var">enforceSize</span></a><span> </span><span class="hs-string">&quot;State&quot;</span><span> </span><span class="hs-number">2</span><span>
-</span><a name="line-39"></a><span>    </span><a href="Cardano.Chain.Delegation.Validation.Activation.html#State"><span class="hs-identifier hs-var">State</span></a><span>
-</span><a name="line-40"></a><span>      </span><span class="hs-operator hs-var">&lt;$&gt;</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.FromCBOR.html#fromCBOR"><span class="hs-identifier hs-var">fromCBOR</span></a><span>
-</span><a name="line-41"></a><span>      </span><span class="hs-operator hs-var">&lt;*&gt;</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.FromCBOR.html#fromCBOR"><span class="hs-identifier hs-var">fromCBOR</span></a><span>
-</span><a name="line-42"></a><span>
-</span><a name="line-43"></a><span class="hs-keyword">instance</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.ToCBOR.html#ToCBOR"><span class="hs-identifier hs-type">ToCBOR</span></a><span> </span><a href="Cardano.Chain.Delegation.Validation.Activation.html#State"><span class="hs-identifier hs-type">State</span></a><span> </span><span class="hs-keyword">where</span><span>
-</span><a name="line-44"></a><span>  </span><a name="local-8214565720323797072"><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.ToCBOR.html#toCBOR"><span class="hs-identifier">toCBOR</span></a></a><span> </span><a name="local-6989586621679328342"><a href="#local-6989586621679328342"><span class="hs-identifier">s</span></a></a><span> </span><span class="hs-glyph">=</span><span>
-</span><a name="line-45"></a><span>    </span><span class="hs-identifier hs-var">encodeListLen</span><span> </span><span class="hs-number">2</span><span>
-</span><a name="line-46"></a><span>      </span><span class="hs-operator hs-var">&lt;&gt;</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.ToCBOR.html#toCBOR"><span class="hs-identifier hs-var">toCBOR</span></a><span> </span><span class="hs-special">(</span><span class="hs-identifier">delegationMap</span><span> </span><a href="#local-6989586621679328342"><span class="hs-identifier hs-var">s</span></a><span class="hs-special">)</span><span>
-</span><a name="line-47"></a><span>      </span><span class="hs-operator hs-var">&lt;&gt;</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.ToCBOR.html#toCBOR"><span class="hs-identifier hs-var">toCBOR</span></a><span> </span><span class="hs-special">(</span><span class="hs-identifier">delegationSlots</span><span> </span><a href="#local-6989586621679328342"><span class="hs-identifier hs-var">s</span></a><span class="hs-special">)</span><span>
-</span><a name="line-48"></a><span>
-</span><a name="line-49"></a><span class="hs-comment">-- | Activate a 'ScheduledDelegation' if its activation slot is less than the</span><span>
-</span><a name="line-50"></a><span class="hs-comment">--   previous delegation slot for this delegate, otherwise discard it. This is</span><span>
-</span><a name="line-51"></a><span class="hs-comment">--   an implementation of the delegation activation rule in the ledger</span><span>
-</span><a name="line-52"></a><span class="hs-comment">--   specification.</span><span>
-</span><a name="line-53"></a><span class="hs-identifier">activateDelegation</span><span> </span><span class="hs-glyph">::</span><span> </span><a href="Cardano.Chain.Delegation.Validation.Activation.html#State"><span class="hs-identifier hs-type">State</span></a><span> </span><span class="hs-glyph">-&gt;</span><span> </span><a href="Cardano.Chain.Delegation.Validation.Scheduling.html#ScheduledDelegation"><span class="hs-identifier hs-type">ScheduledDelegation</span></a><span> </span><span class="hs-glyph">-&gt;</span><span> </span><a href="Cardano.Chain.Delegation.Validation.Activation.html#State"><span class="hs-identifier hs-type">State</span></a><span>
-</span><a name="line-54"></a><a name="activateDelegation"><a href="Cardano.Chain.Delegation.Validation.Activation.html#activateDelegation"><span class="hs-identifier">activateDelegation</span></a></a><span> </span><span class="hs-keyword">as</span><span> </span><a name="local-6989586621679328344"><a href="#local-6989586621679328344"><span class="hs-identifier">delegation</span></a></a><span>
-</span><a name="line-55"></a><span>  </span><span class="hs-glyph">|</span><span>    </span><span class="hs-special">(</span><a href="#local-6989586621679328349"><span class="hs-identifier hs-var">delegate</span></a><span> </span><span class="hs-special">`</span><a href="Cardano.Chain.Delegation.Map.html#notMemberR"><span class="hs-identifier hs-var">Delegation.notMemberR</span></a><span class="hs-special">`</span><span> </span><a href="#local-6989586621679328345"><span class="hs-identifier hs-var">delegationMap</span></a><span class="hs-special">)</span><span>
-</span><a name="line-56"></a><span>    </span><span class="hs-operator hs-var">&amp;&amp;</span><span> </span><span class="hs-special">(</span><a href="#local-6989586621679328350"><span class="hs-identifier hs-var">prevDelegationSlot</span></a><span> </span><span class="hs-operator hs-var">&lt;</span><span> </span><a href="#local-6989586621679328347"><span class="hs-identifier hs-var">slot</span></a><span> </span><span class="hs-operator hs-var">||</span><span> </span><span class="hs-identifier">unSlotNumber</span><span> </span><a href="#local-6989586621679328347"><span class="hs-identifier hs-var">slot</span></a><span> </span><span class="hs-operator hs-var">==</span><span> </span><span class="hs-number">0</span><span class="hs-special">)</span><span>
-</span><a name="line-57"></a><span>  </span><span class="hs-glyph">=</span><span> </span><a href="Cardano.Chain.Delegation.Validation.Activation.html#State"><span class="hs-identifier hs-var">State</span></a><span>
-</span><a name="line-58"></a><span>    </span><span class="hs-special">{</span><span> </span><span class="hs-identifier">delegationMap</span><span> </span><span class="hs-glyph">=</span><span> </span><a href="Cardano.Chain.Delegation.Map.html#insert"><span class="hs-identifier hs-var">Delegation.insert</span></a><span> </span><a href="#local-6989586621679328348"><span class="hs-identifier hs-var">delegator</span></a><span> </span><a href="#local-6989586621679328349"><span class="hs-identifier hs-var">delegate</span></a><span> </span><a href="#local-6989586621679328345"><span class="hs-identifier hs-var">delegationMap</span></a><span>
-</span><a name="line-59"></a><span>    </span><span class="hs-special">,</span><span> </span><span class="hs-identifier">delegationSlots</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-identifier hs-var">M.insert</span><span> </span><a href="#local-6989586621679328348"><span class="hs-identifier hs-var">delegator</span></a><span> </span><a href="#local-6989586621679328347"><span class="hs-identifier hs-var">slot</span></a><span> </span><a href="#local-6989586621679328346"><span class="hs-identifier hs-var">delegationSlots</span></a><span>
-</span><a name="line-60"></a><span>    </span><span class="hs-special">}</span><span>
-</span><a name="line-61"></a><span>  </span><span class="hs-glyph">|</span><span> </span><span class="hs-identifier hs-var">otherwise</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">as</span><span>
-</span><a name="line-62"></a><span> </span><span class="hs-keyword">where</span><span>
-</span><a name="line-63"></a><span>  </span><a href="Cardano.Chain.Delegation.Validation.Activation.html#State"><span class="hs-identifier hs-var">State</span></a><span> </span><span class="hs-special">{</span><span> </span><a name="local-6989586621679328345"><a href="#local-6989586621679328345"><span class="hs-identifier">delegationMap</span></a></a><span class="hs-special">,</span><span> </span><a name="local-6989586621679328346"><a href="#local-6989586621679328346"><span class="hs-identifier">delegationSlots</span></a></a><span> </span><span class="hs-special">}</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">as</span><span>
-</span><a name="line-64"></a><span>  </span><a href="Cardano.Chain.Delegation.Validation.Scheduling.html#ScheduledDelegation"><span class="hs-identifier hs-var">ScheduledDelegation</span></a><span> </span><a name="local-6989586621679328347"><a href="#local-6989586621679328347"><span class="hs-identifier">slot</span></a></a><span> </span><a name="local-6989586621679328348"><a href="#local-6989586621679328348"><span class="hs-identifier">delegator</span></a></a><span> </span><a name="local-6989586621679328349"><a href="#local-6989586621679328349"><span class="hs-identifier">delegate</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><a href="#local-6989586621679328344"><span class="hs-identifier hs-var">delegation</span></a><span>
-</span><a name="line-65"></a><span>
-</span><a name="line-66"></a><span>  </span><a name="local-6989586621679328350"><a href="#local-6989586621679328350"><span class="hs-identifier">prevDelegationSlot</span></a></a><span> </span><span class="hs-glyph">=</span><span>
-</span><a name="line-67"></a><span>    </span><span class="hs-identifier hs-var">fromMaybe</span><span> </span><span class="hs-special">(</span><a href="Cardano.Chain.Slotting.SlotNumber.html#SlotNumber"><span class="hs-identifier hs-var">SlotNumber</span></a><span> </span><span class="hs-number">0</span><span class="hs-special">)</span><span> </span><span class="hs-operator hs-var">$</span><span> </span><span class="hs-identifier hs-var">M.lookup</span><span> </span><a href="#local-6989586621679328348"><span class="hs-identifier hs-var">delegator</span></a><span> </span><a href="#local-6989586621679328346"><span class="hs-identifier hs-var">delegationSlots</span></a><span>
-</span><a name="line-68"></a></pre></body></html>
+</span><span id="line-2"></span><span class="hs-pragma">{-# LANGUAGE DeriveGeneric     #-}</span><span>
+</span><span id="line-3"></span><span class="hs-pragma">{-# LANGUAGE NamedFieldPuns    #-}</span><span>
+</span><span id="line-4"></span><span class="hs-pragma">{-# LANGUAGE OverloadedStrings #-}</span><span>
+</span><span id="line-5"></span><span>
+</span><span id="line-6"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Cardano.Chain.Delegation.Validation.Activation</span><span>
+</span><span id="line-7"></span><span>  </span><span class="hs-special">(</span><span>
+</span><span id="line-8"></span><span>  </span><span class="annot"><span class="hs-comment">-- * Activation</span></span><span>
+</span><span id="line-9"></span><span>    </span><span class="annot"><a href="Cardano.Chain.Delegation.Validation.Activation.html#State"><span class="hs-identifier">State</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
+</span><span id="line-10"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cardano.Chain.Delegation.Validation.Activation.html#activateDelegation"><span class="hs-identifier">activateDelegation</span></a></span><span>
+</span><span id="line-11"></span><span>  </span><span class="hs-special">)</span><span>
+</span><span id="line-12"></span><span class="hs-keyword">where</span><span>
+</span><span id="line-13"></span><span>
+</span><span id="line-14"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-prelude-0.1.0.0/noopt/doc/html/cardano-prelude/src"><span class="hs-identifier">Cardano.Prelude</span></a></span><span> </span><span class="hs-keyword">hiding</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">State</span></span><span class="hs-special">)</span><span>
+</span><span id="line-15"></span><span>
+</span><span id="line-16"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Data.Map.Strict</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">M</span></span><span>
+</span><span id="line-17"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">NoThunks.Class</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">NoThunks</span></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-18"></span><span>
+</span><span id="line-19"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src"><span class="hs-identifier">Cardano.Binary</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src"><span class="hs-identifier">FromCBOR</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src"><span class="hs-identifier">ToCBOR</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">encodeListLen</span></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src"><span class="hs-identifier">enforceSize</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-20"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Cardano.Chain.Common.html"><span class="hs-identifier">Cardano.Chain.Common</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cardano.Chain.Common.KeyHash.html#KeyHash"><span class="hs-identifier">KeyHash</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-21"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><a href="Cardano.Chain.Delegation.html"><span class="hs-identifier">Cardano.Chain.Delegation</span></a></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Delegation</span></span><span>
+</span><span id="line-22"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Cardano.Chain.Delegation.Validation.Scheduling.html"><span class="hs-identifier">Cardano.Chain.Delegation.Validation.Scheduling</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cardano.Chain.Delegation.Validation.Scheduling.html#ScheduledDelegation"><span class="hs-identifier">ScheduledDelegation</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-23"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Cardano.Chain.Slotting.html"><span class="hs-identifier">Cardano.Chain.Slotting</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cardano.Chain.Slotting.SlotNumber.html#SlotNumber"><span class="hs-identifier">SlotNumber</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-24"></span><span>
+</span><span id="line-25"></span><span>
+</span><span id="line-26"></span><span class="hs-comment">--------------------------------------------------------------------------------</span><span>
+</span><span id="line-27"></span><span class="hs-comment">-- Activation</span><span>
+</span><span id="line-28"></span><span class="hs-comment">--------------------------------------------------------------------------------</span><span>
+</span><span id="line-29"></span><span>
+</span><span id="line-30"></span><span class="hs-comment">-- | Maps containing, for each delegator, the active delegation and the slot it</span><span>
+</span><span id="line-31"></span><span class="hs-comment">--   became active in.</span><span>
+</span><span id="line-32"></span><span id="local-6989586621679513440"><span id="local-6989586621679513441"></span></span><span class="hs-keyword">data</span><span> </span><span id="State"><span class="annot"><a href="Cardano.Chain.Delegation.Validation.Activation.html#State"><span class="hs-identifier hs-var">State</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="State"><span class="annot"><a href="Cardano.Chain.Delegation.Validation.Activation.html#State"><span class="hs-identifier hs-var">State</span></a></span></span><span>
+</span><span id="line-33"></span><span>  </span><span class="hs-special">{</span><span> </span><span id="delegationMap"><span class="annot"><span class="annottext">State -&gt; Map
+</span><a href="Cardano.Chain.Delegation.Validation.Activation.html#delegationMap"><span class="hs-identifier hs-var hs-var">delegationMap</span></a></span></span><span>   </span><span class="hs-glyph">::</span><span> </span><span class="hs-glyph">!</span><span class="annot"><a href="Cardano.Chain.Delegation.Map.html#Map"><span class="hs-identifier hs-type">Delegation.Map</span></a></span><span>
+</span><span id="line-34"></span><span>  </span><span class="hs-special">,</span><span> </span><span id="delegationSlots"><span class="annot"><span class="annottext">State -&gt; Map KeyHash SlotNumber
+</span><a href="Cardano.Chain.Delegation.Validation.Activation.html#delegationSlots"><span class="hs-identifier hs-var hs-var">delegationSlots</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-glyph">!</span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Map</span></span><span> </span><span class="annot"><a href="Cardano.Chain.Common.KeyHash.html#KeyHash"><span class="hs-identifier hs-type">KeyHash</span></a></span><span> </span><span class="annot"><a href="Cardano.Chain.Slotting.SlotNumber.html#SlotNumber"><span class="hs-identifier hs-type">SlotNumber</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-35"></span><span>  </span><span class="hs-special">}</span><span> </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679513433"><span id="local-6989586621679513435"><span class="annot"><span class="annottext">State -&gt; State -&gt; Bool
+(State -&gt; State -&gt; Bool) -&gt; (State -&gt; State -&gt; Bool) -&gt; Eq State
+forall a. (a -&gt; a -&gt; Bool) -&gt; (a -&gt; a -&gt; Bool) -&gt; Eq a
+/= :: State -&gt; State -&gt; Bool
+$c/= :: State -&gt; State -&gt; Bool
+== :: State -&gt; State -&gt; Bool
+$c== :: State -&gt; State -&gt; Bool
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679513426"><span id="local-6989586621679513428"><span id="local-6989586621679513430"><span class="annot"><span class="annottext">Int -&gt; State -&gt; ShowS
+[State] -&gt; ShowS
+State -&gt; String
+(Int -&gt; State -&gt; ShowS)
+-&gt; (State -&gt; String) -&gt; ([State] -&gt; ShowS) -&gt; Show State
+forall a.
+(Int -&gt; a -&gt; ShowS) -&gt; (a -&gt; String) -&gt; ([a] -&gt; ShowS) -&gt; Show a
+showList :: [State] -&gt; ShowS
+$cshowList :: [State] -&gt; ShowS
+show :: State -&gt; String
+$cshow :: State -&gt; String
+showsPrec :: Int -&gt; State -&gt; ShowS
+$cshowsPrec :: Int -&gt; State -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">(forall x. State -&gt; Rep State x)
+-&gt; (forall x. Rep State x -&gt; State) -&gt; Generic State
+forall x. Rep State x -&gt; State
+forall x. State -&gt; Rep State x
+forall a.
+(forall x. a -&gt; Rep a x) -&gt; (forall x. Rep a x -&gt; a) -&gt; Generic a
+$cto :: forall x. Rep State x -&gt; State
+$cfrom :: forall x. State -&gt; Rep State x
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">Generic</span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679513420"><span class="annot"><span class="annottext">State -&gt; ()
+(State -&gt; ()) -&gt; NFData State
+forall a. (a -&gt; ()) -&gt; NFData a
+rnf :: State -&gt; ()
+$crnf :: State -&gt; ()
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">NFData</span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679513413"><span id="local-6989586621679513415"><span id="local-6989586621679513417"><span class="annot"><span class="annottext">Context -&gt; State -&gt; IO (Maybe ThunkInfo)
+Proxy State -&gt; String
+(Context -&gt; State -&gt; IO (Maybe ThunkInfo))
+-&gt; (Context -&gt; State -&gt; IO (Maybe ThunkInfo))
+-&gt; (Proxy State -&gt; String)
+-&gt; NoThunks State
+forall a.
+(Context -&gt; a -&gt; IO (Maybe ThunkInfo))
+-&gt; (Context -&gt; a -&gt; IO (Maybe ThunkInfo))
+-&gt; (Proxy a -&gt; String)
+-&gt; NoThunks a
+showTypeOf :: Proxy State -&gt; String
+$cshowTypeOf :: Proxy State -&gt; String
+wNoThunks :: Context -&gt; State -&gt; IO (Maybe ThunkInfo)
+$cwNoThunks :: Context -&gt; State -&gt; IO (Maybe ThunkInfo)
+noThunks :: Context -&gt; State -&gt; IO (Maybe ThunkInfo)
+$cnoThunks :: Context -&gt; State -&gt; IO (Maybe ThunkInfo)
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">NoThunks</span></span></span></span></span><span class="hs-special">)</span><span>
+</span><span id="line-36"></span><span>
+</span><span id="line-37"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679513408"><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src"><span class="hs-identifier hs-type">FromCBOR</span></a></span><span> </span><span class="annot"><a href="Cardano.Chain.Delegation.Validation.Activation.html#State"><span class="hs-identifier hs-type">State</span></a></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-38"></span><span>  </span><span id="local-6989586621679513406"><span class="annot"><span class="annottext">fromCBOR :: Decoder s State
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src"><span class="hs-identifier hs-var hs-var hs-var hs-var">fromCBOR</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-39"></span><span>    </span><span class="annot"><span class="annottext">Text -&gt; Int -&gt; Decoder s ()
+forall s. Text -&gt; Int -&gt; Decoder s ()
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src"><span class="hs-identifier hs-var">enforceSize</span></a></span><span> </span><span class="annot"><span class="annottext">Text
+</span><span class="hs-string">&quot;State&quot;</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">2</span></span><span>
+</span><span id="line-40"></span><span>    </span><span class="annot"><span class="annottext">Map -&gt; Map KeyHash SlotNumber -&gt; State
+</span><a href="Cardano.Chain.Delegation.Validation.Activation.html#State"><span class="hs-identifier hs-var">State</span></a></span><span>
+</span><span id="line-41"></span><span>      </span><span class="annot"><span class="annottext">(Map -&gt; Map KeyHash SlotNumber -&gt; State)
+-&gt; Decoder s Map -&gt; Decoder s (Map KeyHash SlotNumber -&gt; State)
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">Decoder s Map
+forall a s. FromCBOR a =&gt; Decoder s a
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src"><span class="hs-identifier hs-var">fromCBOR</span></a></span><span>
+</span><span id="line-42"></span><span>      </span><span class="annot"><span class="annottext">Decoder s (Map KeyHash SlotNumber -&gt; State)
+-&gt; Decoder s (Map KeyHash SlotNumber) -&gt; Decoder s State
+forall (f :: * -&gt; *) a b. Applicative f =&gt; f (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;*&gt;</span></span><span> </span><span class="annot"><span class="annottext">Decoder s (Map KeyHash SlotNumber)
+forall a s. FromCBOR a =&gt; Decoder s a
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src"><span class="hs-identifier hs-var">fromCBOR</span></a></span><span>
+</span><span id="line-43"></span><span>
+</span><span id="line-44"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679513398"><span id="local-6989586621679513400"><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src"><span class="hs-identifier hs-type">ToCBOR</span></a></span><span> </span><span class="annot"><a href="Cardano.Chain.Delegation.Validation.Activation.html#State"><span class="hs-identifier hs-type">State</span></a></span></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-45"></span><span>  </span><span id="local-6989586621679513396"><span class="annot"><span class="annottext">toCBOR :: State -&gt; Encoding
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src"><span class="hs-identifier hs-var hs-var hs-var hs-var">toCBOR</span></a></span></span><span> </span><span id="local-6989586621679513394"><span class="annot"><span class="annottext">State
+</span><a href="#local-6989586621679513394"><span class="hs-identifier hs-var">s</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-46"></span><span>    </span><span class="annot"><span class="annottext">Word -&gt; Encoding
+</span><span class="hs-identifier hs-var">encodeListLen</span></span><span> </span><span class="annot"><span class="annottext">Word
+</span><span class="hs-number">2</span></span><span>
+</span><span id="line-47"></span><span>      </span><span class="annot"><span class="annottext">Encoding -&gt; Encoding -&gt; Encoding
+forall a. Semigroup a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">&lt;&gt;</span></span><span> </span><span class="annot"><span class="annottext">Map -&gt; Encoding
+forall a. ToCBOR a =&gt; a -&gt; Encoding
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src"><span class="hs-identifier hs-var">toCBOR</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">State -&gt; Map
+</span><a href="Cardano.Chain.Delegation.Validation.Activation.html#delegationMap"><span class="hs-identifier hs-var hs-var">delegationMap</span></a></span><span> </span><span class="annot"><span class="annottext">State
+</span><a href="#local-6989586621679513394"><span class="hs-identifier hs-var">s</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-48"></span><span>      </span><span class="annot"><span class="annottext">Encoding -&gt; Encoding -&gt; Encoding
+forall a. Semigroup a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">&lt;&gt;</span></span><span> </span><span class="annot"><span class="annottext">Map KeyHash SlotNumber -&gt; Encoding
+forall a. ToCBOR a =&gt; a -&gt; Encoding
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src"><span class="hs-identifier hs-var">toCBOR</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">State -&gt; Map KeyHash SlotNumber
+</span><a href="Cardano.Chain.Delegation.Validation.Activation.html#delegationSlots"><span class="hs-identifier hs-var hs-var">delegationSlots</span></a></span><span> </span><span class="annot"><span class="annottext">State
+</span><a href="#local-6989586621679513394"><span class="hs-identifier hs-var">s</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-49"></span><span>
+</span><span id="line-50"></span><span class="hs-comment">-- | Activate a 'ScheduledDelegation' if its activation slot is less than the</span><span>
+</span><span id="line-51"></span><span class="hs-comment">--   previous delegation slot for this delegate, otherwise discard it. This is</span><span>
+</span><span id="line-52"></span><span class="hs-comment">--   an implementation of the delegation activation rule in the ledger</span><span>
+</span><span id="line-53"></span><span class="hs-comment">--   specification.</span><span>
+</span><span id="line-54"></span><span class="annot"><a href="Cardano.Chain.Delegation.Validation.Activation.html#activateDelegation"><span class="hs-identifier hs-type">activateDelegation</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cardano.Chain.Delegation.Validation.Activation.html#State"><span class="hs-identifier hs-type">State</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cardano.Chain.Delegation.Validation.Scheduling.html#ScheduledDelegation"><span class="hs-identifier hs-type">ScheduledDelegation</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cardano.Chain.Delegation.Validation.Activation.html#State"><span class="hs-identifier hs-type">State</span></a></span><span>
+</span><span id="line-55"></span><span id="activateDelegation"><span class="annot"><span class="annottext">activateDelegation :: State -&gt; ScheduledDelegation -&gt; State
+</span><a href="Cardano.Chain.Delegation.Validation.Activation.html#activateDelegation"><span class="hs-identifier hs-var hs-var">activateDelegation</span></a></span></span><span> </span><span id="local-6989586621679513393"><span class="annot"><span class="annottext">State
+</span><a href="#local-6989586621679513393"><span class="hs-keyword hs-var">as</span></a></span></span><span> </span><span id="local-6989586621679513392"><span class="annot"><span class="annottext">ScheduledDelegation
+</span><a href="#local-6989586621679513392"><span class="hs-identifier hs-var">delegation</span></a></span></span><span>
+</span><span id="line-56"></span><span>  </span><span class="hs-glyph">|</span><span>    </span><span class="hs-special">(</span><span class="annot"><span class="annottext">KeyHash
+</span><a href="#local-6989586621679513391"><span class="hs-identifier hs-var">delegate</span></a></span><span> </span><span class="annot"><span class="annottext">KeyHash -&gt; Map -&gt; Bool
+</span><a href="Cardano.Chain.Delegation.Map.html#notMemberR"><span class="hs-operator hs-var">`Delegation.notMemberR`</span></a></span><span> </span><span class="annot"><span class="annottext">Map
+</span><a href="#local-6989586621679513389"><span class="hs-identifier hs-var">delegationMap</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-57"></span><span>    </span><span class="annot"><span class="annottext">Bool -&gt; Bool -&gt; Bool
+</span><span class="hs-operator hs-var">&amp;&amp;</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">SlotNumber
+</span><a href="#local-6989586621679513387"><span class="hs-identifier hs-var">prevDelegationSlot</span></a></span><span> </span><span class="annot"><span class="annottext">SlotNumber -&gt; SlotNumber -&gt; Bool
+forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">&lt;</span></span><span> </span><span class="annot"><span class="annottext">SlotNumber
+</span><a href="#local-6989586621679513385"><span class="hs-identifier hs-var">slot</span></a></span><span> </span><span class="annot"><span class="annottext">Bool -&gt; Bool -&gt; Bool
+</span><span class="hs-operator hs-var">||</span></span><span> </span><span class="annot"><span class="annottext">SlotNumber -&gt; Word64
+</span><a href="Cardano.Chain.Slotting.SlotNumber.html#unSlotNumber"><span class="hs-identifier hs-var hs-var">unSlotNumber</span></a></span><span> </span><span class="annot"><span class="annottext">SlotNumber
+</span><a href="#local-6989586621679513385"><span class="hs-identifier hs-var">slot</span></a></span><span> </span><span class="annot"><span class="annottext">Word64 -&gt; Word64 -&gt; Bool
+forall a. Eq a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">==</span></span><span> </span><span class="annot"><span class="annottext">Word64
+</span><span class="hs-number">0</span></span><span class="hs-special">)</span><span>
+</span><span id="line-58"></span><span>  </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">State :: Map -&gt; Map KeyHash SlotNumber -&gt; State
+</span><a href="Cardano.Chain.Delegation.Validation.Activation.html#State"><span class="hs-identifier hs-type">State</span></a></span><span>
+</span><span id="line-59"></span><span>    </span><span class="hs-special">{</span><span> </span><span class="annot"><span class="annottext">delegationMap :: Map
+</span><a href="Cardano.Chain.Delegation.Validation.Activation.html#delegationMap"><span class="hs-identifier hs-var">delegationMap</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">KeyHash -&gt; KeyHash -&gt; Map -&gt; Map
+</span><a href="Cardano.Chain.Delegation.Map.html#insert"><span class="hs-identifier hs-var">Delegation.insert</span></a></span><span> </span><span class="annot"><span class="annottext">KeyHash
+</span><a href="#local-6989586621679513381"><span class="hs-identifier hs-var">delegator</span></a></span><span> </span><span class="annot"><span class="annottext">KeyHash
+</span><a href="#local-6989586621679513391"><span class="hs-identifier hs-var">delegate</span></a></span><span> </span><span class="annot"><span class="annottext">Map
+</span><a href="#local-6989586621679513389"><span class="hs-identifier hs-var">delegationMap</span></a></span><span>
+</span><span id="line-60"></span><span>    </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">delegationSlots :: Map KeyHash SlotNumber
+</span><a href="Cardano.Chain.Delegation.Validation.Activation.html#delegationSlots"><span class="hs-identifier hs-var">delegationSlots</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">KeyHash
+-&gt; SlotNumber -&gt; Map KeyHash SlotNumber -&gt; Map KeyHash SlotNumber
+forall k a. Ord k =&gt; k -&gt; a -&gt; Map k a -&gt; Map k a
+</span><span class="hs-identifier hs-var">M.insert</span></span><span> </span><span class="annot"><span class="annottext">KeyHash
+</span><a href="#local-6989586621679513381"><span class="hs-identifier hs-var">delegator</span></a></span><span> </span><span class="annot"><span class="annottext">SlotNumber
+</span><a href="#local-6989586621679513385"><span class="hs-identifier hs-var">slot</span></a></span><span> </span><span class="annot"><span class="annottext">Map KeyHash SlotNumber
+</span><a href="#local-6989586621679513379"><span class="hs-identifier hs-var">delegationSlots</span></a></span><span>
+</span><span id="line-61"></span><span>    </span><span class="hs-special">}</span><span>
+</span><span id="line-62"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">otherwise</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">State
+</span><a href="#local-6989586621679513393"><span class="hs-keyword hs-var">as</span></a></span><span>
+</span><span id="line-63"></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-64"></span><span>  </span><span class="annot"><a href="Cardano.Chain.Delegation.Validation.Activation.html#State"><span class="hs-identifier hs-type">State</span></a></span><span> </span><span class="hs-special">{</span><span> </span><span id="local-6989586621679513389"><span class="annot"><span class="annottext">Map
+delegationMap :: Map
+delegationMap :: State -&gt; Map
+</span><a href="#local-6989586621679513389"><span class="hs-identifier hs-var hs-var">delegationMap</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679513379"><span class="annot"><span class="annottext">Map KeyHash SlotNumber
+delegationSlots :: Map KeyHash SlotNumber
+delegationSlots :: State -&gt; Map KeyHash SlotNumber
+</span><a href="#local-6989586621679513379"><span class="hs-identifier hs-var hs-var">delegationSlots</span></a></span></span><span> </span><span class="hs-special">}</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">State
+</span><a href="#local-6989586621679513393"><span class="hs-keyword hs-var">as</span></a></span><span>
+</span><span id="line-65"></span><span>  </span><span class="annot"><a href="Cardano.Chain.Delegation.Validation.Scheduling.html#ScheduledDelegation"><span class="hs-identifier hs-type">ScheduledDelegation</span></a></span><span> </span><span id="local-6989586621679513385"><span class="annot"><span class="annottext">SlotNumber
+</span><a href="#local-6989586621679513385"><span class="hs-identifier hs-var">slot</span></a></span></span><span> </span><span id="local-6989586621679513381"><span class="annot"><span class="annottext">KeyHash
+</span><a href="#local-6989586621679513381"><span class="hs-identifier hs-var">delegator</span></a></span></span><span> </span><span id="local-6989586621679513391"><span class="annot"><span class="annottext">KeyHash
+</span><a href="#local-6989586621679513391"><span class="hs-identifier hs-var">delegate</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">ScheduledDelegation
+</span><a href="#local-6989586621679513392"><span class="hs-identifier hs-var">delegation</span></a></span><span>
+</span><span id="line-66"></span><span>
+</span><span id="line-67"></span><span>  </span><span id="local-6989586621679513387"><span class="annot"><span class="annottext">prevDelegationSlot :: SlotNumber
+</span><a href="#local-6989586621679513387"><span class="hs-identifier hs-var hs-var">prevDelegationSlot</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-68"></span><span>    </span><span class="annot"><span class="annottext">SlotNumber -&gt; Maybe SlotNumber -&gt; SlotNumber
+forall a. a -&gt; Maybe a -&gt; a
+</span><span class="hs-identifier hs-var">fromMaybe</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Word64 -&gt; SlotNumber
+</span><a href="Cardano.Chain.Slotting.SlotNumber.html#SlotNumber"><span class="hs-identifier hs-var">SlotNumber</span></a></span><span> </span><span class="annot"><span class="annottext">Word64
+</span><span class="hs-number">0</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(Maybe SlotNumber -&gt; SlotNumber) -&gt; Maybe SlotNumber -&gt; SlotNumber
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">KeyHash -&gt; Map KeyHash SlotNumber -&gt; Maybe SlotNumber
+forall k a. Ord k =&gt; k -&gt; Map k a -&gt; Maybe a
+</span><span class="hs-identifier hs-var">M.lookup</span></span><span> </span><span class="annot"><span class="annottext">KeyHash
+</span><a href="#local-6989586621679513381"><span class="hs-identifier hs-var">delegator</span></a></span><span> </span><span class="annot"><span class="annottext">Map KeyHash SlotNumber
+</span><a href="#local-6989586621679513379"><span class="hs-identifier hs-var">delegationSlots</span></a></span><span>
+</span><span id="line-69"></span></pre></body></html>

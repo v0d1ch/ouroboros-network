@@ -1,82 +1,269 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-pragma">{-# LANGUAGE NamedFieldPuns      #-}</span><span>
-</span><a name="line-2"></a><span>
-</span><a name="line-3"></a><span class="hs-comment">-- | Unversioned protocol, used in tests and demo applications.</span><span>
-</span><a name="line-4"></a><span class="hs-comment">--</span><span>
-</span><a name="line-5"></a><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Ouroboros.Network.Protocol.Handshake.Unversioned</span><span>
-</span><a name="line-6"></a><span>  </span><span class="hs-special">(</span><span> </span><a href="Ouroboros.Network.Protocol.Handshake.Unversioned.html#UnversionedProtocol"><span class="hs-identifier hs-type">UnversionedProtocol</span></a><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
-</span><a name="line-7"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Ouroboros.Network.Protocol.Handshake.Unversioned.html#UnversionedProtocolData"><span class="hs-identifier hs-type">UnversionedProtocolData</span></a><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
-</span><a name="line-8"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Ouroboros.Network.Protocol.Handshake.Unversioned.html#unversionedHandshakeCodec"><span class="hs-identifier hs-var">unversionedHandshakeCodec</span></a><span>
-</span><a name="line-9"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Ouroboros.Network.Protocol.Handshake.Unversioned.html#unversionedProtocolDataCodec"><span class="hs-identifier hs-var">unversionedProtocolDataCodec</span></a><span>
-</span><a name="line-10"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Ouroboros.Network.Protocol.Handshake.Unversioned.html#unversionedProtocol"><span class="hs-identifier hs-var">unversionedProtocol</span></a><span>
-</span><a name="line-11"></a><span>  </span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
-</span><a name="line-12"></a><span>
-</span><a name="line-13"></a><span class="hs-keyword">import</span><span>           </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/io-sim-classes-0.1.0.0/noopt/doc/html/io-sim-classes/src/Control.Monad.Class.MonadST.html"><span class="hs-identifier">Control.Monad.Class.MonadST</span></a><span>
-</span><a name="line-14"></a><span>
-</span><a name="line-15"></a><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-identifier">Codec.CBOR.Read</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">CBOR</span><span>
-</span><a name="line-16"></a><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-identifier">Codec.CBOR.Term</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">CBOR</span><span>
-</span><a name="line-17"></a><span>
-</span><a name="line-18"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data.Text</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Text</span><span class="hs-special">)</span><span>
-</span><a name="line-19"></a><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-identifier">Data.Text</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">T</span><span>
-</span><a name="line-20"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data.ByteString.Lazy</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">ByteString</span><span class="hs-special">)</span><span>
-</span><a name="line-21"></a><span>
-</span><a name="line-22"></a><span class="hs-keyword">import</span><span>           </span><a href="Ouroboros.Network.Codec.html"><span class="hs-identifier">Ouroboros.Network.Codec</span></a><span>
-</span><a name="line-23"></a><span class="hs-keyword">import</span><span>           </span><a href="Ouroboros.Network.CodecCBORTerm.html"><span class="hs-identifier">Ouroboros.Network.CodecCBORTerm</span></a><span>
-</span><a name="line-24"></a><span>
-</span><a name="line-25"></a><span class="hs-keyword">import</span><span>           </span><a href="Ouroboros.Network.Protocol.Handshake.Codec.html"><span class="hs-identifier">Ouroboros.Network.Protocol.Handshake.Codec</span></a><span>
-</span><a name="line-26"></a><span class="hs-keyword">import</span><span>           </span><a href="Ouroboros.Network.Protocol.Handshake.Type.html"><span class="hs-identifier">Ouroboros.Network.Protocol.Handshake.Type</span></a><span>
-</span><a name="line-27"></a><span class="hs-keyword">import</span><span>           </span><a href="Ouroboros.Network.Protocol.Handshake.Version.html"><span class="hs-identifier">Ouroboros.Network.Protocol.Handshake.Version</span></a><span>
-</span><a name="line-28"></a><span>
-</span><a name="line-29"></a><span>
-</span><a name="line-30"></a><span class="hs-comment">-- | Version negotiation for an unversioned protocol. We only use this for</span><span>
-</span><a name="line-31"></a><span class="hs-comment">-- tests and demos where proper versioning is excessive.</span><span>
-</span><a name="line-32"></a><span class="hs-comment">--</span><span>
-</span><a name="line-33"></a><span class="hs-keyword">data</span><span> </span><a name="UnversionedProtocol"><a href="Ouroboros.Network.Protocol.Handshake.Unversioned.html#UnversionedProtocol"><span class="hs-identifier">UnversionedProtocol</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><a name="UnversionedProtocol"><a href="Ouroboros.Network.Protocol.Handshake.Unversioned.html#UnversionedProtocol"><span class="hs-identifier">UnversionedProtocol</span></a></a><span>
-</span><a name="line-34"></a><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Eq</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Ord</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Show</span><span class="hs-special">)</span><span>
-</span><a name="line-35"></a><span>
-</span><a name="line-36"></a><span>
-</span><a name="line-37"></a><span class="hs-keyword">data</span><span> </span><a name="UnversionedProtocolData"><a href="Ouroboros.Network.Protocol.Handshake.Unversioned.html#UnversionedProtocolData"><span class="hs-identifier">UnversionedProtocolData</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><a name="UnversionedProtocolData"><a href="Ouroboros.Network.Protocol.Handshake.Unversioned.html#UnversionedProtocolData"><span class="hs-identifier">UnversionedProtocolData</span></a></a><span>
-</span><a name="line-38"></a><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Eq</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Show</span><span class="hs-special">)</span><span>
-</span><a name="line-39"></a><span>
-</span><a name="line-40"></a><span>
-</span><a name="line-41"></a><span class="hs-keyword">instance</span><span> </span><a href="Ouroboros.Network.Protocol.Handshake.Version.html#Acceptable"><span class="hs-identifier hs-type">Acceptable</span></a><span> </span><a href="Ouroboros.Network.Protocol.Handshake.Unversioned.html#UnversionedProtocolData"><span class="hs-identifier hs-type">UnversionedProtocolData</span></a><span> </span><span class="hs-keyword">where</span><span>
-</span><a name="line-42"></a><span>  </span><a name="local-8214565720323879045"><a href="Ouroboros.Network.Protocol.Handshake.Version.html#acceptableVersion"><span class="hs-identifier">acceptableVersion</span></a></a><span> </span><a href="Ouroboros.Network.Protocol.Handshake.Unversioned.html#UnversionedProtocolData"><span class="hs-identifier hs-var">UnversionedProtocolData</span></a><span>
-</span><a name="line-43"></a><span>                    </span><a href="Ouroboros.Network.Protocol.Handshake.Unversioned.html#UnversionedProtocolData"><span class="hs-identifier hs-var">UnversionedProtocolData</span></a><span> </span><span class="hs-glyph">=</span><span> </span><a href="Ouroboros.Network.Protocol.Handshake.Version.html#Accept"><span class="hs-identifier hs-var">Accept</span></a><span>
-</span><a name="line-44"></a><span>
-</span><a name="line-45"></a><span>
-</span><a name="line-46"></a><span class="hs-identifier">unversionedProtocolDataCodec</span><span> </span><span class="hs-glyph">::</span><span> </span><a href="Ouroboros.Network.CodecCBORTerm.html#CodecCBORTerm"><span class="hs-identifier hs-type">CodecCBORTerm</span></a><span> </span><span class="hs-identifier hs-type">Text</span><span> </span><a href="Ouroboros.Network.Protocol.Handshake.Unversioned.html#UnversionedProtocolData"><span class="hs-identifier hs-type">UnversionedProtocolData</span></a><span>
-</span><a name="line-47"></a><a name="unversionedProtocolDataCodec"><a href="Ouroboros.Network.Protocol.Handshake.Unversioned.html#unversionedProtocolDataCodec"><span class="hs-identifier">unversionedProtocolDataCodec</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><a href="Ouroboros.Network.CodecCBORTerm.html#CodecCBORTerm"><span class="hs-identifier hs-var">CodecCBORTerm</span></a><span> </span><span class="hs-special">{</span><a href="#local-6989586621679140837"><span class="hs-identifier hs-var">encodeTerm</span></a><span class="hs-special">,</span><span> </span><a href="#local-6989586621679140838"><span class="hs-identifier hs-var">decodeTerm</span></a><span class="hs-special">}</span><span>
-</span><a name="line-48"></a><span>    </span><span class="hs-keyword">where</span><span>
-</span><a name="line-49"></a><span>      </span><span class="hs-identifier">encodeTerm</span><span> </span><span class="hs-glyph">::</span><span> </span><a href="Ouroboros.Network.Protocol.Handshake.Unversioned.html#UnversionedProtocolData"><span class="hs-identifier hs-type">UnversionedProtocolData</span></a><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">CBOR.Term</span><span>
-</span><a name="line-50"></a><span>      </span><a name="local-6989586621679140837"><a href="#local-6989586621679140837"><span class="hs-identifier">encodeTerm</span></a></a><span> </span><a href="Ouroboros.Network.Protocol.Handshake.Unversioned.html#UnversionedProtocolData"><span class="hs-identifier hs-var">UnversionedProtocolData</span></a><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-identifier hs-var">CBOR.TNull</span><span>
-</span><a name="line-51"></a><span>
-</span><a name="line-52"></a><span>      </span><span class="hs-identifier">decodeTerm</span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">CBOR.Term</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">Either</span><span> </span><span class="hs-identifier hs-type">Text</span><span> </span><a href="Ouroboros.Network.Protocol.Handshake.Unversioned.html#UnversionedProtocolData"><span class="hs-identifier hs-type">UnversionedProtocolData</span></a><span>
-</span><a name="line-53"></a><span>      </span><a name="local-6989586621679140838"><a href="#local-6989586621679140838"><span class="hs-identifier">decodeTerm</span></a></a><span> </span><span class="hs-identifier hs-var">CBOR.TNull</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-identifier hs-var">Right</span><span> </span><a href="Ouroboros.Network.Protocol.Handshake.Unversioned.html#UnversionedProtocolData"><span class="hs-identifier hs-var">UnversionedProtocolData</span></a><span>
-</span><a name="line-54"></a><span>      </span><span class="hs-identifier">decodeTerm</span><span> </span><a name="local-6989586621679140839"><a href="#local-6989586621679140839"><span class="hs-identifier">t</span></a></a><span>          </span><span class="hs-glyph">=</span><span> </span><span class="hs-identifier hs-var">Left</span><span> </span><span class="hs-operator hs-var">$</span><span> </span><span class="hs-identifier hs-var">T.pack</span><span> </span><span class="hs-operator hs-var">$</span><span> </span><span class="hs-string">&quot;unexpected term: &quot;</span><span> </span><span class="hs-operator hs-var">++</span><span> </span><span class="hs-identifier hs-var">show</span><span> </span><a href="#local-6989586621679140839"><span class="hs-identifier hs-var">t</span></a><span>
-</span><a name="line-55"></a><span>
-</span><a name="line-56"></a><span>
-</span><a name="line-57"></a><span class="hs-comment">-- | Make a 'Versions' for an unversioned protocol. Only use this for</span><span>
-</span><a name="line-58"></a><span class="hs-comment">-- tests and demos where proper versioning is excessive.</span><span>
-</span><a name="line-59"></a><span class="hs-comment">--</span><span>
-</span><a name="line-60"></a><span class="hs-identifier">unversionedProtocol</span><span> </span><span class="hs-glyph">::</span><span> </span><a href="#local-6989586621679140836"><span class="hs-identifier hs-type">app</span></a><span> </span><span class="hs-glyph">-&gt;</span><span> </span><a href="Ouroboros.Network.Protocol.Handshake.Version.html#Versions"><span class="hs-identifier hs-type">Versions</span></a><span> </span><a href="Ouroboros.Network.Protocol.Handshake.Unversioned.html#UnversionedProtocol"><span class="hs-identifier hs-type">UnversionedProtocol</span></a><span> </span><a href="Ouroboros.Network.Protocol.Handshake.Version.html#DictVersion"><span class="hs-identifier hs-type">DictVersion</span></a><span> </span><a href="#local-6989586621679140836"><span class="hs-identifier hs-type">app</span></a><span>
-</span><a name="line-61"></a><a name="unversionedProtocol"><a href="Ouroboros.Network.Protocol.Handshake.Unversioned.html#unversionedProtocol"><span class="hs-identifier">unversionedProtocol</span></a></a><span> </span><span class="hs-glyph">=</span><span>
-</span><a name="line-62"></a><span>    </span><a href="Ouroboros.Network.Protocol.Handshake.Version.html#simpleSingletonVersions"><span class="hs-identifier hs-var">simpleSingletonVersions</span></a><span> </span><a href="Ouroboros.Network.Protocol.Handshake.Unversioned.html#UnversionedProtocol"><span class="hs-identifier hs-var">UnversionedProtocol</span></a><span> </span><a href="Ouroboros.Network.Protocol.Handshake.Unversioned.html#UnversionedProtocolData"><span class="hs-identifier hs-var">UnversionedProtocolData</span></a><span>
-</span><a name="line-63"></a><span>                            </span><span class="hs-special">(</span><a href="Ouroboros.Network.Protocol.Handshake.Version.html#DictVersion"><span class="hs-identifier hs-var">DictVersion</span></a><span> </span><a href="Ouroboros.Network.Protocol.Handshake.Unversioned.html#unversionedProtocolDataCodec"><span class="hs-identifier hs-var">unversionedProtocolDataCodec</span></a><span class="hs-special">)</span><span>
-</span><a name="line-64"></a><span>
-</span><a name="line-65"></a><span>
-</span><a name="line-66"></a><span class="hs-comment">-- | 'Handshake' codec used in various tests.</span><span>
-</span><a name="line-67"></a><span class="hs-comment">--</span><span>
-</span><a name="line-68"></a><span class="hs-identifier">unversionedHandshakeCodec</span><span> </span><span class="hs-glyph">::</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/io-sim-classes-0.1.0.0/noopt/doc/html/io-sim-classes/src/Control.Monad.Class.MonadST.html#MonadST"><span class="hs-identifier hs-type">MonadST</span></a><span> </span><a href="#local-6989586621679140835"><span class="hs-identifier hs-type">m</span></a><span>
-</span><a name="line-69"></a><span>                           </span><span class="hs-glyph">=&gt;</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/typed-protocols-examples-0.1.0.0/noopt/doc/html/typed-protocols-examples/src/Network.TypedProtocol.Codec.html#Codec"><span class="hs-identifier hs-type">Codec</span></a><span> </span><span class="hs-special">(</span><a href="Ouroboros.Network.Protocol.Handshake.Type.html#Handshake"><span class="hs-identifier hs-type">Handshake</span></a><span> </span><a href="Ouroboros.Network.Protocol.Handshake.Unversioned.html#UnversionedProtocol"><span class="hs-identifier hs-type">UnversionedProtocol</span></a><span> </span><span class="hs-identifier hs-type">CBOR.Term</span><span class="hs-special">)</span><span>
-</span><a name="line-70"></a><span>                                    </span><span class="hs-identifier hs-type">CBOR.DeserialiseFailure</span><span> </span><a href="#local-6989586621679140835"><span class="hs-identifier hs-type">m</span></a><span> </span><span class="hs-identifier hs-type">ByteString</span><span>
-</span><a name="line-71"></a><a name="unversionedHandshakeCodec"><a href="Ouroboros.Network.Protocol.Handshake.Unversioned.html#unversionedHandshakeCodec"><span class="hs-identifier">unversionedHandshakeCodec</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><a href="Ouroboros.Network.Protocol.Handshake.Codec.html#codecHandshake"><span class="hs-identifier hs-var">codecHandshake</span></a><span> </span><a href="#local-6989586621679140840"><span class="hs-identifier hs-var">unversionedProtocolCodec</span></a><span>
-</span><a name="line-72"></a><span>  </span><span class="hs-keyword">where</span><span>
-</span><a name="line-73"></a><span>    </span><span class="hs-identifier">unversionedProtocolCodec</span><span> </span><span class="hs-glyph">::</span><span> </span><a href="Ouroboros.Network.CodecCBORTerm.html#CodecCBORTerm"><span class="hs-identifier hs-type">CodecCBORTerm</span></a><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">String</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Maybe</span><span> </span><span class="hs-identifier hs-type">Int</span><span class="hs-special">)</span><span> </span><a href="Ouroboros.Network.Protocol.Handshake.Unversioned.html#UnversionedProtocol"><span class="hs-identifier hs-type">UnversionedProtocol</span></a><span>
-</span><a name="line-74"></a><span>    </span><a name="local-6989586621679140840"><a href="#local-6989586621679140840"><span class="hs-identifier">unversionedProtocolCodec</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><a href="Ouroboros.Network.CodecCBORTerm.html#CodecCBORTerm"><span class="hs-identifier hs-var">CodecCBORTerm</span></a><span> </span><span class="hs-special">{</span><span> </span><a href="#local-6989586621679140841"><span class="hs-identifier hs-var">encodeTerm</span></a><span class="hs-special">,</span><span> </span><a href="#local-6989586621679140842"><span class="hs-identifier hs-var">decodeTerm</span></a><span> </span><span class="hs-special">}</span><span>
-</span><a name="line-75"></a><span>      </span><span class="hs-keyword">where</span><span>
-</span><a name="line-76"></a><span>        </span><a name="local-6989586621679140841"><a href="#local-6989586621679140841"><span class="hs-identifier">encodeTerm</span></a></a><span> </span><a href="Ouroboros.Network.Protocol.Handshake.Unversioned.html#UnversionedProtocol"><span class="hs-identifier hs-var">UnversionedProtocol</span></a><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-identifier hs-var">CBOR.TInt</span><span> </span><span class="hs-number">1</span><span>
-</span><a name="line-77"></a><span>        </span><a name="local-6989586621679140842"><a href="#local-6989586621679140842"><span class="hs-identifier">decodeTerm</span></a></a><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-var">CBOR.TInt</span><span> </span><span class="hs-number">1</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-identifier hs-var">Right</span><span> </span><a href="Ouroboros.Network.Protocol.Handshake.Unversioned.html#UnversionedProtocol"><span class="hs-identifier hs-var">UnversionedProtocol</span></a><span>
-</span><a name="line-78"></a><span>        </span><span class="hs-identifier">decodeTerm</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-var">CBOR.TInt</span><span> </span><a name="local-6989586621679140843"><a href="#local-6989586621679140843"><span class="hs-identifier">n</span></a></a><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-identifier hs-var">Left</span><span> </span><span class="hs-special">(</span><span class="hs-string">&quot;decode UnversionedProtocol: unknown tag&quot;</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-var">Just</span><span> </span><a href="#local-6989586621679140843"><span class="hs-identifier hs-var">n</span></a><span class="hs-special">)</span><span>
-</span><a name="line-79"></a><span>        </span><span class="hs-identifier">decodeTerm</span><span> </span><span class="hs-identifier">_</span><span>             </span><span class="hs-glyph">=</span><span> </span><span class="hs-identifier hs-var">Left</span><span> </span><span class="hs-special">(</span><span class="hs-string">&quot;decode UnversionedProtocol: deserialisation failure&quot;</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-var">Nothing</span><span class="hs-special">)</span><span>
-</span><a name="line-80"></a><span>
-</span><a name="line-81"></a><span>
-</span><a name="line-82"></a></pre></body></html>
+</span><span id="line-2"></span><span>
+</span><span id="line-3"></span><span class="hs-comment">-- | Unversioned protocol, used in tests and demo applications.</span><span>
+</span><span id="line-4"></span><span class="hs-comment">--</span><span>
+</span><span id="line-5"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Ouroboros.Network.Protocol.Handshake.Unversioned</span><span>
+</span><span id="line-6"></span><span>  </span><span class="hs-special">(</span><span> </span><span class="annot"><a href="Ouroboros.Network.Protocol.Handshake.Unversioned.html#UnversionedProtocol"><span class="hs-identifier">UnversionedProtocol</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
+</span><span id="line-7"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Ouroboros.Network.Protocol.Handshake.Unversioned.html#UnversionedProtocolData"><span class="hs-identifier">UnversionedProtocolData</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
+</span><span id="line-8"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Ouroboros.Network.Protocol.Handshake.Unversioned.html#unversionedHandshakeCodec"><span class="hs-identifier">unversionedHandshakeCodec</span></a></span><span>
+</span><span id="line-9"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Ouroboros.Network.Protocol.Handshake.Unversioned.html#unversionedProtocolDataCodec"><span class="hs-identifier">unversionedProtocolDataCodec</span></a></span><span>
+</span><span id="line-10"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Ouroboros.Network.Protocol.Handshake.Unversioned.html#unversionedProtocol"><span class="hs-identifier">unversionedProtocol</span></a></span><span>
+</span><span id="line-11"></span><span>  </span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-12"></span><span>
+</span><span id="line-13"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/io-sim-classes-0.2.0.0/noopt/doc/html/io-sim-classes/src"><span class="hs-identifier">Control.Monad.Class.MonadST</span></a></span><span>
+</span><span id="line-14"></span><span>
+</span><span id="line-15"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Codec.CBOR.Read</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">CBOR</span></span><span>
+</span><span id="line-16"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Codec.CBOR.Term</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">CBOR</span></span><span>
+</span><span id="line-17"></span><span>
+</span><span id="line-18"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><span class="hs-identifier">Data.Text</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Text</span></span><span class="hs-special">)</span><span>
+</span><span id="line-19"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Data.Text</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">T</span></span><span>
+</span><span id="line-20"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><span class="hs-identifier">Data.ByteString.Lazy</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">ByteString</span></span><span class="hs-special">)</span><span>
+</span><span id="line-21"></span><span>
+</span><span id="line-22"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="Ouroboros.Network.Codec.html"><span class="hs-identifier">Ouroboros.Network.Codec</span></a></span><span>
+</span><span id="line-23"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="Ouroboros.Network.CodecCBORTerm.html"><span class="hs-identifier">Ouroboros.Network.CodecCBORTerm</span></a></span><span>
+</span><span id="line-24"></span><span>
+</span><span id="line-25"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="Ouroboros.Network.Protocol.Handshake.Codec.html"><span class="hs-identifier">Ouroboros.Network.Protocol.Handshake.Codec</span></a></span><span>
+</span><span id="line-26"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="Ouroboros.Network.Protocol.Handshake.Type.html"><span class="hs-identifier">Ouroboros.Network.Protocol.Handshake.Type</span></a></span><span>
+</span><span id="line-27"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="Ouroboros.Network.Protocol.Handshake.Version.html"><span class="hs-identifier">Ouroboros.Network.Protocol.Handshake.Version</span></a></span><span>
+</span><span id="line-28"></span><span>
+</span><span id="line-29"></span><span>
+</span><span id="line-30"></span><span class="hs-comment">-- | Version negotiation for an unversioned protocol. We only use this for</span><span>
+</span><span id="line-31"></span><span class="hs-comment">-- tests and demos where proper versioning is excessive.</span><span>
+</span><span id="line-32"></span><span class="hs-comment">--</span><span>
+</span><span id="line-33"></span><span class="hs-keyword">data</span><span> </span><span id="UnversionedProtocol"><span class="annot"><a href="Ouroboros.Network.Protocol.Handshake.Unversioned.html#UnversionedProtocol"><span class="hs-identifier hs-var">UnversionedProtocol</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="UnversionedProtocol"><span class="annot"><a href="Ouroboros.Network.Protocol.Handshake.Unversioned.html#UnversionedProtocol"><span class="hs-identifier hs-var">UnversionedProtocol</span></a></span></span><span>
+</span><span id="line-34"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679128338"><span id="local-6989586621679128340"><span class="annot"><span class="annottext">UnversionedProtocol -&gt; UnversionedProtocol -&gt; Bool
+(UnversionedProtocol -&gt; UnversionedProtocol -&gt; Bool)
+-&gt; (UnversionedProtocol -&gt; UnversionedProtocol -&gt; Bool)
+-&gt; Eq UnversionedProtocol
+forall a. (a -&gt; a -&gt; Bool) -&gt; (a -&gt; a -&gt; Bool) -&gt; Eq a
+/= :: UnversionedProtocol -&gt; UnversionedProtocol -&gt; Bool
+$c/= :: UnversionedProtocol -&gt; UnversionedProtocol -&gt; Bool
+== :: UnversionedProtocol -&gt; UnversionedProtocol -&gt; Bool
+$c== :: UnversionedProtocol -&gt; UnversionedProtocol -&gt; Bool
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679128322"><span id="local-6989586621679128324"><span id="local-6989586621679128326"><span id="local-6989586621679128328"><span id="local-6989586621679128330"><span id="local-6989586621679128332"><span id="local-6989586621679128334"><span class="annot"><span class="annottext">Eq UnversionedProtocol
+Eq UnversionedProtocol
+-&gt; (UnversionedProtocol -&gt; UnversionedProtocol -&gt; Ordering)
+-&gt; (UnversionedProtocol -&gt; UnversionedProtocol -&gt; Bool)
+-&gt; (UnversionedProtocol -&gt; UnversionedProtocol -&gt; Bool)
+-&gt; (UnversionedProtocol -&gt; UnversionedProtocol -&gt; Bool)
+-&gt; (UnversionedProtocol -&gt; UnversionedProtocol -&gt; Bool)
+-&gt; (UnversionedProtocol
+    -&gt; UnversionedProtocol -&gt; UnversionedProtocol)
+-&gt; (UnversionedProtocol
+    -&gt; UnversionedProtocol -&gt; UnversionedProtocol)
+-&gt; Ord UnversionedProtocol
+UnversionedProtocol -&gt; UnversionedProtocol -&gt; Bool
+UnversionedProtocol -&gt; UnversionedProtocol -&gt; Ordering
+UnversionedProtocol -&gt; UnversionedProtocol -&gt; UnversionedProtocol
+forall a.
+Eq a
+-&gt; (a -&gt; a -&gt; Ordering)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; a)
+-&gt; (a -&gt; a -&gt; a)
+-&gt; Ord a
+min :: UnversionedProtocol -&gt; UnversionedProtocol -&gt; UnversionedProtocol
+$cmin :: UnversionedProtocol -&gt; UnversionedProtocol -&gt; UnversionedProtocol
+max :: UnversionedProtocol -&gt; UnversionedProtocol -&gt; UnversionedProtocol
+$cmax :: UnversionedProtocol -&gt; UnversionedProtocol -&gt; UnversionedProtocol
+&gt;= :: UnversionedProtocol -&gt; UnversionedProtocol -&gt; Bool
+$c&gt;= :: UnversionedProtocol -&gt; UnversionedProtocol -&gt; Bool
+&gt; :: UnversionedProtocol -&gt; UnversionedProtocol -&gt; Bool
+$c&gt; :: UnversionedProtocol -&gt; UnversionedProtocol -&gt; Bool
+&lt;= :: UnversionedProtocol -&gt; UnversionedProtocol -&gt; Bool
+$c&lt;= :: UnversionedProtocol -&gt; UnversionedProtocol -&gt; Bool
+&lt; :: UnversionedProtocol -&gt; UnversionedProtocol -&gt; Bool
+$c&lt; :: UnversionedProtocol -&gt; UnversionedProtocol -&gt; Bool
+compare :: UnversionedProtocol -&gt; UnversionedProtocol -&gt; Ordering
+$ccompare :: UnversionedProtocol -&gt; UnversionedProtocol -&gt; Ordering
+$cp1Ord :: Eq UnversionedProtocol
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Ord</span></span></span></span></span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679128315"><span id="local-6989586621679128317"><span id="local-6989586621679128319"><span class="annot"><span class="annottext">Int -&gt; UnversionedProtocol -&gt; ShowS
+[UnversionedProtocol] -&gt; ShowS
+UnversionedProtocol -&gt; String
+(Int -&gt; UnversionedProtocol -&gt; ShowS)
+-&gt; (UnversionedProtocol -&gt; String)
+-&gt; ([UnversionedProtocol] -&gt; ShowS)
+-&gt; Show UnversionedProtocol
+forall a.
+(Int -&gt; a -&gt; ShowS) -&gt; (a -&gt; String) -&gt; ([a] -&gt; ShowS) -&gt; Show a
+showList :: [UnversionedProtocol] -&gt; ShowS
+$cshowList :: [UnversionedProtocol] -&gt; ShowS
+show :: UnversionedProtocol -&gt; String
+$cshow :: UnversionedProtocol -&gt; String
+showsPrec :: Int -&gt; UnversionedProtocol -&gt; ShowS
+$cshowsPrec :: Int -&gt; UnversionedProtocol -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">)</span><span>
+</span><span id="line-35"></span><span>
+</span><span id="line-36"></span><span>
+</span><span id="line-37"></span><span class="hs-keyword">data</span><span> </span><span id="UnversionedProtocolData"><span class="annot"><a href="Ouroboros.Network.Protocol.Handshake.Unversioned.html#UnversionedProtocolData"><span class="hs-identifier hs-var">UnversionedProtocolData</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="UnversionedProtocolData"><span class="annot"><a href="Ouroboros.Network.Protocol.Handshake.Unversioned.html#UnversionedProtocolData"><span class="hs-identifier hs-var">UnversionedProtocolData</span></a></span></span><span>
+</span><span id="line-38"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679128309"><span id="local-6989586621679128311"><span class="annot"><span class="annottext">UnversionedProtocolData -&gt; UnversionedProtocolData -&gt; Bool
+(UnversionedProtocolData -&gt; UnversionedProtocolData -&gt; Bool)
+-&gt; (UnversionedProtocolData -&gt; UnversionedProtocolData -&gt; Bool)
+-&gt; Eq UnversionedProtocolData
+forall a. (a -&gt; a -&gt; Bool) -&gt; (a -&gt; a -&gt; Bool) -&gt; Eq a
+/= :: UnversionedProtocolData -&gt; UnversionedProtocolData -&gt; Bool
+$c/= :: UnversionedProtocolData -&gt; UnversionedProtocolData -&gt; Bool
+== :: UnversionedProtocolData -&gt; UnversionedProtocolData -&gt; Bool
+$c== :: UnversionedProtocolData -&gt; UnversionedProtocolData -&gt; Bool
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679128303"><span id="local-6989586621679128305"><span id="local-6989586621679128307"><span class="annot"><span class="annottext">Int -&gt; UnversionedProtocolData -&gt; ShowS
+[UnversionedProtocolData] -&gt; ShowS
+UnversionedProtocolData -&gt; String
+(Int -&gt; UnversionedProtocolData -&gt; ShowS)
+-&gt; (UnversionedProtocolData -&gt; String)
+-&gt; ([UnversionedProtocolData] -&gt; ShowS)
+-&gt; Show UnversionedProtocolData
+forall a.
+(Int -&gt; a -&gt; ShowS) -&gt; (a -&gt; String) -&gt; ([a] -&gt; ShowS) -&gt; Show a
+showList :: [UnversionedProtocolData] -&gt; ShowS
+$cshowList :: [UnversionedProtocolData] -&gt; ShowS
+show :: UnversionedProtocolData -&gt; String
+$cshow :: UnversionedProtocolData -&gt; String
+showsPrec :: Int -&gt; UnversionedProtocolData -&gt; ShowS
+$cshowsPrec :: Int -&gt; UnversionedProtocolData -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">)</span><span>
+</span><span id="line-39"></span><span>
+</span><span id="line-40"></span><span>
+</span><span id="line-41"></span><span class="hs-keyword">instance</span><span> </span><span class="annot"><a href="Ouroboros.Network.Protocol.Handshake.Version.html#Acceptable"><span class="hs-identifier hs-type">Acceptable</span></a></span><span> </span><span class="annot"><a href="Ouroboros.Network.Protocol.Handshake.Unversioned.html#UnversionedProtocolData"><span class="hs-identifier hs-type">UnversionedProtocolData</span></a></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-42"></span><span>  </span><span id="local-6989586621679128300"><span class="annot"><span class="annottext">acceptableVersion :: UnversionedProtocolData
+-&gt; UnversionedProtocolData -&gt; Accept UnversionedProtocolData
+</span><a href="Ouroboros.Network.Protocol.Handshake.Version.html#acceptableVersion"><span class="hs-identifier hs-var hs-var hs-var hs-var">acceptableVersion</span></a></span></span><span> </span><span class="annot"><span class="annottext">UnversionedProtocolData
+</span><a href="Ouroboros.Network.Protocol.Handshake.Unversioned.html#UnversionedProtocolData"><span class="hs-identifier hs-var">UnversionedProtocolData</span></a></span><span>
+</span><span id="line-43"></span><span>                    </span><span class="annot"><span class="annottext">UnversionedProtocolData
+</span><a href="Ouroboros.Network.Protocol.Handshake.Unversioned.html#UnversionedProtocolData"><span class="hs-identifier hs-var">UnversionedProtocolData</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">UnversionedProtocolData -&gt; Accept UnversionedProtocolData
+forall vData. vData -&gt; Accept vData
+</span><a href="Ouroboros.Network.Protocol.Handshake.Version.html#Accept"><span class="hs-identifier hs-var">Accept</span></a></span><span> </span><span class="annot"><span class="annottext">UnversionedProtocolData
+</span><a href="Ouroboros.Network.Protocol.Handshake.Unversioned.html#UnversionedProtocolData"><span class="hs-identifier hs-var">UnversionedProtocolData</span></a></span><span>
+</span><span id="line-44"></span><span>
+</span><span id="line-45"></span><span>
+</span><span id="line-46"></span><span class="annot"><a href="Ouroboros.Network.Protocol.Handshake.Unversioned.html#unversionedProtocolDataCodec"><span class="hs-identifier hs-type">unversionedProtocolDataCodec</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Ouroboros.Network.Protocol.Handshake.Unversioned.html#UnversionedProtocol"><span class="hs-identifier hs-type">UnversionedProtocol</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Ouroboros.Network.CodecCBORTerm.html#CodecCBORTerm"><span class="hs-identifier hs-type">CodecCBORTerm</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Text</span></span><span> </span><span class="annot"><a href="Ouroboros.Network.Protocol.Handshake.Unversioned.html#UnversionedProtocolData"><span class="hs-identifier hs-type">UnversionedProtocolData</span></a></span><span>
+</span><span id="line-47"></span><span id="unversionedProtocolDataCodec"><span class="annot"><span class="annottext">unversionedProtocolDataCodec :: UnversionedProtocol -&gt; CodecCBORTerm Text UnversionedProtocolData
+</span><a href="Ouroboros.Network.Protocol.Handshake.Unversioned.html#unversionedProtocolDataCodec"><span class="hs-identifier hs-var hs-var">unversionedProtocolDataCodec</span></a></span></span><span> </span><span class="annot"><span class="annottext">UnversionedProtocol
+</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">CodecCBORTerm :: forall fail a.
+(a -&gt; Term) -&gt; (Term -&gt; Either fail a) -&gt; CodecCBORTerm fail a
+</span><a href="Ouroboros.Network.CodecCBORTerm.html#CodecCBORTerm"><span class="hs-identifier hs-type">CodecCBORTerm</span></a></span><span> </span><span class="hs-special">{</span><span class="annot"><span class="annottext">UnversionedProtocolData -&gt; Term
+encodeTerm :: UnversionedProtocolData -&gt; Term
+encodeTerm :: UnversionedProtocolData -&gt; Term
+</span><a href="Ouroboros.Network.CodecCBORTerm.html#encodeTerm"><span class="hs-identifier hs-var hs-var">encodeTerm</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Term -&gt; Either Text UnversionedProtocolData
+decodeTerm :: Term -&gt; Either Text UnversionedProtocolData
+decodeTerm :: Term -&gt; Either Text UnversionedProtocolData
+</span><a href="Ouroboros.Network.CodecCBORTerm.html#decodeTerm"><span class="hs-identifier hs-var hs-var">decodeTerm</span></a></span><span class="hs-special">}</span><span>
+</span><span id="line-48"></span><span>    </span><span class="hs-keyword">where</span><span>
+</span><span id="line-49"></span><span>      </span><span class="annot"><a href="#local-6989586621679128296"><span class="hs-identifier hs-type">encodeTerm</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Ouroboros.Network.Protocol.Handshake.Unversioned.html#UnversionedProtocolData"><span class="hs-identifier hs-type">UnversionedProtocolData</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">CBOR.Term</span></span><span>
+</span><span id="line-50"></span><span>      </span><span id="local-6989586621679128296"><span class="annot"><span class="annottext">encodeTerm :: UnversionedProtocolData -&gt; Term
+</span><a href="#local-6989586621679128296"><span class="hs-identifier hs-var hs-var">encodeTerm</span></a></span></span><span> </span><span class="annot"><span class="annottext">UnversionedProtocolData
+</span><a href="Ouroboros.Network.Protocol.Handshake.Unversioned.html#UnversionedProtocolData"><span class="hs-identifier hs-var">UnversionedProtocolData</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Term
+</span><span class="hs-identifier hs-var">CBOR.TNull</span></span><span>
+</span><span id="line-51"></span><span>
+</span><span id="line-52"></span><span>      </span><span class="annot"><a href="#local-6989586621679128294"><span class="hs-identifier hs-type">decodeTerm</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">CBOR.Term</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Either</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Text</span></span><span> </span><span class="annot"><a href="Ouroboros.Network.Protocol.Handshake.Unversioned.html#UnversionedProtocolData"><span class="hs-identifier hs-type">UnversionedProtocolData</span></a></span><span>
+</span><span id="line-53"></span><span>      </span><span id="local-6989586621679128294"><span class="annot"><span class="annottext">decodeTerm :: Term -&gt; Either Text UnversionedProtocolData
+</span><a href="#local-6989586621679128294"><span class="hs-identifier hs-var hs-var">decodeTerm</span></a></span></span><span> </span><span class="annot"><span class="annottext">Term
+</span><span class="hs-identifier hs-var">CBOR.TNull</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">UnversionedProtocolData -&gt; Either Text UnversionedProtocolData
+forall a b. b -&gt; Either a b
+</span><span class="hs-identifier hs-var">Right</span></span><span> </span><span class="annot"><span class="annottext">UnversionedProtocolData
+</span><a href="Ouroboros.Network.Protocol.Handshake.Unversioned.html#UnversionedProtocolData"><span class="hs-identifier hs-var">UnversionedProtocolData</span></a></span><span>
+</span><span id="line-54"></span><span>      </span><span class="annot"><a href="#local-6989586621679128294"><span class="hs-identifier hs-var">decodeTerm</span></a></span><span> </span><span id="local-6989586621679128291"><span class="annot"><span class="annottext">Term
+</span><a href="#local-6989586621679128291"><span class="hs-identifier hs-var">t</span></a></span></span><span>          </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Text -&gt; Either Text UnversionedProtocolData
+forall a b. a -&gt; Either a b
+</span><span class="hs-identifier hs-var">Left</span></span><span> </span><span class="annot"><span class="annottext">(Text -&gt; Either Text UnversionedProtocolData)
+-&gt; Text -&gt; Either Text UnversionedProtocolData
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">String -&gt; Text
+</span><span class="hs-identifier hs-var">T.pack</span></span><span> </span><span class="annot"><span class="annottext">(String -&gt; Text) -&gt; String -&gt; Text
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;unexpected term: &quot;</span></span><span> </span><span class="annot"><span class="annottext">String -&gt; ShowS
+forall a. [a] -&gt; [a] -&gt; [a]
+</span><span class="hs-operator hs-var">++</span></span><span> </span><span class="annot"><span class="annottext">Term -&gt; String
+forall a. Show a =&gt; a -&gt; String
+</span><span class="hs-identifier hs-var">show</span></span><span> </span><span class="annot"><span class="annottext">Term
+</span><a href="#local-6989586621679128291"><span class="hs-identifier hs-var">t</span></a></span><span>
+</span><span id="line-55"></span><span>
+</span><span id="line-56"></span><span>
+</span><span id="line-57"></span><span class="hs-comment">-- | Make a 'Versions' for an unversioned protocol. Only use this for</span><span>
+</span><span id="line-58"></span><span class="hs-comment">-- tests and demos where proper versioning is excessive.</span><span>
+</span><span id="line-59"></span><span class="hs-comment">--</span><span>
+</span><span id="line-60"></span><span id="local-6989586621679128288"><span class="annot"><a href="Ouroboros.Network.Protocol.Handshake.Unversioned.html#unversionedProtocol"><span class="hs-identifier hs-type">unversionedProtocol</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="#local-6989586621679128288"><span class="hs-identifier hs-type">app</span></a></span><span>
+</span><span id="line-61"></span><span>                    </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Ouroboros.Network.Protocol.Handshake.Version.html#Versions"><span class="hs-identifier hs-type">Versions</span></a></span><span> </span><span class="annot"><a href="Ouroboros.Network.Protocol.Handshake.Unversioned.html#UnversionedProtocol"><span class="hs-identifier hs-type">UnversionedProtocol</span></a></span><span>
+</span><span id="line-62"></span><span>                                </span><span class="annot"><a href="Ouroboros.Network.Protocol.Handshake.Unversioned.html#UnversionedProtocolData"><span class="hs-identifier hs-type">UnversionedProtocolData</span></a></span><span>
+</span><span id="line-63"></span><span>                                </span><span class="annot"><a href="#local-6989586621679128288"><span class="hs-identifier hs-type">app</span></a></span></span><span>
+</span><span id="line-64"></span><span id="unversionedProtocol"><span class="annot"><span class="annottext">unversionedProtocol :: app -&gt; Versions UnversionedProtocol UnversionedProtocolData app
+</span><a href="Ouroboros.Network.Protocol.Handshake.Unversioned.html#unversionedProtocol"><span class="hs-identifier hs-var hs-var">unversionedProtocol</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">UnversionedProtocol
+-&gt; UnversionedProtocolData
+-&gt; app
+-&gt; Versions UnversionedProtocol UnversionedProtocolData app
+forall vNum vData r. vNum -&gt; vData -&gt; r -&gt; Versions vNum vData r
+</span><a href="Ouroboros.Network.Protocol.Handshake.Version.html#simpleSingletonVersions"><span class="hs-identifier hs-var">simpleSingletonVersions</span></a></span><span> </span><span class="annot"><span class="annottext">UnversionedProtocol
+</span><a href="Ouroboros.Network.Protocol.Handshake.Unversioned.html#UnversionedProtocol"><span class="hs-identifier hs-var">UnversionedProtocol</span></a></span><span> </span><span class="annot"><span class="annottext">UnversionedProtocolData
+</span><a href="Ouroboros.Network.Protocol.Handshake.Unversioned.html#UnversionedProtocolData"><span class="hs-identifier hs-var">UnversionedProtocolData</span></a></span><span>
+</span><span id="line-65"></span><span>
+</span><span id="line-66"></span><span>
+</span><span id="line-67"></span><span class="hs-comment">-- | 'Handshake' codec used in various tests.</span><span>
+</span><span id="line-68"></span><span class="hs-comment">--</span><span>
+</span><span id="line-69"></span><span id="local-6989586621679128286"><span class="annot"><a href="Ouroboros.Network.Protocol.Handshake.Unversioned.html#unversionedHandshakeCodec"><span class="hs-identifier hs-type">unversionedHandshakeCodec</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/io-sim-classes-0.2.0.0/noopt/doc/html/io-sim-classes/src"><span class="hs-identifier hs-type">MonadST</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679128286"><span class="hs-identifier hs-type">m</span></a></span><span>
+</span><span id="line-70"></span><span>                           </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/typed-protocols-examples-0.1.0.0/noopt/doc/html/typed-protocols-examples/src"><span class="hs-identifier hs-type">Codec</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Network.Protocol.Handshake.Type.html#Handshake"><span class="hs-identifier hs-type">Handshake</span></a></span><span> </span><span class="annot"><a href="Ouroboros.Network.Protocol.Handshake.Unversioned.html#UnversionedProtocol"><span class="hs-identifier hs-type">UnversionedProtocol</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">CBOR.Term</span></span><span class="hs-special">)</span><span>
+</span><span id="line-71"></span><span>                                    </span><span class="annot"><span class="hs-identifier hs-type">CBOR.DeserialiseFailure</span></span><span> </span><span class="annot"><a href="#local-6989586621679128286"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">ByteString</span></span></span><span>
+</span><span id="line-72"></span><span id="unversionedHandshakeCodec"><span class="annot"><span class="annottext">unversionedHandshakeCodec :: Codec
+  (Handshake UnversionedProtocol Term)
+  DeserialiseFailure
+  m
+  ByteString
+</span><a href="Ouroboros.Network.Protocol.Handshake.Unversioned.html#unversionedHandshakeCodec"><span class="hs-identifier hs-var hs-var">unversionedHandshakeCodec</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">CodecCBORTerm (String, Maybe Int) UnversionedProtocol
+-&gt; Codec
+     (Handshake UnversionedProtocol Term)
+     DeserialiseFailure
+     m
+     ByteString
+forall vNumber (m :: * -&gt; *) failure.
+(MonadST m, Ord vNumber, Show failure) =&gt;
+CodecCBORTerm (failure, Maybe Int) vNumber
+-&gt; Codec (Handshake vNumber Term) DeserialiseFailure m ByteString
+</span><a href="Ouroboros.Network.Protocol.Handshake.Codec.html#codecHandshake"><span class="hs-identifier hs-var">codecHandshake</span></a></span><span> </span><span class="annot"><span class="annottext">CodecCBORTerm (String, Maybe Int) UnversionedProtocol
+</span><a href="#local-6989586621679128284"><span class="hs-identifier hs-var">unversionedProtocolCodec</span></a></span><span>
+</span><span id="line-73"></span><span>  </span><span class="hs-keyword">where</span><span>
+</span><span id="line-74"></span><span>    </span><span class="annot"><a href="#local-6989586621679128284"><span class="hs-identifier hs-type">unversionedProtocolCodec</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Ouroboros.Network.CodecCBORTerm.html#CodecCBORTerm"><span class="hs-identifier hs-type">CodecCBORTerm</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">String</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span class="hs-special">)</span><span> </span><span class="annot"><a href="Ouroboros.Network.Protocol.Handshake.Unversioned.html#UnversionedProtocol"><span class="hs-identifier hs-type">UnversionedProtocol</span></a></span><span>
+</span><span id="line-75"></span><span>    </span><span id="local-6989586621679128284"><span class="annot"><span class="annottext">unversionedProtocolCodec :: CodecCBORTerm (String, Maybe Int) UnversionedProtocol
+</span><a href="#local-6989586621679128284"><span class="hs-identifier hs-var hs-var">unversionedProtocolCodec</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">CodecCBORTerm :: forall fail a.
+(a -&gt; Term) -&gt; (Term -&gt; Either fail a) -&gt; CodecCBORTerm fail a
+</span><a href="Ouroboros.Network.CodecCBORTerm.html#CodecCBORTerm"><span class="hs-identifier hs-type">CodecCBORTerm</span></a></span><span> </span><span class="hs-special">{</span><span> </span><span class="annot"><span class="annottext">UnversionedProtocol -&gt; Term
+encodeTerm :: UnversionedProtocol -&gt; Term
+encodeTerm :: UnversionedProtocol -&gt; Term
+</span><a href="#local-6989586621679128283"><span class="hs-identifier hs-var hs-var">encodeTerm</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Term -&gt; Either (String, Maybe Int) UnversionedProtocol
+decodeTerm :: Term -&gt; Either (String, Maybe Int) UnversionedProtocol
+decodeTerm :: Term -&gt; Either (String, Maybe Int) UnversionedProtocol
+</span><a href="#local-6989586621679128282"><span class="hs-identifier hs-var hs-var">decodeTerm</span></a></span><span> </span><span class="hs-special">}</span><span>
+</span><span id="line-76"></span><span>      </span><span class="hs-keyword">where</span><span>
+</span><span id="line-77"></span><span>        </span><span id="local-6989586621679128283"><span class="annot"><span class="annottext">encodeTerm :: UnversionedProtocol -&gt; Term
+</span><a href="#local-6989586621679128283"><span class="hs-identifier hs-var hs-var">encodeTerm</span></a></span></span><span> </span><span class="annot"><span class="annottext">UnversionedProtocol
+</span><a href="Ouroboros.Network.Protocol.Handshake.Unversioned.html#UnversionedProtocol"><span class="hs-identifier hs-var">UnversionedProtocol</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Term
+</span><span class="hs-identifier hs-var">CBOR.TInt</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">1</span></span><span>
+</span><span id="line-78"></span><span>        </span><span id="local-6989586621679128282"><span class="annot"><span class="annottext">decodeTerm :: Term -&gt; Either (String, Maybe Int) UnversionedProtocol
+</span><a href="#local-6989586621679128282"><span class="hs-identifier hs-var hs-var">decodeTerm</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">CBOR.TInt</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">1</span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">UnversionedProtocol
+-&gt; Either (String, Maybe Int) UnversionedProtocol
+forall a b. b -&gt; Either a b
+</span><span class="hs-identifier hs-var">Right</span></span><span> </span><span class="annot"><span class="annottext">UnversionedProtocol
+</span><a href="Ouroboros.Network.Protocol.Handshake.Unversioned.html#UnversionedProtocol"><span class="hs-identifier hs-var">UnversionedProtocol</span></a></span><span>
+</span><span id="line-79"></span><span>        </span><span class="annot"><a href="#local-6989586621679128282"><span class="hs-identifier hs-var">decodeTerm</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">CBOR.TInt</span></span><span> </span><span id="local-6989586621679128280"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679128280"><span class="hs-identifier hs-var">n</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(String, Maybe Int)
+-&gt; Either (String, Maybe Int) UnversionedProtocol
+forall a b. a -&gt; Either a b
+</span><span class="hs-identifier hs-var">Left</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;decode UnversionedProtocol: unknown tag&quot;</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Maybe Int
+forall a. a -&gt; Maybe a
+</span><span class="hs-identifier hs-var">Just</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679128280"><span class="hs-identifier hs-var">n</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-80"></span><span>        </span><span class="annot"><a href="#local-6989586621679128282"><span class="hs-identifier hs-var">decodeTerm</span></a></span><span> </span><span class="annot"><span class="annottext">Term
+</span><span class="hs-identifier">_</span></span><span>             </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(String, Maybe Int)
+-&gt; Either (String, Maybe Int) UnversionedProtocol
+forall a b. a -&gt; Either a b
+</span><span class="hs-identifier hs-var">Left</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;decode UnversionedProtocol: deserialisation failure&quot;</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Maybe Int
+forall a. Maybe a
+</span><span class="hs-identifier hs-var">Nothing</span></span><span class="hs-special">)</span><span>
+</span><span id="line-81"></span><span>
+</span><span id="line-82"></span><span>
+</span><span id="line-83"></span></pre></body></html>

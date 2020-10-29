@@ -1,29 +1,213 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-pragma">{-# LANGUAGE DeriveGeneric              #-}</span><span>
-</span><a name="line-2"></a><span class="hs-pragma">{-# LANGUAGE DerivingStrategies         #-}</span><span>
-</span><a name="line-3"></a><span class="hs-pragma">{-# LANGUAGE GeneralizedNewtypeDeriving #-}</span><span>
-</span><a name="line-4"></a><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Test.Util.WithEq</span><span>
-</span><a name="line-5"></a><span>  </span><span class="hs-special">(</span><span> </span><a href="Test.Util.WithEq.html#WithEq"><span class="hs-identifier hs-type">WithEq</span></a><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
-</span><a name="line-6"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Test.Util.WithEq.html#Id"><span class="hs-identifier hs-type">Id</span></a><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
-</span><a name="line-7"></a><span>  </span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
-</span><a name="line-8"></a><span>
-</span><a name="line-9"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data.Function</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-var">on</span><span class="hs-special">)</span><span>
-</span><a name="line-10"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">GHC.Generics</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Generic</span><span class="hs-special">)</span><span>
-</span><a name="line-11"></a><span>
-</span><a name="line-12"></a><span class="hs-keyword">newtype</span><span> </span><a name="Id"><a href="Test.Util.WithEq.html#Id"><span class="hs-identifier">Id</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><a name="Id"><a href="Test.Util.WithEq.html#Id"><span class="hs-identifier">Id</span></a></a><span> </span><span class="hs-identifier hs-type">Word</span><span>
-</span><a name="line-13"></a><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-keyword">stock</span><span>   </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Show</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Generic</span><span class="hs-special">)</span><span>
-</span><a name="line-14"></a><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-keyword">newtype</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Eq</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Ord</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Enum</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Bounded</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Num</span><span class="hs-special">)</span><span>
-</span><a name="line-15"></a><span>
-</span><a name="line-16"></a><span class="hs-comment">-- | Use this type to add an `Eq` instance for types that don't have one or</span><span>
-</span><a name="line-17"></a><span class="hs-comment">-- for which one doesn't make sense, but an `Eq` instance is needed for</span><span>
-</span><a name="line-18"></a><span class="hs-comment">-- testing purposes.</span><span>
-</span><a name="line-19"></a><span class="hs-comment">--</span><span>
-</span><a name="line-20"></a><span class="hs-comment">-- E.g., `ImmutableDB.Iterator` needs an `Eq` instance in the q-s-m tests</span><span>
-</span><a name="line-21"></a><span class="hs-keyword">data</span><span> </span><a name="WithEq"><a href="Test.Util.WithEq.html#WithEq"><span class="hs-identifier">WithEq</span></a></a><span> </span><a name="local-6989586621679411947"><a href="#local-6989586621679411947"><span class="hs-identifier">a</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><a name="WithEq"><a href="Test.Util.WithEq.html#WithEq"><span class="hs-identifier">WithEq</span></a></a><span>
-</span><a name="line-22"></a><span>    </span><span class="hs-special">{</span><span> </span><a name="getId"><a href="Test.Util.WithEq.html#getId"><span class="hs-identifier">getId</span></a></a><span>    </span><span class="hs-glyph">::</span><span> </span><a href="Test.Util.WithEq.html#Id"><span class="hs-identifier hs-type">Id</span></a><span>
-</span><a name="line-23"></a><span>    </span><span class="hs-special">,</span><span> </span><a name="unWithEq"><a href="Test.Util.WithEq.html#unWithEq"><span class="hs-identifier">unWithEq</span></a></a><span> </span><span class="hs-glyph">::</span><span> </span><a href="#local-6989586621679411947"><span class="hs-identifier hs-type">a</span></a><span>
-</span><a name="line-24"></a><span>    </span><span class="hs-special">}</span><span>
-</span><a name="line-25"></a><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Show</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Generic</span><span class="hs-special">)</span><span>
-</span><a name="line-26"></a><span>
-</span><a name="line-27"></a><span class="hs-keyword">instance</span><span> </span><span class="hs-identifier hs-type">Eq</span><span> </span><span class="hs-special">(</span><a href="Test.Util.WithEq.html#WithEq"><span class="hs-identifier hs-type">WithEq</span></a><span> </span><a href="#local-6989586621679411948"><span class="hs-identifier hs-type">a</span></a><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
-</span><a name="line-28"></a><span>  </span><span class="hs-special">(</span><a name="local-3458764513820541095"><span class="hs-operator">==</span></a><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">(</span><span class="hs-operator hs-var">==</span><span class="hs-special">)</span><span> </span><span class="hs-special">`</span><span class="hs-identifier hs-var">on</span><span class="hs-special">`</span><span> </span><span class="hs-identifier">getId</span><span>
-</span><a name="line-29"></a></pre></body></html>
+</span><span id="line-2"></span><span class="hs-pragma">{-# LANGUAGE DerivingStrategies         #-}</span><span>
+</span><span id="line-3"></span><span class="hs-pragma">{-# LANGUAGE GeneralizedNewtypeDeriving #-}</span><span>
+</span><span id="line-4"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Test.Util.WithEq</span><span>
+</span><span id="line-5"></span><span>  </span><span class="hs-special">(</span><span> </span><span class="annot"><a href="Test.Util.WithEq.html#WithEq"><span class="hs-identifier">WithEq</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
+</span><span id="line-6"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Test.Util.WithEq.html#Id"><span class="hs-identifier">Id</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
+</span><span id="line-7"></span><span>  </span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-8"></span><span>
+</span><span id="line-9"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><span class="hs-identifier">Data.Function</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">on</span></span><span class="hs-special">)</span><span>
+</span><span id="line-10"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><span class="hs-identifier">GHC.Generics</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Generic</span></span><span class="hs-special">)</span><span>
+</span><span id="line-11"></span><span>
+</span><span id="line-12"></span><span id="local-6989586621679259038"><span id="local-6989586621679259039"></span></span><span class="hs-keyword">newtype</span><span> </span><span id="Id"><span class="annot"><a href="Test.Util.WithEq.html#Id"><span class="hs-identifier hs-var">Id</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="Id"><span class="annot"><a href="Test.Util.WithEq.html#Id"><span class="hs-identifier hs-var">Id</span></a></span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Word</span></span><span>
+</span><span id="line-13"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="annot"><span class="hs-keyword">stock</span></span><span>   </span><span class="hs-special">(</span><span id="local-6989586621679259031"><span id="local-6989586621679259033"><span id="local-6989586621679259035"><span class="annot"><span class="annottext">Int -&gt; Id -&gt; ShowS
+[Id] -&gt; ShowS
+Id -&gt; String
+(Int -&gt; Id -&gt; ShowS)
+-&gt; (Id -&gt; String) -&gt; ([Id] -&gt; ShowS) -&gt; Show Id
+forall a.
+(Int -&gt; a -&gt; ShowS) -&gt; (a -&gt; String) -&gt; ([a] -&gt; ShowS) -&gt; Show a
+showList :: [Id] -&gt; ShowS
+$cshowList :: [Id] -&gt; ShowS
+show :: Id -&gt; String
+$cshow :: Id -&gt; String
+showsPrec :: Int -&gt; Id -&gt; ShowS
+$cshowsPrec :: Int -&gt; Id -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">(forall x. Id -&gt; Rep Id x)
+-&gt; (forall x. Rep Id x -&gt; Id) -&gt; Generic Id
+forall x. Rep Id x -&gt; Id
+forall x. Id -&gt; Rep Id x
+forall a.
+(forall x. a -&gt; Rep a x) -&gt; (forall x. Rep a x -&gt; a) -&gt; Generic a
+$cto :: forall x. Rep Id x -&gt; Id
+$cfrom :: forall x. Id -&gt; Rep Id x
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">Generic</span></span><span class="hs-special">)</span><span>
+</span><span id="line-14"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="annot"><span class="hs-keyword">newtype</span></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679259023"><span id="local-6989586621679259025"><span class="annot"><span class="annottext">Id -&gt; Id -&gt; Bool
+(Id -&gt; Id -&gt; Bool) -&gt; (Id -&gt; Id -&gt; Bool) -&gt; Eq Id
+forall a. (a -&gt; a -&gt; Bool) -&gt; (a -&gt; a -&gt; Bool) -&gt; Eq a
+/= :: Id -&gt; Id -&gt; Bool
+$c/= :: Id -&gt; Id -&gt; Bool
+== :: Id -&gt; Id -&gt; Bool
+$c== :: Id -&gt; Id -&gt; Bool
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679259007"><span id="local-6989586621679259009"><span id="local-6989586621679259011"><span id="local-6989586621679259013"><span id="local-6989586621679259015"><span id="local-6989586621679259017"><span id="local-6989586621679259019"><span class="annot"><span class="annottext">Eq Id
+Eq Id
+-&gt; (Id -&gt; Id -&gt; Ordering)
+-&gt; (Id -&gt; Id -&gt; Bool)
+-&gt; (Id -&gt; Id -&gt; Bool)
+-&gt; (Id -&gt; Id -&gt; Bool)
+-&gt; (Id -&gt; Id -&gt; Bool)
+-&gt; (Id -&gt; Id -&gt; Id)
+-&gt; (Id -&gt; Id -&gt; Id)
+-&gt; Ord Id
+Id -&gt; Id -&gt; Bool
+Id -&gt; Id -&gt; Ordering
+Id -&gt; Id -&gt; Id
+forall a.
+Eq a
+-&gt; (a -&gt; a -&gt; Ordering)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; a)
+-&gt; (a -&gt; a -&gt; a)
+-&gt; Ord a
+min :: Id -&gt; Id -&gt; Id
+$cmin :: Id -&gt; Id -&gt; Id
+max :: Id -&gt; Id -&gt; Id
+$cmax :: Id -&gt; Id -&gt; Id
+&gt;= :: Id -&gt; Id -&gt; Bool
+$c&gt;= :: Id -&gt; Id -&gt; Bool
+&gt; :: Id -&gt; Id -&gt; Bool
+$c&gt; :: Id -&gt; Id -&gt; Bool
+&lt;= :: Id -&gt; Id -&gt; Bool
+$c&lt;= :: Id -&gt; Id -&gt; Bool
+&lt; :: Id -&gt; Id -&gt; Bool
+$c&lt; :: Id -&gt; Id -&gt; Bool
+compare :: Id -&gt; Id -&gt; Ordering
+$ccompare :: Id -&gt; Id -&gt; Ordering
+$cp1Ord :: Eq Id
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Ord</span></span></span></span></span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679258990"><span id="local-6989586621679258992"><span id="local-6989586621679258994"><span id="local-6989586621679258996"><span id="local-6989586621679258998"><span id="local-6989586621679259000"><span id="local-6989586621679259002"><span id="local-6989586621679259004"><span class="annot"><span class="annottext">Int -&gt; Id
+Id -&gt; Int
+Id -&gt; [Id]
+Id -&gt; Id
+Id -&gt; Id -&gt; [Id]
+Id -&gt; Id -&gt; Id -&gt; [Id]
+(Id -&gt; Id)
+-&gt; (Id -&gt; Id)
+-&gt; (Int -&gt; Id)
+-&gt; (Id -&gt; Int)
+-&gt; (Id -&gt; [Id])
+-&gt; (Id -&gt; Id -&gt; [Id])
+-&gt; (Id -&gt; Id -&gt; [Id])
+-&gt; (Id -&gt; Id -&gt; Id -&gt; [Id])
+-&gt; Enum Id
+forall a.
+(a -&gt; a)
+-&gt; (a -&gt; a)
+-&gt; (Int -&gt; a)
+-&gt; (a -&gt; Int)
+-&gt; (a -&gt; [a])
+-&gt; (a -&gt; a -&gt; [a])
+-&gt; (a -&gt; a -&gt; [a])
+-&gt; (a -&gt; a -&gt; a -&gt; [a])
+-&gt; Enum a
+enumFromThenTo :: Id -&gt; Id -&gt; Id -&gt; [Id]
+$cenumFromThenTo :: Id -&gt; Id -&gt; Id -&gt; [Id]
+enumFromTo :: Id -&gt; Id -&gt; [Id]
+$cenumFromTo :: Id -&gt; Id -&gt; [Id]
+enumFromThen :: Id -&gt; Id -&gt; [Id]
+$cenumFromThen :: Id -&gt; Id -&gt; [Id]
+enumFrom :: Id -&gt; [Id]
+$cenumFrom :: Id -&gt; [Id]
+fromEnum :: Id -&gt; Int
+$cfromEnum :: Id -&gt; Int
+toEnum :: Int -&gt; Id
+$ctoEnum :: Int -&gt; Id
+pred :: Id -&gt; Id
+$cpred :: Id -&gt; Id
+succ :: Id -&gt; Id
+$csucc :: Id -&gt; Id
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Enum</span></span></span></span></span></span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679258985"><span id="local-6989586621679258987"><span class="annot"><span class="annottext">Id
+Id -&gt; Id -&gt; Bounded Id
+forall a. a -&gt; a -&gt; Bounded a
+maxBound :: Id
+$cmaxBound :: Id
+minBound :: Id
+$cminBound :: Id
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Bounded</span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679258970"><span id="local-6989586621679258972"><span id="local-6989586621679258974"><span id="local-6989586621679258976"><span id="local-6989586621679258978"><span id="local-6989586621679258980"><span id="local-6989586621679258982"><span class="annot"><span class="annottext">Integer -&gt; Id
+Id -&gt; Id
+Id -&gt; Id -&gt; Id
+(Id -&gt; Id -&gt; Id)
+-&gt; (Id -&gt; Id -&gt; Id)
+-&gt; (Id -&gt; Id -&gt; Id)
+-&gt; (Id -&gt; Id)
+-&gt; (Id -&gt; Id)
+-&gt; (Id -&gt; Id)
+-&gt; (Integer -&gt; Id)
+-&gt; Num Id
+forall a.
+(a -&gt; a -&gt; a)
+-&gt; (a -&gt; a -&gt; a)
+-&gt; (a -&gt; a -&gt; a)
+-&gt; (a -&gt; a)
+-&gt; (a -&gt; a)
+-&gt; (a -&gt; a)
+-&gt; (Integer -&gt; a)
+-&gt; Num a
+fromInteger :: Integer -&gt; Id
+$cfromInteger :: Integer -&gt; Id
+signum :: Id -&gt; Id
+$csignum :: Id -&gt; Id
+abs :: Id -&gt; Id
+$cabs :: Id -&gt; Id
+negate :: Id -&gt; Id
+$cnegate :: Id -&gt; Id
+* :: Id -&gt; Id -&gt; Id
+$c* :: Id -&gt; Id -&gt; Id
+- :: Id -&gt; Id -&gt; Id
+$c- :: Id -&gt; Id -&gt; Id
++ :: Id -&gt; Id -&gt; Id
+$c+ :: Id -&gt; Id -&gt; Id
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Num</span></span></span></span></span></span></span></span></span><span class="hs-special">)</span><span>
+</span><span id="line-15"></span><span>
+</span><span id="line-16"></span><span class="hs-comment">-- | Use this type to add an `Eq` instance for types that don't have one or</span><span>
+</span><span id="line-17"></span><span class="hs-comment">-- for which one doesn't make sense, but an `Eq` instance is needed for</span><span>
+</span><span id="line-18"></span><span class="hs-comment">-- testing purposes.</span><span>
+</span><span id="line-19"></span><span class="hs-comment">--</span><span>
+</span><span id="line-20"></span><span class="hs-comment">-- E.g., `ImmutableDB.Iterator` needs an `Eq` instance in the q-s-m tests</span><span>
+</span><span id="line-21"></span><span id="local-6989586621679258967"><span id="local-6989586621679258968"></span></span><span class="hs-keyword">data</span><span> </span><span id="WithEq"><span class="annot"><a href="Test.Util.WithEq.html#WithEq"><span class="hs-identifier hs-var">WithEq</span></a></span></span><span> </span><span id="local-6989586621679259041"><span class="annot"><a href="#local-6989586621679259041"><span class="hs-identifier hs-type">a</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="WithEq"><span class="annot"><a href="Test.Util.WithEq.html#WithEq"><span class="hs-identifier hs-var">WithEq</span></a></span></span><span>
+</span><span id="line-22"></span><span>    </span><span class="hs-special">{</span><span> </span><span id="getId"><span class="annot"><span class="annottext">WithEq a -&gt; Id
+</span><a href="Test.Util.WithEq.html#getId"><span class="hs-identifier hs-var hs-var">getId</span></a></span></span><span>    </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Test.Util.WithEq.html#Id"><span class="hs-identifier hs-type">Id</span></a></span><span>
+</span><span id="line-23"></span><span>    </span><span class="hs-special">,</span><span> </span><span id="unWithEq"><span class="annot"><span class="annottext">WithEq a -&gt; a
+</span><a href="Test.Util.WithEq.html#unWithEq"><span class="hs-identifier hs-var hs-var">unWithEq</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="#local-6989586621679259041"><span class="hs-identifier hs-type">a</span></a></span><span>
+</span><span id="line-24"></span><span>    </span><span class="hs-special">}</span><span>
+</span><span id="line-25"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679258958"><span id="local-6989586621679258960"><span id="local-6989586621679258962"><span class="annot"><span class="annottext">Int -&gt; WithEq a -&gt; ShowS
+[WithEq a] -&gt; ShowS
+WithEq a -&gt; String
+(Int -&gt; WithEq a -&gt; ShowS)
+-&gt; (WithEq a -&gt; String) -&gt; ([WithEq a] -&gt; ShowS) -&gt; Show (WithEq a)
+forall a. Show a =&gt; Int -&gt; WithEq a -&gt; ShowS
+forall a. Show a =&gt; [WithEq a] -&gt; ShowS
+forall a. Show a =&gt; WithEq a -&gt; String
+forall a.
+(Int -&gt; a -&gt; ShowS) -&gt; (a -&gt; String) -&gt; ([a] -&gt; ShowS) -&gt; Show a
+showList :: [WithEq a] -&gt; ShowS
+$cshowList :: forall a. Show a =&gt; [WithEq a] -&gt; ShowS
+show :: WithEq a -&gt; String
+$cshow :: forall a. Show a =&gt; WithEq a -&gt; String
+showsPrec :: Int -&gt; WithEq a -&gt; ShowS
+$cshowsPrec :: forall a. Show a =&gt; Int -&gt; WithEq a -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">(forall x. WithEq a -&gt; Rep (WithEq a) x)
+-&gt; (forall x. Rep (WithEq a) x -&gt; WithEq a) -&gt; Generic (WithEq a)
+forall x. Rep (WithEq a) x -&gt; WithEq a
+forall x. WithEq a -&gt; Rep (WithEq a) x
+forall a.
+(forall x. a -&gt; Rep a x) -&gt; (forall x. Rep a x -&gt; a) -&gt; Generic a
+forall a x. Rep (WithEq a) x -&gt; WithEq a
+forall a x. WithEq a -&gt; Rep (WithEq a) x
+$cto :: forall a x. Rep (WithEq a) x -&gt; WithEq a
+$cfrom :: forall a x. WithEq a -&gt; Rep (WithEq a) x
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">Generic</span></span><span class="hs-special">)</span><span>
+</span><span id="line-26"></span><span>
+</span><span id="line-27"></span><span id="local-6989586621679258955"><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679258952"><span class="annot"><span class="hs-identifier hs-type">Eq</span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Test.Util.WithEq.html#WithEq"><span class="hs-identifier hs-type">WithEq</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679258955"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-28"></span><span>  </span><span id="local-6989586621679258951"><span class="annot"><span class="annottext">== :: WithEq a -&gt; WithEq a -&gt; Bool
+</span><span class="hs-operator hs-var hs-var hs-var hs-var">(==)</span></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Id -&gt; Id -&gt; Bool
+forall a. Eq a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">(==)</span></span><span> </span><span class="annot"><span class="annottext">(Id -&gt; Id -&gt; Bool)
+-&gt; (WithEq a -&gt; Id) -&gt; WithEq a -&gt; WithEq a -&gt; Bool
+forall b c a. (b -&gt; b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">`on`</span></span><span> </span><span class="annot"><span class="annottext">WithEq a -&gt; Id
+forall a. WithEq a -&gt; Id
+</span><a href="Test.Util.WithEq.html#getId"><span class="hs-identifier hs-var hs-var">getId</span></a></span></span><span>
+</span><span id="line-29"></span></pre></body></html>

@@ -1,44 +1,135 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-pragma">{-# LANGUAGE Rank2Types #-}</span><span>
-</span><a name="line-2"></a><span class="hs-pragma">{-# LANGUAGE TypeApplications #-}</span><span>
-</span><a name="line-3"></a><span class="hs-pragma">{-# LANGUAGE ScopedTypeVariables #-}</span><span>
-</span><a name="line-4"></a><span class="hs-pragma">{-# LANGUAGE TypeFamilies #-}</span><span>
-</span><a name="line-5"></a><span>
-</span><a name="line-6"></a><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Cardano.Crypto.Encoding.BIP39</span><span>
-</span><a name="line-7"></a><span>    </span><span class="hs-special">(</span><span> </span><a href="Cardano.Crypto.Encoding.BIP39.html#cardanoSlSeed"><span class="hs-identifier hs-var">cardanoSlSeed</span></a><span>
-</span><a name="line-8"></a><span>    </span><span class="hs-special">,</span><span> </span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">X</span><span>
-</span><a name="line-9"></a><span>    </span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
-</span><a name="line-10"></a><span>
-</span><a name="line-11"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data.Proxy</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Proxy</span><span class="hs-special">)</span><span>
-</span><a name="line-12"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data.ByteString</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">ByteString</span><span class="hs-special">)</span><span>
-</span><a name="line-13"></a><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-identifier">Data.ByteArray</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">BA</span><span>
-</span><a name="line-14"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Crypto.Hash</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Blake2b_256</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Digest</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-var">hash</span><span class="hs-special">)</span><span>
-</span><a name="line-15"></a><span>
-</span><a name="line-16"></a><span class="hs-keyword">import</span><span>           </span><a href="Crypto.Encoding.BIP39.html"><span class="hs-identifier">Crypto.Encoding.BIP39</span></a><span> </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">X</span><span>
-</span><a name="line-17"></a><span>
-</span><a name="line-18"></a><span class="hs-comment">-- | **this is not a BIP39 function**</span><span>
-</span><a name="line-19"></a><span class="hs-comment">--</span><span>
-</span><a name="line-20"></a><span class="hs-comment">-- This function is the function used in `cardano-sl` (and Daedalus) to</span><span>
-</span><a name="line-21"></a><span class="hs-comment">-- generate a seed from a given mnemonic list.</span><span>
-</span><a name="line-22"></a><span class="hs-comment">--</span><span>
-</span><a name="line-23"></a><span class="hs-comment">-- https://github.com/input-output-hk/cardano-sl/blob/f5b8073b92b8219ae5fbb038c0ceb4a19502a86b/wallet/src/Pos/Util/BackupPhrase.hs#L59-L65</span><span>
-</span><a name="line-24"></a><span class="hs-comment">-- https://github.com/input-output-hk/cardano-sl/blob/429efc2426c63802ae86789f5b828dcbb42de88a/wallet/src/Pos/Util/Mnemonics.hs#L66-L87</span><span>
-</span><a name="line-25"></a><span class="hs-comment">--</span><span>
-</span><a name="line-26"></a><span class="hs-identifier">cardanoSlSeed</span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-keyword">forall</span><span> </span><a name="local-6989586621679085861"><a href="#local-6989586621679085861"><span class="hs-identifier">n</span></a></a><span> </span><a name="local-6989586621679085862"><a href="#local-6989586621679085862"><span class="hs-identifier">csz</span></a></a><span> </span><a name="local-6989586621679085863"><a href="#local-6989586621679085863"><span class="hs-identifier">mw</span></a></a><span> </span><span class="hs-operator">.</span><span> </span><a href="Crypto.Encoding.BIP39.html#ConsistentEntropy"><span class="hs-identifier hs-type">ConsistentEntropy</span></a><span> </span><a href="#local-6989586621679085861"><span class="hs-identifier hs-type">n</span></a><span> </span><a href="#local-6989586621679085863"><span class="hs-identifier hs-type">mw</span></a><span> </span><a href="#local-6989586621679085862"><span class="hs-identifier hs-type">csz</span></a><span>
-</span><a name="line-27"></a><span>              </span><span class="hs-glyph">=&gt;</span><span> </span><span class="hs-identifier hs-type">Proxy</span><span> </span><a href="#local-6989586621679085861"><span class="hs-identifier hs-type">n</span></a><span>
-</span><a name="line-28"></a><span>              </span><span class="hs-glyph">-&gt;</span><span> </span><a href="Crypto.Encoding.BIP39.html#MnemonicSentence"><span class="hs-identifier hs-type">MnemonicSentence</span></a><span> </span><a href="#local-6989586621679085863"><span class="hs-identifier hs-type">mw</span></a><span>
-</span><a name="line-29"></a><span>              </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">Maybe</span><span> </span><a href="Crypto.Encoding.BIP39.html#Seed"><span class="hs-identifier hs-type">Seed</span></a><span>
-</span><a name="line-30"></a><a name="cardanoSlSeed"><a href="Cardano.Crypto.Encoding.BIP39.html#cardanoSlSeed"><span class="hs-identifier">cardanoSlSeed</span></a></a><span> </span><span class="hs-identifier">_</span><span> </span><a name="local-6989586621679085864"><a href="#local-6989586621679085864"><span class="hs-identifier">mw</span></a></a><span> </span><span class="hs-glyph">=</span><span>
-</span><a name="line-31"></a><span>    </span><span class="hs-keyword">case</span><span> </span><a href="Crypto.Encoding.BIP39.html#wordsToEntropy"><span class="hs-identifier hs-var">wordsToEntropy</span></a><span> </span><span class="hs-glyph">@</span><a href="#local-6989586621679085861"><span class="hs-identifier hs-type">n</span></a><span> </span><span class="hs-glyph">@</span><a href="#local-6989586621679085862"><span class="hs-identifier hs-type">csz</span></a><span> </span><span class="hs-glyph">@</span><a href="#local-6989586621679085863"><span class="hs-identifier hs-type">mw</span></a><span> </span><a href="#local-6989586621679085864"><span class="hs-identifier hs-var">mw</span></a><span> </span><span class="hs-keyword">of</span><span>
-</span><a name="line-32"></a><span>        </span><span class="hs-identifier hs-var">Left</span><span> </span><span class="hs-identifier">_</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-var">Nothing</span><span>
-</span><a name="line-33"></a><span>        </span><span class="hs-identifier hs-var">Right</span><span> </span><a name="local-6989586621679085870"><a href="#local-6989586621679085870"><span class="hs-identifier">e</span></a></a><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-var">Just</span><span> </span><span class="hs-operator hs-var">$</span><span> </span><span class="hs-identifier hs-var">BA.convert</span><span> </span><span class="hs-operator hs-var">$</span><span> </span><a href="#local-6989586621679085866"><span class="hs-identifier hs-var">toCbor</span></a><span> </span><span class="hs-operator hs-var">$</span><span> </span><a href="#local-6989586621679085865"><span class="hs-identifier hs-var">blake2b</span></a><span> </span><span class="hs-operator hs-var">$</span><span> </span><a href="#local-6989586621679085866"><span class="hs-identifier hs-var">toCbor</span></a><span> </span><span class="hs-special">(</span><span class="hs-identifier">entropyRaw</span><span> </span><a href="#local-6989586621679085870"><span class="hs-identifier hs-var">e</span></a><span class="hs-special">)</span><span>
-</span><a name="line-34"></a><span>  </span><span class="hs-keyword">where</span><span> </span><span class="hs-identifier">blake2b</span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">ByteString</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">Digest</span><span> </span><span class="hs-identifier hs-type">Blake2b_256</span><span>
-</span><a name="line-35"></a><span>        </span><a name="local-6989586621679085865"><a href="#local-6989586621679085865"><span class="hs-identifier">blake2b</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-identifier hs-var">hash</span><span>
-</span><a name="line-36"></a><span>
-</span><a name="line-37"></a><span>        </span><span class="hs-identifier">toCbor</span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">BA.ByteArrayAccess</span><span> </span><a href="#local-6989586621679085867"><span class="hs-identifier hs-type">ba</span></a><span> </span><span class="hs-glyph">=&gt;</span><span> </span><a href="#local-6989586621679085867"><span class="hs-identifier hs-type">ba</span></a><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">ByteString</span><span>
-</span><a name="line-38"></a><span>        </span><a name="local-6989586621679085866"><a href="#local-6989586621679085866"><span class="hs-identifier">toCbor</span></a></a><span> </span><a name="local-6989586621679085868"><a href="#local-6989586621679085868"><span class="hs-identifier">bs</span></a></a><span>
-</span><a name="line-39"></a><span>            </span><span class="hs-glyph">|</span><span> </span><a href="#local-6989586621679085869"><span class="hs-identifier hs-var">len</span></a><span> </span><span class="hs-operator hs-var">&lt;</span><span> </span><span class="hs-number">24</span><span>    </span><span class="hs-glyph">=</span><span> </span><span class="hs-identifier hs-var">BA.cons</span><span> </span><span class="hs-special">(</span><span class="hs-number">0x40</span><span> </span><span class="hs-operator hs-var">+</span><span> </span><span class="hs-identifier hs-var">fromIntegral</span><span> </span><a href="#local-6989586621679085869"><span class="hs-identifier hs-var">len</span></a><span class="hs-special">)</span><span> </span><span class="hs-operator hs-var">$</span><span> </span><span class="hs-identifier hs-var">BA.convert</span><span> </span><a href="#local-6989586621679085868"><span class="hs-identifier hs-var">bs</span></a><span>
-</span><a name="line-40"></a><span>            </span><span class="hs-glyph">|</span><span> </span><a href="#local-6989586621679085869"><span class="hs-identifier hs-var">len</span></a><span> </span><span class="hs-operator hs-var">&lt;</span><span> </span><span class="hs-number">0x100</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-identifier hs-var">BA.cons</span><span> </span><span class="hs-number">0x58</span><span> </span><span class="hs-operator hs-var">$</span><span> </span><span class="hs-identifier hs-var">BA.cons</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-var">fromIntegral</span><span> </span><a href="#local-6989586621679085869"><span class="hs-identifier hs-var">len</span></a><span class="hs-special">)</span><span> </span><span class="hs-operator hs-var">$</span><span> </span><span class="hs-identifier hs-var">BA.convert</span><span> </span><a href="#local-6989586621679085868"><span class="hs-identifier hs-var">bs</span></a><span>
-</span><a name="line-41"></a><span>            </span><span class="hs-glyph">|</span><span> </span><span class="hs-identifier hs-var">otherwise</span><span>   </span><span class="hs-glyph">=</span><span> </span><span class="hs-identifier hs-var">error</span><span> </span><span class="hs-string">&quot;we do not support entropy of length &gt; 256 bytes&quot;</span><span>
-</span><a name="line-42"></a><span>          </span><span class="hs-keyword">where</span><span>
-</span><a name="line-43"></a><span>            </span><a name="local-6989586621679085869"><a href="#local-6989586621679085869"><span class="hs-identifier">len</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-identifier hs-var">BA.length</span><span> </span><a href="#local-6989586621679085868"><span class="hs-identifier hs-var">bs</span></a><span>
-</span><a name="line-44"></a></pre></body></html>
+</span><span id="line-2"></span><span class="hs-pragma">{-# LANGUAGE TypeApplications #-}</span><span>
+</span><span id="line-3"></span><span class="hs-pragma">{-# LANGUAGE ScopedTypeVariables #-}</span><span>
+</span><span id="line-4"></span><span class="hs-pragma">{-# LANGUAGE TypeFamilies #-}</span><span>
+</span><span id="line-5"></span><span>
+</span><span id="line-6"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Cardano.Crypto.Encoding.BIP39</span><span>
+</span><span id="line-7"></span><span>    </span><span class="hs-special">(</span><span> </span><span class="annot"><a href="Cardano.Crypto.Encoding.BIP39.html#cardanoSlSeed"><span class="hs-identifier">cardanoSlSeed</span></a></span><span>
+</span><span id="line-8"></span><span>    </span><span class="hs-special">,</span><span> </span><span class="hs-keyword">module</span><span> </span><span class="annot"><span class="hs-identifier">X</span></span><span>
+</span><span id="line-9"></span><span>    </span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-10"></span><span>
+</span><span id="line-11"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><span class="hs-identifier">Data.Proxy</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Proxy</span></span><span class="hs-special">)</span><span>
+</span><span id="line-12"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><span class="hs-identifier">Data.ByteString</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">ByteString</span></span><span class="hs-special">)</span><span>
+</span><span id="line-13"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Data.ByteArray</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">BA</span></span><span>
+</span><span id="line-14"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><span class="hs-identifier">Crypto.Hash</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Blake2b_256</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">Digest</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">hash</span></span><span class="hs-special">)</span><span>
+</span><span id="line-15"></span><span>
+</span><span id="line-16"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="Crypto.Encoding.BIP39.html"><span class="hs-identifier">Crypto.Encoding.BIP39</span></a></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">X</span></span><span>
+</span><span id="line-17"></span><span>
+</span><span id="line-18"></span><span class="hs-comment">-- | **this is not a BIP39 function**</span><span>
+</span><span id="line-19"></span><span class="hs-comment">--</span><span>
+</span><span id="line-20"></span><span class="hs-comment">-- This function is the function used in `cardano-sl` (and Daedalus) to</span><span>
+</span><span id="line-21"></span><span class="hs-comment">-- generate a seed from a given mnemonic list.</span><span>
+</span><span id="line-22"></span><span class="hs-comment">--</span><span>
+</span><span id="line-23"></span><span class="hs-comment">-- https://github.com/input-output-hk/cardano-sl/blob/f5b8073b92b8219ae5fbb038c0ceb4a19502a86b/wallet/src/Pos/Util/BackupPhrase.hs#L59-L65</span><span>
+</span><span id="line-24"></span><span class="hs-comment">-- https://github.com/input-output-hk/cardano-sl/blob/429efc2426c63802ae86789f5b828dcbb42de88a/wallet/src/Pos/Util/Mnemonics.hs#L66-L87</span><span>
+</span><span id="line-25"></span><span class="hs-comment">--</span><span>
+</span><span id="line-26"></span><span class="annot"><a href="Cardano.Crypto.Encoding.BIP39.html#cardanoSlSeed"><span class="hs-identifier hs-type">cardanoSlSeed</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-keyword">forall</span><span> </span><span id="local-6989586621679085581"><span class="annot"><a href="#local-6989586621679085581"><span class="hs-identifier hs-type">n</span></a></span></span><span> </span><span id="local-6989586621679085580"><span class="annot"><a href="#local-6989586621679085580"><span class="hs-identifier hs-type">csz</span></a></span></span><span> </span><span id="local-6989586621679085579"><span class="annot"><a href="#local-6989586621679085579"><span class="hs-identifier hs-type">mw</span></a></span></span><span> </span><span class="hs-operator">.</span><span> </span><span class="annot"><a href="Crypto.Encoding.BIP39.html#ConsistentEntropy"><span class="hs-identifier hs-type">ConsistentEntropy</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679085581"><span class="hs-identifier hs-type">n</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679085579"><span class="hs-identifier hs-type">mw</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679085580"><span class="hs-identifier hs-type">csz</span></a></span><span>
+</span><span id="line-27"></span><span>              </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Proxy</span></span><span> </span><span class="annot"><a href="#local-6989586621679085581"><span class="hs-identifier hs-type">n</span></a></span><span>
+</span><span id="line-28"></span><span>              </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Crypto.Encoding.BIP39.html#MnemonicSentence"><span class="hs-identifier hs-type">MnemonicSentence</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679085579"><span class="hs-identifier hs-type">mw</span></a></span><span>
+</span><span id="line-29"></span><span>              </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><a href="Crypto.Encoding.BIP39.html#Seed"><span class="hs-identifier hs-type">Seed</span></a></span><span>
+</span><span id="line-30"></span><span id="cardanoSlSeed"><span class="annot"><span class="annottext">cardanoSlSeed :: Proxy n -&gt; MnemonicSentence mw -&gt; Maybe Seed
+</span><a href="Cardano.Crypto.Encoding.BIP39.html#cardanoSlSeed"><span class="hs-identifier hs-var hs-var">cardanoSlSeed</span></a></span></span><span> </span><span class="annot"><span class="annottext">Proxy n
+</span><span class="hs-identifier">_</span></span><span> </span><span id="local-6989586621679085578"><span class="annot"><span class="annottext">MnemonicSentence mw
+</span><a href="#local-6989586621679085578"><span class="hs-identifier hs-var">mw</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-31"></span><span>    </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">MnemonicSentence mw -&gt; Either (EntropyError csz) (Entropy n)
+forall (ent :: Nat) (csz :: Nat) (mw :: Nat).
+ConsistentEntropy ent mw csz =&gt;
+MnemonicSentence mw -&gt; Either (EntropyError csz) (Entropy ent)
+</span><a href="Crypto.Encoding.BIP39.html#wordsToEntropy"><span class="hs-identifier hs-var">wordsToEntropy</span></a></span><span> </span><span class="hs-glyph">@</span><span class="annot"><a href="#local-6989586621679085581"><span class="hs-identifier hs-type">n</span></a></span><span> </span><span class="hs-glyph">@</span><span class="annot"><a href="#local-6989586621679085580"><span class="hs-identifier hs-type">csz</span></a></span><span> </span><span class="hs-glyph">@</span><span class="annot"><a href="#local-6989586621679085579"><span class="hs-identifier hs-type">mw</span></a></span><span> </span><span class="annot"><span class="annottext">MnemonicSentence mw
+</span><a href="#local-6989586621679085578"><span class="hs-identifier hs-var">mw</span></a></span><span> </span><span class="hs-keyword">of</span><span>
+</span><span id="line-32"></span><span>        </span><span class="annot"><span class="hs-identifier hs-type">Left</span></span><span> </span><span class="annot"><span class="annottext">EntropyError csz
+</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Maybe Seed
+forall a. Maybe a
+</span><span class="hs-identifier hs-var">Nothing</span></span><span>
+</span><span id="line-33"></span><span>        </span><span class="annot"><span class="hs-identifier hs-type">Right</span></span><span> </span><span id="local-6989586621679085576"><span class="annot"><span class="annottext">Entropy n
+</span><a href="#local-6989586621679085576"><span class="hs-identifier hs-var">e</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Seed -&gt; Maybe Seed
+forall a. a -&gt; Maybe a
+</span><span class="hs-identifier hs-var">Just</span></span><span> </span><span class="annot"><span class="annottext">(Seed -&gt; Maybe Seed) -&gt; Seed -&gt; Maybe Seed
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">ByteString -&gt; Seed
+forall bin bout.
+(ByteArrayAccess bin, ByteArray bout) =&gt;
+bin -&gt; bout
+</span><span class="hs-identifier hs-var">BA.convert</span></span><span> </span><span class="annot"><span class="annottext">(ByteString -&gt; Seed) -&gt; ByteString -&gt; Seed
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Digest Blake2b_256 -&gt; ByteString
+forall ba. ByteArrayAccess ba =&gt; ba -&gt; ByteString
+</span><a href="#local-6989586621679085574"><span class="hs-identifier hs-var">toCbor</span></a></span><span> </span><span class="annot"><span class="annottext">(Digest Blake2b_256 -&gt; ByteString)
+-&gt; Digest Blake2b_256 -&gt; ByteString
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">ByteString -&gt; Digest Blake2b_256
+</span><a href="#local-6989586621679085573"><span class="hs-identifier hs-var">blake2b</span></a></span><span> </span><span class="annot"><span class="annottext">(ByteString -&gt; Digest Blake2b_256)
+-&gt; ByteString -&gt; Digest Blake2b_256
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">ByteString -&gt; ByteString
+forall ba. ByteArrayAccess ba =&gt; ba -&gt; ByteString
+</span><a href="#local-6989586621679085574"><span class="hs-identifier hs-var">toCbor</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Entropy n -&gt; ByteString
+forall (n :: Nat). Entropy n -&gt; ByteString
+</span><a href="Crypto.Encoding.BIP39.html#entropyRaw"><span class="hs-identifier hs-var hs-var">entropyRaw</span></a></span><span> </span><span class="annot"><span class="annottext">Entropy n
+</span><a href="#local-6989586621679085576"><span class="hs-identifier hs-var">e</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-34"></span><span>  </span><span class="hs-keyword">where</span><span> </span><span class="annot"><a href="#local-6989586621679085573"><span class="hs-identifier hs-type">blake2b</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">ByteString</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Digest</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Blake2b_256</span></span><span>
+</span><span id="line-35"></span><span>        </span><span id="local-6989586621679085573"><span class="annot"><span class="annottext">blake2b :: ByteString -&gt; Digest Blake2b_256
+</span><a href="#local-6989586621679085573"><span class="hs-identifier hs-var hs-var">blake2b</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">ByteString -&gt; Digest Blake2b_256
+forall ba a.
+(ByteArrayAccess ba, HashAlgorithm a) =&gt;
+ba -&gt; Digest a
+</span><span class="hs-identifier hs-var">hash</span></span><span>
+</span><span id="line-36"></span><span>
+</span><span id="line-37"></span><span>        </span><span id="local-6989586621679085598"><span class="annot"><a href="#local-6989586621679085574"><span class="hs-identifier hs-type">toCbor</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">BA.ByteArrayAccess</span></span><span> </span><span class="annot"><a href="#local-6989586621679085598"><span class="hs-identifier hs-type">ba</span></a></span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679085598"><span class="hs-identifier hs-type">ba</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">ByteString</span></span></span><span>
+</span><span id="line-38"></span><span>        </span><span id="local-6989586621679085574"><span class="annot"><span class="annottext">toCbor :: ba -&gt; ByteString
+</span><a href="#local-6989586621679085574"><span class="hs-identifier hs-var hs-var">toCbor</span></a></span></span><span> </span><span id="local-6989586621679085571"><span class="annot"><span class="annottext">ba
+</span><a href="#local-6989586621679085571"><span class="hs-identifier hs-var">bs</span></a></span></span><span>
+</span><span id="line-39"></span><span>            </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679085570"><span class="hs-identifier hs-var">len</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">&lt;</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">24</span></span><span>    </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Word8 -&gt; ByteString -&gt; ByteString
+forall a. ByteArray a =&gt; Word8 -&gt; a -&gt; a
+</span><span class="hs-identifier hs-var">BA.cons</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Word8
+</span><span class="hs-number">0x40</span></span><span> </span><span class="annot"><span class="annottext">Word8 -&gt; Word8 -&gt; Word8
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Word8
+forall a b. (Integral a, Num b) =&gt; a -&gt; b
+</span><span class="hs-identifier hs-var">fromIntegral</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679085570"><span class="hs-identifier hs-var">len</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(ByteString -&gt; ByteString) -&gt; ByteString -&gt; ByteString
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">ba -&gt; ByteString
+forall bin bout.
+(ByteArrayAccess bin, ByteArray bout) =&gt;
+bin -&gt; bout
+</span><span class="hs-identifier hs-var">BA.convert</span></span><span> </span><span class="annot"><span class="annottext">ba
+</span><a href="#local-6989586621679085571"><span class="hs-identifier hs-var">bs</span></a></span><span>
+</span><span id="line-40"></span><span>            </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679085570"><span class="hs-identifier hs-var">len</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">&lt;</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0x100</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Word8 -&gt; ByteString -&gt; ByteString
+forall a. ByteArray a =&gt; Word8 -&gt; a -&gt; a
+</span><span class="hs-identifier hs-var">BA.cons</span></span><span> </span><span class="annot"><span class="annottext">Word8
+</span><span class="hs-number">0x58</span></span><span> </span><span class="annot"><span class="annottext">(ByteString -&gt; ByteString) -&gt; ByteString -&gt; ByteString
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Word8 -&gt; ByteString -&gt; ByteString
+forall a. ByteArray a =&gt; Word8 -&gt; a -&gt; a
+</span><span class="hs-identifier hs-var">BA.cons</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; Word8
+forall a b. (Integral a, Num b) =&gt; a -&gt; b
+</span><span class="hs-identifier hs-var">fromIntegral</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679085570"><span class="hs-identifier hs-var">len</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(ByteString -&gt; ByteString) -&gt; ByteString -&gt; ByteString
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">ba -&gt; ByteString
+forall bin bout.
+(ByteArrayAccess bin, ByteArray bout) =&gt;
+bin -&gt; bout
+</span><span class="hs-identifier hs-var">BA.convert</span></span><span> </span><span class="annot"><span class="annottext">ba
+</span><a href="#local-6989586621679085571"><span class="hs-identifier hs-var">bs</span></a></span><span>
+</span><span id="line-41"></span><span>            </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">otherwise</span></span><span>   </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[Char] -&gt; ByteString
+forall a. HasCallStack =&gt; [Char] -&gt; a
+</span><span class="hs-identifier hs-var">error</span></span><span> </span><span class="annot"><span class="annottext">[Char]
+</span><span class="hs-string">&quot;we do not support entropy of length &gt; 256 bytes&quot;</span></span><span>
+</span><span id="line-42"></span><span>          </span><span class="hs-keyword">where</span><span>
+</span><span id="line-43"></span><span>            </span><span id="local-6989586621679085570"><span class="annot"><span class="annottext">len :: Int
+</span><a href="#local-6989586621679085570"><span class="hs-identifier hs-var hs-var">len</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">ba -&gt; Int
+forall ba. ByteArrayAccess ba =&gt; ba -&gt; Int
+</span><span class="hs-identifier hs-var">BA.length</span></span><span> </span><span class="annot"><span class="annottext">ba
+</span><a href="#local-6989586621679085571"><span class="hs-identifier hs-var">bs</span></a></span><span>
+</span><span id="line-44"></span></pre></body></html>

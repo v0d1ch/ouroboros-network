@@ -1,118 +1,757 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-pragma">{-# LANGUAGE DeriveAnyClass #-}</span><span>
-</span><a name="line-2"></a><span class="hs-pragma">{-# LANGUAGE DeriveDataTypeable #-}</span><span>
-</span><a name="line-3"></a><span class="hs-pragma">{-# LANGUAGE DeriveGeneric #-}</span><span>
-</span><a name="line-4"></a><span class="hs-pragma">{-# LANGUAGE NamedFieldPuns #-}</span><span>
-</span><a name="line-5"></a><span class="hs-pragma">{-# LANGUAGE StrictData #-}</span><span>
-</span><a name="line-6"></a><span class="hs-pragma">{-# LANGUAGE TemplateHaskell #-}</span><span>
-</span><a name="line-7"></a><span class="hs-pragma">{-# LANGUAGE TypeApplications #-}</span><span>
-</span><a name="line-8"></a><span class="hs-pragma">{-# LANGUAGE TypeFamilies #-}</span><span>
-</span><a name="line-9"></a><span>
-</span><a name="line-10"></a><span>
-</span><a name="line-11"></a><span class="hs-comment">-- | UTXO transition system</span><span>
-</span><a name="line-12"></a><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Byron.Spec.Ledger.STS.UTXO</span><span>
-</span><a name="line-13"></a><span>  </span><span class="hs-special">(</span><span> </span><a href="Byron.Spec.Ledger.STS.UTXO.html#UTXO"><span class="hs-identifier hs-type">UTXO</span></a><span>
-</span><a name="line-14"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Byron.Spec.Ledger.STS.UTXO.html#UTxOEnv"><span class="hs-identifier hs-type">UTxOEnv</span></a><span> </span><span class="hs-special">(</span><a href="Byron.Spec.Ledger.STS.UTXO.html#UTxOEnv"><span class="hs-identifier hs-var">UTxOEnv</span></a><span class="hs-special">)</span><span>
-</span><a name="line-15"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Byron.Spec.Ledger.STS.UTXO.html#UTxOState"><span class="hs-identifier hs-type">UTxOState</span></a><span> </span><span class="hs-special">(</span><a href="Byron.Spec.Ledger.STS.UTXO.html#UTxOState"><span class="hs-identifier hs-var">UTxOState</span></a><span class="hs-special">)</span><span>
-</span><a name="line-16"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Byron.Spec.Ledger.STS.UTXO.html#UtxoPredicateFailure"><span class="hs-identifier hs-type">UtxoPredicateFailure</span></a><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
-</span><a name="line-17"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/small-steps-0.1.0.0/noopt/doc/html/small-steps/src/Control.State.Transition.Extended.html#PredicateFailure"><span class="hs-identifier hs-type">PredicateFailure</span></a><span>
-</span><a name="line-18"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Byron.Spec.Ledger.STS.UTXO.html#utxo"><span class="hs-identifier hs-var">utxo</span></a><span>
-</span><a name="line-19"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Byron.Spec.Ledger.STS.UTXO.html#utxo0"><span class="hs-identifier hs-var">utxo0</span></a><span>
-</span><a name="line-20"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Byron.Spec.Ledger.STS.UTXO.html#pps"><span class="hs-identifier hs-var">pps</span></a><span>
-</span><a name="line-21"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Byron.Spec.Ledger.STS.UTXO.html#reserves"><span class="hs-identifier hs-var">reserves</span></a><span>
-</span><a name="line-22"></a><span>  </span><span class="hs-special">)</span><span>
-</span><a name="line-23"></a><span class="hs-keyword">where</span><span>
-</span><a name="line-24"></a><span>
-</span><a name="line-25"></a><span class="hs-keyword">import</span><span>           </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-prelude-0.1.0.0/noopt/doc/html/cardano-prelude/src/Cardano.Prelude.html"><span class="hs-identifier">Cardano.Prelude</span></a><span> </span><span class="hs-special">(</span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-prelude-0.1.0.0/noopt/doc/html/cardano-prelude/src/Cardano.Prelude.GHC.Heap.NormalForm.Classy.html#NoUnexpectedThunks"><span class="hs-identifier hs-type">NoUnexpectedThunks</span></a><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
-</span><a name="line-26"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data.Data</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Data</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Typeable</span><span class="hs-special">)</span><span>
-</span><a name="line-27"></a><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-identifier">Data.Set</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">Set</span><span>
-</span><a name="line-28"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">GHC.Generics</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Generic</span><span class="hs-special">)</span><span>
-</span><a name="line-29"></a><span>
-</span><a name="line-30"></a><span class="hs-keyword">import</span><span>           </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/small-steps-0.1.0.0/noopt/doc/html/small-steps/src/Control.State.Transition.html"><span class="hs-identifier">Control.State.Transition</span></a><span> </span><span class="hs-special">(</span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/small-steps-0.1.0.0/noopt/doc/html/small-steps/src/Control.State.Transition.Extended.html#Environment"><span class="hs-identifier hs-type">Environment</span></a><span class="hs-special">,</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/small-steps-0.1.0.0/noopt/doc/html/small-steps/src/Control.State.Transition.Extended.html#IRC"><span class="hs-identifier hs-type">IRC</span></a><span> </span><span class="hs-special">(</span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/small-steps-0.1.0.0/noopt/doc/html/small-steps/src/Control.State.Transition.Extended.html#IRC"><span class="hs-identifier hs-var">IRC</span></a><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/small-steps-0.1.0.0/noopt/doc/html/small-steps/src/Control.State.Transition.Extended.html#PredicateFailure"><span class="hs-identifier hs-type">PredicateFailure</span></a><span class="hs-special">,</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/small-steps-0.1.0.0/noopt/doc/html/small-steps/src/Control.State.Transition.Extended.html#STS"><span class="hs-identifier hs-type">STS</span></a><span class="hs-special">,</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/small-steps-0.1.0.0/noopt/doc/html/small-steps/src/Control.State.Transition.Extended.html#Signal"><span class="hs-identifier hs-type">Signal</span></a><span class="hs-special">,</span><span>
-</span><a name="line-31"></a><span>                     </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/small-steps-0.1.0.0/noopt/doc/html/small-steps/src/Control.State.Transition.Extended.html#State"><span class="hs-identifier hs-type">State</span></a><span class="hs-special">,</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/small-steps-0.1.0.0/noopt/doc/html/small-steps/src/Control.State.Transition.Extended.html#TRC"><span class="hs-identifier hs-type">TRC</span></a><span> </span><span class="hs-special">(</span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/small-steps-0.1.0.0/noopt/doc/html/small-steps/src/Control.State.Transition.Extended.html#TRC"><span class="hs-identifier hs-var">TRC</span></a><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/small-steps-0.1.0.0/noopt/doc/html/small-steps/src/Control.State.Transition.Extended.html#initialRules"><span class="hs-identifier hs-var">initialRules</span></a><span class="hs-special">,</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/small-steps-0.1.0.0/noopt/doc/html/small-steps/src/Control.State.Transition.Extended.html#judgmentContext"><span class="hs-identifier hs-var">judgmentContext</span></a><span class="hs-special">,</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/small-steps-0.1.0.0/noopt/doc/html/small-steps/src/Control.State.Transition.Extended.html#transitionRules"><span class="hs-identifier hs-var">transitionRules</span></a><span class="hs-special">,</span><span> </span><span class="hs-special">(</span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/small-steps-0.1.0.0/noopt/doc/html/small-steps/src/Control.State.Transition.Extended.html#%3F%21"><span class="hs-operator hs-var">?!</span></a><span class="hs-special">)</span><span class="hs-special">)</span><span>
-</span><a name="line-32"></a><span class="hs-keyword">import</span><span>           </span><a href="Byron.Spec.Ledger.Core.html"><span class="hs-identifier">Byron.Spec.Ledger.Core</span></a><span> </span><span class="hs-special">(</span><a href="Byron.Spec.Ledger.Core.html#Lovelace"><span class="hs-identifier hs-type">Lovelace</span></a><span class="hs-special">,</span><span> </span><a href="Byron.Spec.Ledger.Core.html#dom"><span class="hs-identifier hs-var">dom</span></a><span class="hs-special">,</span><span> </span><a href="Byron.Spec.Ledger.Core.html#range"><span class="hs-identifier hs-var">range</span></a><span class="hs-special">,</span><span> </span><span class="hs-special">(</span><a href="Byron.Spec.Ledger.Core.html#%222A"><span class="hs-operator hs-var">&#8746;</span></a><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="hs-special">(</span><a href="Byron.Spec.Ledger.Core.html#%2286"><span class="hs-operator hs-var">&#8838;</span></a><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="hs-special">(</span><a href="Byron.Spec.Ledger.Core.html#%22EA"><span class="hs-operator hs-var">&#8938;</span></a><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="hs-special">(</span><a href="Byron.Spec.Ledger.Core.html#%25C1"><span class="hs-operator hs-var">&#9665;</span></a><span class="hs-special">)</span><span class="hs-special">)</span><span>
-</span><a name="line-33"></a><span class="hs-keyword">import</span><span>           </span><a href="Byron.Spec.Ledger.GlobalParams.html"><span class="hs-identifier">Byron.Spec.Ledger.GlobalParams</span></a><span> </span><span class="hs-special">(</span><a href="Byron.Spec.Ledger.Core.html#lovelaceCap"><span class="hs-identifier hs-var">lovelaceCap</span></a><span class="hs-special">)</span><span>
-</span><a name="line-34"></a><span class="hs-keyword">import</span><span>           </span><a href="Byron.Spec.Ledger.Update.html"><span class="hs-identifier">Byron.Spec.Ledger.Update</span></a><span> </span><span class="hs-special">(</span><a href="Byron.Spec.Ledger.Update.html#PParams"><span class="hs-identifier hs-type">PParams</span></a><span class="hs-special">)</span><span>
-</span><a name="line-35"></a><span class="hs-keyword">import</span><span>           </span><a href="Byron.Spec.Ledger.UTxO.html"><span class="hs-identifier">Byron.Spec.Ledger.UTxO</span></a><span> </span><span class="hs-special">(</span><a href="Byron.Spec.Ledger.UTxO.html#Tx"><span class="hs-identifier hs-type">Tx</span></a><span class="hs-special">,</span><span> </span><a href="Byron.Spec.Ledger.UTxO.html#UTxO"><span class="hs-identifier hs-type">UTxO</span></a><span class="hs-special">,</span><span> </span><a href="Byron.Spec.Ledger.UTxO.html#balance"><span class="hs-identifier hs-var">balance</span></a><span class="hs-special">,</span><span> </span><a href="Byron.Spec.Ledger.UTxO.html#body"><span class="hs-identifier hs-var">body</span></a><span class="hs-special">,</span><span> </span><a href="Byron.Spec.Ledger.UTxO.html#pcMinFee"><span class="hs-identifier hs-var">pcMinFee</span></a><span class="hs-special">,</span><span> </span><a href="Byron.Spec.Ledger.UTxO.html#txins"><span class="hs-identifier hs-var">txins</span></a><span class="hs-special">,</span><span> </span><a href="Byron.Spec.Ledger.UTxO.html#txouts"><span class="hs-identifier hs-var">txouts</span></a><span class="hs-special">,</span><span> </span><a href="Byron.Spec.Ledger.UTxO.html#unUTxO"><span class="hs-identifier hs-var">unUTxO</span></a><span class="hs-special">,</span><span> </span><a href="Byron.Spec.Ledger.UTxO.html#value"><span class="hs-identifier hs-var">value</span></a><span class="hs-special">)</span><span>
-</span><a name="line-36"></a><span>
-</span><a name="line-37"></a><span class="hs-keyword">import</span><span>           </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/goblins-0.2.0.0/noopt/doc/html/goblins/src/Test.Goblin.html"><span class="hs-identifier">Test.Goblin</span></a><span> </span><span class="hs-special">(</span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/goblins-0.2.0.0/noopt/doc/html/goblins/src/Test.Goblin.Core.html#SeedGoblin"><span class="hs-identifier hs-type">SeedGoblin</span></a><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
-</span><a name="line-38"></a><span class="hs-keyword">import</span><span>           </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/goblins-0.2.0.0/noopt/doc/html/goblins/src/Test.Goblin.TH.html"><span class="hs-identifier">Test.Goblin.TH</span></a><span> </span><span class="hs-special">(</span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/goblins-0.2.0.0/noopt/doc/html/goblins/src/Test.Goblin.TH.html#deriveSeedGoblin"><span class="hs-identifier hs-var">deriveSeedGoblin</span></a><span class="hs-special">)</span><span>
-</span><a name="line-39"></a><span>
-</span><a name="line-40"></a><span>
-</span><a name="line-41"></a><span class="hs-keyword">data</span><span> </span><a name="UTXO"><a href="Byron.Spec.Ledger.STS.UTXO.html#UTXO"><span class="hs-identifier">UTXO</span></a></a><span> </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Data</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Typeable</span><span class="hs-special">)</span><span>
-</span><a name="line-42"></a><span>
-</span><a name="line-43"></a><span>
-</span><a name="line-44"></a><span class="hs-keyword">data</span><span> </span><a name="UTxOEnv"><a href="Byron.Spec.Ledger.STS.UTXO.html#UTxOEnv"><span class="hs-identifier">UTxOEnv</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><a name="UTxOEnv"><a href="Byron.Spec.Ledger.STS.UTXO.html#UTxOEnv"><span class="hs-identifier">UTxOEnv</span></a></a><span>
-</span><a name="line-45"></a><span>  </span><span class="hs-special">{</span><span> </span><a name="utxo0"><a href="Byron.Spec.Ledger.STS.UTXO.html#utxo0"><span class="hs-identifier">utxo0</span></a></a><span> </span><span class="hs-glyph">::</span><span> </span><a href="Byron.Spec.Ledger.UTxO.html#UTxO"><span class="hs-identifier hs-type">UTxO</span></a><span>
-</span><a name="line-46"></a><span>  </span><span class="hs-special">,</span><span> </span><a name="pps"><a href="Byron.Spec.Ledger.STS.UTXO.html#pps"><span class="hs-identifier">pps</span></a></a><span>   </span><span class="hs-glyph">::</span><span> </span><a href="Byron.Spec.Ledger.Update.html#PParams"><span class="hs-identifier hs-type">PParams</span></a><span>
-</span><a name="line-47"></a><span>  </span><span class="hs-special">}</span><span> </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Eq</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Show</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Generic</span><span class="hs-special">,</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-prelude-0.1.0.0/noopt/doc/html/cardano-prelude/src/Cardano.Prelude.GHC.Heap.NormalForm.Classy.html#NoUnexpectedThunks"><span class="hs-identifier hs-type">NoUnexpectedThunks</span></a><span class="hs-special">)</span><span>
-</span><a name="line-48"></a><span>
-</span><a name="line-49"></a><span class="hs-keyword">data</span><span> </span><a name="UTxOState"><a href="Byron.Spec.Ledger.STS.UTXO.html#UTxOState"><span class="hs-identifier">UTxOState</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><a name="UTxOState"><a href="Byron.Spec.Ledger.STS.UTXO.html#UTxOState"><span class="hs-identifier">UTxOState</span></a></a><span>
-</span><a name="line-50"></a><span>  </span><span class="hs-special">{</span><span> </span><a name="utxo"><a href="Byron.Spec.Ledger.STS.UTXO.html#utxo"><span class="hs-identifier">utxo</span></a></a><span>     </span><span class="hs-glyph">::</span><span> </span><a href="Byron.Spec.Ledger.UTxO.html#UTxO"><span class="hs-identifier hs-type">UTxO</span></a><span>
-</span><a name="line-51"></a><span>  </span><span class="hs-special">,</span><span> </span><a name="reserves"><a href="Byron.Spec.Ledger.STS.UTXO.html#reserves"><span class="hs-identifier">reserves</span></a></a><span> </span><span class="hs-glyph">::</span><span> </span><a href="Byron.Spec.Ledger.Core.html#Lovelace"><span class="hs-identifier hs-type">Lovelace</span></a><span>
-</span><a name="line-52"></a><span>  </span><span class="hs-special">}</span><span> </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Eq</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Show</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Generic</span><span class="hs-special">,</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-prelude-0.1.0.0/noopt/doc/html/cardano-prelude/src/Cardano.Prelude.GHC.Heap.NormalForm.Classy.html#NoUnexpectedThunks"><span class="hs-identifier hs-type">NoUnexpectedThunks</span></a><span class="hs-special">)</span><span>
-</span><a name="line-53"></a><span>
-</span><a name="line-54"></a><span class="hs-comment">-- | These `PredicateFailure`s are all &quot;throwable&quot;. The disjunction of the</span><span>
-</span><a name="line-55"></a><span class="hs-comment">--   rules' preconditions is not `True` - the `PredicateFailure`s represent</span><span>
-</span><a name="line-56"></a><span class="hs-comment">--   `False` cases.</span><span>
-</span><a name="line-57"></a><span class="hs-keyword">data</span><span> </span><a name="UtxoPredicateFailure"><a href="Byron.Spec.Ledger.STS.UTXO.html#UtxoPredicateFailure"><span class="hs-identifier">UtxoPredicateFailure</span></a></a><span>
-</span><a name="line-58"></a><span>  </span><span class="hs-glyph">=</span><span> </span><a name="EmptyTxInputs"><a href="Byron.Spec.Ledger.STS.UTXO.html#EmptyTxInputs"><span class="hs-identifier">EmptyTxInputs</span></a></a><span>
-</span><a name="line-59"></a><span>  </span><span class="hs-glyph">|</span><span> </span><a name="EmptyTxOutputs"><a href="Byron.Spec.Ledger.STS.UTXO.html#EmptyTxOutputs"><span class="hs-identifier">EmptyTxOutputs</span></a></a><span>
-</span><a name="line-60"></a><span>  </span><span class="hs-glyph">|</span><span> </span><a name="FeeTooLow"><a href="Byron.Spec.Ledger.STS.UTXO.html#FeeTooLow"><span class="hs-identifier">FeeTooLow</span></a></a><span>
-</span><a name="line-61"></a><span>  </span><span class="hs-glyph">|</span><span> </span><a name="IncreasedTotalBalance"><a href="Byron.Spec.Ledger.STS.UTXO.html#IncreasedTotalBalance"><span class="hs-identifier">IncreasedTotalBalance</span></a></a><span>
-</span><a name="line-62"></a><span>  </span><span class="hs-glyph">|</span><span> </span><a name="InputsNotInUTxO"><a href="Byron.Spec.Ledger.STS.UTXO.html#InputsNotInUTxO"><span class="hs-identifier">InputsNotInUTxO</span></a></a><span>
-</span><a name="line-63"></a><span>  </span><span class="hs-glyph">|</span><span> </span><a name="NonPositiveOutputs"><a href="Byron.Spec.Ledger.STS.UTXO.html#NonPositiveOutputs"><span class="hs-identifier">NonPositiveOutputs</span></a></a><span>
-</span><a name="line-64"></a><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Eq</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Show</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Data</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Typeable</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Generic</span><span class="hs-special">,</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-prelude-0.1.0.0/noopt/doc/html/cardano-prelude/src/Cardano.Prelude.GHC.Heap.NormalForm.Classy.html#NoUnexpectedThunks"><span class="hs-identifier hs-type">NoUnexpectedThunks</span></a><span class="hs-special">)</span><span>
-</span><a name="line-65"></a><span>
-</span><a name="line-66"></a><span>
-</span><a name="line-67"></a><span class="hs-keyword">instance</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/small-steps-0.1.0.0/noopt/doc/html/small-steps/src/Control.State.Transition.Extended.html#STS"><span class="hs-identifier hs-type">STS</span></a><span> </span><a href="Byron.Spec.Ledger.STS.UTXO.html#UTXO"><span class="hs-identifier hs-type">UTXO</span></a><span> </span><span class="hs-keyword">where</span><span>
-</span><a name="line-68"></a><span>
-</span><a name="line-69"></a><span>  </span><span class="hs-keyword">type</span><span> </span><span class="hs-identifier">Environment</span><span> </span><a href="Byron.Spec.Ledger.STS.UTXO.html#UTXO"><span class="hs-identifier hs-type">UTXO</span></a><span> </span><span class="hs-glyph">=</span><span> </span><a href="Byron.Spec.Ledger.STS.UTXO.html#UTxOEnv"><span class="hs-identifier hs-type">UTxOEnv</span></a><span>
-</span><a name="line-70"></a><span>  </span><span class="hs-keyword">type</span><span> </span><span class="hs-identifier">State</span><span> </span><a href="Byron.Spec.Ledger.STS.UTXO.html#UTXO"><span class="hs-identifier hs-type">UTXO</span></a><span> </span><span class="hs-glyph">=</span><span> </span><a href="Byron.Spec.Ledger.STS.UTXO.html#UTxOState"><span class="hs-identifier hs-type">UTxOState</span></a><span>
-</span><a name="line-71"></a><span>  </span><span class="hs-keyword">type</span><span> </span><span class="hs-identifier">Signal</span><span> </span><a href="Byron.Spec.Ledger.STS.UTXO.html#UTXO"><span class="hs-identifier hs-type">UTXO</span></a><span> </span><span class="hs-glyph">=</span><span> </span><a href="Byron.Spec.Ledger.UTxO.html#Tx"><span class="hs-identifier hs-type">Tx</span></a><span>
-</span><a name="line-72"></a><span>  </span><span class="hs-keyword">type</span><span> </span><span class="hs-identifier">PredicateFailure</span><span> </span><a href="Byron.Spec.Ledger.STS.UTXO.html#UTXO"><span class="hs-identifier hs-type">UTXO</span></a><span> </span><span class="hs-glyph">=</span><span> </span><a href="Byron.Spec.Ledger.STS.UTXO.html#UtxoPredicateFailure"><span class="hs-identifier hs-type">UtxoPredicateFailure</span></a><span>
-</span><a name="line-73"></a><span>
-</span><a name="line-74"></a><span>  </span><a name="local-8214565720323796446"><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/small-steps-0.1.0.0/noopt/doc/html/small-steps/src/Control.State.Transition.Extended.html#initialRules"><span class="hs-identifier">initialRules</span></a></a><span> </span><span class="hs-glyph">=</span><span>
-</span><a name="line-75"></a><span>    </span><span class="hs-special">[</span><span> </span><span class="hs-keyword">do</span><span>
-</span><a name="line-76"></a><span>        </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/small-steps-0.1.0.0/noopt/doc/html/small-steps/src/Control.State.Transition.Extended.html#IRC"><span class="hs-identifier hs-var">IRC</span></a><span> </span><a href="Byron.Spec.Ledger.STS.UTXO.html#UTxOEnv"><span class="hs-identifier hs-var">UTxOEnv</span></a><span> </span><span class="hs-special">{</span><a name="local-6989586621679507674"><a href="#local-6989586621679507674"><span class="hs-identifier">utxo0</span></a></a><span class="hs-special">}</span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/small-steps-0.1.0.0/noopt/doc/html/small-steps/src/Control.State.Transition.Extended.html#judgmentContext"><span class="hs-identifier hs-var">judgmentContext</span></a><span>
-</span><a name="line-77"></a><span>        </span><span class="hs-identifier hs-var">return</span><span> </span><span class="hs-operator hs-var">$</span><span> </span><a href="Byron.Spec.Ledger.STS.UTXO.html#UTxOState"><span class="hs-identifier hs-var">UTxOState</span></a><span> </span><span class="hs-special">{</span><span> </span><span class="hs-identifier">utxo</span><span>     </span><span class="hs-glyph">=</span><span> </span><a href="#local-6989586621679507674"><span class="hs-identifier hs-var">utxo0</span></a><span>
-</span><a name="line-78"></a><span>                           </span><span class="hs-special">,</span><span> </span><span class="hs-identifier">reserves</span><span> </span><span class="hs-glyph">=</span><span> </span><a href="Byron.Spec.Ledger.Core.html#lovelaceCap"><span class="hs-identifier hs-var">lovelaceCap</span></a><span> </span><span class="hs-glyph">-</span><span> </span><a href="Byron.Spec.Ledger.UTxO.html#balance"><span class="hs-identifier hs-var">balance</span></a><span> </span><a href="#local-6989586621679507674"><span class="hs-identifier hs-var">utxo0</span></a><span>
-</span><a name="line-79"></a><span>                           </span><span class="hs-special">}</span><span>
-</span><a name="line-80"></a><span>    </span><span class="hs-special">]</span><span>
-</span><a name="line-81"></a><span>  </span><a name="local-8214565720323796445"><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/small-steps-0.1.0.0/noopt/doc/html/small-steps/src/Control.State.Transition.Extended.html#transitionRules"><span class="hs-identifier">transitionRules</span></a></a><span> </span><span class="hs-glyph">=</span><span>
-</span><a name="line-82"></a><span>    </span><span class="hs-special">[</span><span> </span><span class="hs-keyword">do</span><span>
-</span><a name="line-83"></a><span>        </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/small-steps-0.1.0.0/noopt/doc/html/small-steps/src/Control.State.Transition.Extended.html#TRC"><span class="hs-identifier hs-var">TRC</span></a><span> </span><span class="hs-special">(</span><span> </span><a href="Byron.Spec.Ledger.STS.UTXO.html#UTxOEnv"><span class="hs-identifier hs-var">UTxOEnv</span></a><span> </span><span class="hs-identifier">_</span><span> </span><a name="local-6989586621679507675"><a href="#local-6989586621679507675"><span class="hs-identifier">pps</span></a></a><span>
-</span><a name="line-84"></a><span>            </span><span class="hs-special">,</span><span> </span><a href="Byron.Spec.Ledger.STS.UTXO.html#UTxOState"><span class="hs-identifier hs-var">UTxOState</span></a><span> </span><span class="hs-special">{</span><a name="local-6989586621679507676"><a href="#local-6989586621679507676"><span class="hs-identifier">utxo</span></a></a><span class="hs-special">,</span><span> </span><a name="local-6989586621679507677"><a href="#local-6989586621679507677"><span class="hs-identifier">reserves</span></a></a><span class="hs-special">}</span><span>
-</span><a name="line-85"></a><span>            </span><span class="hs-special">,</span><span> </span><a name="local-6989586621679507678"><a href="#local-6989586621679507678"><span class="hs-identifier">tx</span></a></a><span>
-</span><a name="line-86"></a><span>            </span><span class="hs-special">)</span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/small-steps-0.1.0.0/noopt/doc/html/small-steps/src/Control.State.Transition.Extended.html#judgmentContext"><span class="hs-identifier hs-var">judgmentContext</span></a><span>
-</span><a name="line-87"></a><span>
-</span><a name="line-88"></a><span>        </span><span class="hs-keyword">let</span><span> </span><a name="local-6989586621679507679"><a href="#local-6989586621679507679"><span class="hs-identifier">ins</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><a href="Byron.Spec.Ledger.UTxO.html#txins"><span class="hs-identifier hs-var">txins</span></a><span> </span><span class="hs-operator hs-var">$</span><span> </span><span class="hs-identifier">body</span><span> </span><a href="#local-6989586621679507678"><span class="hs-identifier hs-var">tx</span></a><span>
-</span><a name="line-89"></a><span>            </span><a name="local-6989586621679507680"><a href="#local-6989586621679507680"><span class="hs-identifier">outs</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><a href="Byron.Spec.Ledger.UTxO.html#txouts"><span class="hs-identifier hs-var">txouts</span></a><span> </span><span class="hs-operator hs-var">$</span><span> </span><span class="hs-identifier">body</span><span> </span><a href="#local-6989586621679507678"><span class="hs-identifier hs-var">tx</span></a><span>
-</span><a name="line-90"></a><span>
-</span><a name="line-91"></a><span>        </span><a href="#local-6989586621679507679"><span class="hs-identifier hs-var">ins</span></a><span> </span><a href="Byron.Spec.Ledger.Core.html#%2286"><span class="hs-operator hs-var">&#8838;</span></a><span> </span><a href="Byron.Spec.Ledger.Core.html#dom"><span class="hs-identifier hs-var">dom</span></a><span> </span><a href="#local-6989586621679507676"><span class="hs-identifier hs-var">utxo</span></a><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/small-steps-0.1.0.0/noopt/doc/html/small-steps/src/Control.State.Transition.Extended.html#%3F%21"><span class="hs-operator hs-var">?!</span></a><span> </span><a href="Byron.Spec.Ledger.STS.UTXO.html#InputsNotInUTxO"><span class="hs-identifier hs-var">InputsNotInUTxO</span></a><span>
-</span><a name="line-92"></a><span>
-</span><a name="line-93"></a><span>        </span><span class="hs-keyword">let</span><span> </span><a name="local-6989586621679507681"><a href="#local-6989586621679507681"><span class="hs-identifier">fee</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><a href="Byron.Spec.Ledger.UTxO.html#balance"><span class="hs-identifier hs-var">balance</span></a><span> </span><span class="hs-special">(</span><a href="#local-6989586621679507679"><span class="hs-identifier hs-var">ins</span></a><span> </span><a href="Byron.Spec.Ledger.Core.html#%25C1"><span class="hs-operator hs-var">&#9665;</span></a><span> </span><a href="#local-6989586621679507676"><span class="hs-identifier hs-var">utxo</span></a><span class="hs-special">)</span><span> </span><span class="hs-glyph">-</span><span> </span><a href="Byron.Spec.Ledger.UTxO.html#balance"><span class="hs-identifier hs-var">balance</span></a><span> </span><a href="#local-6989586621679507680"><span class="hs-identifier hs-var">outs</span></a><span>
-</span><a name="line-94"></a><span>
-</span><a name="line-95"></a><span>        </span><a href="Byron.Spec.Ledger.UTxO.html#pcMinFee"><span class="hs-identifier hs-var">pcMinFee</span></a><span> </span><a href="#local-6989586621679507675"><span class="hs-identifier hs-var">pps</span></a><span> </span><a href="#local-6989586621679507678"><span class="hs-identifier hs-var">tx</span></a><span> </span><span class="hs-operator hs-var">&lt;=</span><span> </span><a href="#local-6989586621679507681"><span class="hs-identifier hs-var">fee</span></a><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/small-steps-0.1.0.0/noopt/doc/html/small-steps/src/Control.State.Transition.Extended.html#%3F%21"><span class="hs-operator hs-var">?!</span></a><span> </span><a href="Byron.Spec.Ledger.STS.UTXO.html#FeeTooLow"><span class="hs-identifier hs-var">FeeTooLow</span></a><span>
-</span><a name="line-96"></a><span>
-</span><a name="line-97"></a><span>        </span><span class="hs-special">(</span><span class="hs-identifier hs-var">not</span><span> </span><span class="hs-operator hs-var">.</span><span> </span><span class="hs-identifier hs-var">null</span><span class="hs-special">)</span><span> </span><a href="#local-6989586621679507679"><span class="hs-identifier hs-var">ins</span></a><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/small-steps-0.1.0.0/noopt/doc/html/small-steps/src/Control.State.Transition.Extended.html#%3F%21"><span class="hs-operator hs-var">?!</span></a><span> </span><a href="Byron.Spec.Ledger.STS.UTXO.html#EmptyTxInputs"><span class="hs-identifier hs-var">EmptyTxInputs</span></a><span>
-</span><a name="line-98"></a><span>
-</span><a name="line-99"></a><span>        </span><span class="hs-special">(</span><span class="hs-identifier hs-var">not</span><span> </span><span class="hs-operator hs-var">.</span><span> </span><span class="hs-identifier hs-var">null</span><span> </span><span class="hs-operator hs-var">.</span><span> </span><span class="hs-identifier">unUTxO</span><span class="hs-special">)</span><span> </span><a href="#local-6989586621679507680"><span class="hs-identifier hs-var">outs</span></a><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/small-steps-0.1.0.0/noopt/doc/html/small-steps/src/Control.State.Transition.Extended.html#%3F%21"><span class="hs-operator hs-var">?!</span></a><span> </span><a href="Byron.Spec.Ledger.STS.UTXO.html#EmptyTxOutputs"><span class="hs-identifier hs-var">EmptyTxOutputs</span></a><span>
-</span><a name="line-100"></a><span>
-</span><a name="line-101"></a><span>        </span><span class="hs-keyword">let</span><span>
-</span><a name="line-102"></a><span>          </span><a name="local-6989586621679507682"><a href="#local-6989586621679507682"><span class="hs-identifier">outputValues</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-identifier hs-var">fmap</span><span> </span><span class="hs-identifier">value</span><span> </span><span class="hs-operator hs-var">$</span><span> </span><span class="hs-identifier hs-var">Set.toList</span><span> </span><span class="hs-operator hs-var">$</span><span> </span><a href="Byron.Spec.Ledger.Core.html#range"><span class="hs-identifier hs-var">range</span></a><span> </span><a href="#local-6989586621679507680"><span class="hs-identifier hs-var">outs</span></a><span>
-</span><a name="line-103"></a><span>        </span><span class="hs-identifier hs-var">all</span><span> </span><span class="hs-special">(</span><span class="hs-number">0</span><span class="hs-operator hs-var">&lt;</span><span class="hs-special">)</span><span> </span><a href="#local-6989586621679507682"><span class="hs-identifier hs-var">outputValues</span></a><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/small-steps-0.1.0.0/noopt/doc/html/small-steps/src/Control.State.Transition.Extended.html#%3F%21"><span class="hs-operator hs-var">?!</span></a><span> </span><a href="Byron.Spec.Ledger.STS.UTXO.html#NonPositiveOutputs"><span class="hs-identifier hs-var">NonPositiveOutputs</span></a><span>
-</span><a name="line-104"></a><span>
-</span><a name="line-105"></a><span>        </span><span class="hs-identifier hs-var">return</span><span> </span><span class="hs-operator hs-var">$</span><span> </span><a href="Byron.Spec.Ledger.STS.UTXO.html#UTxOState"><span class="hs-identifier hs-var">UTxOState</span></a><span> </span><span class="hs-special">{</span><span> </span><span class="hs-identifier">utxo</span><span>     </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">(</span><a href="#local-6989586621679507679"><span class="hs-identifier hs-var">ins</span></a><span> </span><a href="Byron.Spec.Ledger.Core.html#%22EA"><span class="hs-operator hs-var">&#8938;</span></a><span> </span><a href="#local-6989586621679507676"><span class="hs-identifier hs-var">utxo</span></a><span class="hs-special">)</span><span> </span><a href="Byron.Spec.Ledger.Core.html#%222A"><span class="hs-operator hs-var">&#8746;</span></a><span> </span><a href="#local-6989586621679507680"><span class="hs-identifier hs-var">outs</span></a><span>
-</span><a name="line-106"></a><span>                           </span><span class="hs-special">,</span><span> </span><span class="hs-identifier">reserves</span><span> </span><span class="hs-glyph">=</span><span> </span><a href="#local-6989586621679507677"><span class="hs-identifier hs-var">reserves</span></a><span> </span><span class="hs-operator hs-var">+</span><span> </span><a href="#local-6989586621679507681"><span class="hs-identifier hs-var">fee</span></a><span>
-</span><a name="line-107"></a><span>                           </span><span class="hs-special">}</span><span>
-</span><a name="line-108"></a><span>
-</span><a name="line-109"></a><span>    </span><span class="hs-special">]</span><span>
-</span><a name="line-110"></a><span>
-</span><a name="line-111"></a><span>
-</span><a name="line-112"></a><span class="hs-comment">--------------------------------------------------------------------------------</span><span>
-</span><a name="line-113"></a><span class="hs-comment">-- SeedGoblin instances</span><span>
-</span><a name="line-114"></a><span class="hs-comment">--------------------------------------------------------------------------------</span><span>
-</span><a name="line-115"></a><span>
-</span><a name="line-116"></a><span class="hs-identifier hs-var">deriveSeedGoblin</span><span> </span><span class="hs-special">''</span><span class="hs-identifier hs-var">UTxOEnv</span><span>
-</span><a name="line-117"></a><span class="hs-identifier hs-var">deriveSeedGoblin</span><span> </span><span class="hs-special">''</span><span class="hs-identifier hs-var">UTxOState</span><span>
-</span><a name="line-118"></a></pre></body></html>
+</span><span id="line-2"></span><span class="hs-pragma">{-# LANGUAGE DeriveDataTypeable #-}</span><span>
+</span><span id="line-3"></span><span class="hs-pragma">{-# LANGUAGE DeriveGeneric #-}</span><span>
+</span><span id="line-4"></span><span class="hs-pragma">{-# LANGUAGE NamedFieldPuns #-}</span><span>
+</span><span id="line-5"></span><span class="hs-pragma">{-# LANGUAGE StrictData #-}</span><span>
+</span><span id="line-6"></span><span class="hs-pragma">{-# LANGUAGE TemplateHaskell #-}</span><span>
+</span><span id="line-7"></span><span class="hs-pragma">{-# LANGUAGE TypeApplications #-}</span><span>
+</span><span id="line-8"></span><span class="hs-pragma">{-# LANGUAGE TypeFamilies #-}</span><span>
+</span><span id="line-9"></span><span>
+</span><span id="line-10"></span><span>
+</span><span id="line-11"></span><span class="hs-comment">-- | UTXO transition system</span><span>
+</span><span id="line-12"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Byron.Spec.Ledger.STS.UTXO</span><span>
+</span><span id="line-13"></span><span>  </span><span class="hs-special">(</span><span> </span><span class="annot"><a href="Byron.Spec.Ledger.STS.UTXO.html#UTXO"><span class="hs-identifier">UTXO</span></a></span><span>
+</span><span id="line-14"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Byron.Spec.Ledger.STS.UTXO.html#UTxOEnv"><span class="hs-identifier">UTxOEnv</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Byron.Spec.Ledger.STS.UTXO.html#UTxOEnv"><span class="hs-identifier">UTxOEnv</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-15"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Byron.Spec.Ledger.STS.UTXO.html#UTxOState"><span class="hs-identifier">UTxOState</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Byron.Spec.Ledger.STS.UTXO.html#UTxOState"><span class="hs-identifier">UTxOState</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-16"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Byron.Spec.Ledger.STS.UTXO.html#UtxoPredicateFailure"><span class="hs-identifier">UtxoPredicateFailure</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
+</span><span id="line-17"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/small-steps-0.1.0.0/noopt/doc/html/small-steps/src"><span class="hs-identifier">PredicateFailure</span></a></span><span>
+</span><span id="line-18"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Byron.Spec.Ledger.STS.UTXO.html#utxo"><span class="hs-identifier">utxo</span></a></span><span>
+</span><span id="line-19"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Byron.Spec.Ledger.STS.UTXO.html#utxo0"><span class="hs-identifier">utxo0</span></a></span><span>
+</span><span id="line-20"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Byron.Spec.Ledger.STS.UTXO.html#pps"><span class="hs-identifier">pps</span></a></span><span>
+</span><span id="line-21"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Byron.Spec.Ledger.STS.UTXO.html#reserves"><span class="hs-identifier">reserves</span></a></span><span>
+</span><span id="line-22"></span><span>  </span><span class="hs-special">)</span><span>
+</span><span id="line-23"></span><span class="hs-keyword">where</span><span>
+</span><span id="line-24"></span><span>
+</span><span id="line-25"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><span class="hs-identifier">NoThunks.Class</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">NoThunks</span></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-26"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><span class="hs-identifier">Data.Data</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Data</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">Typeable</span></span><span class="hs-special">)</span><span>
+</span><span id="line-27"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Data.Set</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Set</span></span><span>
+</span><span id="line-28"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><span class="hs-identifier">GHC.Generics</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Generic</span></span><span class="hs-special">)</span><span>
+</span><span id="line-29"></span><span>
+</span><span id="line-30"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/small-steps-0.1.0.0/noopt/doc/html/small-steps/src"><span class="hs-identifier">Control.State.Transition</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/small-steps-0.1.0.0/noopt/doc/html/small-steps/src"><span class="hs-identifier">Environment</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/small-steps-0.1.0.0/noopt/doc/html/small-steps/src"><span class="hs-identifier">IRC</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/small-steps-0.1.0.0/noopt/doc/html/small-steps/src"><span class="hs-identifier">IRC</span></a></span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/small-steps-0.1.0.0/noopt/doc/html/small-steps/src"><span class="hs-identifier">PredicateFailure</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/small-steps-0.1.0.0/noopt/doc/html/small-steps/src"><span class="hs-identifier">STS</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/small-steps-0.1.0.0/noopt/doc/html/small-steps/src"><span class="hs-identifier">Signal</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-31"></span><span>                     </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/small-steps-0.1.0.0/noopt/doc/html/small-steps/src"><span class="hs-identifier">State</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/small-steps-0.1.0.0/noopt/doc/html/small-steps/src"><span class="hs-identifier">TRC</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/small-steps-0.1.0.0/noopt/doc/html/small-steps/src"><span class="hs-identifier">TRC</span></a></span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/small-steps-0.1.0.0/noopt/doc/html/small-steps/src"><span class="hs-identifier">initialRules</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/small-steps-0.1.0.0/noopt/doc/html/small-steps/src"><span class="hs-identifier">judgmentContext</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/small-steps-0.1.0.0/noopt/doc/html/small-steps/src"><span class="hs-identifier">transitionRules</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/small-steps-0.1.0.0/noopt/doc/html/small-steps/src"><span class="hs-operator">(?!)</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-32"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="Byron.Spec.Ledger.Core.html"><span class="hs-identifier">Byron.Spec.Ledger.Core</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Byron.Spec.Ledger.Core.html#Lovelace"><span class="hs-identifier">Lovelace</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Byron.Spec.Ledger.Core.html#dom"><span class="hs-identifier">dom</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Byron.Spec.Ledger.Core.html#range"><span class="hs-identifier">range</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Byron.Spec.Ledger.Core.html#%222A"><span class="hs-operator">(&#8746;)</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Byron.Spec.Ledger.Core.html#%2286"><span class="hs-operator">(&#8838;)</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Byron.Spec.Ledger.Core.html#%22EA"><span class="hs-operator">(&#8938;)</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Byron.Spec.Ledger.Core.html#%25C1"><span class="hs-operator">(&#9665;)</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-33"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="Byron.Spec.Ledger.GlobalParams.html"><span class="hs-identifier">Byron.Spec.Ledger.GlobalParams</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Byron.Spec.Ledger.Core.html#lovelaceCap"><span class="hs-identifier">lovelaceCap</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-34"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="Byron.Spec.Ledger.Update.html"><span class="hs-identifier">Byron.Spec.Ledger.Update</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Byron.Spec.Ledger.Update.html#PParams"><span class="hs-identifier">PParams</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-35"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="Byron.Spec.Ledger.UTxO.html"><span class="hs-identifier">Byron.Spec.Ledger.UTxO</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Byron.Spec.Ledger.UTxO.html#Tx"><span class="hs-identifier">Tx</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Byron.Spec.Ledger.UTxO.html#UTxO"><span class="hs-identifier">UTxO</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Byron.Spec.Ledger.UTxO.html#balance"><span class="hs-identifier">balance</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Byron.Spec.Ledger.UTxO.html#body"><span class="hs-identifier">body</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Byron.Spec.Ledger.UTxO.html#pcMinFee"><span class="hs-identifier">pcMinFee</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Byron.Spec.Ledger.UTxO.html#txins"><span class="hs-identifier">txins</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Byron.Spec.Ledger.UTxO.html#txouts"><span class="hs-identifier">txouts</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Byron.Spec.Ledger.UTxO.html#unUTxO"><span class="hs-identifier">unUTxO</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Byron.Spec.Ledger.UTxO.html#value"><span class="hs-identifier">value</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-36"></span><span>
+</span><span id="line-37"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/goblins-0.2.0.0/noopt/doc/html/goblins/src"><span class="hs-identifier">Test.Goblin</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/goblins-0.2.0.0/noopt/doc/html/goblins/src"><span class="hs-identifier">SeedGoblin</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-38"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/goblins-0.2.0.0/noopt/doc/html/goblins/src"><span class="hs-identifier">Test.Goblin.TH</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/goblins-0.2.0.0/noopt/doc/html/goblins/src"><span class="hs-identifier">deriveSeedGoblin</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-39"></span><span>
+</span><span id="line-40"></span><span>
+</span><span id="line-41"></span><span class="hs-keyword">data</span><span> </span><span id="UTXO"><span class="annot"><a href="Byron.Spec.Ledger.STS.UTXO.html#UTXO"><span class="hs-identifier hs-var">UTXO</span></a></span></span><span> </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="%24tUTXO"><span id="local-6989586621679560851"><span id="local-6989586621679560853"><span id="local-6989586621679560855"><span id="local-6989586621679560857"><span id="local-6989586621679560859"><span id="local-6989586621679560861"><span id="local-6989586621679560863"><span id="local-6989586621679560865"><span id="local-6989586621679560867"><span id="local-6989586621679560869"><span id="local-6989586621679560871"><span id="local-6989586621679560873"><span id="local-6989586621679560875"><span id="local-6989586621679560877"><span class="annot"><span class="annottext">Typeable UTXO
+DataType
+Typeable UTXO
+-&gt; (forall (c :: * -&gt; *).
+    (forall d b. Data d =&gt; c (d -&gt; b) -&gt; d -&gt; c b)
+    -&gt; (forall g. g -&gt; c g) -&gt; UTXO -&gt; c UTXO)
+-&gt; (forall (c :: * -&gt; *).
+    (forall b r. Data b =&gt; c (b -&gt; r) -&gt; c r)
+    -&gt; (forall r. r -&gt; c r) -&gt; Constr -&gt; c UTXO)
+-&gt; (UTXO -&gt; Constr)
+-&gt; (UTXO -&gt; DataType)
+-&gt; (forall (t :: * -&gt; *) (c :: * -&gt; *).
+    Typeable t =&gt;
+    (forall d. Data d =&gt; c (t d)) -&gt; Maybe (c UTXO))
+-&gt; (forall (t :: * -&gt; * -&gt; *) (c :: * -&gt; *).
+    Typeable t =&gt;
+    (forall d e. (Data d, Data e) =&gt; c (t d e)) -&gt; Maybe (c UTXO))
+-&gt; ((forall b. Data b =&gt; b -&gt; b) -&gt; UTXO -&gt; UTXO)
+-&gt; (forall r r'.
+    (r -&gt; r' -&gt; r) -&gt; r -&gt; (forall d. Data d =&gt; d -&gt; r') -&gt; UTXO -&gt; r)
+-&gt; (forall r r'.
+    (r' -&gt; r -&gt; r) -&gt; r -&gt; (forall d. Data d =&gt; d -&gt; r') -&gt; UTXO -&gt; r)
+-&gt; (forall u. (forall d. Data d =&gt; d -&gt; u) -&gt; UTXO -&gt; [u])
+-&gt; (forall u. Int -&gt; (forall d. Data d =&gt; d -&gt; u) -&gt; UTXO -&gt; u)
+-&gt; (forall (m :: * -&gt; *).
+    Monad m =&gt;
+    (forall d. Data d =&gt; d -&gt; m d) -&gt; UTXO -&gt; m UTXO)
+-&gt; (forall (m :: * -&gt; *).
+    MonadPlus m =&gt;
+    (forall d. Data d =&gt; d -&gt; m d) -&gt; UTXO -&gt; m UTXO)
+-&gt; (forall (m :: * -&gt; *).
+    MonadPlus m =&gt;
+    (forall d. Data d =&gt; d -&gt; m d) -&gt; UTXO -&gt; m UTXO)
+-&gt; Data UTXO
+UTXO -&gt; DataType
+UTXO -&gt; Constr
+(forall b. Data b =&gt; b -&gt; b) -&gt; UTXO -&gt; UTXO
+(forall d b. Data d =&gt; c (d -&gt; b) -&gt; d -&gt; c b)
+-&gt; (forall g. g -&gt; c g) -&gt; UTXO -&gt; c UTXO
+(forall b r. Data b =&gt; c (b -&gt; r) -&gt; c r)
+-&gt; (forall r. r -&gt; c r) -&gt; Constr -&gt; c UTXO
+forall a.
+Typeable a
+-&gt; (forall (c :: * -&gt; *).
+    (forall d b. Data d =&gt; c (d -&gt; b) -&gt; d -&gt; c b)
+    -&gt; (forall g. g -&gt; c g) -&gt; a -&gt; c a)
+-&gt; (forall (c :: * -&gt; *).
+    (forall b r. Data b =&gt; c (b -&gt; r) -&gt; c r)
+    -&gt; (forall r. r -&gt; c r) -&gt; Constr -&gt; c a)
+-&gt; (a -&gt; Constr)
+-&gt; (a -&gt; DataType)
+-&gt; (forall (t :: * -&gt; *) (c :: * -&gt; *).
+    Typeable t =&gt;
+    (forall d. Data d =&gt; c (t d)) -&gt; Maybe (c a))
+-&gt; (forall (t :: * -&gt; * -&gt; *) (c :: * -&gt; *).
+    Typeable t =&gt;
+    (forall d e. (Data d, Data e) =&gt; c (t d e)) -&gt; Maybe (c a))
+-&gt; ((forall b. Data b =&gt; b -&gt; b) -&gt; a -&gt; a)
+-&gt; (forall r r'.
+    (r -&gt; r' -&gt; r) -&gt; r -&gt; (forall d. Data d =&gt; d -&gt; r') -&gt; a -&gt; r)
+-&gt; (forall r r'.
+    (r' -&gt; r -&gt; r) -&gt; r -&gt; (forall d. Data d =&gt; d -&gt; r') -&gt; a -&gt; r)
+-&gt; (forall u. (forall d. Data d =&gt; d -&gt; u) -&gt; a -&gt; [u])
+-&gt; (forall u. Int -&gt; (forall d. Data d =&gt; d -&gt; u) -&gt; a -&gt; u)
+-&gt; (forall (m :: * -&gt; *).
+    Monad m =&gt;
+    (forall d. Data d =&gt; d -&gt; m d) -&gt; a -&gt; m a)
+-&gt; (forall (m :: * -&gt; *).
+    MonadPlus m =&gt;
+    (forall d. Data d =&gt; d -&gt; m d) -&gt; a -&gt; m a)
+-&gt; (forall (m :: * -&gt; *).
+    MonadPlus m =&gt;
+    (forall d. Data d =&gt; d -&gt; m d) -&gt; a -&gt; m a)
+-&gt; Data a
+forall u. Int -&gt; (forall d. Data d =&gt; d -&gt; u) -&gt; UTXO -&gt; u
+forall u. (forall d. Data d =&gt; d -&gt; u) -&gt; UTXO -&gt; [u]
+forall r r'.
+(r -&gt; r' -&gt; r) -&gt; r -&gt; (forall d. Data d =&gt; d -&gt; r') -&gt; UTXO -&gt; r
+forall r r'.
+(r' -&gt; r -&gt; r) -&gt; r -&gt; (forall d. Data d =&gt; d -&gt; r') -&gt; UTXO -&gt; r
+forall (m :: * -&gt; *).
+Monad m =&gt;
+(forall d. Data d =&gt; d -&gt; m d) -&gt; UTXO -&gt; m UTXO
+forall (m :: * -&gt; *).
+MonadPlus m =&gt;
+(forall d. Data d =&gt; d -&gt; m d) -&gt; UTXO -&gt; m UTXO
+forall (c :: * -&gt; *).
+(forall b r. Data b =&gt; c (b -&gt; r) -&gt; c r)
+-&gt; (forall r. r -&gt; c r) -&gt; Constr -&gt; c UTXO
+forall (c :: * -&gt; *).
+(forall d b. Data d =&gt; c (d -&gt; b) -&gt; d -&gt; c b)
+-&gt; (forall g. g -&gt; c g) -&gt; UTXO -&gt; c UTXO
+forall (t :: * -&gt; *) (c :: * -&gt; *).
+Typeable t =&gt;
+(forall d. Data d =&gt; c (t d)) -&gt; Maybe (c UTXO)
+forall (t :: * -&gt; * -&gt; *) (c :: * -&gt; *).
+Typeable t =&gt;
+(forall d e. (Data d, Data e) =&gt; c (t d e)) -&gt; Maybe (c UTXO)
+$tUTXO :: DataType
+gmapMo :: (forall d. Data d =&gt; d -&gt; m d) -&gt; UTXO -&gt; m UTXO
+$cgmapMo :: forall (m :: * -&gt; *).
+MonadPlus m =&gt;
+(forall d. Data d =&gt; d -&gt; m d) -&gt; UTXO -&gt; m UTXO
+gmapMp :: (forall d. Data d =&gt; d -&gt; m d) -&gt; UTXO -&gt; m UTXO
+$cgmapMp :: forall (m :: * -&gt; *).
+MonadPlus m =&gt;
+(forall d. Data d =&gt; d -&gt; m d) -&gt; UTXO -&gt; m UTXO
+gmapM :: (forall d. Data d =&gt; d -&gt; m d) -&gt; UTXO -&gt; m UTXO
+$cgmapM :: forall (m :: * -&gt; *).
+Monad m =&gt;
+(forall d. Data d =&gt; d -&gt; m d) -&gt; UTXO -&gt; m UTXO
+gmapQi :: Int -&gt; (forall d. Data d =&gt; d -&gt; u) -&gt; UTXO -&gt; u
+$cgmapQi :: forall u. Int -&gt; (forall d. Data d =&gt; d -&gt; u) -&gt; UTXO -&gt; u
+gmapQ :: (forall d. Data d =&gt; d -&gt; u) -&gt; UTXO -&gt; [u]
+$cgmapQ :: forall u. (forall d. Data d =&gt; d -&gt; u) -&gt; UTXO -&gt; [u]
+gmapQr :: (r' -&gt; r -&gt; r) -&gt; r -&gt; (forall d. Data d =&gt; d -&gt; r') -&gt; UTXO -&gt; r
+$cgmapQr :: forall r r'.
+(r' -&gt; r -&gt; r) -&gt; r -&gt; (forall d. Data d =&gt; d -&gt; r') -&gt; UTXO -&gt; r
+gmapQl :: (r -&gt; r' -&gt; r) -&gt; r -&gt; (forall d. Data d =&gt; d -&gt; r') -&gt; UTXO -&gt; r
+$cgmapQl :: forall r r'.
+(r -&gt; r' -&gt; r) -&gt; r -&gt; (forall d. Data d =&gt; d -&gt; r') -&gt; UTXO -&gt; r
+gmapT :: (forall b. Data b =&gt; b -&gt; b) -&gt; UTXO -&gt; UTXO
+$cgmapT :: (forall b. Data b =&gt; b -&gt; b) -&gt; UTXO -&gt; UTXO
+dataCast2 :: (forall d e. (Data d, Data e) =&gt; c (t d e)) -&gt; Maybe (c UTXO)
+$cdataCast2 :: forall (t :: * -&gt; * -&gt; *) (c :: * -&gt; *).
+Typeable t =&gt;
+(forall d e. (Data d, Data e) =&gt; c (t d e)) -&gt; Maybe (c UTXO)
+dataCast1 :: (forall d. Data d =&gt; c (t d)) -&gt; Maybe (c UTXO)
+$cdataCast1 :: forall (t :: * -&gt; *) (c :: * -&gt; *).
+Typeable t =&gt;
+(forall d. Data d =&gt; c (t d)) -&gt; Maybe (c UTXO)
+dataTypeOf :: UTXO -&gt; DataType
+$cdataTypeOf :: UTXO -&gt; DataType
+toConstr :: UTXO -&gt; Constr
+$ctoConstr :: UTXO -&gt; Constr
+gunfold :: (forall b r. Data b =&gt; c (b -&gt; r) -&gt; c r)
+-&gt; (forall r. r -&gt; c r) -&gt; Constr -&gt; c UTXO
+$cgunfold :: forall (c :: * -&gt; *).
+(forall b r. Data b =&gt; c (b -&gt; r) -&gt; c r)
+-&gt; (forall r. r -&gt; c r) -&gt; Constr -&gt; c UTXO
+gfoldl :: (forall d b. Data d =&gt; c (d -&gt; b) -&gt; d -&gt; c b)
+-&gt; (forall g. g -&gt; c g) -&gt; UTXO -&gt; c UTXO
+$cgfoldl :: forall (c :: * -&gt; *).
+(forall d b. Data d =&gt; c (d -&gt; b) -&gt; d -&gt; c b)
+-&gt; (forall g. g -&gt; c g) -&gt; UTXO -&gt; c UTXO
+$cp1Data :: Typeable UTXO
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Data</span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Typeable</span></span><span class="hs-special">)</span><span>
+</span><span id="line-42"></span><span>
+</span><span id="line-43"></span><span>
+</span><span id="line-44"></span><span id="local-6989586621679560847"><span id="local-6989586621679560848"></span></span><span class="hs-keyword">data</span><span> </span><span id="UTxOEnv"><span class="annot"><a href="Byron.Spec.Ledger.STS.UTXO.html#UTxOEnv"><span class="hs-identifier hs-var">UTxOEnv</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="UTxOEnv"><span class="annot"><a href="Byron.Spec.Ledger.STS.UTXO.html#UTxOEnv"><span class="hs-identifier hs-var">UTxOEnv</span></a></span></span><span>
+</span><span id="line-45"></span><span>  </span><span class="hs-special">{</span><span> </span><span id="utxo0"><span class="annot"><span class="annottext">UTxOEnv -&gt; UTxO
+</span><a href="Byron.Spec.Ledger.STS.UTXO.html#utxo0"><span class="hs-identifier hs-var hs-var">utxo0</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Byron.Spec.Ledger.UTxO.html#UTxO"><span class="hs-identifier hs-type">UTxO</span></a></span><span>
+</span><span id="line-46"></span><span>  </span><span class="hs-special">,</span><span> </span><span id="pps"><span class="annot"><span class="annottext">UTxOEnv -&gt; PParams
+</span><a href="Byron.Spec.Ledger.STS.UTXO.html#pps"><span class="hs-identifier hs-var hs-var">pps</span></a></span></span><span>   </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Byron.Spec.Ledger.Update.html#PParams"><span class="hs-identifier hs-type">PParams</span></a></span><span>
+</span><span id="line-47"></span><span>  </span><span class="hs-special">}</span><span> </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679560843"><span id="local-6989586621679560845"><span class="annot"><span class="annottext">UTxOEnv -&gt; UTxOEnv -&gt; Bool
+(UTxOEnv -&gt; UTxOEnv -&gt; Bool)
+-&gt; (UTxOEnv -&gt; UTxOEnv -&gt; Bool) -&gt; Eq UTxOEnv
+forall a. (a -&gt; a -&gt; Bool) -&gt; (a -&gt; a -&gt; Bool) -&gt; Eq a
+/= :: UTxOEnv -&gt; UTxOEnv -&gt; Bool
+$c/= :: UTxOEnv -&gt; UTxOEnv -&gt; Bool
+== :: UTxOEnv -&gt; UTxOEnv -&gt; Bool
+$c== :: UTxOEnv -&gt; UTxOEnv -&gt; Bool
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679560836"><span id="local-6989586621679560838"><span id="local-6989586621679560840"><span class="annot"><span class="annottext">Int -&gt; UTxOEnv -&gt; ShowS
+[UTxOEnv] -&gt; ShowS
+UTxOEnv -&gt; String
+(Int -&gt; UTxOEnv -&gt; ShowS)
+-&gt; (UTxOEnv -&gt; String) -&gt; ([UTxOEnv] -&gt; ShowS) -&gt; Show UTxOEnv
+forall a.
+(Int -&gt; a -&gt; ShowS) -&gt; (a -&gt; String) -&gt; ([a] -&gt; ShowS) -&gt; Show a
+showList :: [UTxOEnv] -&gt; ShowS
+$cshowList :: [UTxOEnv] -&gt; ShowS
+show :: UTxOEnv -&gt; String
+$cshow :: UTxOEnv -&gt; String
+showsPrec :: Int -&gt; UTxOEnv -&gt; ShowS
+$cshowsPrec :: Int -&gt; UTxOEnv -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">(forall x. UTxOEnv -&gt; Rep UTxOEnv x)
+-&gt; (forall x. Rep UTxOEnv x -&gt; UTxOEnv) -&gt; Generic UTxOEnv
+forall x. Rep UTxOEnv x -&gt; UTxOEnv
+forall x. UTxOEnv -&gt; Rep UTxOEnv x
+forall a.
+(forall x. a -&gt; Rep a x) -&gt; (forall x. Rep a x -&gt; a) -&gt; Generic a
+$cto :: forall x. Rep UTxOEnv x -&gt; UTxOEnv
+$cfrom :: forall x. UTxOEnv -&gt; Rep UTxOEnv x
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">Generic</span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679560826"><span id="local-6989586621679560828"><span id="local-6989586621679560830"><span class="annot"><span class="annottext">Context -&gt; UTxOEnv -&gt; IO (Maybe ThunkInfo)
+Proxy UTxOEnv -&gt; String
+(Context -&gt; UTxOEnv -&gt; IO (Maybe ThunkInfo))
+-&gt; (Context -&gt; UTxOEnv -&gt; IO (Maybe ThunkInfo))
+-&gt; (Proxy UTxOEnv -&gt; String)
+-&gt; NoThunks UTxOEnv
+forall a.
+(Context -&gt; a -&gt; IO (Maybe ThunkInfo))
+-&gt; (Context -&gt; a -&gt; IO (Maybe ThunkInfo))
+-&gt; (Proxy a -&gt; String)
+-&gt; NoThunks a
+showTypeOf :: Proxy UTxOEnv -&gt; String
+$cshowTypeOf :: Proxy UTxOEnv -&gt; String
+wNoThunks :: Context -&gt; UTxOEnv -&gt; IO (Maybe ThunkInfo)
+$cwNoThunks :: Context -&gt; UTxOEnv -&gt; IO (Maybe ThunkInfo)
+noThunks :: Context -&gt; UTxOEnv -&gt; IO (Maybe ThunkInfo)
+$cnoThunks :: Context -&gt; UTxOEnv -&gt; IO (Maybe ThunkInfo)
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">NoThunks</span></span></span></span></span><span class="hs-special">)</span><span>
+</span><span id="line-48"></span><span>
+</span><span id="line-49"></span><span id="local-6989586621679560823"><span id="local-6989586621679560824"></span></span><span class="hs-keyword">data</span><span> </span><span id="UTxOState"><span class="annot"><a href="Byron.Spec.Ledger.STS.UTXO.html#UTxOState"><span class="hs-identifier hs-var">UTxOState</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="UTxOState"><span class="annot"><a href="Byron.Spec.Ledger.STS.UTXO.html#UTxOState"><span class="hs-identifier hs-var">UTxOState</span></a></span></span><span>
+</span><span id="line-50"></span><span>  </span><span class="hs-special">{</span><span> </span><span id="utxo"><span class="annot"><span class="annottext">UTxOState -&gt; UTxO
+</span><a href="Byron.Spec.Ledger.STS.UTXO.html#utxo"><span class="hs-identifier hs-var hs-var">utxo</span></a></span></span><span>     </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Byron.Spec.Ledger.UTxO.html#UTxO"><span class="hs-identifier hs-type">UTxO</span></a></span><span>
+</span><span id="line-51"></span><span>  </span><span class="hs-special">,</span><span> </span><span id="reserves"><span class="annot"><span class="annottext">UTxOState -&gt; Lovelace
+</span><a href="Byron.Spec.Ledger.STS.UTXO.html#reserves"><span class="hs-identifier hs-var hs-var">reserves</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Byron.Spec.Ledger.Core.html#Lovelace"><span class="hs-identifier hs-type">Lovelace</span></a></span><span>
+</span><span id="line-52"></span><span>  </span><span class="hs-special">}</span><span> </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679560819"><span id="local-6989586621679560821"><span class="annot"><span class="annottext">UTxOState -&gt; UTxOState -&gt; Bool
+(UTxOState -&gt; UTxOState -&gt; Bool)
+-&gt; (UTxOState -&gt; UTxOState -&gt; Bool) -&gt; Eq UTxOState
+forall a. (a -&gt; a -&gt; Bool) -&gt; (a -&gt; a -&gt; Bool) -&gt; Eq a
+/= :: UTxOState -&gt; UTxOState -&gt; Bool
+$c/= :: UTxOState -&gt; UTxOState -&gt; Bool
+== :: UTxOState -&gt; UTxOState -&gt; Bool
+$c== :: UTxOState -&gt; UTxOState -&gt; Bool
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679560813"><span id="local-6989586621679560815"><span id="local-6989586621679560817"><span class="annot"><span class="annottext">Int -&gt; UTxOState -&gt; ShowS
+[UTxOState] -&gt; ShowS
+UTxOState -&gt; String
+(Int -&gt; UTxOState -&gt; ShowS)
+-&gt; (UTxOState -&gt; String)
+-&gt; ([UTxOState] -&gt; ShowS)
+-&gt; Show UTxOState
+forall a.
+(Int -&gt; a -&gt; ShowS) -&gt; (a -&gt; String) -&gt; ([a] -&gt; ShowS) -&gt; Show a
+showList :: [UTxOState] -&gt; ShowS
+$cshowList :: [UTxOState] -&gt; ShowS
+show :: UTxOState -&gt; String
+$cshow :: UTxOState -&gt; String
+showsPrec :: Int -&gt; UTxOState -&gt; ShowS
+$cshowsPrec :: Int -&gt; UTxOState -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">(forall x. UTxOState -&gt; Rep UTxOState x)
+-&gt; (forall x. Rep UTxOState x -&gt; UTxOState) -&gt; Generic UTxOState
+forall x. Rep UTxOState x -&gt; UTxOState
+forall x. UTxOState -&gt; Rep UTxOState x
+forall a.
+(forall x. a -&gt; Rep a x) -&gt; (forall x. Rep a x -&gt; a) -&gt; Generic a
+$cto :: forall x. Rep UTxOState x -&gt; UTxOState
+$cfrom :: forall x. UTxOState -&gt; Rep UTxOState x
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">Generic</span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679560805"><span id="local-6989586621679560807"><span id="local-6989586621679560809"><span class="annot"><span class="annottext">Context -&gt; UTxOState -&gt; IO (Maybe ThunkInfo)
+Proxy UTxOState -&gt; String
+(Context -&gt; UTxOState -&gt; IO (Maybe ThunkInfo))
+-&gt; (Context -&gt; UTxOState -&gt; IO (Maybe ThunkInfo))
+-&gt; (Proxy UTxOState -&gt; String)
+-&gt; NoThunks UTxOState
+forall a.
+(Context -&gt; a -&gt; IO (Maybe ThunkInfo))
+-&gt; (Context -&gt; a -&gt; IO (Maybe ThunkInfo))
+-&gt; (Proxy a -&gt; String)
+-&gt; NoThunks a
+showTypeOf :: Proxy UTxOState -&gt; String
+$cshowTypeOf :: Proxy UTxOState -&gt; String
+wNoThunks :: Context -&gt; UTxOState -&gt; IO (Maybe ThunkInfo)
+$cwNoThunks :: Context -&gt; UTxOState -&gt; IO (Maybe ThunkInfo)
+noThunks :: Context -&gt; UTxOState -&gt; IO (Maybe ThunkInfo)
+$cnoThunks :: Context -&gt; UTxOState -&gt; IO (Maybe ThunkInfo)
+</span><a href="#local-6989586621679560805"><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">NoThunks</span></a></span></span></span></span><span class="hs-special">)</span><span>
+</span><span id="line-53"></span><span>
+</span><span id="line-54"></span><span class="hs-comment">-- | These `PredicateFailure`s are all &quot;throwable&quot;. The disjunction of the</span><span>
+</span><span id="line-55"></span><span class="hs-comment">--   rules' preconditions is not `True` - the `PredicateFailure`s represent</span><span>
+</span><span id="line-56"></span><span class="hs-comment">--   `False` cases.</span><span>
+</span><span id="line-57"></span><span id="local-6989586621679560803"><span id="local-6989586621679560804"></span></span><span class="hs-keyword">data</span><span> </span><span id="UtxoPredicateFailure"><span class="annot"><a href="Byron.Spec.Ledger.STS.UTXO.html#UtxoPredicateFailure"><span class="hs-identifier hs-var">UtxoPredicateFailure</span></a></span></span><span>
+</span><span id="line-58"></span><span>  </span><span class="hs-glyph">=</span><span> </span><span id="EmptyTxInputs"><span class="annot"><a href="Byron.Spec.Ledger.STS.UTXO.html#EmptyTxInputs"><span class="hs-identifier hs-var">EmptyTxInputs</span></a></span></span><span>
+</span><span id="line-59"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span id="EmptyTxOutputs"><span class="annot"><a href="Byron.Spec.Ledger.STS.UTXO.html#EmptyTxOutputs"><span class="hs-identifier hs-var">EmptyTxOutputs</span></a></span></span><span>
+</span><span id="line-60"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span id="FeeTooLow"><span class="annot"><a href="Byron.Spec.Ledger.STS.UTXO.html#FeeTooLow"><span class="hs-identifier hs-var">FeeTooLow</span></a></span></span><span>
+</span><span id="line-61"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span id="IncreasedTotalBalance"><span class="annot"><a href="Byron.Spec.Ledger.STS.UTXO.html#IncreasedTotalBalance"><span class="hs-identifier hs-var">IncreasedTotalBalance</span></a></span></span><span>
+</span><span id="line-62"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span id="InputsNotInUTxO"><span class="annot"><a href="Byron.Spec.Ledger.STS.UTXO.html#InputsNotInUTxO"><span class="hs-identifier hs-var">InputsNotInUTxO</span></a></span></span><span>
+</span><span id="line-63"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span id="NonPositiveOutputs"><span class="annot"><a href="Byron.Spec.Ledger.STS.UTXO.html#NonPositiveOutputs"><span class="hs-identifier hs-var">NonPositiveOutputs</span></a></span></span><span>
+</span><span id="line-64"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679560793"><span id="local-6989586621679560795"><span class="annot"><span class="annottext">UtxoPredicateFailure -&gt; UtxoPredicateFailure -&gt; Bool
+(UtxoPredicateFailure -&gt; UtxoPredicateFailure -&gt; Bool)
+-&gt; (UtxoPredicateFailure -&gt; UtxoPredicateFailure -&gt; Bool)
+-&gt; Eq UtxoPredicateFailure
+forall a. (a -&gt; a -&gt; Bool) -&gt; (a -&gt; a -&gt; Bool) -&gt; Eq a
+/= :: UtxoPredicateFailure -&gt; UtxoPredicateFailure -&gt; Bool
+$c/= :: UtxoPredicateFailure -&gt; UtxoPredicateFailure -&gt; Bool
+== :: UtxoPredicateFailure -&gt; UtxoPredicateFailure -&gt; Bool
+$c== :: UtxoPredicateFailure -&gt; UtxoPredicateFailure -&gt; Bool
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679560787"><span id="local-6989586621679560789"><span id="local-6989586621679560791"><span class="annot"><span class="annottext">Int -&gt; UtxoPredicateFailure -&gt; ShowS
+[UtxoPredicateFailure] -&gt; ShowS
+UtxoPredicateFailure -&gt; String
+(Int -&gt; UtxoPredicateFailure -&gt; ShowS)
+-&gt; (UtxoPredicateFailure -&gt; String)
+-&gt; ([UtxoPredicateFailure] -&gt; ShowS)
+-&gt; Show UtxoPredicateFailure
+forall a.
+(Int -&gt; a -&gt; ShowS) -&gt; (a -&gt; String) -&gt; ([a] -&gt; ShowS) -&gt; Show a
+showList :: [UtxoPredicateFailure] -&gt; ShowS
+$cshowList :: [UtxoPredicateFailure] -&gt; ShowS
+show :: UtxoPredicateFailure -&gt; String
+$cshow :: UtxoPredicateFailure -&gt; String
+showsPrec :: Int -&gt; UtxoPredicateFailure -&gt; ShowS
+$cshowsPrec :: Int -&gt; UtxoPredicateFailure -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="%24cNonPositiveOutputs"><span id="%24cInputsNotInUTxO"><span id="%24cIncreasedTotalBalance"><span id="%24cFeeTooLow"><span id="%24cEmptyTxOutputs"><span id="%24cEmptyTxInputs"><span id="%24tUtxoPredicateFailure"><span id="local-6989586621679560758"><span id="local-6989586621679560760"><span id="local-6989586621679560762"><span id="local-6989586621679560764"><span id="local-6989586621679560766"><span id="local-6989586621679560768"><span id="local-6989586621679560770"><span id="local-6989586621679560772"><span id="local-6989586621679560774"><span id="local-6989586621679560776"><span id="local-6989586621679560778"><span id="local-6989586621679560780"><span id="local-6989586621679560782"><span id="local-6989586621679560784"><span class="annot"><span class="annottext">Typeable UtxoPredicateFailure
+DataType
+Constr
+Typeable UtxoPredicateFailure
+-&gt; (forall (c :: * -&gt; *).
+    (forall d b. Data d =&gt; c (d -&gt; b) -&gt; d -&gt; c b)
+    -&gt; (forall g. g -&gt; c g)
+    -&gt; UtxoPredicateFailure
+    -&gt; c UtxoPredicateFailure)
+-&gt; (forall (c :: * -&gt; *).
+    (forall b r. Data b =&gt; c (b -&gt; r) -&gt; c r)
+    -&gt; (forall r. r -&gt; c r) -&gt; Constr -&gt; c UtxoPredicateFailure)
+-&gt; (UtxoPredicateFailure -&gt; Constr)
+-&gt; (UtxoPredicateFailure -&gt; DataType)
+-&gt; (forall (t :: * -&gt; *) (c :: * -&gt; *).
+    Typeable t =&gt;
+    (forall d. Data d =&gt; c (t d)) -&gt; Maybe (c UtxoPredicateFailure))
+-&gt; (forall (t :: * -&gt; * -&gt; *) (c :: * -&gt; *).
+    Typeable t =&gt;
+    (forall d e. (Data d, Data e) =&gt; c (t d e))
+    -&gt; Maybe (c UtxoPredicateFailure))
+-&gt; ((forall b. Data b =&gt; b -&gt; b)
+    -&gt; UtxoPredicateFailure -&gt; UtxoPredicateFailure)
+-&gt; (forall r r'.
+    (r -&gt; r' -&gt; r)
+    -&gt; r -&gt; (forall d. Data d =&gt; d -&gt; r') -&gt; UtxoPredicateFailure -&gt; r)
+-&gt; (forall r r'.
+    (r' -&gt; r -&gt; r)
+    -&gt; r -&gt; (forall d. Data d =&gt; d -&gt; r') -&gt; UtxoPredicateFailure -&gt; r)
+-&gt; (forall u.
+    (forall d. Data d =&gt; d -&gt; u) -&gt; UtxoPredicateFailure -&gt; [u])
+-&gt; (forall u.
+    Int -&gt; (forall d. Data d =&gt; d -&gt; u) -&gt; UtxoPredicateFailure -&gt; u)
+-&gt; (forall (m :: * -&gt; *).
+    Monad m =&gt;
+    (forall d. Data d =&gt; d -&gt; m d)
+    -&gt; UtxoPredicateFailure -&gt; m UtxoPredicateFailure)
+-&gt; (forall (m :: * -&gt; *).
+    MonadPlus m =&gt;
+    (forall d. Data d =&gt; d -&gt; m d)
+    -&gt; UtxoPredicateFailure -&gt; m UtxoPredicateFailure)
+-&gt; (forall (m :: * -&gt; *).
+    MonadPlus m =&gt;
+    (forall d. Data d =&gt; d -&gt; m d)
+    -&gt; UtxoPredicateFailure -&gt; m UtxoPredicateFailure)
+-&gt; Data UtxoPredicateFailure
+UtxoPredicateFailure -&gt; DataType
+UtxoPredicateFailure -&gt; Constr
+(forall b. Data b =&gt; b -&gt; b)
+-&gt; UtxoPredicateFailure -&gt; UtxoPredicateFailure
+(forall d b. Data d =&gt; c (d -&gt; b) -&gt; d -&gt; c b)
+-&gt; (forall g. g -&gt; c g)
+-&gt; UtxoPredicateFailure
+-&gt; c UtxoPredicateFailure
+(forall b r. Data b =&gt; c (b -&gt; r) -&gt; c r)
+-&gt; (forall r. r -&gt; c r) -&gt; Constr -&gt; c UtxoPredicateFailure
+forall a.
+Typeable a
+-&gt; (forall (c :: * -&gt; *).
+    (forall d b. Data d =&gt; c (d -&gt; b) -&gt; d -&gt; c b)
+    -&gt; (forall g. g -&gt; c g) -&gt; a -&gt; c a)
+-&gt; (forall (c :: * -&gt; *).
+    (forall b r. Data b =&gt; c (b -&gt; r) -&gt; c r)
+    -&gt; (forall r. r -&gt; c r) -&gt; Constr -&gt; c a)
+-&gt; (a -&gt; Constr)
+-&gt; (a -&gt; DataType)
+-&gt; (forall (t :: * -&gt; *) (c :: * -&gt; *).
+    Typeable t =&gt;
+    (forall d. Data d =&gt; c (t d)) -&gt; Maybe (c a))
+-&gt; (forall (t :: * -&gt; * -&gt; *) (c :: * -&gt; *).
+    Typeable t =&gt;
+    (forall d e. (Data d, Data e) =&gt; c (t d e)) -&gt; Maybe (c a))
+-&gt; ((forall b. Data b =&gt; b -&gt; b) -&gt; a -&gt; a)
+-&gt; (forall r r'.
+    (r -&gt; r' -&gt; r) -&gt; r -&gt; (forall d. Data d =&gt; d -&gt; r') -&gt; a -&gt; r)
+-&gt; (forall r r'.
+    (r' -&gt; r -&gt; r) -&gt; r -&gt; (forall d. Data d =&gt; d -&gt; r') -&gt; a -&gt; r)
+-&gt; (forall u. (forall d. Data d =&gt; d -&gt; u) -&gt; a -&gt; [u])
+-&gt; (forall u. Int -&gt; (forall d. Data d =&gt; d -&gt; u) -&gt; a -&gt; u)
+-&gt; (forall (m :: * -&gt; *).
+    Monad m =&gt;
+    (forall d. Data d =&gt; d -&gt; m d) -&gt; a -&gt; m a)
+-&gt; (forall (m :: * -&gt; *).
+    MonadPlus m =&gt;
+    (forall d. Data d =&gt; d -&gt; m d) -&gt; a -&gt; m a)
+-&gt; (forall (m :: * -&gt; *).
+    MonadPlus m =&gt;
+    (forall d. Data d =&gt; d -&gt; m d) -&gt; a -&gt; m a)
+-&gt; Data a
+forall u.
+Int -&gt; (forall d. Data d =&gt; d -&gt; u) -&gt; UtxoPredicateFailure -&gt; u
+forall u.
+(forall d. Data d =&gt; d -&gt; u) -&gt; UtxoPredicateFailure -&gt; [u]
+forall r r'.
+(r -&gt; r' -&gt; r)
+-&gt; r -&gt; (forall d. Data d =&gt; d -&gt; r') -&gt; UtxoPredicateFailure -&gt; r
+forall r r'.
+(r' -&gt; r -&gt; r)
+-&gt; r -&gt; (forall d. Data d =&gt; d -&gt; r') -&gt; UtxoPredicateFailure -&gt; r
+forall (m :: * -&gt; *).
+Monad m =&gt;
+(forall d. Data d =&gt; d -&gt; m d)
+-&gt; UtxoPredicateFailure -&gt; m UtxoPredicateFailure
+forall (m :: * -&gt; *).
+MonadPlus m =&gt;
+(forall d. Data d =&gt; d -&gt; m d)
+-&gt; UtxoPredicateFailure -&gt; m UtxoPredicateFailure
+forall (c :: * -&gt; *).
+(forall b r. Data b =&gt; c (b -&gt; r) -&gt; c r)
+-&gt; (forall r. r -&gt; c r) -&gt; Constr -&gt; c UtxoPredicateFailure
+forall (c :: * -&gt; *).
+(forall d b. Data d =&gt; c (d -&gt; b) -&gt; d -&gt; c b)
+-&gt; (forall g. g -&gt; c g)
+-&gt; UtxoPredicateFailure
+-&gt; c UtxoPredicateFailure
+forall (t :: * -&gt; *) (c :: * -&gt; *).
+Typeable t =&gt;
+(forall d. Data d =&gt; c (t d)) -&gt; Maybe (c UtxoPredicateFailure)
+forall (t :: * -&gt; * -&gt; *) (c :: * -&gt; *).
+Typeable t =&gt;
+(forall d e. (Data d, Data e) =&gt; c (t d e))
+-&gt; Maybe (c UtxoPredicateFailure)
+$cNonPositiveOutputs :: Constr
+$cInputsNotInUTxO :: Constr
+$cIncreasedTotalBalance :: Constr
+$cFeeTooLow :: Constr
+$cEmptyTxOutputs :: Constr
+$cEmptyTxInputs :: Constr
+$tUtxoPredicateFailure :: DataType
+gmapMo :: (forall d. Data d =&gt; d -&gt; m d)
+-&gt; UtxoPredicateFailure -&gt; m UtxoPredicateFailure
+$cgmapMo :: forall (m :: * -&gt; *).
+MonadPlus m =&gt;
+(forall d. Data d =&gt; d -&gt; m d)
+-&gt; UtxoPredicateFailure -&gt; m UtxoPredicateFailure
+gmapMp :: (forall d. Data d =&gt; d -&gt; m d)
+-&gt; UtxoPredicateFailure -&gt; m UtxoPredicateFailure
+$cgmapMp :: forall (m :: * -&gt; *).
+MonadPlus m =&gt;
+(forall d. Data d =&gt; d -&gt; m d)
+-&gt; UtxoPredicateFailure -&gt; m UtxoPredicateFailure
+gmapM :: (forall d. Data d =&gt; d -&gt; m d)
+-&gt; UtxoPredicateFailure -&gt; m UtxoPredicateFailure
+$cgmapM :: forall (m :: * -&gt; *).
+Monad m =&gt;
+(forall d. Data d =&gt; d -&gt; m d)
+-&gt; UtxoPredicateFailure -&gt; m UtxoPredicateFailure
+gmapQi :: Int -&gt; (forall d. Data d =&gt; d -&gt; u) -&gt; UtxoPredicateFailure -&gt; u
+$cgmapQi :: forall u.
+Int -&gt; (forall d. Data d =&gt; d -&gt; u) -&gt; UtxoPredicateFailure -&gt; u
+gmapQ :: (forall d. Data d =&gt; d -&gt; u) -&gt; UtxoPredicateFailure -&gt; [u]
+$cgmapQ :: forall u.
+(forall d. Data d =&gt; d -&gt; u) -&gt; UtxoPredicateFailure -&gt; [u]
+gmapQr :: (r' -&gt; r -&gt; r)
+-&gt; r -&gt; (forall d. Data d =&gt; d -&gt; r') -&gt; UtxoPredicateFailure -&gt; r
+$cgmapQr :: forall r r'.
+(r' -&gt; r -&gt; r)
+-&gt; r -&gt; (forall d. Data d =&gt; d -&gt; r') -&gt; UtxoPredicateFailure -&gt; r
+gmapQl :: (r -&gt; r' -&gt; r)
+-&gt; r -&gt; (forall d. Data d =&gt; d -&gt; r') -&gt; UtxoPredicateFailure -&gt; r
+$cgmapQl :: forall r r'.
+(r -&gt; r' -&gt; r)
+-&gt; r -&gt; (forall d. Data d =&gt; d -&gt; r') -&gt; UtxoPredicateFailure -&gt; r
+gmapT :: (forall b. Data b =&gt; b -&gt; b)
+-&gt; UtxoPredicateFailure -&gt; UtxoPredicateFailure
+$cgmapT :: (forall b. Data b =&gt; b -&gt; b)
+-&gt; UtxoPredicateFailure -&gt; UtxoPredicateFailure
+dataCast2 :: (forall d e. (Data d, Data e) =&gt; c (t d e))
+-&gt; Maybe (c UtxoPredicateFailure)
+$cdataCast2 :: forall (t :: * -&gt; * -&gt; *) (c :: * -&gt; *).
+Typeable t =&gt;
+(forall d e. (Data d, Data e) =&gt; c (t d e))
+-&gt; Maybe (c UtxoPredicateFailure)
+dataCast1 :: (forall d. Data d =&gt; c (t d)) -&gt; Maybe (c UtxoPredicateFailure)
+$cdataCast1 :: forall (t :: * -&gt; *) (c :: * -&gt; *).
+Typeable t =&gt;
+(forall d. Data d =&gt; c (t d)) -&gt; Maybe (c UtxoPredicateFailure)
+dataTypeOf :: UtxoPredicateFailure -&gt; DataType
+$cdataTypeOf :: UtxoPredicateFailure -&gt; DataType
+toConstr :: UtxoPredicateFailure -&gt; Constr
+$ctoConstr :: UtxoPredicateFailure -&gt; Constr
+gunfold :: (forall b r. Data b =&gt; c (b -&gt; r) -&gt; c r)
+-&gt; (forall r. r -&gt; c r) -&gt; Constr -&gt; c UtxoPredicateFailure
+$cgunfold :: forall (c :: * -&gt; *).
+(forall b r. Data b =&gt; c (b -&gt; r) -&gt; c r)
+-&gt; (forall r. r -&gt; c r) -&gt; Constr -&gt; c UtxoPredicateFailure
+gfoldl :: (forall d b. Data d =&gt; c (d -&gt; b) -&gt; d -&gt; c b)
+-&gt; (forall g. g -&gt; c g)
+-&gt; UtxoPredicateFailure
+-&gt; c UtxoPredicateFailure
+$cgfoldl :: forall (c :: * -&gt; *).
+(forall d b. Data d =&gt; c (d -&gt; b) -&gt; d -&gt; c b)
+-&gt; (forall g. g -&gt; c g)
+-&gt; UtxoPredicateFailure
+-&gt; c UtxoPredicateFailure
+$cp1Data :: Typeable UtxoPredicateFailure
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Data</span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Typeable</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">(forall x. UtxoPredicateFailure -&gt; Rep UtxoPredicateFailure x)
+-&gt; (forall x. Rep UtxoPredicateFailure x -&gt; UtxoPredicateFailure)
+-&gt; Generic UtxoPredicateFailure
+forall x. Rep UtxoPredicateFailure x -&gt; UtxoPredicateFailure
+forall x. UtxoPredicateFailure -&gt; Rep UtxoPredicateFailure x
+forall a.
+(forall x. a -&gt; Rep a x) -&gt; (forall x. Rep a x -&gt; a) -&gt; Generic a
+$cto :: forall x. Rep UtxoPredicateFailure x -&gt; UtxoPredicateFailure
+$cfrom :: forall x. UtxoPredicateFailure -&gt; Rep UtxoPredicateFailure x
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">Generic</span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679560743"><span id="local-6989586621679560745"><span id="local-6989586621679560747"><span class="annot"><span class="annottext">Context -&gt; UtxoPredicateFailure -&gt; IO (Maybe ThunkInfo)
+Proxy UtxoPredicateFailure -&gt; String
+(Context -&gt; UtxoPredicateFailure -&gt; IO (Maybe ThunkInfo))
+-&gt; (Context -&gt; UtxoPredicateFailure -&gt; IO (Maybe ThunkInfo))
+-&gt; (Proxy UtxoPredicateFailure -&gt; String)
+-&gt; NoThunks UtxoPredicateFailure
+forall a.
+(Context -&gt; a -&gt; IO (Maybe ThunkInfo))
+-&gt; (Context -&gt; a -&gt; IO (Maybe ThunkInfo))
+-&gt; (Proxy a -&gt; String)
+-&gt; NoThunks a
+showTypeOf :: Proxy UtxoPredicateFailure -&gt; String
+$cshowTypeOf :: Proxy UtxoPredicateFailure -&gt; String
+wNoThunks :: Context -&gt; UtxoPredicateFailure -&gt; IO (Maybe ThunkInfo)
+$cwNoThunks :: Context -&gt; UtxoPredicateFailure -&gt; IO (Maybe ThunkInfo)
+noThunks :: Context -&gt; UtxoPredicateFailure -&gt; IO (Maybe ThunkInfo)
+$cnoThunks :: Context -&gt; UtxoPredicateFailure -&gt; IO (Maybe ThunkInfo)
+</span><a href="#local-6989586621679560743"><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">NoThunks</span></a></span></span></span></span><span class="hs-special">)</span><span>
+</span><span id="line-65"></span><span>
+</span><span id="line-66"></span><span>
+</span><span id="line-67"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679560733"><span id="local-6989586621679560735"><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/small-steps-0.1.0.0/noopt/doc/html/small-steps/src"><span class="hs-identifier hs-type">STS</span></a></span><span> </span><span class="annot"><a href="Byron.Spec.Ledger.STS.UTXO.html#UTXO"><span class="hs-identifier hs-type">UTXO</span></a></span></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-68"></span><span>
+</span><span id="line-69"></span><span>  </span><span class="hs-keyword">type</span><span> </span><span id="Environment"><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/small-steps-0.1.0.0/noopt/doc/html/small-steps/src"><span class="hs-identifier hs-var">Environment</span></a></span></span><span> </span><span class="annot"><a href="Byron.Spec.Ledger.STS.UTXO.html#UTXO"><span class="hs-identifier hs-type">UTXO</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><a href="Byron.Spec.Ledger.STS.UTXO.html#UTxOEnv"><span class="hs-identifier hs-type">UTxOEnv</span></a></span><span>
+</span><span id="line-70"></span><span>  </span><span class="hs-keyword">type</span><span> </span><span id="State"><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/small-steps-0.1.0.0/noopt/doc/html/small-steps/src"><span class="hs-identifier hs-var">State</span></a></span></span><span> </span><span class="annot"><a href="Byron.Spec.Ledger.STS.UTXO.html#UTXO"><span class="hs-identifier hs-type">UTXO</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><a href="Byron.Spec.Ledger.STS.UTXO.html#UTxOState"><span class="hs-identifier hs-type">UTxOState</span></a></span><span>
+</span><span id="line-71"></span><span>  </span><span class="hs-keyword">type</span><span> </span><span id="Signal"><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/small-steps-0.1.0.0/noopt/doc/html/small-steps/src"><span class="hs-identifier hs-var">Signal</span></a></span></span><span> </span><span class="annot"><a href="Byron.Spec.Ledger.STS.UTXO.html#UTXO"><span class="hs-identifier hs-type">UTXO</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><a href="Byron.Spec.Ledger.UTxO.html#Tx"><span class="hs-identifier hs-type">Tx</span></a></span><span>
+</span><span id="line-72"></span><span>  </span><span class="hs-keyword">type</span><span> </span><span id="PredicateFailure"><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/small-steps-0.1.0.0/noopt/doc/html/small-steps/src"><span class="hs-identifier hs-var">PredicateFailure</span></a></span></span><span> </span><span class="annot"><a href="Byron.Spec.Ledger.STS.UTXO.html#UTXO"><span class="hs-identifier hs-type">UTXO</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><a href="Byron.Spec.Ledger.STS.UTXO.html#UtxoPredicateFailure"><span class="hs-identifier hs-type">UtxoPredicateFailure</span></a></span><span>
+</span><span id="line-73"></span><span>
+</span><span id="line-74"></span><span>  </span><span id="local-6989586621679560731"><span class="annot"><span class="annottext">initialRules :: [InitialRule UTXO]
+</span><a href="#local-6989586621679560731"><span class="hs-identifier hs-var hs-var hs-var hs-var">initialRules</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-75"></span><span>    </span><span class="hs-special">[</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-76"></span><span>        </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/small-steps-0.1.0.0/noopt/doc/html/small-steps/src"><span class="hs-identifier hs-type">IRC</span></a></span><span> </span><span class="annot"><a href="Byron.Spec.Ledger.STS.UTXO.html#UTxOEnv"><span class="hs-identifier hs-type">UTxOEnv</span></a></span><span> </span><span class="hs-special">{</span><span id="local-6989586621679560730"><span class="annot"><a href="#local-6989586621679560730"><span class="hs-identifier hs-var hs-var">utxo0</span></a></span></span><span class="hs-special">}</span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">F (Clause UTXO 'Initial) (IRC UTXO)
+forall sts (rtype :: RuleType).
+Rule sts rtype (RuleContext rtype sts)
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/small-steps-0.1.0.0/noopt/doc/html/small-steps/src"><span class="hs-identifier hs-var">judgmentContext</span></a></span><span>
+</span><span id="line-77"></span><span>        </span><span class="annot"><span class="annottext">UTxOState -&gt; F (Clause UTXO 'Initial) UTxOState
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">(UTxOState -&gt; F (Clause UTXO 'Initial) UTxOState)
+-&gt; UTxOState -&gt; F (Clause UTXO 'Initial) UTxOState
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">UTxOState :: UTxO -&gt; Lovelace -&gt; UTxOState
+</span><a href="Byron.Spec.Ledger.STS.UTXO.html#UTxOState"><span class="hs-identifier hs-type">UTxOState</span></a></span><span> </span><span class="hs-special">{</span><span> </span><span class="annot"><span class="annottext">utxo :: UTxO
+</span><a href="Byron.Spec.Ledger.STS.UTXO.html#utxo"><span class="hs-identifier hs-var">utxo</span></a></span><span>     </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">UTxO
+</span><a href="#local-6989586621679560730"><span class="hs-identifier hs-var">utxo0</span></a></span><span>
+</span><span id="line-78"></span><span>                           </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">reserves :: Lovelace
+</span><a href="Byron.Spec.Ledger.STS.UTXO.html#reserves"><span class="hs-identifier hs-var">reserves</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Lovelace
+</span><a href="Byron.Spec.Ledger.Core.html#lovelaceCap"><span class="hs-identifier hs-var">lovelaceCap</span></a></span><span> </span><span class="annot"><span class="annottext">Lovelace -&gt; Lovelace -&gt; Lovelace
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-glyph hs-var">-</span></span><span> </span><span class="annot"><span class="annottext">UTxO -&gt; Lovelace
+</span><a href="Byron.Spec.Ledger.UTxO.html#balance"><span class="hs-identifier hs-var">balance</span></a></span><span> </span><span class="annot"><span class="annottext">UTxO
+</span><a href="#local-6989586621679560730"><span class="hs-identifier hs-var">utxo0</span></a></span><span>
+</span><span id="line-79"></span><span>                           </span><span class="hs-special">}</span><span>
+</span><span id="line-80"></span><span>    </span><span class="hs-special">]</span><span>
+</span><span id="line-81"></span><span>  </span><span id="local-6989586621679560729"><span class="annot"><span class="annottext">transitionRules :: [TransitionRule UTXO]
+</span><a href="#local-6989586621679560729"><span class="hs-identifier hs-var hs-var hs-var hs-var">transitionRules</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-82"></span><span>    </span><span class="hs-special">[</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-83"></span><span>        </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/small-steps-0.1.0.0/noopt/doc/html/small-steps/src"><span class="hs-identifier hs-type">TRC</span></a></span><span> </span><span class="hs-special">(</span><span> </span><span class="annot"><a href="Byron.Spec.Ledger.STS.UTXO.html#UTxOEnv"><span class="hs-identifier hs-type">UTxOEnv</span></a></span><span> </span><span class="annot"><span class="hs-identifier">_</span></span><span> </span><span id="local-6989586621679560728"><span class="annot"><a href="#local-6989586621679560728"><span class="hs-identifier hs-var">pps</span></a></span></span><span>
+</span><span id="line-84"></span><span>            </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Byron.Spec.Ledger.STS.UTXO.html#UTxOState"><span class="hs-identifier hs-type">UTxOState</span></a></span><span> </span><span class="hs-special">{</span><span id="local-6989586621679560727"><span class="annot"><a href="#local-6989586621679560727"><span class="hs-identifier hs-var hs-var">utxo</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679560726"><span class="annot"><a href="#local-6989586621679560726"><span class="hs-identifier hs-var hs-var">reserves</span></a></span></span><span class="hs-special">}</span><span>
+</span><span id="line-85"></span><span>            </span><span class="hs-special">,</span><span> </span><span id="local-6989586621679560725"><span class="annot"><span class="annottext">Signal UTXO
+</span><a href="#local-6989586621679560725"><span class="hs-identifier hs-var">tx</span></a></span></span><span>
+</span><span id="line-86"></span><span>            </span><span class="hs-special">)</span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">F (Clause UTXO 'Transition) (TRC UTXO)
+forall sts (rtype :: RuleType).
+Rule sts rtype (RuleContext rtype sts)
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/small-steps-0.1.0.0/noopt/doc/html/small-steps/src"><span class="hs-identifier hs-var">judgmentContext</span></a></span><span>
+</span><span id="line-87"></span><span>
+</span><span id="line-88"></span><span>        </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679560724"><span class="annot"><span class="annottext">ins :: [TxIn]
+</span><a href="#local-6989586621679560724"><span class="hs-identifier hs-var hs-var">ins</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">TxBody -&gt; [TxIn]
+</span><a href="Byron.Spec.Ledger.UTxO.html#txins"><span class="hs-identifier hs-var">txins</span></a></span><span> </span><span class="annot"><span class="annottext">(TxBody -&gt; [TxIn]) -&gt; TxBody -&gt; [TxIn]
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Tx -&gt; TxBody
+</span><a href="Byron.Spec.Ledger.UTxO.html#body"><span class="hs-identifier hs-var hs-var">body</span></a></span><span> </span><span class="annot"><span class="annottext">Signal UTXO
+Tx
+</span><a href="#local-6989586621679560725"><span class="hs-identifier hs-var">tx</span></a></span><span>
+</span><span id="line-89"></span><span>            </span><span id="local-6989586621679560723"><span class="annot"><span class="annottext">outs :: UTxO
+</span><a href="#local-6989586621679560723"><span class="hs-identifier hs-var hs-var">outs</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">TxBody -&gt; UTxO
+</span><a href="Byron.Spec.Ledger.UTxO.html#txouts"><span class="hs-identifier hs-var">txouts</span></a></span><span> </span><span class="annot"><span class="annottext">(TxBody -&gt; UTxO) -&gt; TxBody -&gt; UTxO
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Tx -&gt; TxBody
+</span><a href="Byron.Spec.Ledger.UTxO.html#body"><span class="hs-identifier hs-var hs-var">body</span></a></span><span> </span><span class="annot"><span class="annottext">Signal UTXO
+Tx
+</span><a href="#local-6989586621679560725"><span class="hs-identifier hs-var">tx</span></a></span><span>
+</span><span id="line-90"></span><span>
+</span><span id="line-91"></span><span>        </span><span class="annot"><span class="annottext">[TxIn]
+</span><a href="#local-6989586621679560724"><span class="hs-identifier hs-var">ins</span></a></span><span> </span><span class="annot"><span class="annottext">[TxIn] -&gt; Set TxIn -&gt; Bool
+forall (f :: * -&gt; *) (g :: * -&gt; *) a.
+(Foldable f, Foldable g, Ord a) =&gt;
+f a -&gt; g a -&gt; Bool
+</span><a href="Byron.Spec.Ledger.Core.html#%2286"><span class="hs-operator hs-var">&#8838;</span></a></span><span> </span><span class="annot"><span class="annottext">UTxO -&gt; Set (Domain UTxO)
+forall m. (Relation m, Ord (Domain m)) =&gt; m -&gt; Set (Domain m)
+</span><a href="Byron.Spec.Ledger.Core.html#dom"><span class="hs-identifier hs-var">dom</span></a></span><span> </span><span class="annot"><span class="annottext">UTxO
+</span><a href="#local-6989586621679560727"><span class="hs-identifier hs-var">utxo</span></a></span><span> </span><span class="annot"><span class="annottext">Bool -&gt; PredicateFailure UTXO -&gt; Rule UTXO 'Transition ()
+forall sts (ctx :: RuleType).
+Bool -&gt; PredicateFailure sts -&gt; Rule sts ctx ()
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/small-steps-0.1.0.0/noopt/doc/html/small-steps/src"><span class="hs-operator hs-var">?!</span></a></span><span> </span><span class="annot"><span class="annottext">PredicateFailure UTXO
+UtxoPredicateFailure
+</span><a href="Byron.Spec.Ledger.STS.UTXO.html#InputsNotInUTxO"><span class="hs-identifier hs-var">InputsNotInUTxO</span></a></span><span>
+</span><span id="line-92"></span><span>
+</span><span id="line-93"></span><span>        </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679560722"><span class="annot"><span class="annottext">fee :: Lovelace
+</span><a href="#local-6989586621679560722"><span class="hs-identifier hs-var hs-var">fee</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">UTxO -&gt; Lovelace
+</span><a href="Byron.Spec.Ledger.UTxO.html#balance"><span class="hs-identifier hs-var">balance</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">[Domain UTxO]
+[TxIn]
+</span><a href="#local-6989586621679560724"><span class="hs-identifier hs-var">ins</span></a></span><span> </span><span class="annot"><span class="annottext">[Domain UTxO] -&gt; UTxO -&gt; UTxO
+forall m (f :: * -&gt; *).
+(Relation m, Ord (Domain m), Foldable f) =&gt;
+f (Domain m) -&gt; m -&gt; m
+</span><a href="Byron.Spec.Ledger.Core.html#%25C1"><span class="hs-operator hs-var">&#9665;</span></a></span><span> </span><span class="annot"><span class="annottext">UTxO
+</span><a href="#local-6989586621679560727"><span class="hs-identifier hs-var">utxo</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Lovelace -&gt; Lovelace -&gt; Lovelace
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-glyph hs-var">-</span></span><span> </span><span class="annot"><span class="annottext">UTxO -&gt; Lovelace
+</span><a href="Byron.Spec.Ledger.UTxO.html#balance"><span class="hs-identifier hs-var">balance</span></a></span><span> </span><span class="annot"><span class="annottext">UTxO
+</span><a href="#local-6989586621679560723"><span class="hs-identifier hs-var">outs</span></a></span><span>
+</span><span id="line-94"></span><span>
+</span><span id="line-95"></span><span>        </span><span class="annot"><span class="annottext">PParams -&gt; Tx -&gt; Lovelace
+</span><a href="Byron.Spec.Ledger.UTxO.html#pcMinFee"><span class="hs-identifier hs-var">pcMinFee</span></a></span><span> </span><span class="annot"><span class="annottext">PParams
+</span><a href="#local-6989586621679560728"><span class="hs-identifier hs-var">pps</span></a></span><span> </span><span class="annot"><span class="annottext">Signal UTXO
+Tx
+</span><a href="#local-6989586621679560725"><span class="hs-identifier hs-var">tx</span></a></span><span> </span><span class="annot"><span class="annottext">Lovelace -&gt; Lovelace -&gt; Bool
+forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">&lt;=</span></span><span> </span><span class="annot"><span class="annottext">Lovelace
+</span><a href="#local-6989586621679560722"><span class="hs-identifier hs-var">fee</span></a></span><span> </span><span class="annot"><span class="annottext">Bool -&gt; PredicateFailure UTXO -&gt; Rule UTXO 'Transition ()
+forall sts (ctx :: RuleType).
+Bool -&gt; PredicateFailure sts -&gt; Rule sts ctx ()
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/small-steps-0.1.0.0/noopt/doc/html/small-steps/src"><span class="hs-operator hs-var">?!</span></a></span><span> </span><span class="annot"><span class="annottext">PredicateFailure UTXO
+UtxoPredicateFailure
+</span><a href="Byron.Spec.Ledger.STS.UTXO.html#FeeTooLow"><span class="hs-identifier hs-var">FeeTooLow</span></a></span><span>
+</span><span id="line-96"></span><span>
+</span><span id="line-97"></span><span>        </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Bool -&gt; Bool
+</span><span class="hs-identifier hs-var">not</span></span><span> </span><span class="annot"><span class="annottext">(Bool -&gt; Bool) -&gt; ([TxIn] -&gt; Bool) -&gt; [TxIn] -&gt; Bool
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">[TxIn] -&gt; Bool
+forall (t :: * -&gt; *) a. Foldable t =&gt; t a -&gt; Bool
+</span><span class="hs-identifier hs-var">null</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">[TxIn]
+</span><a href="#local-6989586621679560724"><span class="hs-identifier hs-var">ins</span></a></span><span> </span><span class="annot"><span class="annottext">Bool -&gt; PredicateFailure UTXO -&gt; Rule UTXO 'Transition ()
+forall sts (ctx :: RuleType).
+Bool -&gt; PredicateFailure sts -&gt; Rule sts ctx ()
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/small-steps-0.1.0.0/noopt/doc/html/small-steps/src"><span class="hs-operator hs-var">?!</span></a></span><span> </span><span class="annot"><span class="annottext">PredicateFailure UTXO
+UtxoPredicateFailure
+</span><a href="Byron.Spec.Ledger.STS.UTXO.html#EmptyTxInputs"><span class="hs-identifier hs-var">EmptyTxInputs</span></a></span><span>
+</span><span id="line-98"></span><span>
+</span><span id="line-99"></span><span>        </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Bool -&gt; Bool
+</span><span class="hs-identifier hs-var">not</span></span><span> </span><span class="annot"><span class="annottext">(Bool -&gt; Bool) -&gt; (UTxO -&gt; Bool) -&gt; UTxO -&gt; Bool
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Map TxIn TxOut -&gt; Bool
+forall (t :: * -&gt; *) a. Foldable t =&gt; t a -&gt; Bool
+</span><span class="hs-identifier hs-var">null</span></span><span> </span><span class="annot"><span class="annottext">(Map TxIn TxOut -&gt; Bool)
+-&gt; (UTxO -&gt; Map TxIn TxOut) -&gt; UTxO -&gt; Bool
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">UTxO -&gt; Map TxIn TxOut
+</span><a href="Byron.Spec.Ledger.UTxO.html#unUTxO"><span class="hs-identifier hs-var hs-var">unUTxO</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">UTxO
+</span><a href="#local-6989586621679560723"><span class="hs-identifier hs-var">outs</span></a></span><span> </span><span class="annot"><span class="annottext">Bool -&gt; PredicateFailure UTXO -&gt; Rule UTXO 'Transition ()
+forall sts (ctx :: RuleType).
+Bool -&gt; PredicateFailure sts -&gt; Rule sts ctx ()
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/small-steps-0.1.0.0/noopt/doc/html/small-steps/src"><span class="hs-operator hs-var">?!</span></a></span><span> </span><span class="annot"><span class="annottext">PredicateFailure UTXO
+UtxoPredicateFailure
+</span><a href="Byron.Spec.Ledger.STS.UTXO.html#EmptyTxOutputs"><span class="hs-identifier hs-var">EmptyTxOutputs</span></a></span><span>
+</span><span id="line-100"></span><span>
+</span><span id="line-101"></span><span>        </span><span class="hs-keyword">let</span><span>
+</span><span id="line-102"></span><span>          </span><span id="local-6989586621679560717"><span class="annot"><span class="annottext">outputValues :: [Lovelace]
+</span><a href="#local-6989586621679560717"><span class="hs-identifier hs-var hs-var">outputValues</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(TxOut -&gt; Lovelace) -&gt; [TxOut] -&gt; [Lovelace]
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-identifier hs-var">fmap</span></span><span> </span><span class="annot"><span class="annottext">TxOut -&gt; Lovelace
+</span><a href="Byron.Spec.Ledger.UTxO.html#value"><span class="hs-identifier hs-var hs-var">value</span></a></span><span> </span><span class="annot"><span class="annottext">([TxOut] -&gt; [Lovelace]) -&gt; [TxOut] -&gt; [Lovelace]
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Set TxOut -&gt; [TxOut]
+forall a. Set a -&gt; [a]
+</span><span class="hs-identifier hs-var">Set.toList</span></span><span> </span><span class="annot"><span class="annottext">(Set TxOut -&gt; [TxOut]) -&gt; Set TxOut -&gt; [TxOut]
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">UTxO -&gt; Set (Range UTxO)
+forall m. (Relation m, Ord (Range m)) =&gt; m -&gt; Set (Range m)
+</span><a href="Byron.Spec.Ledger.Core.html#range"><span class="hs-identifier hs-var">range</span></a></span><span> </span><span class="annot"><span class="annottext">UTxO
+</span><a href="#local-6989586621679560723"><span class="hs-identifier hs-var">outs</span></a></span><span>
+</span><span id="line-103"></span><span>        </span><span class="annot"><span class="annottext">(Lovelace -&gt; Bool) -&gt; [Lovelace] -&gt; Bool
+forall (t :: * -&gt; *) a. Foldable t =&gt; (a -&gt; Bool) -&gt; t a -&gt; Bool
+</span><span class="hs-identifier hs-var">all</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Lovelace
+</span><span class="hs-number">0</span></span><span class="annot"><span class="annottext">Lovelace -&gt; Lovelace -&gt; Bool
+forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">&lt;</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">[Lovelace]
+</span><a href="#local-6989586621679560717"><span class="hs-identifier hs-var">outputValues</span></a></span><span> </span><span class="annot"><span class="annottext">Bool -&gt; PredicateFailure UTXO -&gt; Rule UTXO 'Transition ()
+forall sts (ctx :: RuleType).
+Bool -&gt; PredicateFailure sts -&gt; Rule sts ctx ()
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/small-steps-0.1.0.0/noopt/doc/html/small-steps/src"><span class="hs-operator hs-var">?!</span></a></span><span> </span><span class="annot"><span class="annottext">PredicateFailure UTXO
+UtxoPredicateFailure
+</span><a href="Byron.Spec.Ledger.STS.UTXO.html#NonPositiveOutputs"><span class="hs-identifier hs-var">NonPositiveOutputs</span></a></span><span>
+</span><span id="line-104"></span><span>
+</span><span id="line-105"></span><span>        </span><span class="annot"><span class="annottext">UTxOState -&gt; F (Clause UTXO 'Transition) UTxOState
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">(UTxOState -&gt; F (Clause UTXO 'Transition) UTxOState)
+-&gt; UTxOState -&gt; F (Clause UTXO 'Transition) UTxOState
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">UTxOState :: UTxO -&gt; Lovelace -&gt; UTxOState
+</span><a href="Byron.Spec.Ledger.STS.UTXO.html#UTxOState"><span class="hs-identifier hs-type">UTxOState</span></a></span><span> </span><span class="hs-special">{</span><span> </span><span class="annot"><span class="annottext">utxo :: UTxO
+</span><a href="Byron.Spec.Ledger.STS.UTXO.html#utxo"><span class="hs-identifier hs-var">utxo</span></a></span><span>     </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">[Domain UTxO]
+[TxIn]
+</span><a href="#local-6989586621679560724"><span class="hs-identifier hs-var">ins</span></a></span><span> </span><span class="annot"><span class="annottext">[Domain UTxO] -&gt; UTxO -&gt; UTxO
+forall m (f :: * -&gt; *).
+(Relation m, Ord (Domain m), Foldable f) =&gt;
+f (Domain m) -&gt; m -&gt; m
+</span><a href="Byron.Spec.Ledger.Core.html#%22EA"><span class="hs-operator hs-var">&#8938;</span></a></span><span> </span><span class="annot"><span class="annottext">UTxO
+</span><a href="#local-6989586621679560727"><span class="hs-identifier hs-var">utxo</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">UTxO -&gt; UTxO -&gt; UTxO
+forall m.
+(Relation m, Ord (Domain m), Ord (Range m)) =&gt;
+m -&gt; m -&gt; m
+</span><a href="Byron.Spec.Ledger.Core.html#%222A"><span class="hs-operator hs-var">&#8746;</span></a></span><span> </span><span class="annot"><span class="annottext">UTxO
+</span><a href="#local-6989586621679560723"><span class="hs-identifier hs-var">outs</span></a></span><span>
+</span><span id="line-106"></span><span>                           </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">reserves :: Lovelace
+</span><a href="Byron.Spec.Ledger.STS.UTXO.html#reserves"><span class="hs-identifier hs-var">reserves</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Lovelace
+</span><a href="#local-6989586621679560726"><span class="hs-identifier hs-var">reserves</span></a></span><span> </span><span class="annot"><span class="annottext">Lovelace -&gt; Lovelace -&gt; Lovelace
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="annottext">Lovelace
+</span><a href="#local-6989586621679560722"><span class="hs-identifier hs-var">fee</span></a></span><span>
+</span><span id="line-107"></span><span>                           </span><span class="hs-special">}</span><span>
+</span><span id="line-108"></span><span>
+</span><span id="line-109"></span><span>    </span><span class="hs-special">]</span><span>
+</span><span id="line-110"></span><span>
+</span><span id="line-111"></span><span>
+</span><span id="line-112"></span><span class="hs-comment">--------------------------------------------------------------------------------</span><span>
+</span><span id="line-113"></span><span class="hs-comment">-- SeedGoblin instances</span><span>
+</span><span id="line-114"></span><span class="hs-comment">--------------------------------------------------------------------------------</span><span>
+</span><span id="line-115"></span><span>
+</span><span id="line-116"></span><span id="local-6989586621679560711"><span class="hs-identifier">deriveSeedGoblin</span><span> </span><span class="hs-special">''</span><span class="hs-identifier">UTxOEnv</span></span><span>
+</span><span id="line-117"></span><span id="local-6989586621679560707"><span class="hs-identifier">deriveSeedGoblin</span><span> </span><span class="hs-special">''</span><span class="hs-identifier">UTxOState</span></span><span>
+</span><span id="line-118"></span></pre></body></html>

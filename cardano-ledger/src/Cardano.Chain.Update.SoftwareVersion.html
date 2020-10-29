@@ -1,101 +1,572 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-pragma">{-# LANGUAGE DeriveAnyClass     #-}</span><span>
-</span><a name="line-2"></a><span class="hs-pragma">{-# LANGUAGE DeriveDataTypeable #-}</span><span>
-</span><a name="line-3"></a><span class="hs-pragma">{-# LANGUAGE DeriveGeneric      #-}</span><span>
-</span><a name="line-4"></a><span class="hs-pragma">{-# LANGUAGE DerivingStrategies #-}</span><span>
-</span><a name="line-5"></a><span class="hs-pragma">{-# LANGUAGE FlexibleContexts   #-}</span><span>
-</span><a name="line-6"></a><span class="hs-pragma">{-# LANGUAGE LambdaCase         #-}</span><span>
-</span><a name="line-7"></a><span class="hs-pragma">{-# LANGUAGE OverloadedStrings  #-}</span><span>
-</span><a name="line-8"></a><span class="hs-pragma">{-# LANGUAGE TemplateHaskell    #-}</span><span>
-</span><a name="line-9"></a><span>
-</span><a name="line-10"></a><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Cardano.Chain.Update.SoftwareVersion</span><span>
-</span><a name="line-11"></a><span>  </span><span class="hs-special">(</span><span> </span><a href="Cardano.Chain.Update.SoftwareVersion.html#SoftwareVersion"><span class="hs-identifier hs-type">SoftwareVersion</span></a><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
-</span><a name="line-12"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Cardano.Chain.Update.SoftwareVersion.html#SoftwareVersionError"><span class="hs-identifier hs-type">SoftwareVersionError</span></a><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
-</span><a name="line-13"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Cardano.Chain.Update.SoftwareVersion.html#NumSoftwareVersion"><span class="hs-identifier hs-type">NumSoftwareVersion</span></a><span>
-</span><a name="line-14"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Cardano.Chain.Update.SoftwareVersion.html#checkSoftwareVersion"><span class="hs-identifier hs-var">checkSoftwareVersion</span></a><span>
-</span><a name="line-15"></a><span>  </span><span class="hs-special">)</span><span>
-</span><a name="line-16"></a><span class="hs-keyword">where</span><span>
-</span><a name="line-17"></a><span>
-</span><a name="line-18"></a><span class="hs-keyword">import</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-prelude-0.1.0.0/noopt/doc/html/cardano-prelude/src/Cardano.Prelude.html"><span class="hs-identifier">Cardano.Prelude</span></a><span>
-</span><a name="line-19"></a><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-identifier">Prelude</span><span>
-</span><a name="line-20"></a><span>
-</span><a name="line-21"></a><span class="hs-keyword">import</span><span> </span><span class="hs-identifier">Data.Aeson</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">ToJSON</span><span class="hs-special">)</span><span>
-</span><a name="line-22"></a><span class="hs-keyword">import</span><span> </span><span class="hs-identifier">Data.Data</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Data</span><span class="hs-special">)</span><span>
-</span><a name="line-23"></a><span class="hs-keyword">import</span><span> </span><span class="hs-identifier">Formatting</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-var">bprint</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-var">build</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-var">formatToString</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-var">int</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-var">stext</span><span class="hs-special">)</span><span>
-</span><a name="line-24"></a><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-identifier">Formatting.Buildable</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">B</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Buildable</span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
-</span><a name="line-25"></a><span>
-</span><a name="line-26"></a><span class="hs-keyword">import</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.html"><span class="hs-identifier">Cardano.Binary</span></a><span>
-</span><a name="line-27"></a><span>  </span><span class="hs-special">(</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.FromCBOR.html#DecoderError"><span class="hs-identifier hs-type">DecoderError</span></a><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
-</span><a name="line-28"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.FromCBOR.html#FromCBOR"><span class="hs-identifier hs-type">FromCBOR</span></a><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
-</span><a name="line-29"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.ToCBOR.html#ToCBOR"><span class="hs-identifier hs-type">ToCBOR</span></a><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
-</span><a name="line-30"></a><span>  </span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-var">decodeWord8</span><span>
-</span><a name="line-31"></a><span>  </span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-var">encodeListLen</span><span>
-</span><a name="line-32"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.FromCBOR.html#enforceSize"><span class="hs-identifier hs-var">enforceSize</span></a><span>
-</span><a name="line-33"></a><span>  </span><span class="hs-special">)</span><span>
-</span><a name="line-34"></a><span class="hs-keyword">import</span><span> </span><a href="Cardano.Chain.Update.ApplicationName.html"><span class="hs-identifier">Cardano.Chain.Update.ApplicationName</span></a><span>
-</span><a name="line-35"></a><span>
-</span><a name="line-36"></a><span>
-</span><a name="line-37"></a><span class="hs-comment">-- | Numeric software version associated with 'ApplicationName'</span><span>
-</span><a name="line-38"></a><span class="hs-keyword">type</span><span> </span><a name="NumSoftwareVersion"><a href="Cardano.Chain.Update.SoftwareVersion.html#NumSoftwareVersion"><span class="hs-identifier">NumSoftwareVersion</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-identifier hs-type">Word32</span><span>
-</span><a name="line-39"></a><span>
-</span><a name="line-40"></a><span class="hs-comment">-- | Software version</span><span>
-</span><a name="line-41"></a><span class="hs-keyword">data</span><span> </span><a name="SoftwareVersion"><a href="Cardano.Chain.Update.SoftwareVersion.html#SoftwareVersion"><span class="hs-identifier">SoftwareVersion</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><a name="SoftwareVersion"><a href="Cardano.Chain.Update.SoftwareVersion.html#SoftwareVersion"><span class="hs-identifier">SoftwareVersion</span></a></a><span>
-</span><a name="line-42"></a><span>  </span><span class="hs-special">{</span><span> </span><a name="svAppName"><a href="Cardano.Chain.Update.SoftwareVersion.html#svAppName"><span class="hs-identifier">svAppName</span></a></a><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-glyph">!</span><a href="Cardano.Chain.Update.ApplicationName.html#ApplicationName"><span class="hs-identifier hs-type">ApplicationName</span></a><span>
-</span><a name="line-43"></a><span>  </span><span class="hs-special">,</span><span> </span><a name="svNumber"><a href="Cardano.Chain.Update.SoftwareVersion.html#svNumber"><span class="hs-identifier">svNumber</span></a></a><span>  </span><span class="hs-glyph">::</span><span> </span><span class="hs-glyph">!</span><a href="Cardano.Chain.Update.SoftwareVersion.html#NumSoftwareVersion"><span class="hs-identifier hs-type">NumSoftwareVersion</span></a><span>
-</span><a name="line-44"></a><span>  </span><span class="hs-special">}</span><span> </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Eq</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Generic</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Ord</span><span class="hs-special">)</span><span>
-</span><a name="line-45"></a><span>    </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-keyword">anyclass</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">NFData</span><span class="hs-special">,</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-prelude-0.1.0.0/noopt/doc/html/cardano-prelude/src/Cardano.Prelude.GHC.Heap.NormalForm.Classy.html#NoUnexpectedThunks"><span class="hs-identifier hs-type">NoUnexpectedThunks</span></a><span class="hs-special">)</span><span>
-</span><a name="line-46"></a><span>
-</span><a name="line-47"></a><span class="hs-keyword">instance</span><span> </span><span class="hs-identifier hs-type">B.Buildable</span><span> </span><a href="Cardano.Chain.Update.SoftwareVersion.html#SoftwareVersion"><span class="hs-identifier hs-type">SoftwareVersion</span></a><span> </span><span class="hs-keyword">where</span><span>
-</span><a name="line-48"></a><span>  </span><a name="local-8214565720323804885"><span class="hs-identifier">build</span></a><span> </span><a name="local-6989586621679432081"><a href="#local-6989586621679432081"><span class="hs-identifier">sv</span></a></a><span> </span><span class="hs-glyph">=</span><span>
-</span><a name="line-49"></a><span>    </span><span class="hs-identifier hs-var">bprint</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-var">stext</span><span> </span><span class="hs-operator hs-var">.</span><span> </span><span class="hs-string">&quot;:&quot;</span><span> </span><span class="hs-operator hs-var">.</span><span> </span><span class="hs-identifier hs-var">int</span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="hs-identifier">unApplicationName</span><span> </span><span class="hs-operator hs-var">$</span><span> </span><span class="hs-identifier">svAppName</span><span> </span><a href="#local-6989586621679432081"><span class="hs-identifier hs-var">sv</span></a><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="hs-identifier">svNumber</span><span> </span><a href="#local-6989586621679432081"><span class="hs-identifier hs-var">sv</span></a><span class="hs-special">)</span><span>
-</span><a name="line-50"></a><span>
-</span><a name="line-51"></a><span class="hs-keyword">instance</span><span> </span><span class="hs-identifier hs-type">Show</span><span> </span><a href="Cardano.Chain.Update.SoftwareVersion.html#SoftwareVersion"><span class="hs-identifier hs-type">SoftwareVersion</span></a><span> </span><span class="hs-keyword">where</span><span>
-</span><a name="line-52"></a><span>  </span><a name="local-8214565720323790186"><span class="hs-identifier">show</span></a><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-identifier hs-var">formatToString</span><span> </span><span class="hs-identifier hs-var">build</span><span>
-</span><a name="line-53"></a><span>
-</span><a name="line-54"></a><span class="hs-comment">-- Used for debugging purposes only</span><span>
-</span><a name="line-55"></a><span class="hs-keyword">instance</span><span> </span><span class="hs-identifier hs-type">ToJSON</span><span> </span><a href="Cardano.Chain.Update.SoftwareVersion.html#SoftwareVersion"><span class="hs-identifier hs-type">SoftwareVersion</span></a><span> </span><span class="hs-keyword">where</span><span>
-</span><a name="line-56"></a><span>
-</span><a name="line-57"></a><span class="hs-keyword">instance</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.ToCBOR.html#ToCBOR"><span class="hs-identifier hs-type">ToCBOR</span></a><span> </span><a href="Cardano.Chain.Update.SoftwareVersion.html#SoftwareVersion"><span class="hs-identifier hs-type">SoftwareVersion</span></a><span> </span><span class="hs-keyword">where</span><span>
-</span><a name="line-58"></a><span>  </span><a name="local-8214565720323797072"><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.ToCBOR.html#toCBOR"><span class="hs-identifier">toCBOR</span></a></a><span> </span><a name="local-6989586621679432078"><a href="#local-6989586621679432078"><span class="hs-identifier">sv</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-identifier hs-var">encodeListLen</span><span> </span><span class="hs-number">2</span><span> </span><span class="hs-operator hs-var">&lt;&gt;</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.ToCBOR.html#toCBOR"><span class="hs-identifier hs-var">toCBOR</span></a><span> </span><span class="hs-special">(</span><span class="hs-identifier">svAppName</span><span> </span><a href="#local-6989586621679432078"><span class="hs-identifier hs-var">sv</span></a><span class="hs-special">)</span><span> </span><span class="hs-operator hs-var">&lt;&gt;</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.ToCBOR.html#toCBOR"><span class="hs-identifier hs-var">toCBOR</span></a><span> </span><span class="hs-special">(</span><span class="hs-identifier">svNumber</span><span> </span><a href="#local-6989586621679432078"><span class="hs-identifier hs-var">sv</span></a><span class="hs-special">)</span><span>
-</span><a name="line-59"></a><span>
-</span><a name="line-60"></a><span>  </span><a name="local-8214565720323797071"><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.ToCBOR.html#encodedSizeExpr"><span class="hs-identifier">encodedSizeExpr</span></a></a><span> </span><a name="local-6989586621679432079"><a href="#local-6989586621679432079"><span class="hs-identifier">f</span></a></a><span> </span><a name="local-6989586621679432080"><a href="#local-6989586621679432080"><span class="hs-identifier">sv</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-number">1</span><span>
-</span><a name="line-61"></a><span>                       </span><span class="hs-operator hs-var">+</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.ToCBOR.html#encodedSizeExpr"><span class="hs-identifier hs-var">encodedSizeExpr</span></a><span> </span><a href="#local-6989586621679432079"><span class="hs-identifier hs-var">f</span></a><span> </span><span class="hs-special">(</span><span class="hs-identifier">svAppName</span><span> </span><span class="hs-operator hs-var">&lt;$&gt;</span><span> </span><a href="#local-6989586621679432080"><span class="hs-identifier hs-var">sv</span></a><span class="hs-special">)</span><span>
-</span><a name="line-62"></a><span>                       </span><span class="hs-operator hs-var">+</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.ToCBOR.html#encodedSizeExpr"><span class="hs-identifier hs-var">encodedSizeExpr</span></a><span> </span><a href="#local-6989586621679432079"><span class="hs-identifier hs-var">f</span></a><span> </span><span class="hs-special">(</span><span class="hs-identifier">svNumber</span><span>  </span><span class="hs-operator hs-var">&lt;$&gt;</span><span> </span><a href="#local-6989586621679432080"><span class="hs-identifier hs-var">sv</span></a><span class="hs-special">)</span><span>
-</span><a name="line-63"></a><span>
-</span><a name="line-64"></a><span class="hs-keyword">instance</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.FromCBOR.html#FromCBOR"><span class="hs-identifier hs-type">FromCBOR</span></a><span> </span><a href="Cardano.Chain.Update.SoftwareVersion.html#SoftwareVersion"><span class="hs-identifier hs-type">SoftwareVersion</span></a><span> </span><span class="hs-keyword">where</span><span>
-</span><a name="line-65"></a><span>  </span><a name="local-8214565720323797139"><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.FromCBOR.html#fromCBOR"><span class="hs-identifier">fromCBOR</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
-</span><a name="line-66"></a><span>    </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.FromCBOR.html#enforceSize"><span class="hs-identifier hs-var">enforceSize</span></a><span> </span><span class="hs-string">&quot;SoftwareVersion&quot;</span><span> </span><span class="hs-number">2</span><span>
-</span><a name="line-67"></a><span>    </span><a href="Cardano.Chain.Update.SoftwareVersion.html#SoftwareVersion"><span class="hs-identifier hs-var">SoftwareVersion</span></a><span> </span><span class="hs-operator hs-var">&lt;$&gt;</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.FromCBOR.html#fromCBOR"><span class="hs-identifier hs-var">fromCBOR</span></a><span> </span><span class="hs-operator hs-var">&lt;*&gt;</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.FromCBOR.html#fromCBOR"><span class="hs-identifier hs-var">fromCBOR</span></a><span>
-</span><a name="line-68"></a><span>
-</span><a name="line-69"></a><span class="hs-keyword">data</span><span> </span><a name="SoftwareVersionError"><a href="Cardano.Chain.Update.SoftwareVersion.html#SoftwareVersionError"><span class="hs-identifier">SoftwareVersionError</span></a></a><span> </span><span class="hs-glyph">=</span><span>
-</span><a name="line-70"></a><span>  </span><a name="SoftwareVersionApplicationNameError"><a href="Cardano.Chain.Update.SoftwareVersion.html#SoftwareVersionApplicationNameError"><span class="hs-identifier">SoftwareVersionApplicationNameError</span></a></a><span> </span><a href="Cardano.Chain.Update.ApplicationName.html#ApplicationNameError"><span class="hs-identifier hs-type">ApplicationNameError</span></a><span>
-</span><a name="line-71"></a><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Data</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Eq</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Show</span><span class="hs-special">)</span><span>
-</span><a name="line-72"></a><span>
-</span><a name="line-73"></a><span class="hs-keyword">instance</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.ToCBOR.html#ToCBOR"><span class="hs-identifier hs-type">ToCBOR</span></a><span> </span><a href="Cardano.Chain.Update.SoftwareVersion.html#SoftwareVersionError"><span class="hs-identifier hs-type">SoftwareVersionError</span></a><span> </span><span class="hs-keyword">where</span><span>
-</span><a name="line-74"></a><span>  </span><a name="local-8214565720323797072"><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.ToCBOR.html#toCBOR"><span class="hs-identifier">toCBOR</span></a></a><span> </span><span class="hs-special">(</span><a href="Cardano.Chain.Update.SoftwareVersion.html#SoftwareVersionApplicationNameError"><span class="hs-identifier hs-var">SoftwareVersionApplicationNameError</span></a><span> </span><a name="local-6989586621679432077"><a href="#local-6989586621679432077"><span class="hs-identifier">applicationNameError</span></a></a><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span>
-</span><a name="line-75"></a><span>    </span><span class="hs-identifier hs-var">encodeListLen</span><span> </span><span class="hs-number">2</span><span>
-</span><a name="line-76"></a><span>      </span><span class="hs-operator hs-var">&lt;&gt;</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.ToCBOR.html#toCBOR"><span class="hs-identifier hs-var">toCBOR</span></a><span> </span><span class="hs-special">(</span><span class="hs-number">0</span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">Word8</span><span class="hs-special">)</span><span>
-</span><a name="line-77"></a><span>      </span><span class="hs-operator hs-var">&lt;&gt;</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.ToCBOR.html#toCBOR"><span class="hs-identifier hs-var">toCBOR</span></a><span> </span><a href="#local-6989586621679432077"><span class="hs-identifier hs-var">applicationNameError</span></a><span>
-</span><a name="line-78"></a><span>
-</span><a name="line-79"></a><span class="hs-keyword">instance</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.FromCBOR.html#FromCBOR"><span class="hs-identifier hs-type">FromCBOR</span></a><span> </span><a href="Cardano.Chain.Update.SoftwareVersion.html#SoftwareVersionError"><span class="hs-identifier hs-type">SoftwareVersionError</span></a><span> </span><span class="hs-keyword">where</span><span>
-</span><a name="line-80"></a><span>  </span><a name="local-8214565720323797139"><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.FromCBOR.html#fromCBOR"><span class="hs-identifier">fromCBOR</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
-</span><a name="line-81"></a><span>    </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.FromCBOR.html#enforceSize"><span class="hs-identifier hs-var">enforceSize</span></a><span> </span><span class="hs-string">&quot;SoftwareVersionError&quot;</span><span> </span><span class="hs-number">2</span><span>
-</span><a name="line-82"></a><span>    </span><a name="local-6989586621679432076"><a href="#local-6989586621679432076"><span class="hs-identifier">tag</span></a></a><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="hs-identifier hs-var">decodeWord8</span><span>
-</span><a name="line-83"></a><span>    </span><span class="hs-keyword">case</span><span> </span><a href="#local-6989586621679432076"><span class="hs-identifier hs-var">tag</span></a><span> </span><span class="hs-keyword">of</span><span>
-</span><a name="line-84"></a><span>      </span><span class="hs-number">0</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><a href="Cardano.Chain.Update.SoftwareVersion.html#SoftwareVersionApplicationNameError"><span class="hs-identifier hs-var">SoftwareVersionApplicationNameError</span></a><span> </span><span class="hs-operator hs-var">&lt;$&gt;</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.FromCBOR.html#fromCBOR"><span class="hs-identifier hs-var">fromCBOR</span></a><span>
-</span><a name="line-85"></a><span>      </span><span class="hs-identifier">_</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-prelude-0.1.0.0/noopt/doc/html/cardano-prelude/src/Cardano.Prelude.Error.html#cborError"><span class="hs-identifier hs-var">cborError</span></a><span> </span><span class="hs-operator hs-var">$</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.FromCBOR.html#DecoderErrorUnknownTag"><span class="hs-identifier hs-var">DecoderErrorUnknownTag</span></a><span> </span><span class="hs-string">&quot;SoftwareVersionError&quot;</span><span> </span><a href="#local-6989586621679432076"><span class="hs-identifier hs-var">tag</span></a><span>
-</span><a name="line-86"></a><span>
-</span><a name="line-87"></a><span class="hs-keyword">instance</span><span> </span><span class="hs-identifier hs-type">B.Buildable</span><span> </span><a href="Cardano.Chain.Update.SoftwareVersion.html#SoftwareVersionError"><span class="hs-identifier hs-type">SoftwareVersionError</span></a><span> </span><span class="hs-keyword">where</span><span>
-</span><a name="line-88"></a><span>  </span><a name="local-8214565720323804885"><span class="hs-identifier">build</span></a><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-glyph">\</span><span class="hs-glyph">case</span><span>
-</span><a name="line-89"></a><span>    </span><a href="Cardano.Chain.Update.SoftwareVersion.html#SoftwareVersionApplicationNameError"><span class="hs-identifier hs-var">SoftwareVersionApplicationNameError</span></a><span> </span><a name="local-6989586621679432075"><a href="#local-6989586621679432075"><span class="hs-identifier">err</span></a></a><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-var">bprint</span><span>
-</span><a name="line-90"></a><span>      </span><span class="hs-special">(</span><span> </span><span class="hs-string">&quot;ApplicationName was invalid when checking SoftwareVersion\n Error:&quot;</span><span>
-</span><a name="line-91"></a><span>      </span><span class="hs-operator hs-var">.</span><span> </span><span class="hs-identifier hs-var">build</span><span>
-</span><a name="line-92"></a><span>      </span><span class="hs-special">)</span><span>
-</span><a name="line-93"></a><span>      </span><a href="#local-6989586621679432075"><span class="hs-identifier hs-var">err</span></a><span>
-</span><a name="line-94"></a><span>
-</span><a name="line-95"></a><span class="hs-comment">-- | A software version is valid iff its application name is valid</span><span>
-</span><a name="line-96"></a><span class="hs-identifier">checkSoftwareVersion</span><span>
-</span><a name="line-97"></a><span>  </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">MonadError</span><span> </span><a href="Cardano.Chain.Update.SoftwareVersion.html#SoftwareVersionError"><span class="hs-identifier hs-type">SoftwareVersionError</span></a><span> </span><a href="#local-6989586621679432082"><span class="hs-identifier hs-type">m</span></a><span> </span><span class="hs-glyph">=&gt;</span><span> </span><a href="Cardano.Chain.Update.SoftwareVersion.html#SoftwareVersion"><span class="hs-identifier hs-type">SoftwareVersion</span></a><span> </span><span class="hs-glyph">-&gt;</span><span> </span><a href="#local-6989586621679432082"><span class="hs-identifier hs-type">m</span></a><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
-</span><a name="line-98"></a><a name="checkSoftwareVersion"><a href="Cardano.Chain.Update.SoftwareVersion.html#checkSoftwareVersion"><span class="hs-identifier">checkSoftwareVersion</span></a></a><span> </span><a name="local-6989586621679432083"><a href="#local-6989586621679432083"><span class="hs-identifier">sv</span></a></a><span> </span><span class="hs-glyph">=</span><span>
-</span><a name="line-99"></a><span>  </span><a href="Cardano.Chain.Update.ApplicationName.html#checkApplicationName"><span class="hs-identifier hs-var">checkApplicationName</span></a><span> </span><span class="hs-special">(</span><span class="hs-identifier">svAppName</span><span> </span><a href="#local-6989586621679432083"><span class="hs-identifier hs-var">sv</span></a><span class="hs-special">)</span><span>
-</span><a name="line-100"></a><span>    </span><span class="hs-special">`</span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-prelude-0.1.0.0/noopt/doc/html/cardano-prelude/src/Cardano.Prelude.Error.html#wrapError"><span class="hs-identifier hs-var">wrapError</span></a><span class="hs-special">`</span><span> </span><a href="Cardano.Chain.Update.SoftwareVersion.html#SoftwareVersionApplicationNameError"><span class="hs-identifier hs-var">SoftwareVersionApplicationNameError</span></a><span>
-</span><a name="line-101"></a></pre></body></html>
+</span><span id="line-2"></span><span class="hs-pragma">{-# LANGUAGE DeriveDataTypeable #-}</span><span>
+</span><span id="line-3"></span><span class="hs-pragma">{-# LANGUAGE DeriveGeneric      #-}</span><span>
+</span><span id="line-4"></span><span class="hs-pragma">{-# LANGUAGE DerivingStrategies #-}</span><span>
+</span><span id="line-5"></span><span class="hs-pragma">{-# LANGUAGE FlexibleContexts   #-}</span><span>
+</span><span id="line-6"></span><span class="hs-pragma">{-# LANGUAGE LambdaCase         #-}</span><span>
+</span><span id="line-7"></span><span class="hs-pragma">{-# LANGUAGE OverloadedStrings  #-}</span><span>
+</span><span id="line-8"></span><span class="hs-pragma">{-# LANGUAGE TemplateHaskell    #-}</span><span>
+</span><span id="line-9"></span><span>
+</span><span id="line-10"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Cardano.Chain.Update.SoftwareVersion</span><span>
+</span><span id="line-11"></span><span>  </span><span class="hs-special">(</span><span> </span><span class="annot"><a href="Cardano.Chain.Update.SoftwareVersion.html#SoftwareVersion"><span class="hs-identifier">SoftwareVersion</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
+</span><span id="line-12"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cardano.Chain.Update.SoftwareVersion.html#SoftwareVersionError"><span class="hs-identifier">SoftwareVersionError</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
+</span><span id="line-13"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cardano.Chain.Update.SoftwareVersion.html#NumSoftwareVersion"><span class="hs-identifier">NumSoftwareVersion</span></a></span><span>
+</span><span id="line-14"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cardano.Chain.Update.SoftwareVersion.html#checkSoftwareVersion"><span class="hs-identifier">checkSoftwareVersion</span></a></span><span>
+</span><span id="line-15"></span><span>  </span><span class="hs-special">)</span><span>
+</span><span id="line-16"></span><span class="hs-keyword">where</span><span>
+</span><span id="line-17"></span><span>
+</span><span id="line-18"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-prelude-0.1.0.0/noopt/doc/html/cardano-prelude/src"><span class="hs-identifier">Cardano.Prelude</span></a></span><span>
+</span><span id="line-19"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Prelude</span></span><span>
+</span><span id="line-20"></span><span>
+</span><span id="line-21"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Aeson</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">ToJSON</span></span><span class="hs-special">)</span><span>
+</span><span id="line-22"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Data</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Data</span></span><span class="hs-special">)</span><span>
+</span><span id="line-23"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Formatting</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">bprint</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">build</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">formatToString</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">int</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">stext</span></span><span class="hs-special">)</span><span>
+</span><span id="line-24"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">NoThunks.Class</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">NoThunks</span></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-25"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Formatting.Buildable</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">B</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Buildable</span></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-26"></span><span>
+</span><span id="line-27"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src"><span class="hs-identifier">Cardano.Binary</span></a></span><span>
+</span><span id="line-28"></span><span>  </span><span class="hs-special">(</span><span> </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src"><span class="hs-identifier">DecoderError</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
+</span><span id="line-29"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src"><span class="hs-identifier">FromCBOR</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
+</span><span id="line-30"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src"><span class="hs-identifier">ToCBOR</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
+</span><span id="line-31"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">decodeWord8</span></span><span>
+</span><span id="line-32"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">encodeListLen</span></span><span>
+</span><span id="line-33"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src"><span class="hs-identifier">enforceSize</span></a></span><span>
+</span><span id="line-34"></span><span>  </span><span class="hs-special">)</span><span>
+</span><span id="line-35"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Cardano.Chain.Update.ApplicationName.html"><span class="hs-identifier">Cardano.Chain.Update.ApplicationName</span></a></span><span>
+</span><span id="line-36"></span><span>
+</span><span id="line-37"></span><span>
+</span><span id="line-38"></span><span class="hs-comment">-- | Numeric software version associated with 'ApplicationName'</span><span>
+</span><span id="line-39"></span><span class="hs-keyword">type</span><span> </span><span id="NumSoftwareVersion"><span class="annot"><a href="Cardano.Chain.Update.SoftwareVersion.html#NumSoftwareVersion"><span class="hs-identifier hs-var">NumSoftwareVersion</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Word32</span></span><span>
+</span><span id="line-40"></span><span>
+</span><span id="line-41"></span><span class="hs-comment">-- | Software version</span><span>
+</span><span id="line-42"></span><span id="local-6989586621679517029"><span id="local-6989586621679517030"></span></span><span class="hs-keyword">data</span><span> </span><span id="SoftwareVersion"><span class="annot"><a href="Cardano.Chain.Update.SoftwareVersion.html#SoftwareVersion"><span class="hs-identifier hs-var">SoftwareVersion</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="SoftwareVersion"><span class="annot"><a href="Cardano.Chain.Update.SoftwareVersion.html#SoftwareVersion"><span class="hs-identifier hs-var">SoftwareVersion</span></a></span></span><span>
+</span><span id="line-43"></span><span>  </span><span class="hs-special">{</span><span> </span><span id="svAppName"><span class="annot"><span class="annottext">SoftwareVersion -&gt; ApplicationName
+</span><a href="Cardano.Chain.Update.SoftwareVersion.html#svAppName"><span class="hs-identifier hs-var hs-var">svAppName</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-glyph">!</span><span class="annot"><a href="Cardano.Chain.Update.ApplicationName.html#ApplicationName"><span class="hs-identifier hs-type">ApplicationName</span></a></span><span>
+</span><span id="line-44"></span><span>  </span><span class="hs-special">,</span><span> </span><span id="svNumber"><span class="annot"><span class="annottext">SoftwareVersion -&gt; NumSoftwareVersion
+</span><a href="Cardano.Chain.Update.SoftwareVersion.html#svNumber"><span class="hs-identifier hs-var hs-var">svNumber</span></a></span></span><span>  </span><span class="hs-glyph">::</span><span> </span><span class="hs-glyph">!</span><span class="annot"><a href="Cardano.Chain.Update.SoftwareVersion.html#NumSoftwareVersion"><span class="hs-identifier hs-type">NumSoftwareVersion</span></a></span><span>
+</span><span id="line-45"></span><span>  </span><span class="hs-special">}</span><span> </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679517022"><span id="local-6989586621679517024"><span class="annot"><span class="annottext">SoftwareVersion -&gt; SoftwareVersion -&gt; Bool
+(SoftwareVersion -&gt; SoftwareVersion -&gt; Bool)
+-&gt; (SoftwareVersion -&gt; SoftwareVersion -&gt; Bool)
+-&gt; Eq SoftwareVersion
+forall a. (a -&gt; a -&gt; Bool) -&gt; (a -&gt; a -&gt; Bool) -&gt; Eq a
+/= :: SoftwareVersion -&gt; SoftwareVersion -&gt; Bool
+$c/= :: SoftwareVersion -&gt; SoftwareVersion -&gt; Bool
+== :: SoftwareVersion -&gt; SoftwareVersion -&gt; Bool
+$c== :: SoftwareVersion -&gt; SoftwareVersion -&gt; Bool
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">(forall x. SoftwareVersion -&gt; Rep SoftwareVersion x)
+-&gt; (forall x. Rep SoftwareVersion x -&gt; SoftwareVersion)
+-&gt; Generic SoftwareVersion
+forall x. Rep SoftwareVersion x -&gt; SoftwareVersion
+forall x. SoftwareVersion -&gt; Rep SoftwareVersion x
+forall a.
+(forall x. a -&gt; Rep a x) -&gt; (forall x. Rep a x -&gt; a) -&gt; Generic a
+$cto :: forall x. Rep SoftwareVersion x -&gt; SoftwareVersion
+$cfrom :: forall x. SoftwareVersion -&gt; Rep SoftwareVersion x
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">Generic</span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679517003"><span id="local-6989586621679517005"><span id="local-6989586621679517007"><span id="local-6989586621679517009"><span id="local-6989586621679517011"><span id="local-6989586621679517013"><span id="local-6989586621679517015"><span class="annot"><span class="annottext">Eq SoftwareVersion
+Eq SoftwareVersion
+-&gt; (SoftwareVersion -&gt; SoftwareVersion -&gt; Ordering)
+-&gt; (SoftwareVersion -&gt; SoftwareVersion -&gt; Bool)
+-&gt; (SoftwareVersion -&gt; SoftwareVersion -&gt; Bool)
+-&gt; (SoftwareVersion -&gt; SoftwareVersion -&gt; Bool)
+-&gt; (SoftwareVersion -&gt; SoftwareVersion -&gt; Bool)
+-&gt; (SoftwareVersion -&gt; SoftwareVersion -&gt; SoftwareVersion)
+-&gt; (SoftwareVersion -&gt; SoftwareVersion -&gt; SoftwareVersion)
+-&gt; Ord SoftwareVersion
+SoftwareVersion -&gt; SoftwareVersion -&gt; Bool
+SoftwareVersion -&gt; SoftwareVersion -&gt; Ordering
+SoftwareVersion -&gt; SoftwareVersion -&gt; SoftwareVersion
+forall a.
+Eq a
+-&gt; (a -&gt; a -&gt; Ordering)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; a)
+-&gt; (a -&gt; a -&gt; a)
+-&gt; Ord a
+min :: SoftwareVersion -&gt; SoftwareVersion -&gt; SoftwareVersion
+$cmin :: SoftwareVersion -&gt; SoftwareVersion -&gt; SoftwareVersion
+max :: SoftwareVersion -&gt; SoftwareVersion -&gt; SoftwareVersion
+$cmax :: SoftwareVersion -&gt; SoftwareVersion -&gt; SoftwareVersion
+&gt;= :: SoftwareVersion -&gt; SoftwareVersion -&gt; Bool
+$c&gt;= :: SoftwareVersion -&gt; SoftwareVersion -&gt; Bool
+&gt; :: SoftwareVersion -&gt; SoftwareVersion -&gt; Bool
+$c&gt; :: SoftwareVersion -&gt; SoftwareVersion -&gt; Bool
+&lt;= :: SoftwareVersion -&gt; SoftwareVersion -&gt; Bool
+$c&lt;= :: SoftwareVersion -&gt; SoftwareVersion -&gt; Bool
+&lt; :: SoftwareVersion -&gt; SoftwareVersion -&gt; Bool
+$c&lt; :: SoftwareVersion -&gt; SoftwareVersion -&gt; Bool
+compare :: SoftwareVersion -&gt; SoftwareVersion -&gt; Ordering
+$ccompare :: SoftwareVersion -&gt; SoftwareVersion -&gt; Ordering
+$cp1Ord :: Eq SoftwareVersion
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Ord</span></span></span></span></span></span></span></span></span><span class="hs-special">)</span><span>
+</span><span id="line-46"></span><span>    </span><span class="hs-keyword">deriving</span><span> </span><span class="annot"><span class="hs-keyword">anyclass</span></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679517000"><span class="annot"><span class="annottext">SoftwareVersion -&gt; ()
+(SoftwareVersion -&gt; ()) -&gt; NFData SoftwareVersion
+forall a. (a -&gt; ()) -&gt; NFData a
+rnf :: SoftwareVersion -&gt; ()
+$crnf :: SoftwareVersion -&gt; ()
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">NFData</span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679516993"><span id="local-6989586621679516995"><span id="local-6989586621679516997"><span class="annot"><span class="annottext">Context -&gt; SoftwareVersion -&gt; IO (Maybe ThunkInfo)
+Proxy SoftwareVersion -&gt; String
+(Context -&gt; SoftwareVersion -&gt; IO (Maybe ThunkInfo))
+-&gt; (Context -&gt; SoftwareVersion -&gt; IO (Maybe ThunkInfo))
+-&gt; (Proxy SoftwareVersion -&gt; String)
+-&gt; NoThunks SoftwareVersion
+forall a.
+(Context -&gt; a -&gt; IO (Maybe ThunkInfo))
+-&gt; (Context -&gt; a -&gt; IO (Maybe ThunkInfo))
+-&gt; (Proxy a -&gt; String)
+-&gt; NoThunks a
+showTypeOf :: Proxy SoftwareVersion -&gt; String
+$cshowTypeOf :: Proxy SoftwareVersion -&gt; String
+wNoThunks :: Context -&gt; SoftwareVersion -&gt; IO (Maybe ThunkInfo)
+$cwNoThunks :: Context -&gt; SoftwareVersion -&gt; IO (Maybe ThunkInfo)
+noThunks :: Context -&gt; SoftwareVersion -&gt; IO (Maybe ThunkInfo)
+$cnoThunks :: Context -&gt; SoftwareVersion -&gt; IO (Maybe ThunkInfo)
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">NoThunks</span></span></span></span></span><span class="hs-special">)</span><span>
+</span><span id="line-47"></span><span>
+</span><span id="line-48"></span><span class="hs-keyword">instance</span><span> </span><span class="annot"><span class="hs-identifier hs-type">B.Buildable</span></span><span> </span><span class="annot"><a href="Cardano.Chain.Update.SoftwareVersion.html#SoftwareVersion"><span class="hs-identifier hs-type">SoftwareVersion</span></a></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-49"></span><span>  </span><span id="local-6989586621679516989"><span class="annot"><span class="annottext">build :: SoftwareVersion -&gt; Builder
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">build</span></span></span><span> </span><span id="local-6989586621679516987"><span class="annot"><span class="annottext">SoftwareVersion
+</span><a href="#local-6989586621679516987"><span class="hs-identifier hs-var">sv</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-50"></span><span>    </span><span class="annot"><span class="annottext">Format Builder (Text -&gt; NumSoftwareVersion -&gt; Builder)
+-&gt; Text -&gt; NumSoftwareVersion -&gt; Builder
+forall a. Format Builder a -&gt; a
+</span><span class="hs-identifier hs-var">bprint</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Format
+  (NumSoftwareVersion -&gt; Builder)
+  (Text -&gt; NumSoftwareVersion -&gt; Builder)
+forall r. Format r (Text -&gt; r)
+</span><span class="hs-identifier hs-var">stext</span></span><span> </span><span class="annot"><span class="annottext">Format
+  (NumSoftwareVersion -&gt; Builder)
+  (Text -&gt; NumSoftwareVersion -&gt; Builder)
+-&gt; Format Builder (NumSoftwareVersion -&gt; Builder)
+-&gt; Format Builder (Text -&gt; NumSoftwareVersion -&gt; Builder)
+forall k (cat :: k -&gt; k -&gt; *) (b :: k) (c :: k) (a :: k).
+Category cat =&gt;
+cat b c -&gt; cat a b -&gt; cat a c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Format
+  (NumSoftwareVersion -&gt; Builder) (NumSoftwareVersion -&gt; Builder)
+</span><span class="hs-string">&quot;:&quot;</span></span><span> </span><span class="annot"><span class="annottext">Format
+  (NumSoftwareVersion -&gt; Builder) (NumSoftwareVersion -&gt; Builder)
+-&gt; Format Builder (NumSoftwareVersion -&gt; Builder)
+-&gt; Format Builder (NumSoftwareVersion -&gt; Builder)
+forall k (cat :: k -&gt; k -&gt; *) (b :: k) (c :: k) (a :: k).
+Category cat =&gt;
+cat b c -&gt; cat a b -&gt; cat a c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Format Builder (NumSoftwareVersion -&gt; Builder)
+forall a r. Integral a =&gt; Format r (a -&gt; r)
+</span><span class="hs-identifier hs-var">int</span></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">ApplicationName -&gt; Text
+</span><a href="Cardano.Chain.Update.ApplicationName.html#unApplicationName"><span class="hs-identifier hs-var hs-var">unApplicationName</span></a></span><span> </span><span class="annot"><span class="annottext">(ApplicationName -&gt; Text) -&gt; ApplicationName -&gt; Text
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">SoftwareVersion -&gt; ApplicationName
+</span><a href="Cardano.Chain.Update.SoftwareVersion.html#svAppName"><span class="hs-identifier hs-var hs-var">svAppName</span></a></span><span> </span><span class="annot"><span class="annottext">SoftwareVersion
+</span><a href="#local-6989586621679516987"><span class="hs-identifier hs-var">sv</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">SoftwareVersion -&gt; NumSoftwareVersion
+</span><a href="Cardano.Chain.Update.SoftwareVersion.html#svNumber"><span class="hs-identifier hs-var hs-var">svNumber</span></a></span><span> </span><span class="annot"><span class="annottext">SoftwareVersion
+</span><a href="#local-6989586621679516987"><span class="hs-identifier hs-var">sv</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-51"></span><span>
+</span><span id="line-52"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679516980"><span id="local-6989586621679516983"><span class="annot"><span class="hs-identifier hs-type">Show</span></span><span> </span><span class="annot"><a href="Cardano.Chain.Update.SoftwareVersion.html#SoftwareVersion"><span class="hs-identifier hs-type">SoftwareVersion</span></a></span></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-53"></span><span>  </span><span id="local-6989586621679516978"><span class="annot"><span class="annottext">show :: SoftwareVersion -&gt; String
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">show</span></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Format String (SoftwareVersion -&gt; String)
+-&gt; SoftwareVersion -&gt; String
+forall a. Format String a -&gt; a
+</span><span class="hs-identifier hs-var">formatToString</span></span><span> </span><span class="annot"><span class="annottext">Format String (SoftwareVersion -&gt; String)
+forall a r. Buildable a =&gt; Format r (a -&gt; r)
+</span><span class="hs-identifier hs-var">build</span></span><span>
+</span><span id="line-54"></span><span>
+</span><span id="line-55"></span><span class="hs-comment">-- Used for debugging purposes only</span><span>
+</span><span id="line-56"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679516969"><span id="local-6989586621679516971"><span id="local-6989586621679516973"><span id="local-6989586621679516975"><span class="annot"><span class="hs-identifier hs-type">ToJSON</span></span><span> </span><span class="annot"><a href="Cardano.Chain.Update.SoftwareVersion.html#SoftwareVersion"><span class="hs-identifier hs-type">SoftwareVersion</span></a></span></span></span></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-57"></span><span>
+</span><span id="line-58"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679516963"><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src"><span class="hs-identifier hs-type">ToCBOR</span></a></span><span> </span><span class="annot"><a href="Cardano.Chain.Update.SoftwareVersion.html#SoftwareVersion"><span class="hs-identifier hs-type">SoftwareVersion</span></a></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-59"></span><span>  </span><span id="local-6989586621679516961"><span class="annot"><span class="annottext">toCBOR :: SoftwareVersion -&gt; Encoding
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src"><span class="hs-identifier hs-var hs-var hs-var hs-var">toCBOR</span></a></span></span><span> </span><span id="local-6989586621679516959"><span class="annot"><span class="annottext">SoftwareVersion
+</span><a href="#local-6989586621679516959"><span class="hs-identifier hs-var">sv</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Word -&gt; Encoding
+</span><span class="hs-identifier hs-var">encodeListLen</span></span><span> </span><span class="annot"><span class="annottext">Word
+</span><span class="hs-number">2</span></span><span> </span><span class="annot"><span class="annottext">Encoding -&gt; Encoding -&gt; Encoding
+forall a. Semigroup a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">&lt;&gt;</span></span><span> </span><span class="annot"><span class="annottext">ApplicationName -&gt; Encoding
+forall a. ToCBOR a =&gt; a -&gt; Encoding
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src"><span class="hs-identifier hs-var">toCBOR</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">SoftwareVersion -&gt; ApplicationName
+</span><a href="Cardano.Chain.Update.SoftwareVersion.html#svAppName"><span class="hs-identifier hs-var hs-var">svAppName</span></a></span><span> </span><span class="annot"><span class="annottext">SoftwareVersion
+</span><a href="#local-6989586621679516959"><span class="hs-identifier hs-var">sv</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Encoding -&gt; Encoding -&gt; Encoding
+forall a. Semigroup a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">&lt;&gt;</span></span><span> </span><span class="annot"><span class="annottext">NumSoftwareVersion -&gt; Encoding
+forall a. ToCBOR a =&gt; a -&gt; Encoding
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src"><span class="hs-identifier hs-var">toCBOR</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">SoftwareVersion -&gt; NumSoftwareVersion
+</span><a href="Cardano.Chain.Update.SoftwareVersion.html#svNumber"><span class="hs-identifier hs-var hs-var">svNumber</span></a></span><span> </span><span class="annot"><span class="annottext">SoftwareVersion
+</span><a href="#local-6989586621679516959"><span class="hs-identifier hs-var">sv</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-60"></span><span>
+</span><span id="line-61"></span><span>  </span><span id="local-6989586621679516958"><span class="annot"><span class="annottext">encodedSizeExpr :: (forall t. ToCBOR t =&gt; Proxy t -&gt; Size)
+-&gt; Proxy SoftwareVersion -&gt; Size
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src"><span class="hs-identifier hs-var hs-var hs-var hs-var">encodedSizeExpr</span></a></span></span><span> </span><span id="local-6989586621679516956"><span class="annot"><span class="annottext">forall t. ToCBOR t =&gt; Proxy t -&gt; Size
+</span><a href="#local-6989586621679516956"><span class="hs-identifier hs-var">f</span></a></span></span><span> </span><span id="local-6989586621679516955"><span class="annot"><span class="annottext">Proxy SoftwareVersion
+</span><a href="#local-6989586621679516955"><span class="hs-identifier hs-var">sv</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Size
+</span><span class="hs-number">1</span></span><span>
+</span><span id="line-62"></span><span>                       </span><span class="annot"><span class="annottext">Size -&gt; Size -&gt; Size
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="annottext">(forall t. ToCBOR t =&gt; Proxy t -&gt; Size)
+-&gt; Proxy ApplicationName -&gt; Size
+forall a.
+ToCBOR a =&gt;
+(forall t. ToCBOR t =&gt; Proxy t -&gt; Size) -&gt; Proxy a -&gt; Size
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src"><span class="hs-identifier hs-var">encodedSizeExpr</span></a></span><span> </span><span class="annot"><span class="annottext">forall t. ToCBOR t =&gt; Proxy t -&gt; Size
+</span><a href="#local-6989586621679516956"><span class="hs-identifier hs-var">f</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">SoftwareVersion -&gt; ApplicationName
+</span><a href="Cardano.Chain.Update.SoftwareVersion.html#svAppName"><span class="hs-identifier hs-var hs-var">svAppName</span></a></span><span> </span><span class="annot"><span class="annottext">(SoftwareVersion -&gt; ApplicationName)
+-&gt; Proxy SoftwareVersion -&gt; Proxy ApplicationName
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">Proxy SoftwareVersion
+</span><a href="#local-6989586621679516955"><span class="hs-identifier hs-var">sv</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-63"></span><span>                       </span><span class="annot"><span class="annottext">Size -&gt; Size -&gt; Size
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="annottext">(forall t. ToCBOR t =&gt; Proxy t -&gt; Size)
+-&gt; Proxy NumSoftwareVersion -&gt; Size
+forall a.
+ToCBOR a =&gt;
+(forall t. ToCBOR t =&gt; Proxy t -&gt; Size) -&gt; Proxy a -&gt; Size
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src"><span class="hs-identifier hs-var">encodedSizeExpr</span></a></span><span> </span><span class="annot"><span class="annottext">forall t. ToCBOR t =&gt; Proxy t -&gt; Size
+</span><a href="#local-6989586621679516956"><span class="hs-identifier hs-var">f</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">SoftwareVersion -&gt; NumSoftwareVersion
+</span><a href="Cardano.Chain.Update.SoftwareVersion.html#svNumber"><span class="hs-identifier hs-var hs-var">svNumber</span></a></span><span>  </span><span class="annot"><span class="annottext">(SoftwareVersion -&gt; NumSoftwareVersion)
+-&gt; Proxy SoftwareVersion -&gt; Proxy NumSoftwareVersion
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">Proxy SoftwareVersion
+</span><a href="#local-6989586621679516955"><span class="hs-identifier hs-var">sv</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-64"></span><span>
+</span><span id="line-65"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679516949"><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src"><span class="hs-identifier hs-type">FromCBOR</span></a></span><span> </span><span class="annot"><a href="Cardano.Chain.Update.SoftwareVersion.html#SoftwareVersion"><span class="hs-identifier hs-type">SoftwareVersion</span></a></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-66"></span><span>  </span><span id="local-6989586621679516947"><span class="annot"><span class="annottext">fromCBOR :: Decoder s SoftwareVersion
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src"><span class="hs-identifier hs-var hs-var hs-var hs-var">fromCBOR</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-67"></span><span>    </span><span class="annot"><span class="annottext">Text -&gt; Int -&gt; Decoder s ()
+forall s. Text -&gt; Int -&gt; Decoder s ()
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src"><span class="hs-identifier hs-var">enforceSize</span></a></span><span> </span><span class="annot"><span class="annottext">Text
+</span><span class="hs-string">&quot;SoftwareVersion&quot;</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">2</span></span><span>
+</span><span id="line-68"></span><span>    </span><span class="annot"><span class="annottext">ApplicationName -&gt; NumSoftwareVersion -&gt; SoftwareVersion
+</span><a href="Cardano.Chain.Update.SoftwareVersion.html#SoftwareVersion"><span class="hs-identifier hs-var">SoftwareVersion</span></a></span><span> </span><span class="annot"><span class="annottext">(ApplicationName -&gt; NumSoftwareVersion -&gt; SoftwareVersion)
+-&gt; Decoder s ApplicationName
+-&gt; Decoder s (NumSoftwareVersion -&gt; SoftwareVersion)
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">Decoder s ApplicationName
+forall a s. FromCBOR a =&gt; Decoder s a
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src"><span class="hs-identifier hs-var">fromCBOR</span></a></span><span> </span><span class="annot"><span class="annottext">Decoder s (NumSoftwareVersion -&gt; SoftwareVersion)
+-&gt; Decoder s NumSoftwareVersion -&gt; Decoder s SoftwareVersion
+forall (f :: * -&gt; *) a b. Applicative f =&gt; f (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;*&gt;</span></span><span> </span><span class="annot"><span class="annottext">Decoder s NumSoftwareVersion
+forall a s. FromCBOR a =&gt; Decoder s a
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src"><span class="hs-identifier hs-var">fromCBOR</span></a></span><span>
+</span><span id="line-69"></span><span>
+</span><span id="line-70"></span><span class="hs-keyword">data</span><span> </span><span id="SoftwareVersionError"><span class="annot"><a href="Cardano.Chain.Update.SoftwareVersion.html#SoftwareVersionError"><span class="hs-identifier hs-var">SoftwareVersionError</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-71"></span><span>  </span><span id="SoftwareVersionApplicationNameError"><span class="annot"><a href="Cardano.Chain.Update.SoftwareVersion.html#SoftwareVersionApplicationNameError"><span class="hs-identifier hs-var">SoftwareVersionApplicationNameError</span></a></span></span><span> </span><span class="annot"><a href="Cardano.Chain.Update.ApplicationName.html#ApplicationNameError"><span class="hs-identifier hs-type">ApplicationNameError</span></a></span><span>
+</span><span id="line-72"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="%24cSoftwareVersionApplicationNameError"><span id="%24tSoftwareVersionError"><span id="local-6989586621679516916"><span id="local-6989586621679516918"><span id="local-6989586621679516920"><span id="local-6989586621679516922"><span id="local-6989586621679516924"><span id="local-6989586621679516926"><span id="local-6989586621679516928"><span id="local-6989586621679516930"><span id="local-6989586621679516932"><span id="local-6989586621679516934"><span id="local-6989586621679516936"><span id="local-6989586621679516938"><span id="local-6989586621679516940"><span id="local-6989586621679516942"><span class="annot"><span class="annottext">Typeable SoftwareVersionError
+DataType
+Constr
+Typeable SoftwareVersionError
+-&gt; (forall (c :: * -&gt; *).
+    (forall d b. Data d =&gt; c (d -&gt; b) -&gt; d -&gt; c b)
+    -&gt; (forall g. g -&gt; c g)
+    -&gt; SoftwareVersionError
+    -&gt; c SoftwareVersionError)
+-&gt; (forall (c :: * -&gt; *).
+    (forall b r. Data b =&gt; c (b -&gt; r) -&gt; c r)
+    -&gt; (forall r. r -&gt; c r) -&gt; Constr -&gt; c SoftwareVersionError)
+-&gt; (SoftwareVersionError -&gt; Constr)
+-&gt; (SoftwareVersionError -&gt; DataType)
+-&gt; (forall (t :: * -&gt; *) (c :: * -&gt; *).
+    Typeable t =&gt;
+    (forall d. Data d =&gt; c (t d)) -&gt; Maybe (c SoftwareVersionError))
+-&gt; (forall (t :: * -&gt; * -&gt; *) (c :: * -&gt; *).
+    Typeable t =&gt;
+    (forall d e. (Data d, Data e) =&gt; c (t d e))
+    -&gt; Maybe (c SoftwareVersionError))
+-&gt; ((forall b. Data b =&gt; b -&gt; b)
+    -&gt; SoftwareVersionError -&gt; SoftwareVersionError)
+-&gt; (forall r r'.
+    (r -&gt; r' -&gt; r)
+    -&gt; r -&gt; (forall d. Data d =&gt; d -&gt; r') -&gt; SoftwareVersionError -&gt; r)
+-&gt; (forall r r'.
+    (r' -&gt; r -&gt; r)
+    -&gt; r -&gt; (forall d. Data d =&gt; d -&gt; r') -&gt; SoftwareVersionError -&gt; r)
+-&gt; (forall u.
+    (forall d. Data d =&gt; d -&gt; u) -&gt; SoftwareVersionError -&gt; [u])
+-&gt; (forall u.
+    Int -&gt; (forall d. Data d =&gt; d -&gt; u) -&gt; SoftwareVersionError -&gt; u)
+-&gt; (forall (m :: * -&gt; *).
+    Monad m =&gt;
+    (forall d. Data d =&gt; d -&gt; m d)
+    -&gt; SoftwareVersionError -&gt; m SoftwareVersionError)
+-&gt; (forall (m :: * -&gt; *).
+    MonadPlus m =&gt;
+    (forall d. Data d =&gt; d -&gt; m d)
+    -&gt; SoftwareVersionError -&gt; m SoftwareVersionError)
+-&gt; (forall (m :: * -&gt; *).
+    MonadPlus m =&gt;
+    (forall d. Data d =&gt; d -&gt; m d)
+    -&gt; SoftwareVersionError -&gt; m SoftwareVersionError)
+-&gt; Data SoftwareVersionError
+SoftwareVersionError -&gt; DataType
+SoftwareVersionError -&gt; Constr
+(forall b. Data b =&gt; b -&gt; b)
+-&gt; SoftwareVersionError -&gt; SoftwareVersionError
+(forall d b. Data d =&gt; c (d -&gt; b) -&gt; d -&gt; c b)
+-&gt; (forall g. g -&gt; c g)
+-&gt; SoftwareVersionError
+-&gt; c SoftwareVersionError
+(forall b r. Data b =&gt; c (b -&gt; r) -&gt; c r)
+-&gt; (forall r. r -&gt; c r) -&gt; Constr -&gt; c SoftwareVersionError
+forall a.
+Typeable a
+-&gt; (forall (c :: * -&gt; *).
+    (forall d b. Data d =&gt; c (d -&gt; b) -&gt; d -&gt; c b)
+    -&gt; (forall g. g -&gt; c g) -&gt; a -&gt; c a)
+-&gt; (forall (c :: * -&gt; *).
+    (forall b r. Data b =&gt; c (b -&gt; r) -&gt; c r)
+    -&gt; (forall r. r -&gt; c r) -&gt; Constr -&gt; c a)
+-&gt; (a -&gt; Constr)
+-&gt; (a -&gt; DataType)
+-&gt; (forall (t :: * -&gt; *) (c :: * -&gt; *).
+    Typeable t =&gt;
+    (forall d. Data d =&gt; c (t d)) -&gt; Maybe (c a))
+-&gt; (forall (t :: * -&gt; * -&gt; *) (c :: * -&gt; *).
+    Typeable t =&gt;
+    (forall d e. (Data d, Data e) =&gt; c (t d e)) -&gt; Maybe (c a))
+-&gt; ((forall b. Data b =&gt; b -&gt; b) -&gt; a -&gt; a)
+-&gt; (forall r r'.
+    (r -&gt; r' -&gt; r) -&gt; r -&gt; (forall d. Data d =&gt; d -&gt; r') -&gt; a -&gt; r)
+-&gt; (forall r r'.
+    (r' -&gt; r -&gt; r) -&gt; r -&gt; (forall d. Data d =&gt; d -&gt; r') -&gt; a -&gt; r)
+-&gt; (forall u. (forall d. Data d =&gt; d -&gt; u) -&gt; a -&gt; [u])
+-&gt; (forall u. Int -&gt; (forall d. Data d =&gt; d -&gt; u) -&gt; a -&gt; u)
+-&gt; (forall (m :: * -&gt; *).
+    Monad m =&gt;
+    (forall d. Data d =&gt; d -&gt; m d) -&gt; a -&gt; m a)
+-&gt; (forall (m :: * -&gt; *).
+    MonadPlus m =&gt;
+    (forall d. Data d =&gt; d -&gt; m d) -&gt; a -&gt; m a)
+-&gt; (forall (m :: * -&gt; *).
+    MonadPlus m =&gt;
+    (forall d. Data d =&gt; d -&gt; m d) -&gt; a -&gt; m a)
+-&gt; Data a
+forall u.
+Int -&gt; (forall d. Data d =&gt; d -&gt; u) -&gt; SoftwareVersionError -&gt; u
+forall u.
+(forall d. Data d =&gt; d -&gt; u) -&gt; SoftwareVersionError -&gt; [u]
+forall r r'.
+(r -&gt; r' -&gt; r)
+-&gt; r -&gt; (forall d. Data d =&gt; d -&gt; r') -&gt; SoftwareVersionError -&gt; r
+forall r r'.
+(r' -&gt; r -&gt; r)
+-&gt; r -&gt; (forall d. Data d =&gt; d -&gt; r') -&gt; SoftwareVersionError -&gt; r
+forall (m :: * -&gt; *).
+Monad m =&gt;
+(forall d. Data d =&gt; d -&gt; m d)
+-&gt; SoftwareVersionError -&gt; m SoftwareVersionError
+forall (m :: * -&gt; *).
+MonadPlus m =&gt;
+(forall d. Data d =&gt; d -&gt; m d)
+-&gt; SoftwareVersionError -&gt; m SoftwareVersionError
+forall (c :: * -&gt; *).
+(forall b r. Data b =&gt; c (b -&gt; r) -&gt; c r)
+-&gt; (forall r. r -&gt; c r) -&gt; Constr -&gt; c SoftwareVersionError
+forall (c :: * -&gt; *).
+(forall d b. Data d =&gt; c (d -&gt; b) -&gt; d -&gt; c b)
+-&gt; (forall g. g -&gt; c g)
+-&gt; SoftwareVersionError
+-&gt; c SoftwareVersionError
+forall (t :: * -&gt; *) (c :: * -&gt; *).
+Typeable t =&gt;
+(forall d. Data d =&gt; c (t d)) -&gt; Maybe (c SoftwareVersionError)
+forall (t :: * -&gt; * -&gt; *) (c :: * -&gt; *).
+Typeable t =&gt;
+(forall d e. (Data d, Data e) =&gt; c (t d e))
+-&gt; Maybe (c SoftwareVersionError)
+$cSoftwareVersionApplicationNameError :: Constr
+$tSoftwareVersionError :: DataType
+gmapMo :: (forall d. Data d =&gt; d -&gt; m d)
+-&gt; SoftwareVersionError -&gt; m SoftwareVersionError
+$cgmapMo :: forall (m :: * -&gt; *).
+MonadPlus m =&gt;
+(forall d. Data d =&gt; d -&gt; m d)
+-&gt; SoftwareVersionError -&gt; m SoftwareVersionError
+gmapMp :: (forall d. Data d =&gt; d -&gt; m d)
+-&gt; SoftwareVersionError -&gt; m SoftwareVersionError
+$cgmapMp :: forall (m :: * -&gt; *).
+MonadPlus m =&gt;
+(forall d. Data d =&gt; d -&gt; m d)
+-&gt; SoftwareVersionError -&gt; m SoftwareVersionError
+gmapM :: (forall d. Data d =&gt; d -&gt; m d)
+-&gt; SoftwareVersionError -&gt; m SoftwareVersionError
+$cgmapM :: forall (m :: * -&gt; *).
+Monad m =&gt;
+(forall d. Data d =&gt; d -&gt; m d)
+-&gt; SoftwareVersionError -&gt; m SoftwareVersionError
+gmapQi :: Int -&gt; (forall d. Data d =&gt; d -&gt; u) -&gt; SoftwareVersionError -&gt; u
+$cgmapQi :: forall u.
+Int -&gt; (forall d. Data d =&gt; d -&gt; u) -&gt; SoftwareVersionError -&gt; u
+gmapQ :: (forall d. Data d =&gt; d -&gt; u) -&gt; SoftwareVersionError -&gt; [u]
+$cgmapQ :: forall u.
+(forall d. Data d =&gt; d -&gt; u) -&gt; SoftwareVersionError -&gt; [u]
+gmapQr :: (r' -&gt; r -&gt; r)
+-&gt; r -&gt; (forall d. Data d =&gt; d -&gt; r') -&gt; SoftwareVersionError -&gt; r
+$cgmapQr :: forall r r'.
+(r' -&gt; r -&gt; r)
+-&gt; r -&gt; (forall d. Data d =&gt; d -&gt; r') -&gt; SoftwareVersionError -&gt; r
+gmapQl :: (r -&gt; r' -&gt; r)
+-&gt; r -&gt; (forall d. Data d =&gt; d -&gt; r') -&gt; SoftwareVersionError -&gt; r
+$cgmapQl :: forall r r'.
+(r -&gt; r' -&gt; r)
+-&gt; r -&gt; (forall d. Data d =&gt; d -&gt; r') -&gt; SoftwareVersionError -&gt; r
+gmapT :: (forall b. Data b =&gt; b -&gt; b)
+-&gt; SoftwareVersionError -&gt; SoftwareVersionError
+$cgmapT :: (forall b. Data b =&gt; b -&gt; b)
+-&gt; SoftwareVersionError -&gt; SoftwareVersionError
+dataCast2 :: (forall d e. (Data d, Data e) =&gt; c (t d e))
+-&gt; Maybe (c SoftwareVersionError)
+$cdataCast2 :: forall (t :: * -&gt; * -&gt; *) (c :: * -&gt; *).
+Typeable t =&gt;
+(forall d e. (Data d, Data e) =&gt; c (t d e))
+-&gt; Maybe (c SoftwareVersionError)
+dataCast1 :: (forall d. Data d =&gt; c (t d)) -&gt; Maybe (c SoftwareVersionError)
+$cdataCast1 :: forall (t :: * -&gt; *) (c :: * -&gt; *).
+Typeable t =&gt;
+(forall d. Data d =&gt; c (t d)) -&gt; Maybe (c SoftwareVersionError)
+dataTypeOf :: SoftwareVersionError -&gt; DataType
+$cdataTypeOf :: SoftwareVersionError -&gt; DataType
+toConstr :: SoftwareVersionError -&gt; Constr
+$ctoConstr :: SoftwareVersionError -&gt; Constr
+gunfold :: (forall b r. Data b =&gt; c (b -&gt; r) -&gt; c r)
+-&gt; (forall r. r -&gt; c r) -&gt; Constr -&gt; c SoftwareVersionError
+$cgunfold :: forall (c :: * -&gt; *).
+(forall b r. Data b =&gt; c (b -&gt; r) -&gt; c r)
+-&gt; (forall r. r -&gt; c r) -&gt; Constr -&gt; c SoftwareVersionError
+gfoldl :: (forall d b. Data d =&gt; c (d -&gt; b) -&gt; d -&gt; c b)
+-&gt; (forall g. g -&gt; c g)
+-&gt; SoftwareVersionError
+-&gt; c SoftwareVersionError
+$cgfoldl :: forall (c :: * -&gt; *).
+(forall d b. Data d =&gt; c (d -&gt; b) -&gt; d -&gt; c b)
+-&gt; (forall g. g -&gt; c g)
+-&gt; SoftwareVersionError
+-&gt; c SoftwareVersionError
+$cp1Data :: Typeable SoftwareVersionError
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Data</span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679516909"><span id="local-6989586621679516911"><span class="annot"><span class="annottext">SoftwareVersionError -&gt; SoftwareVersionError -&gt; Bool
+(SoftwareVersionError -&gt; SoftwareVersionError -&gt; Bool)
+-&gt; (SoftwareVersionError -&gt; SoftwareVersionError -&gt; Bool)
+-&gt; Eq SoftwareVersionError
+forall a. (a -&gt; a -&gt; Bool) -&gt; (a -&gt; a -&gt; Bool) -&gt; Eq a
+/= :: SoftwareVersionError -&gt; SoftwareVersionError -&gt; Bool
+$c/= :: SoftwareVersionError -&gt; SoftwareVersionError -&gt; Bool
+== :: SoftwareVersionError -&gt; SoftwareVersionError -&gt; Bool
+$c== :: SoftwareVersionError -&gt; SoftwareVersionError -&gt; Bool
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679516903"><span id="local-6989586621679516905"><span id="local-6989586621679516907"><span class="annot"><span class="annottext">Int -&gt; SoftwareVersionError -&gt; ShowS
+[SoftwareVersionError] -&gt; ShowS
+SoftwareVersionError -&gt; String
+(Int -&gt; SoftwareVersionError -&gt; ShowS)
+-&gt; (SoftwareVersionError -&gt; String)
+-&gt; ([SoftwareVersionError] -&gt; ShowS)
+-&gt; Show SoftwareVersionError
+forall a.
+(Int -&gt; a -&gt; ShowS) -&gt; (a -&gt; String) -&gt; ([a] -&gt; ShowS) -&gt; Show a
+showList :: [SoftwareVersionError] -&gt; ShowS
+$cshowList :: [SoftwareVersionError] -&gt; ShowS
+show :: SoftwareVersionError -&gt; String
+$cshow :: SoftwareVersionError -&gt; String
+showsPrec :: Int -&gt; SoftwareVersionError -&gt; ShowS
+$cshowsPrec :: Int -&gt; SoftwareVersionError -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">)</span><span>
+</span><span id="line-73"></span><span>
+</span><span id="line-74"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679516897"><span id="local-6989586621679516899"><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src"><span class="hs-identifier hs-type">ToCBOR</span></a></span><span> </span><span class="annot"><a href="Cardano.Chain.Update.SoftwareVersion.html#SoftwareVersionError"><span class="hs-identifier hs-type">SoftwareVersionError</span></a></span></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-75"></span><span>  </span><span id="local-6989586621679516896"><span class="annot"><span class="annottext">toCBOR :: SoftwareVersionError -&gt; Encoding
+</span><a href="#local-6989586621679516896"><span class="hs-identifier hs-var hs-var hs-var hs-var">toCBOR</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cardano.Chain.Update.SoftwareVersion.html#SoftwareVersionApplicationNameError"><span class="hs-identifier hs-type">SoftwareVersionApplicationNameError</span></a></span><span> </span><span id="local-6989586621679516895"><span class="annot"><span class="annottext">ApplicationNameError
+</span><a href="#local-6989586621679516895"><span class="hs-identifier hs-var">applicationNameError</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-76"></span><span>    </span><span class="annot"><span class="annottext">Word -&gt; Encoding
+</span><span class="hs-identifier hs-var">encodeListLen</span></span><span> </span><span class="annot"><span class="annottext">Word
+</span><span class="hs-number">2</span></span><span>
+</span><span id="line-77"></span><span>      </span><span class="annot"><span class="annottext">Encoding -&gt; Encoding -&gt; Encoding
+forall a. Semigroup a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">&lt;&gt;</span></span><span> </span><span class="annot"><span class="annottext">Word8 -&gt; Encoding
+forall a. ToCBOR a =&gt; a -&gt; Encoding
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src"><span class="hs-identifier hs-var">toCBOR</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Word8
+</span><span class="hs-number">0</span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Word8</span></span><span class="hs-special">)</span><span>
+</span><span id="line-78"></span><span>      </span><span class="annot"><span class="annottext">Encoding -&gt; Encoding -&gt; Encoding
+forall a. Semigroup a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">&lt;&gt;</span></span><span> </span><span class="annot"><span class="annottext">ApplicationNameError -&gt; Encoding
+forall a. ToCBOR a =&gt; a -&gt; Encoding
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src"><span class="hs-identifier hs-var">toCBOR</span></a></span><span> </span><span class="annot"><span class="annottext">ApplicationNameError
+</span><a href="#local-6989586621679516895"><span class="hs-identifier hs-var">applicationNameError</span></a></span><span>
+</span><span id="line-79"></span><span>
+</span><span id="line-80"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679516891"><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src"><span class="hs-identifier hs-type">FromCBOR</span></a></span><span> </span><span class="annot"><a href="Cardano.Chain.Update.SoftwareVersion.html#SoftwareVersionError"><span class="hs-identifier hs-type">SoftwareVersionError</span></a></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-81"></span><span>  </span><span id="local-6989586621679516890"><span class="annot"><span class="annottext">fromCBOR :: Decoder s SoftwareVersionError
+</span><a href="#local-6989586621679516890"><span class="hs-identifier hs-var hs-var hs-var hs-var">fromCBOR</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-82"></span><span>    </span><span class="annot"><span class="annottext">Text -&gt; Int -&gt; Decoder s ()
+forall s. Text -&gt; Int -&gt; Decoder s ()
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src"><span class="hs-identifier hs-var">enforceSize</span></a></span><span> </span><span class="annot"><span class="annottext">Text
+</span><span class="hs-string">&quot;SoftwareVersionError&quot;</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">2</span></span><span>
+</span><span id="line-83"></span><span>    </span><span id="local-6989586621679516889"><span class="annot"><span class="annottext">Word8
+</span><a href="#local-6989586621679516889"><span class="hs-identifier hs-var">tag</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Decoder s Word8
+forall s. Decoder s Word8
+</span><span class="hs-identifier hs-var">decodeWord8</span></span><span>
+</span><span id="line-84"></span><span>    </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">Word8
+</span><a href="#local-6989586621679516889"><span class="hs-identifier hs-var">tag</span></a></span><span> </span><span class="hs-keyword">of</span><span>
+</span><span id="line-85"></span><span>      </span><span class="annot"><span class="annottext">Word8
+</span><span class="hs-number">0</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">ApplicationNameError -&gt; SoftwareVersionError
+</span><a href="Cardano.Chain.Update.SoftwareVersion.html#SoftwareVersionApplicationNameError"><span class="hs-identifier hs-var">SoftwareVersionApplicationNameError</span></a></span><span> </span><span class="annot"><span class="annottext">(ApplicationNameError -&gt; SoftwareVersionError)
+-&gt; Decoder s ApplicationNameError -&gt; Decoder s SoftwareVersionError
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">Decoder s ApplicationNameError
+forall a s. FromCBOR a =&gt; Decoder s a
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src"><span class="hs-identifier hs-var">fromCBOR</span></a></span><span>
+</span><span id="line-86"></span><span>      </span><span class="annot"><span class="annottext">Word8
+</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">DecoderError -&gt; Decoder s SoftwareVersionError
+forall e s a. Buildable e =&gt; e -&gt; Decoder s a
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-prelude-0.1.0.0/noopt/doc/html/cardano-prelude/src"><span class="hs-identifier hs-var">cborError</span></a></span><span> </span><span class="annot"><span class="annottext">(DecoderError -&gt; Decoder s SoftwareVersionError)
+-&gt; DecoderError -&gt; Decoder s SoftwareVersionError
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Text -&gt; Word8 -&gt; DecoderError
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src"><span class="hs-identifier hs-var">DecoderErrorUnknownTag</span></a></span><span> </span><span class="annot"><span class="annottext">Text
+</span><span class="hs-string">&quot;SoftwareVersionError&quot;</span></span><span> </span><span class="annot"><span class="annottext">Word8
+</span><a href="#local-6989586621679516889"><span class="hs-identifier hs-var">tag</span></a></span><span>
+</span><span id="line-87"></span><span>
+</span><span id="line-88"></span><span class="hs-keyword">instance</span><span> </span><span class="annot"><span class="hs-identifier hs-type">B.Buildable</span></span><span> </span><span class="annot"><a href="Cardano.Chain.Update.SoftwareVersion.html#SoftwareVersionError"><span class="hs-identifier hs-type">SoftwareVersionError</span></a></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-89"></span><span>  </span><span id="local-6989586621679516885"><span class="annot"><span class="annottext">build :: SoftwareVersionError -&gt; Builder
+</span><a href="#local-6989586621679516885"><span class="hs-identifier hs-var hs-var hs-var hs-var">build</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-glyph">\</span><span class="hs-glyph">case</span><span>
+</span><span id="line-90"></span><span>    </span><span class="annot"><a href="Cardano.Chain.Update.SoftwareVersion.html#SoftwareVersionApplicationNameError"><span class="hs-identifier hs-type">SoftwareVersionApplicationNameError</span></a></span><span> </span><span id="local-6989586621679516884"><span class="annot"><span class="annottext">ApplicationNameError
+</span><a href="#local-6989586621679516884"><span class="hs-identifier hs-var">err</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Format Builder (ApplicationNameError -&gt; Builder)
+-&gt; ApplicationNameError -&gt; Builder
+forall a. Format Builder a -&gt; a
+</span><span class="hs-identifier hs-var">bprint</span></span><span>
+</span><span id="line-91"></span><span>      </span><span class="hs-special">(</span><span> </span><span class="annot"><span class="annottext">Format
+  (ApplicationNameError -&gt; Builder) (ApplicationNameError -&gt; Builder)
+</span><span class="hs-string">&quot;ApplicationName was invalid when checking SoftwareVersion\n Error:&quot;</span></span><span>
+</span><span id="line-92"></span><span>      </span><span class="annot"><span class="annottext">Format
+  (ApplicationNameError -&gt; Builder) (ApplicationNameError -&gt; Builder)
+-&gt; Format Builder (ApplicationNameError -&gt; Builder)
+-&gt; Format Builder (ApplicationNameError -&gt; Builder)
+forall k (cat :: k -&gt; k -&gt; *) (b :: k) (c :: k) (a :: k).
+Category cat =&gt;
+cat b c -&gt; cat a b -&gt; cat a c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Format Builder (ApplicationNameError -&gt; Builder)
+forall a r. Buildable a =&gt; Format r (a -&gt; r)
+</span><span class="hs-identifier hs-var">build</span></span><span>
+</span><span id="line-93"></span><span>      </span><span class="hs-special">)</span><span>
+</span><span id="line-94"></span><span>      </span><span class="annot"><span class="annottext">ApplicationNameError
+</span><a href="#local-6989586621679516884"><span class="hs-identifier hs-var">err</span></a></span><span>
+</span><span id="line-95"></span><span>
+</span><span id="line-96"></span><span class="hs-comment">-- | A software version is valid iff its application name is valid</span><span>
+</span><span id="line-97"></span><span id="local-6989586621679516883"><span class="annot"><a href="Cardano.Chain.Update.SoftwareVersion.html#checkSoftwareVersion"><span class="hs-identifier hs-type">checkSoftwareVersion</span></a></span><span>
+</span><span id="line-98"></span><span>  </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">MonadError</span></span><span> </span><span class="annot"><a href="Cardano.Chain.Update.SoftwareVersion.html#SoftwareVersionError"><span class="hs-identifier hs-type">SoftwareVersionError</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679516883"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Cardano.Chain.Update.SoftwareVersion.html#SoftwareVersion"><span class="hs-identifier hs-type">SoftwareVersion</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679516883"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span></span><span>
+</span><span id="line-99"></span><span id="checkSoftwareVersion"><span class="annot"><span class="annottext">checkSoftwareVersion :: SoftwareVersion -&gt; m ()
+</span><a href="Cardano.Chain.Update.SoftwareVersion.html#checkSoftwareVersion"><span class="hs-identifier hs-var hs-var">checkSoftwareVersion</span></a></span></span><span> </span><span id="local-6989586621679516882"><span class="annot"><span class="annottext">SoftwareVersion
+</span><a href="#local-6989586621679516882"><span class="hs-identifier hs-var">sv</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-100"></span><span>  </span><span class="annot"><span class="annottext">ApplicationName -&gt; Either ApplicationNameError ()
+forall (m :: * -&gt; *).
+MonadError ApplicationNameError m =&gt;
+ApplicationName -&gt; m ()
+</span><a href="Cardano.Chain.Update.ApplicationName.html#checkApplicationName"><span class="hs-identifier hs-var">checkApplicationName</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">SoftwareVersion -&gt; ApplicationName
+</span><a href="Cardano.Chain.Update.SoftwareVersion.html#svAppName"><span class="hs-identifier hs-var hs-var">svAppName</span></a></span><span> </span><span class="annot"><span class="annottext">SoftwareVersion
+</span><a href="#local-6989586621679516882"><span class="hs-identifier hs-var">sv</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-101"></span><span>    </span><span class="annot"><span class="annottext">Either ApplicationNameError ()
+-&gt; (ApplicationNameError -&gt; SoftwareVersionError) -&gt; m ()
+forall e' (m :: * -&gt; *) e a.
+MonadError e' m =&gt;
+Either e a -&gt; (e -&gt; e') -&gt; m a
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-prelude-0.1.0.0/noopt/doc/html/cardano-prelude/src"><span class="hs-operator hs-var">`wrapError`</span></a></span><span> </span><span class="annot"><span class="annottext">ApplicationNameError -&gt; SoftwareVersionError
+</span><a href="Cardano.Chain.Update.SoftwareVersion.html#SoftwareVersionApplicationNameError"><span class="hs-identifier hs-var">SoftwareVersionApplicationNameError</span></a></span><span>
+</span><span id="line-102"></span></pre></body></html>

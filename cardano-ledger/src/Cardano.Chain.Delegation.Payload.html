@@ -1,70 +1,220 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-pragma">{-# LANGUAGE DeriveAnyClass             #-}</span><span>
-</span><a name="line-2"></a><span class="hs-pragma">{-# LANGUAGE DeriveFunctor              #-}</span><span>
-</span><a name="line-3"></a><span class="hs-pragma">{-# LANGUAGE DeriveGeneric              #-}</span><span>
-</span><a name="line-4"></a><span class="hs-pragma">{-# LANGUAGE DerivingStrategies         #-}</span><span>
-</span><a name="line-5"></a><span class="hs-pragma">{-# LANGUAGE FlexibleContexts           #-}</span><span>
-</span><a name="line-6"></a><span class="hs-pragma">{-# LANGUAGE FlexibleInstances          #-}</span><span>
-</span><a name="line-7"></a><span class="hs-pragma">{-# LANGUAGE OverloadedStrings          #-}</span><span>
-</span><a name="line-8"></a><span class="hs-pragma">{-# LANGUAGE TypeApplications           #-}</span><span>
-</span><a name="line-9"></a><span class="hs-pragma">{-# LANGUAGE TypeFamilies               #-}</span><span>
-</span><a name="line-10"></a><span>
-</span><a name="line-11"></a><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Cardano.Chain.Delegation.Payload</span><span>
-</span><a name="line-12"></a><span>  </span><span class="hs-special">(</span><span> </span><a href="Cardano.Chain.Delegation.Payload.html#APayload"><span class="hs-identifier hs-type">APayload</span></a><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
-</span><a name="line-13"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Cardano.Chain.Delegation.Payload.html#Payload"><span class="hs-identifier hs-type">Payload</span></a><span>
-</span><a name="line-14"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Cardano.Chain.Delegation.Payload.html#unsafePayload"><span class="hs-identifier hs-var">unsafePayload</span></a><span>
-</span><a name="line-15"></a><span>  </span><span class="hs-special">)</span><span>
-</span><a name="line-16"></a><span class="hs-keyword">where</span><span>
-</span><a name="line-17"></a><span>
-</span><a name="line-18"></a><span class="hs-keyword">import</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-prelude-0.1.0.0/noopt/doc/html/cardano-prelude/src/Cardano.Prelude.html"><span class="hs-identifier">Cardano.Prelude</span></a><span>
-</span><a name="line-19"></a><span>
-</span><a name="line-20"></a><span class="hs-keyword">import</span><span> </span><span class="hs-identifier">Data.Aeson</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">ToJSON</span><span class="hs-special">)</span><span>
-</span><a name="line-21"></a><span class="hs-keyword">import</span><span> </span><span class="hs-identifier">Formatting</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-var">bprint</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-var">int</span><span class="hs-special">)</span><span>
-</span><a name="line-22"></a><span class="hs-keyword">import</span><span> </span><span class="hs-identifier">Formatting.Buildable</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Buildable</span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
-</span><a name="line-23"></a><span>
-</span><a name="line-24"></a><span class="hs-keyword">import</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.html"><span class="hs-identifier">Cardano.Binary</span></a><span>
-</span><a name="line-25"></a><span>  </span><span class="hs-special">(</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.Annotated.html#Annotated"><span class="hs-identifier hs-type">Annotated</span></a><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
-</span><a name="line-26"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.Annotated.html#ByteSpan"><span class="hs-identifier hs-type">ByteSpan</span></a><span>
-</span><a name="line-27"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.Annotated.html#Decoded"><span class="hs-identifier hs-type">Decoded</span></a><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
-</span><a name="line-28"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.FromCBOR.html#FromCBOR"><span class="hs-identifier hs-type">FromCBOR</span></a><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
-</span><a name="line-29"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.ToCBOR.html#ToCBOR"><span class="hs-identifier hs-type">ToCBOR</span></a><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
-</span><a name="line-30"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.Annotated.html#annotatedDecoder"><span class="hs-identifier hs-var">annotatedDecoder</span></a><span>
-</span><a name="line-31"></a><span>  </span><span class="hs-special">)</span><span>
-</span><a name="line-32"></a><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><a href="Cardano.Chain.Delegation.Certificate.html"><span class="hs-identifier">Cardano.Chain.Delegation.Certificate</span></a><span> </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">Delegation</span><span>
-</span><a name="line-33"></a><span>
-</span><a name="line-34"></a><span>
-</span><a name="line-35"></a><span class="hs-comment">-- | The delegation 'Payload' contains a list of delegation 'Certificate's</span><span>
-</span><a name="line-36"></a><span class="hs-keyword">data</span><span> </span><a name="APayload"><a href="Cardano.Chain.Delegation.Payload.html#APayload"><span class="hs-identifier">APayload</span></a></a><span> </span><a name="local-6989586621679327493"><a href="#local-6989586621679327493"><span class="hs-identifier">a</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><a name="UnsafeAPayload"><a href="Cardano.Chain.Delegation.Payload.html#UnsafeAPayload"><span class="hs-identifier">UnsafeAPayload</span></a></a><span>
-</span><a name="line-37"></a><span>  </span><span class="hs-special">{</span><span> </span><a name="getPayload"><a href="Cardano.Chain.Delegation.Payload.html#getPayload"><span class="hs-identifier">getPayload</span></a></a><span>    </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">[</span><a href="Cardano.Chain.Delegation.Certificate.html#ACertificate"><span class="hs-identifier hs-type">Delegation.ACertificate</span></a><span> </span><a href="#local-6989586621679327493"><span class="hs-identifier hs-type">a</span></a><span class="hs-special">]</span><span>
-</span><a name="line-38"></a><span>  </span><span class="hs-special">,</span><span> </span><a name="getAnnotation"><a href="Cardano.Chain.Delegation.Payload.html#getAnnotation"><span class="hs-identifier">getAnnotation</span></a></a><span> </span><span class="hs-glyph">::</span><span> </span><a href="#local-6989586621679327493"><span class="hs-identifier hs-type">a</span></a><span>
-</span><a name="line-39"></a><span>  </span><span class="hs-special">}</span><span> </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Show</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Eq</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Generic</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Functor</span><span class="hs-special">)</span><span>
-</span><a name="line-40"></a><span>    </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-keyword">anyclass</span><span> </span><span class="hs-identifier hs-type">NFData</span><span>
-</span><a name="line-41"></a><span>
-</span><a name="line-42"></a><span class="hs-keyword">type</span><span> </span><a name="Payload"><a href="Cardano.Chain.Delegation.Payload.html#Payload"><span class="hs-identifier">Payload</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><a href="Cardano.Chain.Delegation.Payload.html#APayload"><span class="hs-identifier hs-type">APayload</span></a><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
-</span><a name="line-43"></a><span>
-</span><a name="line-44"></a><span class="hs-identifier">unsafePayload</span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">[</span><a href="Cardano.Chain.Delegation.Certificate.html#Certificate"><span class="hs-identifier hs-type">Delegation.Certificate</span></a><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><a href="Cardano.Chain.Delegation.Payload.html#Payload"><span class="hs-identifier hs-type">Payload</span></a><span>
-</span><a name="line-45"></a><a name="unsafePayload"><a href="Cardano.Chain.Delegation.Payload.html#unsafePayload"><span class="hs-identifier">unsafePayload</span></a></a><span> </span><a name="local-6989586621679327499"><a href="#local-6989586621679327499"><span class="hs-identifier">sks</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><a href="Cardano.Chain.Delegation.Payload.html#UnsafeAPayload"><span class="hs-identifier hs-var">UnsafeAPayload</span></a><span> </span><a href="#local-6989586621679327499"><span class="hs-identifier hs-var">sks</span></a><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
-</span><a name="line-46"></a><span>
-</span><a name="line-47"></a><span class="hs-keyword">instance</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.Annotated.html#Decoded"><span class="hs-identifier hs-type">Decoded</span></a><span> </span><span class="hs-special">(</span><a href="Cardano.Chain.Delegation.Payload.html#APayload"><span class="hs-identifier hs-type">APayload</span></a><span> </span><span class="hs-identifier hs-type">ByteString</span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
-</span><a name="line-48"></a><span>  </span><span class="hs-keyword">type</span><span> </span><span class="hs-identifier">BaseType</span><span> </span><span class="hs-special">(</span><a href="Cardano.Chain.Delegation.Payload.html#APayload"><span class="hs-identifier hs-type">APayload</span></a><span> </span><span class="hs-identifier hs-type">ByteString</span><span class="hs-special">)</span><span>  </span><span class="hs-glyph">=</span><span> </span><a href="Cardano.Chain.Delegation.Payload.html#Payload"><span class="hs-identifier hs-type">Payload</span></a><span>
-</span><a name="line-49"></a><span>  </span><a name="local-8214565720323796988"><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.Annotated.html#recoverBytes"><span class="hs-identifier">recoverBytes</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-identifier">getAnnotation</span><span>
-</span><a name="line-50"></a><span>
-</span><a name="line-51"></a><span class="hs-keyword">instance</span><span> </span><span class="hs-identifier hs-type">Buildable</span><span> </span><span class="hs-special">(</span><a href="Cardano.Chain.Delegation.Payload.html#APayload"><span class="hs-identifier hs-type">APayload</span></a><span> </span><a href="#local-6989586621679327497"><span class="hs-identifier hs-type">a</span></a><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
-</span><a name="line-52"></a><span>  </span><a name="local-8214565720323804885"><span class="hs-identifier">build</span></a><span> </span><span class="hs-special">(</span><a href="Cardano.Chain.Delegation.Payload.html#UnsafeAPayload"><span class="hs-identifier hs-var">UnsafeAPayload</span></a><span> </span><a name="local-6989586621679327498"><a href="#local-6989586621679327498"><span class="hs-identifier">psks</span></a></a><span> </span><span class="hs-identifier">_</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-identifier hs-var">bprint</span><span>
-</span><a name="line-53"></a><span>    </span><span class="hs-special">(</span><span class="hs-string">&quot;proxy signing keys (&quot;</span><span> </span><span class="hs-operator hs-var">.</span><span> </span><span class="hs-identifier hs-var">int</span><span> </span><span class="hs-operator hs-var">.</span><span> </span><span class="hs-string">&quot; items): &quot;</span><span> </span><span class="hs-operator hs-var">.</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-prelude-0.1.0.0/noopt/doc/html/cardano-prelude/src/Cardano.Prelude.Formatting.html#listJson"><span class="hs-identifier hs-var">listJson</span></a><span> </span><span class="hs-operator hs-var">.</span><span> </span><span class="hs-string">&quot;\n&quot;</span><span class="hs-special">)</span><span>
-</span><a name="line-54"></a><span>    </span><span class="hs-special">(</span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-prelude-0.1.0.0/noopt/doc/html/cardano-prelude/src/Cardano.Prelude.Base.html#length"><span class="hs-identifier hs-var">length</span></a><span> </span><a href="#local-6989586621679327498"><span class="hs-identifier hs-var">psks</span></a><span class="hs-special">)</span><span>
-</span><a name="line-55"></a><span>    </span><a href="#local-6989586621679327498"><span class="hs-identifier hs-var">psks</span></a><span>
-</span><a name="line-56"></a><span>
-</span><a name="line-57"></a><span class="hs-comment">-- Used for debugging purposes only</span><span>
-</span><a name="line-58"></a><span class="hs-keyword">instance</span><span> </span><span class="hs-identifier hs-type">ToJSON</span><span> </span><a href="#local-6989586621679327496"><span class="hs-identifier hs-type">a</span></a><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="hs-identifier hs-type">ToJSON</span><span> </span><span class="hs-special">(</span><a href="Cardano.Chain.Delegation.Payload.html#APayload"><span class="hs-identifier hs-type">APayload</span></a><span> </span><a href="#local-6989586621679327496"><span class="hs-identifier hs-type">a</span></a><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
-</span><a name="line-59"></a><span>
-</span><a name="line-60"></a><span class="hs-keyword">instance</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.ToCBOR.html#ToCBOR"><span class="hs-identifier hs-type">ToCBOR</span></a><span> </span><a href="Cardano.Chain.Delegation.Payload.html#Payload"><span class="hs-identifier hs-type">Payload</span></a><span> </span><span class="hs-keyword">where</span><span>
-</span><a name="line-61"></a><span>  </span><a name="local-8214565720323797072"><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.ToCBOR.html#toCBOR"><span class="hs-identifier">toCBOR</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.ToCBOR.html#toCBOR"><span class="hs-identifier hs-var">toCBOR</span></a><span> </span><span class="hs-operator hs-var">.</span><span> </span><span class="hs-identifier">getPayload</span><span>
-</span><a name="line-62"></a><span>
-</span><a name="line-63"></a><span class="hs-keyword">instance</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.FromCBOR.html#FromCBOR"><span class="hs-identifier hs-type">FromCBOR</span></a><span> </span><a href="Cardano.Chain.Delegation.Payload.html#Payload"><span class="hs-identifier hs-type">Payload</span></a><span> </span><span class="hs-keyword">where</span><span>
-</span><a name="line-64"></a><span>  </span><a name="local-8214565720323797139"><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.FromCBOR.html#fromCBOR"><span class="hs-identifier">fromCBOR</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-identifier hs-var">void</span><span> </span><span class="hs-operator hs-var">&lt;$&gt;</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.FromCBOR.html#fromCBOR"><span class="hs-identifier hs-var">fromCBOR</span></a><span> </span><span class="hs-glyph">@</span><span class="hs-special">(</span><a href="Cardano.Chain.Delegation.Payload.html#APayload"><span class="hs-identifier hs-type">APayload</span></a><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.Annotated.html#ByteSpan"><span class="hs-identifier hs-type">ByteSpan</span></a><span class="hs-special">)</span><span>
-</span><a name="line-65"></a><span>
-</span><a name="line-66"></a><span class="hs-keyword">instance</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.FromCBOR.html#FromCBOR"><span class="hs-identifier hs-type">FromCBOR</span></a><span> </span><span class="hs-special">(</span><a href="Cardano.Chain.Delegation.Payload.html#APayload"><span class="hs-identifier hs-type">APayload</span></a><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.Annotated.html#ByteSpan"><span class="hs-identifier hs-type">ByteSpan</span></a><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
-</span><a name="line-67"></a><span>  </span><a name="local-8214565720323797139"><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.FromCBOR.html#fromCBOR"><span class="hs-identifier">fromCBOR</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
-</span><a name="line-68"></a><span>    </span><span class="hs-special">(</span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.Annotated.html#Annotated"><span class="hs-identifier hs-var">Annotated</span></a><span> </span><a name="local-6989586621679327494"><a href="#local-6989586621679327494"><span class="hs-identifier">p</span></a></a><span> </span><a name="local-6989586621679327495"><a href="#local-6989586621679327495"><span class="hs-identifier">a</span></a></a><span class="hs-special">)</span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.Annotated.html#annotatedDecoder"><span class="hs-identifier hs-var">annotatedDecoder</span></a><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.FromCBOR.html#fromCBOR"><span class="hs-identifier hs-var">fromCBOR</span></a><span>
-</span><a name="line-69"></a><span>    </span><span class="hs-identifier hs-var">pure</span><span> </span><span class="hs-special">(</span><a href="Cardano.Chain.Delegation.Payload.html#UnsafeAPayload"><span class="hs-identifier hs-var">UnsafeAPayload</span></a><span> </span><a href="#local-6989586621679327494"><span class="hs-identifier hs-var">p</span></a><span> </span><a href="#local-6989586621679327495"><span class="hs-identifier hs-var">a</span></a><span class="hs-special">)</span><span>
-</span><a name="line-70"></a></pre></body></html>
+</span><span id="line-2"></span><span class="hs-pragma">{-# LANGUAGE DeriveFunctor              #-}</span><span>
+</span><span id="line-3"></span><span class="hs-pragma">{-# LANGUAGE DeriveGeneric              #-}</span><span>
+</span><span id="line-4"></span><span class="hs-pragma">{-# LANGUAGE DerivingStrategies         #-}</span><span>
+</span><span id="line-5"></span><span class="hs-pragma">{-# LANGUAGE FlexibleContexts           #-}</span><span>
+</span><span id="line-6"></span><span class="hs-pragma">{-# LANGUAGE FlexibleInstances          #-}</span><span>
+</span><span id="line-7"></span><span class="hs-pragma">{-# LANGUAGE OverloadedStrings          #-}</span><span>
+</span><span id="line-8"></span><span class="hs-pragma">{-# LANGUAGE TypeApplications           #-}</span><span>
+</span><span id="line-9"></span><span class="hs-pragma">{-# LANGUAGE TypeFamilies               #-}</span><span>
+</span><span id="line-10"></span><span>
+</span><span id="line-11"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Cardano.Chain.Delegation.Payload</span><span>
+</span><span id="line-12"></span><span>  </span><span class="hs-special">(</span><span> </span><span class="annot"><a href="Cardano.Chain.Delegation.Payload.html#APayload"><span class="hs-identifier">APayload</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
+</span><span id="line-13"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cardano.Chain.Delegation.Payload.html#Payload"><span class="hs-identifier">Payload</span></a></span><span>
+</span><span id="line-14"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cardano.Chain.Delegation.Payload.html#unsafePayload"><span class="hs-identifier">unsafePayload</span></a></span><span>
+</span><span id="line-15"></span><span>  </span><span class="hs-special">)</span><span>
+</span><span id="line-16"></span><span class="hs-keyword">where</span><span>
+</span><span id="line-17"></span><span>
+</span><span id="line-18"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-prelude-0.1.0.0/noopt/doc/html/cardano-prelude/src"><span class="hs-identifier">Cardano.Prelude</span></a></span><span>
+</span><span id="line-19"></span><span>
+</span><span id="line-20"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Aeson</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">ToJSON</span></span><span class="hs-special">)</span><span>
+</span><span id="line-21"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Formatting</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">bprint</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">int</span></span><span class="hs-special">)</span><span>
+</span><span id="line-22"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Formatting.Buildable</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Buildable</span></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-23"></span><span>
+</span><span id="line-24"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src"><span class="hs-identifier">Cardano.Binary</span></a></span><span>
+</span><span id="line-25"></span><span>  </span><span class="hs-special">(</span><span> </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src"><span class="hs-identifier">Annotated</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
+</span><span id="line-26"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src"><span class="hs-identifier">ByteSpan</span></a></span><span>
+</span><span id="line-27"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src"><span class="hs-identifier">Decoded</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
+</span><span id="line-28"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src"><span class="hs-identifier">FromCBOR</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
+</span><span id="line-29"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src"><span class="hs-identifier">ToCBOR</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
+</span><span id="line-30"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src"><span class="hs-identifier">annotatedDecoder</span></a></span><span>
+</span><span id="line-31"></span><span>  </span><span class="hs-special">)</span><span>
+</span><span id="line-32"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><a href="Cardano.Chain.Delegation.Certificate.html"><span class="hs-identifier">Cardano.Chain.Delegation.Certificate</span></a></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Delegation</span></span><span>
+</span><span id="line-33"></span><span>
+</span><span id="line-34"></span><span>
+</span><span id="line-35"></span><span class="hs-comment">-- | The delegation 'Payload' contains a list of delegation 'Certificate's</span><span>
+</span><span id="line-36"></span><span id="local-6989586621679513287"><span id="local-6989586621679513288"></span></span><span class="hs-keyword">data</span><span> </span><span id="APayload"><span class="annot"><a href="Cardano.Chain.Delegation.Payload.html#APayload"><span class="hs-identifier hs-var">APayload</span></a></span></span><span> </span><span id="local-6989586621679513344"><span class="annot"><a href="#local-6989586621679513344"><span class="hs-identifier hs-type">a</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="UnsafeAPayload"><span class="annot"><a href="Cardano.Chain.Delegation.Payload.html#UnsafeAPayload"><span class="hs-identifier hs-var">UnsafeAPayload</span></a></span></span><span>
+</span><span id="line-37"></span><span>  </span><span class="hs-special">{</span><span> </span><span id="getPayload"><span class="annot"><span class="annottext">APayload a -&gt; [ACertificate a]
+</span><a href="Cardano.Chain.Delegation.Payload.html#getPayload"><span class="hs-identifier hs-var hs-var">getPayload</span></a></span></span><span>    </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">[</span><span class="annot"><a href="Cardano.Chain.Delegation.Certificate.html#ACertificate"><span class="hs-identifier hs-type">Delegation.ACertificate</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679513344"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">]</span><span>
+</span><span id="line-38"></span><span>  </span><span class="hs-special">,</span><span> </span><span id="getAnnotation"><span class="annot"><span class="annottext">APayload a -&gt; a
+</span><a href="Cardano.Chain.Delegation.Payload.html#getAnnotation"><span class="hs-identifier hs-var hs-var">getAnnotation</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="#local-6989586621679513344"><span class="hs-identifier hs-type">a</span></a></span><span>
+</span><span id="line-39"></span><span>  </span><span class="hs-special">}</span><span> </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679513278"><span id="local-6989586621679513280"><span id="local-6989586621679513282"><span class="annot"><span class="annottext">Int -&gt; APayload a -&gt; ShowS
+[APayload a] -&gt; ShowS
+APayload a -&gt; String
+(Int -&gt; APayload a -&gt; ShowS)
+-&gt; (APayload a -&gt; String)
+-&gt; ([APayload a] -&gt; ShowS)
+-&gt; Show (APayload a)
+forall a. Show a =&gt; Int -&gt; APayload a -&gt; ShowS
+forall a. Show a =&gt; [APayload a] -&gt; ShowS
+forall a. Show a =&gt; APayload a -&gt; String
+forall a.
+(Int -&gt; a -&gt; ShowS) -&gt; (a -&gt; String) -&gt; ([a] -&gt; ShowS) -&gt; Show a
+showList :: [APayload a] -&gt; ShowS
+$cshowList :: forall a. Show a =&gt; [APayload a] -&gt; ShowS
+show :: APayload a -&gt; String
+$cshow :: forall a. Show a =&gt; APayload a -&gt; String
+showsPrec :: Int -&gt; APayload a -&gt; ShowS
+$cshowsPrec :: forall a. Show a =&gt; Int -&gt; APayload a -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679513273"><span id="local-6989586621679513275"><span class="annot"><span class="annottext">APayload a -&gt; APayload a -&gt; Bool
+(APayload a -&gt; APayload a -&gt; Bool)
+-&gt; (APayload a -&gt; APayload a -&gt; Bool) -&gt; Eq (APayload a)
+forall a. Eq a =&gt; APayload a -&gt; APayload a -&gt; Bool
+forall a. (a -&gt; a -&gt; Bool) -&gt; (a -&gt; a -&gt; Bool) -&gt; Eq a
+/= :: APayload a -&gt; APayload a -&gt; Bool
+$c/= :: forall a. Eq a =&gt; APayload a -&gt; APayload a -&gt; Bool
+== :: APayload a -&gt; APayload a -&gt; Bool
+$c== :: forall a. Eq a =&gt; APayload a -&gt; APayload a -&gt; Bool
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">(forall x. APayload a -&gt; Rep (APayload a) x)
+-&gt; (forall x. Rep (APayload a) x -&gt; APayload a)
+-&gt; Generic (APayload a)
+forall x. Rep (APayload a) x -&gt; APayload a
+forall x. APayload a -&gt; Rep (APayload a) x
+forall a.
+(forall x. a -&gt; Rep a x) -&gt; (forall x. Rep a x -&gt; a) -&gt; Generic a
+forall a x. Rep (APayload a) x -&gt; APayload a
+forall a x. APayload a -&gt; Rep (APayload a) x
+$cto :: forall a x. Rep (APayload a) x -&gt; APayload a
+$cfrom :: forall a x. APayload a -&gt; Rep (APayload a) x
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">Generic</span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679513265"><span id="local-6989586621679513267"><span class="annot"><span class="annottext">a -&gt; APayload b -&gt; APayload a
+(a -&gt; b) -&gt; APayload a -&gt; APayload b
+(forall a b. (a -&gt; b) -&gt; APayload a -&gt; APayload b)
+-&gt; (forall a b. a -&gt; APayload b -&gt; APayload a) -&gt; Functor APayload
+forall a b. a -&gt; APayload b -&gt; APayload a
+forall a b. (a -&gt; b) -&gt; APayload a -&gt; APayload b
+forall (f :: * -&gt; *).
+(forall a b. (a -&gt; b) -&gt; f a -&gt; f b)
+-&gt; (forall a b. a -&gt; f b -&gt; f a) -&gt; Functor f
+&lt;$ :: a -&gt; APayload b -&gt; APayload a
+$c&lt;$ :: forall a b. a -&gt; APayload b -&gt; APayload a
+fmap :: (a -&gt; b) -&gt; APayload a -&gt; APayload b
+$cfmap :: forall a b. (a -&gt; b) -&gt; APayload a -&gt; APayload b
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Functor</span></span></span></span><span class="hs-special">)</span><span>
+</span><span id="line-40"></span><span>    </span><span class="hs-keyword">deriving</span><span> </span><span class="annot"><span class="hs-keyword">anyclass</span></span><span> </span><span id="local-6989586621679513262"><span class="annot"><span class="annottext">APayload a -&gt; ()
+(APayload a -&gt; ()) -&gt; NFData (APayload a)
+forall a. NFData a =&gt; APayload a -&gt; ()
+forall a. (a -&gt; ()) -&gt; NFData a
+rnf :: APayload a -&gt; ()
+$crnf :: forall a. NFData a =&gt; APayload a -&gt; ()
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">NFData</span></span></span><span>
+</span><span id="line-41"></span><span>
+</span><span id="line-42"></span><span class="hs-keyword">type</span><span> </span><span id="Payload"><span class="annot"><a href="Cardano.Chain.Delegation.Payload.html#Payload"><span class="hs-identifier hs-var">Payload</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><a href="Cardano.Chain.Delegation.Payload.html#APayload"><span class="hs-identifier hs-type">APayload</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
+</span><span id="line-43"></span><span>
+</span><span id="line-44"></span><span class="annot"><a href="Cardano.Chain.Delegation.Payload.html#unsafePayload"><span class="hs-identifier hs-type">unsafePayload</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">[</span><span class="annot"><a href="Cardano.Chain.Delegation.Certificate.html#Certificate"><span class="hs-identifier hs-type">Delegation.Certificate</span></a></span><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cardano.Chain.Delegation.Payload.html#Payload"><span class="hs-identifier hs-type">Payload</span></a></span><span>
+</span><span id="line-45"></span><span id="unsafePayload"><span class="annot"><span class="annottext">unsafePayload :: [Certificate] -&gt; Payload
+</span><a href="Cardano.Chain.Delegation.Payload.html#unsafePayload"><span class="hs-identifier hs-var hs-var">unsafePayload</span></a></span></span><span> </span><span id="local-6989586621679513260"><span class="annot"><span class="annottext">[Certificate]
+</span><a href="#local-6989586621679513260"><span class="hs-identifier hs-var">sks</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[Certificate] -&gt; () -&gt; Payload
+forall a. [ACertificate a] -&gt; a -&gt; APayload a
+</span><a href="Cardano.Chain.Delegation.Payload.html#UnsafeAPayload"><span class="hs-identifier hs-var">UnsafeAPayload</span></a></span><span> </span><span class="annot"><span class="annottext">[Certificate]
+</span><a href="#local-6989586621679513260"><span class="hs-identifier hs-var">sks</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
+</span><span id="line-46"></span><span>
+</span><span id="line-47"></span><span class="hs-keyword">instance</span><span> </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src"><span class="hs-identifier hs-type">Decoded</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cardano.Chain.Delegation.Payload.html#APayload"><span class="hs-identifier hs-type">APayload</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">ByteString</span></span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-48"></span><span>  </span><span class="hs-keyword">type</span><span> </span><span id="BaseType"><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src"><span class="hs-identifier hs-var">BaseType</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cardano.Chain.Delegation.Payload.html#APayload"><span class="hs-identifier hs-type">APayload</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">ByteString</span></span><span class="hs-special">)</span><span>  </span><span class="hs-glyph">=</span><span> </span><span class="annot"><a href="Cardano.Chain.Delegation.Payload.html#Payload"><span class="hs-identifier hs-type">Payload</span></a></span><span>
+</span><span id="line-49"></span><span>  </span><span id="local-6989586621679513256"><span class="annot"><span class="annottext">recoverBytes :: APayload ByteString -&gt; ByteString
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src"><span class="hs-identifier hs-var hs-var hs-var hs-var">recoverBytes</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">APayload ByteString -&gt; ByteString
+forall a. APayload a -&gt; a
+</span><a href="Cardano.Chain.Delegation.Payload.html#getAnnotation"><span class="hs-identifier hs-var hs-var">getAnnotation</span></a></span><span>
+</span><span id="line-50"></span><span>
+</span><span id="line-51"></span><span id="local-6989586621679513254"><span class="hs-keyword">instance</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Buildable</span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cardano.Chain.Delegation.Payload.html#APayload"><span class="hs-identifier hs-type">APayload</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679513254"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-52"></span><span>  </span><span id="local-6989586621679513251"><span class="annot"><span class="annottext">build :: APayload a -&gt; Builder
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">build</span></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cardano.Chain.Delegation.Payload.html#UnsafeAPayload"><span class="hs-identifier hs-type">UnsafeAPayload</span></a></span><span> </span><span id="local-6989586621679513249"><span class="annot"><span class="annottext">[ACertificate a]
+</span><a href="#local-6989586621679513249"><span class="hs-identifier hs-var">psks</span></a></span></span><span> </span><span class="annot"><span class="annottext">a
+</span><span class="hs-identifier">_</span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Format Builder (Int -&gt; [ACertificate a] -&gt; Builder)
+-&gt; Int -&gt; [ACertificate a] -&gt; Builder
+forall a. Format Builder a -&gt; a
+</span><span class="hs-identifier hs-var">bprint</span></span><span>
+</span><span id="line-53"></span><span>    </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Format
+  (Int -&gt; [ACertificate a] -&gt; Builder)
+  (Int -&gt; [ACertificate a] -&gt; Builder)
+</span><span class="hs-string">&quot;proxy signing keys (&quot;</span></span><span> </span><span class="annot"><span class="annottext">Format
+  (Int -&gt; [ACertificate a] -&gt; Builder)
+  (Int -&gt; [ACertificate a] -&gt; Builder)
+-&gt; Format Builder (Int -&gt; [ACertificate a] -&gt; Builder)
+-&gt; Format Builder (Int -&gt; [ACertificate a] -&gt; Builder)
+forall k (cat :: k -&gt; k -&gt; *) (b :: k) (c :: k) (a :: k).
+Category cat =&gt;
+cat b c -&gt; cat a b -&gt; cat a c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Format
+  ([ACertificate a] -&gt; Builder) (Int -&gt; [ACertificate a] -&gt; Builder)
+forall a r. Integral a =&gt; Format r (a -&gt; r)
+</span><span class="hs-identifier hs-var">int</span></span><span> </span><span class="annot"><span class="annottext">Format
+  ([ACertificate a] -&gt; Builder) (Int -&gt; [ACertificate a] -&gt; Builder)
+-&gt; Format Builder ([ACertificate a] -&gt; Builder)
+-&gt; Format Builder (Int -&gt; [ACertificate a] -&gt; Builder)
+forall k (cat :: k -&gt; k -&gt; *) (b :: k) (c :: k) (a :: k).
+Category cat =&gt;
+cat b c -&gt; cat a b -&gt; cat a c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Format ([ACertificate a] -&gt; Builder) ([ACertificate a] -&gt; Builder)
+</span><span class="hs-string">&quot; items): &quot;</span></span><span> </span><span class="annot"><span class="annottext">Format ([ACertificate a] -&gt; Builder) ([ACertificate a] -&gt; Builder)
+-&gt; Format Builder ([ACertificate a] -&gt; Builder)
+-&gt; Format Builder ([ACertificate a] -&gt; Builder)
+forall k (cat :: k -&gt; k -&gt; *) (b :: k) (c :: k) (a :: k).
+Category cat =&gt;
+cat b c -&gt; cat a b -&gt; cat a c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Format Builder ([ACertificate a] -&gt; Builder)
+forall (t :: * -&gt; *) a r.
+(Foldable t, Buildable a) =&gt;
+Format r (t a -&gt; r)
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-prelude-0.1.0.0/noopt/doc/html/cardano-prelude/src"><span class="hs-identifier hs-var">listJson</span></a></span><span> </span><span class="annot"><span class="annottext">Format Builder ([ACertificate a] -&gt; Builder)
+-&gt; Format Builder Builder
+-&gt; Format Builder ([ACertificate a] -&gt; Builder)
+forall k (cat :: k -&gt; k -&gt; *) (b :: k) (c :: k) (a :: k).
+Category cat =&gt;
+cat b c -&gt; cat a b -&gt; cat a c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Format Builder Builder
+</span><span class="hs-string">&quot;\n&quot;</span></span><span class="hs-special">)</span><span>
+</span><span id="line-54"></span><span>    </span><span class="hs-special">(</span><span class="annot"><span class="annottext">[ACertificate a] -&gt; Int
+forall a. HasLength a =&gt; a -&gt; Int
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-prelude-0.1.0.0/noopt/doc/html/cardano-prelude/src"><span class="hs-identifier hs-var">length</span></a></span><span> </span><span class="annot"><span class="annottext">[ACertificate a]
+</span><a href="#local-6989586621679513249"><span class="hs-identifier hs-var">psks</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-55"></span><span>    </span><span class="annot"><span class="annottext">[ACertificate a]
+</span><a href="#local-6989586621679513249"><span class="hs-identifier hs-var">psks</span></a></span></span><span>
+</span><span id="line-56"></span><span>
+</span><span id="line-57"></span><span class="hs-comment">-- Used for debugging purposes only</span><span>
+</span><span id="line-58"></span><span id="local-6989586621679513245"><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679513237"><span id="local-6989586621679513239"><span id="local-6989586621679513241"><span id="local-6989586621679513243"><span class="annot"><span class="hs-identifier hs-type">ToJSON</span></span><span> </span><span class="annot"><a href="#local-6989586621679513245"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">ToJSON</span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cardano.Chain.Delegation.Payload.html#APayload"><span class="hs-identifier hs-type">APayload</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679513245"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span></span></span></span></span><span> </span><span class="hs-keyword">where</span></span><span>
+</span><span id="line-59"></span><span>
+</span><span id="line-60"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679513230"><span id="local-6989586621679513232"><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src"><span class="hs-identifier hs-type">ToCBOR</span></a></span><span> </span><span class="annot"><a href="Cardano.Chain.Delegation.Payload.html#Payload"><span class="hs-identifier hs-type">Payload</span></a></span></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-61"></span><span>  </span><span id="local-6989586621679513228"><span class="annot"><span class="annottext">toCBOR :: Payload -&gt; Encoding
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src"><span class="hs-identifier hs-var hs-var hs-var hs-var">toCBOR</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[Certificate] -&gt; Encoding
+forall a. ToCBOR a =&gt; a -&gt; Encoding
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src"><span class="hs-identifier hs-var">toCBOR</span></a></span><span> </span><span class="annot"><span class="annottext">([Certificate] -&gt; Encoding)
+-&gt; (Payload -&gt; [Certificate]) -&gt; Payload -&gt; Encoding
+forall k (cat :: k -&gt; k -&gt; *) (b :: k) (c :: k) (a :: k).
+Category cat =&gt;
+cat b c -&gt; cat a b -&gt; cat a c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Payload -&gt; [Certificate]
+forall a. APayload a -&gt; [ACertificate a]
+</span><a href="Cardano.Chain.Delegation.Payload.html#getPayload"><span class="hs-identifier hs-var hs-var">getPayload</span></a></span><span>
+</span><span id="line-62"></span><span>
+</span><span id="line-63"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679513223"><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src"><span class="hs-identifier hs-type">FromCBOR</span></a></span><span> </span><span class="annot"><a href="Cardano.Chain.Delegation.Payload.html#Payload"><span class="hs-identifier hs-type">Payload</span></a></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-64"></span><span>  </span><span id="local-6989586621679513221"><span class="annot"><span class="annottext">fromCBOR :: Decoder s Payload
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src"><span class="hs-identifier hs-var hs-var hs-var hs-var">fromCBOR</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">APayload ByteSpan -&gt; Payload
+forall (f :: * -&gt; *) a. Functor f =&gt; f a -&gt; f ()
+</span><span class="hs-identifier hs-var">void</span></span><span> </span><span class="annot"><span class="annottext">(APayload ByteSpan -&gt; Payload)
+-&gt; Decoder s (APayload ByteSpan) -&gt; Decoder s Payload
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">forall s.
+FromCBOR (APayload ByteSpan) =&gt;
+Decoder s (APayload ByteSpan)
+forall a s. FromCBOR a =&gt; Decoder s a
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src"><span class="hs-identifier hs-var">fromCBOR</span></a></span><span> </span><span class="hs-glyph">@</span><span class="hs-special">(</span><span class="annot"><a href="Cardano.Chain.Delegation.Payload.html#APayload"><span class="hs-identifier hs-type">APayload</span></a></span><span> </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src"><span class="hs-identifier hs-type">ByteSpan</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-65"></span><span>
+</span><span id="line-66"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679513214"><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src"><span class="hs-identifier hs-type">FromCBOR</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cardano.Chain.Delegation.Payload.html#APayload"><span class="hs-identifier hs-type">APayload</span></a></span><span> </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src"><span class="hs-identifier hs-type">ByteSpan</span></a></span><span class="hs-special">)</span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-67"></span><span>  </span><span id="local-6989586621679513213"><span class="annot"><span class="annottext">fromCBOR :: Decoder s (APayload ByteSpan)
+</span><a href="#local-6989586621679513213"><span class="hs-identifier hs-var hs-var hs-var hs-var">fromCBOR</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-68"></span><span>    </span><span class="hs-special">(</span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src"><span class="hs-identifier hs-type">Annotated</span></a></span><span> </span><span id="local-6989586621679513211"><span class="annot"><span class="annottext">[ACertificate ByteSpan]
+</span><a href="#local-6989586621679513211"><span class="hs-identifier hs-var">p</span></a></span></span><span> </span><span id="local-6989586621679513210"><span class="annot"><span class="annottext">ByteSpan
+</span><a href="#local-6989586621679513210"><span class="hs-identifier hs-var">a</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Decoder s [ACertificate ByteSpan]
+-&gt; Decoder s (Annotated [ACertificate ByteSpan] ByteSpan)
+forall s a. Decoder s a -&gt; Decoder s (Annotated a ByteSpan)
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src"><span class="hs-identifier hs-var">annotatedDecoder</span></a></span><span> </span><span class="annot"><span class="annottext">Decoder s [ACertificate ByteSpan]
+forall a s. FromCBOR a =&gt; Decoder s a
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src"><span class="hs-identifier hs-var">fromCBOR</span></a></span><span>
+</span><span id="line-69"></span><span>    </span><span class="annot"><span class="annottext">APayload ByteSpan -&gt; Decoder s (APayload ByteSpan)
+forall (f :: * -&gt; *) a. Applicative f =&gt; a -&gt; f a
+</span><span class="hs-identifier hs-var">pure</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">[ACertificate ByteSpan] -&gt; ByteSpan -&gt; APayload ByteSpan
+forall a. [ACertificate a] -&gt; a -&gt; APayload a
+</span><a href="Cardano.Chain.Delegation.Payload.html#UnsafeAPayload"><span class="hs-identifier hs-var">UnsafeAPayload</span></a></span><span> </span><span class="annot"><span class="annottext">[ACertificate ByteSpan]
+</span><a href="#local-6989586621679513211"><span class="hs-identifier hs-var">p</span></a></span><span> </span><span class="annot"><span class="annottext">ByteSpan
+</span><a href="#local-6989586621679513210"><span class="hs-identifier hs-var">a</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-70"></span></pre></body></html>

@@ -1,76 +1,382 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-pragma">{-# LANGUAGE EmptyCase        #-}</span><span>
-</span><a name="line-2"></a><span class="hs-pragma">{-# LANGUAGE FlexibleContexts #-}</span><span>
-</span><a name="line-3"></a><span class="hs-pragma">{-# LANGUAGE GADTs            #-}</span><span>
-</span><a name="line-4"></a><span class="hs-pragma">{-# LANGUAGE RecordWildCards  #-}</span><span>
-</span><a name="line-5"></a><span>
-</span><a name="line-6"></a><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Ouroboros.Consensus.HardFork.Combinator.InjectTxs</span><span> </span><span class="hs-special">(</span><span>
-</span><a name="line-7"></a><span>    </span><a href="Ouroboros.Consensus.HardFork.Combinator.InjectTxs.html#InjectTx"><span class="hs-identifier hs-type">InjectTx</span></a><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
-</span><a name="line-8"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Ouroboros.Consensus.HardFork.Combinator.InjectTxs.html#cannotInjectTx"><span class="hs-identifier hs-var">cannotInjectTx</span></a><span>
-</span><a name="line-9"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Ouroboros.Consensus.HardFork.Combinator.InjectTxs.html#matchTx"><span class="hs-identifier hs-var">matchTx</span></a><span>
-</span><a name="line-10"></a><span>  </span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
-</span><a name="line-11"></a><span>
-</span><a name="line-12"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data.Bifunctor</span><span>
-</span><a name="line-13"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data.Functor.Product</span><span>
-</span><a name="line-14"></a><span class="hs-keyword">import</span><span>           </span><a href="Data.SOP.Strict.html"><span class="hs-identifier">Data.SOP.Strict</span></a><span>
-</span><a name="line-15"></a><span>
-</span><a name="line-16"></a><span class="hs-keyword">import</span><span>           </span><a href="Ouroboros.Consensus.HardFork.Combinator.State.Types.html"><span class="hs-identifier">Ouroboros.Consensus.HardFork.Combinator.State.Types</span></a><span>
-</span><a name="line-17"></a><span class="hs-keyword">import</span><span>           </span><a href="Ouroboros.Consensus.HardFork.Combinator.Util.InPairs.html"><span class="hs-identifier">Ouroboros.Consensus.HardFork.Combinator.Util.InPairs</span></a><span>
-</span><a name="line-18"></a><span>                     </span><span class="hs-special">(</span><a href="Ouroboros.Consensus.HardFork.Combinator.Util.InPairs.html#InPairs"><span class="hs-identifier hs-type">InPairs</span></a><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
-</span><a name="line-19"></a><span class="hs-keyword">import</span><span>           </span><a href="Ouroboros.Consensus.HardFork.Combinator.Util.Match.html"><span class="hs-identifier">Ouroboros.Consensus.HardFork.Combinator.Util.Match</span></a><span>
-</span><a name="line-20"></a><span class="hs-keyword">import</span><span>           </span><a href="Ouroboros.Consensus.HardFork.Combinator.Util.Telescope.html"><span class="hs-identifier">Ouroboros.Consensus.HardFork.Combinator.Util.Telescope</span></a><span>
-</span><a name="line-21"></a><span>                     </span><span class="hs-special">(</span><a href="Ouroboros.Consensus.HardFork.Combinator.Util.Telescope.html#Telescope"><span class="hs-identifier hs-type">Telescope</span></a><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
-</span><a name="line-22"></a><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><a href="Ouroboros.Consensus.HardFork.Combinator.Util.Telescope.html"><span class="hs-identifier">Ouroboros.Consensus.HardFork.Combinator.Util.Telescope</span></a><span> </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">Telescope</span><span>
-</span><a name="line-23"></a><span class="hs-keyword">import</span><span>           </span><a href="Ouroboros.Consensus.Ledger.SupportsMempool.html"><span class="hs-identifier">Ouroboros.Consensus.Ledger.SupportsMempool</span></a><span>
-</span><a name="line-24"></a><span>
-</span><a name="line-25"></a><span class="hs-comment">{-------------------------------------------------------------------------------
+</span><span id="line-2"></span><span class="hs-pragma">{-# LANGUAGE FlexibleContexts #-}</span><span>
+</span><span id="line-3"></span><span class="hs-pragma">{-# LANGUAGE GADTs            #-}</span><span>
+</span><span id="line-4"></span><span class="hs-pragma">{-# LANGUAGE RecordWildCards  #-}</span><span>
+</span><span id="line-5"></span><span>
+</span><span id="line-6"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Ouroboros.Consensus.HardFork.Combinator.InjectTxs</span><span> </span><span class="hs-special">(</span><span>
+</span><span id="line-7"></span><span>    </span><span class="annot"><a href="Ouroboros.Consensus.HardFork.Combinator.InjectTxs.html#InjectTx"><span class="hs-identifier">InjectTx</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
+</span><span id="line-8"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.HardFork.Combinator.InjectTxs.html#cannotInjectTx"><span class="hs-identifier">cannotInjectTx</span></a></span><span>
+</span><span id="line-9"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.HardFork.Combinator.InjectTxs.html#matchTx"><span class="hs-identifier">matchTx</span></a></span><span>
+</span><span id="line-10"></span><span>  </span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-11"></span><span>
+</span><span id="line-12"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><span class="hs-identifier">Data.Bifunctor</span></span><span>
+</span><span id="line-13"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><span class="hs-identifier">Data.Functor.Product</span></span><span>
+</span><span id="line-14"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="Data.SOP.Strict.html"><span class="hs-identifier">Data.SOP.Strict</span></a></span><span>
+</span><span id="line-15"></span><span>
+</span><span id="line-16"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="Ouroboros.Consensus.HardFork.Combinator.State.Types.html"><span class="hs-identifier">Ouroboros.Consensus.HardFork.Combinator.State.Types</span></a></span><span>
+</span><span id="line-17"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="Ouroboros.Consensus.HardFork.Combinator.Util.InPairs.html"><span class="hs-identifier">Ouroboros.Consensus.HardFork.Combinator.Util.InPairs</span></a></span><span>
+</span><span id="line-18"></span><span>                     </span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Consensus.HardFork.Combinator.Util.InPairs.html#InPairs"><span class="hs-identifier">InPairs</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-19"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="Ouroboros.Consensus.HardFork.Combinator.Util.Match.html"><span class="hs-identifier">Ouroboros.Consensus.HardFork.Combinator.Util.Match</span></a></span><span>
+</span><span id="line-20"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="Ouroboros.Consensus.HardFork.Combinator.Util.Telescope.html"><span class="hs-identifier">Ouroboros.Consensus.HardFork.Combinator.Util.Telescope</span></a></span><span>
+</span><span id="line-21"></span><span>                     </span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Consensus.HardFork.Combinator.Util.Telescope.html#Telescope"><span class="hs-identifier">Telescope</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-22"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.HardFork.Combinator.Util.Telescope.html"><span class="hs-identifier">Ouroboros.Consensus.HardFork.Combinator.Util.Telescope</span></a></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Telescope</span></span><span>
+</span><span id="line-23"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="Ouroboros.Consensus.Ledger.SupportsMempool.html"><span class="hs-identifier">Ouroboros.Consensus.Ledger.SupportsMempool</span></a></span><span>
+</span><span id="line-24"></span><span>
+</span><span id="line-25"></span><span class="hs-comment">{-------------------------------------------------------------------------------
   Match a transaction with a ledger
 -------------------------------------------------------------------------------}</span><span>
-</span><a name="line-28"></a><span>
-</span><a name="line-29"></a><span class="hs-keyword">data</span><span> </span><a name="InjectTx"><a href="Ouroboros.Consensus.HardFork.Combinator.InjectTxs.html#InjectTx"><span class="hs-identifier">InjectTx</span></a></a><span> </span><a name="local-6989586621679604730"><a href="#local-6989586621679604730"><span class="hs-identifier">blk</span></a></a><span> </span><a name="local-6989586621679604731"><a href="#local-6989586621679604731"><span class="hs-identifier">blk'</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><a name="InjectTx"><a href="Ouroboros.Consensus.HardFork.Combinator.InjectTxs.html#InjectTx"><span class="hs-identifier">InjectTx</span></a></a><span> </span><span class="hs-special">{</span><span>
-</span><a name="line-30"></a><span>      </span><a name="injectTxWith"><a href="Ouroboros.Consensus.HardFork.Combinator.InjectTxs.html#injectTxWith"><span class="hs-identifier">injectTxWith</span></a></a><span> </span><span class="hs-glyph">::</span><span> </span><a href="Ouroboros.Consensus.Ledger.SupportsMempool.html#GenTx"><span class="hs-identifier hs-type">GenTx</span></a><span> </span><a href="#local-6989586621679604730"><span class="hs-identifier hs-type">blk</span></a><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">Maybe</span><span> </span><span class="hs-special">(</span><a href="Ouroboros.Consensus.Ledger.SupportsMempool.html#GenTx"><span class="hs-identifier hs-type">GenTx</span></a><span> </span><a href="#local-6989586621679604731"><span class="hs-identifier hs-type">blk'</span></a><span class="hs-special">)</span><span>
-</span><a name="line-31"></a><span>    </span><span class="hs-special">}</span><span>
-</span><a name="line-32"></a><span>
-</span><a name="line-33"></a><span class="hs-identifier">cannotInjectTx</span><span> </span><span class="hs-glyph">::</span><span> </span><a href="Ouroboros.Consensus.HardFork.Combinator.InjectTxs.html#InjectTx"><span class="hs-identifier hs-type">InjectTx</span></a><span> </span><a href="#local-6989586621679604737"><span class="hs-identifier hs-type">blk</span></a><span> </span><a href="#local-6989586621679604738"><span class="hs-identifier hs-type">blk'</span></a><span>
-</span><a name="line-34"></a><a name="cannotInjectTx"><a href="Ouroboros.Consensus.HardFork.Combinator.InjectTxs.html#cannotInjectTx"><span class="hs-identifier">cannotInjectTx</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><a href="Ouroboros.Consensus.HardFork.Combinator.InjectTxs.html#InjectTx"><span class="hs-identifier hs-var">InjectTx</span></a><span> </span><span class="hs-operator hs-var">$</span><span> </span><span class="hs-identifier hs-var">const</span><span> </span><span class="hs-identifier hs-var">Nothing</span><span>
-</span><a name="line-35"></a><span>
-</span><a name="line-36"></a><span class="hs-comment">-- | Match transaction with a ledger, attempting to inject where possible</span><span>
-</span><a name="line-37"></a><span class="hs-identifier">matchTx'</span><span> </span><span class="hs-glyph">::</span><span>
-</span><a name="line-38"></a><span>     </span><a href="Ouroboros.Consensus.HardFork.Combinator.Util.InPairs.html#InPairs"><span class="hs-identifier hs-type">InPairs</span></a><span> </span><a href="Ouroboros.Consensus.HardFork.Combinator.InjectTxs.html#InjectTx"><span class="hs-identifier hs-type">InjectTx</span></a><span> </span><a href="#local-6989586621679604734"><span class="hs-identifier hs-type">xs</span></a><span>
-</span><a name="line-39"></a><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><a href="Data.SOP.Strict.html#NS"><span class="hs-identifier hs-type">NS</span></a><span> </span><a href="Ouroboros.Consensus.Ledger.SupportsMempool.html#GenTx"><span class="hs-identifier hs-type">GenTx</span></a><span> </span><a href="#local-6989586621679604734"><span class="hs-identifier hs-type">xs</span></a><span>
-</span><a name="line-40"></a><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><a href="Ouroboros.Consensus.HardFork.Combinator.Util.Telescope.html#Telescope"><span class="hs-identifier hs-type">Telescope</span></a><span> </span><a href="#local-6989586621679604735"><span class="hs-identifier hs-type">g</span></a><span> </span><a href="#local-6989586621679604736"><span class="hs-identifier hs-type">f</span></a><span> </span><a href="#local-6989586621679604734"><span class="hs-identifier hs-type">xs</span></a><span>
-</span><a name="line-41"></a><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">Either</span><span> </span><span class="hs-special">(</span><a href="Ouroboros.Consensus.HardFork.Combinator.Util.Match.html#Mismatch"><span class="hs-identifier hs-type">Mismatch</span></a><span> </span><a href="Ouroboros.Consensus.Ledger.SupportsMempool.html#GenTx"><span class="hs-identifier hs-type">GenTx</span></a><span> </span><a href="#local-6989586621679604736"><span class="hs-identifier hs-type">f</span></a><span> </span><a href="#local-6989586621679604734"><span class="hs-identifier hs-type">xs</span></a><span class="hs-special">)</span><span>
-</span><a name="line-42"></a><span>            </span><span class="hs-special">(</span><a href="Ouroboros.Consensus.HardFork.Combinator.Util.Telescope.html#Telescope"><span class="hs-identifier hs-type">Telescope</span></a><span> </span><a href="#local-6989586621679604735"><span class="hs-identifier hs-type">g</span></a><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Product</span><span> </span><a href="Ouroboros.Consensus.Ledger.SupportsMempool.html#GenTx"><span class="hs-identifier hs-type">GenTx</span></a><span> </span><a href="#local-6989586621679604736"><span class="hs-identifier hs-type">f</span></a><span class="hs-special">)</span><span> </span><a href="#local-6989586621679604734"><span class="hs-identifier hs-type">xs</span></a><span class="hs-special">)</span><span>
-</span><a name="line-43"></a><a name="matchTx%27"><a href="Ouroboros.Consensus.HardFork.Combinator.InjectTxs.html#matchTx%27"><span class="hs-identifier">matchTx'</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><a href="#local-6989586621679604739"><span class="hs-identifier hs-var">go</span></a><span>
-</span><a name="line-44"></a><span>  </span><span class="hs-keyword">where</span><span>
-</span><a name="line-45"></a><span>    </span><span class="hs-identifier">go</span><span> </span><span class="hs-glyph">::</span><span> </span><a href="Ouroboros.Consensus.HardFork.Combinator.Util.InPairs.html#InPairs"><span class="hs-identifier hs-type">InPairs</span></a><span> </span><a href="Ouroboros.Consensus.HardFork.Combinator.InjectTxs.html#InjectTx"><span class="hs-identifier hs-type">InjectTx</span></a><span> </span><a href="#local-6989586621679604740"><span class="hs-identifier hs-type">xs</span></a><span>
-</span><a name="line-46"></a><span>       </span><span class="hs-glyph">-&gt;</span><span> </span><a href="Data.SOP.Strict.html#NS"><span class="hs-identifier hs-type">NS</span></a><span> </span><a href="Ouroboros.Consensus.Ledger.SupportsMempool.html#GenTx"><span class="hs-identifier hs-type">GenTx</span></a><span> </span><a href="#local-6989586621679604740"><span class="hs-identifier hs-type">xs</span></a><span>
-</span><a name="line-47"></a><span>       </span><span class="hs-glyph">-&gt;</span><span> </span><a href="Ouroboros.Consensus.HardFork.Combinator.Util.Telescope.html#Telescope"><span class="hs-identifier hs-type">Telescope</span></a><span> </span><a href="#local-6989586621679604741"><span class="hs-identifier hs-type">g</span></a><span> </span><a href="#local-6989586621679604742"><span class="hs-identifier hs-type">f</span></a><span> </span><a href="#local-6989586621679604740"><span class="hs-identifier hs-type">xs</span></a><span>
-</span><a name="line-48"></a><span>       </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">Either</span><span> </span><span class="hs-special">(</span><a href="Ouroboros.Consensus.HardFork.Combinator.Util.Match.html#Mismatch"><span class="hs-identifier hs-type">Mismatch</span></a><span> </span><a href="Ouroboros.Consensus.Ledger.SupportsMempool.html#GenTx"><span class="hs-identifier hs-type">GenTx</span></a><span> </span><a href="#local-6989586621679604742"><span class="hs-identifier hs-type">f</span></a><span> </span><a href="#local-6989586621679604740"><span class="hs-identifier hs-type">xs</span></a><span class="hs-special">)</span><span>
-</span><a name="line-49"></a><span>                 </span><span class="hs-special">(</span><a href="Ouroboros.Consensus.HardFork.Combinator.Util.Telescope.html#Telescope"><span class="hs-identifier hs-type">Telescope</span></a><span> </span><a href="#local-6989586621679604741"><span class="hs-identifier hs-type">g</span></a><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Product</span><span> </span><a href="Ouroboros.Consensus.Ledger.SupportsMempool.html#GenTx"><span class="hs-identifier hs-type">GenTx</span></a><span> </span><a href="#local-6989586621679604742"><span class="hs-identifier hs-type">f</span></a><span class="hs-special">)</span><span> </span><a href="#local-6989586621679604740"><span class="hs-identifier hs-type">xs</span></a><span class="hs-special">)</span><span>
-</span><a name="line-50"></a><span>    </span><a name="local-6989586621679604739"><a href="#local-6989586621679604739"><span class="hs-identifier">go</span></a></a><span> </span><span class="hs-identifier">_</span><span>            </span><span class="hs-special">(</span><a href="Data.SOP.Strict.html#Z"><span class="hs-identifier hs-var">Z</span></a><span> </span><a name="local-6989586621679604743"><a href="#local-6989586621679604743"><span class="hs-identifier">x</span></a></a><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><a href="Ouroboros.Consensus.HardFork.Combinator.Util.Telescope.html#TZ"><span class="hs-identifier hs-var">TZ</span></a><span> </span><a name="local-6989586621679604744"><a href="#local-6989586621679604744"><span class="hs-identifier">f</span></a></a><span class="hs-special">)</span><span>   </span><span class="hs-glyph">=</span><span> </span><span class="hs-identifier hs-var">Right</span><span> </span><span class="hs-operator hs-var">$</span><span> </span><a href="Ouroboros.Consensus.HardFork.Combinator.Util.Telescope.html#TZ"><span class="hs-identifier hs-var">TZ</span></a><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-var">Pair</span><span> </span><a href="#local-6989586621679604743"><span class="hs-identifier hs-var">x</span></a><span> </span><a href="#local-6989586621679604744"><span class="hs-identifier hs-var">f</span></a><span class="hs-special">)</span><span>
-</span><a name="line-51"></a><span>    </span><span class="hs-identifier">go</span><span> </span><span class="hs-special">(</span><a href="Ouroboros.Consensus.HardFork.Combinator.Util.InPairs.html#PCons"><span class="hs-identifier hs-var">PCons</span></a><span> </span><span class="hs-identifier">_</span><span> </span><a name="local-6989586621679604745"><a href="#local-6989586621679604745"><span class="hs-identifier">is</span></a></a><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><a href="Data.SOP.Strict.html#S"><span class="hs-identifier hs-var">S</span></a><span> </span><a name="local-6989586621679604746"><a href="#local-6989586621679604746"><span class="hs-identifier">x</span></a></a><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><a href="Ouroboros.Consensus.HardFork.Combinator.Util.Telescope.html#TS"><span class="hs-identifier hs-var">TS</span></a><span> </span><a name="local-6989586621679604747"><a href="#local-6989586621679604747"><span class="hs-identifier">g</span></a></a><span> </span><a name="local-6989586621679604748"><a href="#local-6989586621679604748"><span class="hs-identifier">f</span></a></a><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-identifier hs-var">bimap</span><span> </span><a href="Ouroboros.Consensus.HardFork.Combinator.Util.Match.html#MS"><span class="hs-identifier hs-var">MS</span></a><span> </span><span class="hs-special">(</span><a href="Ouroboros.Consensus.HardFork.Combinator.Util.Telescope.html#TS"><span class="hs-identifier hs-var">TS</span></a><span> </span><a href="#local-6989586621679604747"><span class="hs-identifier hs-var">g</span></a><span class="hs-special">)</span><span> </span><span class="hs-operator hs-var">$</span><span> </span><a href="#local-6989586621679604739"><span class="hs-identifier hs-var">go</span></a><span> </span><a href="#local-6989586621679604745"><span class="hs-identifier hs-var">is</span></a><span> </span><a href="#local-6989586621679604746"><span class="hs-identifier hs-var">x</span></a><span> </span><a href="#local-6989586621679604748"><span class="hs-identifier hs-var">f</span></a><span>
-</span><a name="line-52"></a><span>    </span><span class="hs-identifier">go</span><span> </span><span class="hs-identifier">_</span><span>            </span><span class="hs-special">(</span><a href="Data.SOP.Strict.html#S"><span class="hs-identifier hs-var">S</span></a><span> </span><a name="local-6989586621679604749"><a href="#local-6989586621679604749"><span class="hs-identifier">x</span></a></a><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><a href="Ouroboros.Consensus.HardFork.Combinator.Util.Telescope.html#TZ"><span class="hs-identifier hs-var">TZ</span></a><span> </span><a name="local-6989586621679604750"><a href="#local-6989586621679604750"><span class="hs-identifier">f</span></a></a><span class="hs-special">)</span><span>   </span><span class="hs-glyph">=</span><span> </span><span class="hs-identifier hs-var">Left</span><span> </span><span class="hs-operator hs-var">$</span><span> </span><a href="Ouroboros.Consensus.HardFork.Combinator.Util.Match.html#MR"><span class="hs-identifier hs-var">MR</span></a><span> </span><a href="#local-6989586621679604749"><span class="hs-identifier hs-var">x</span></a><span> </span><a href="#local-6989586621679604750"><span class="hs-identifier hs-var">f</span></a><span>
-</span><a name="line-53"></a><span>    </span><span class="hs-identifier">go</span><span> </span><a href="Ouroboros.Consensus.HardFork.Combinator.Util.InPairs.html#PNil"><span class="hs-identifier hs-var">PNil</span></a><span>            </span><span class="hs-identifier">_</span><span>  </span><span class="hs-special">(</span><a href="Ouroboros.Consensus.HardFork.Combinator.Util.Telescope.html#TS"><span class="hs-identifier hs-var">TS</span></a><span> </span><span class="hs-identifier">_</span><span> </span><a name="local-6989586621679604751"><a href="#local-6989586621679604751"><span class="hs-identifier">f</span></a></a><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">case</span><span> </span><a href="#local-6989586621679604751"><span class="hs-identifier hs-var">f</span></a><span> </span><span class="hs-keyword">of</span><span> </span><span class="hs-special">{</span><span class="hs-special">}</span><span>
-</span><a name="line-54"></a><span>    </span><span class="hs-identifier">go</span><span> </span><span class="hs-special">(</span><a href="Ouroboros.Consensus.HardFork.Combinator.Util.InPairs.html#PCons"><span class="hs-identifier hs-var">PCons</span></a><span> </span><a name="local-6989586621679604752"><a href="#local-6989586621679604752"><span class="hs-identifier">i</span></a></a><span> </span><a name="local-6989586621679604753"><a href="#local-6989586621679604753"><span class="hs-identifier">is</span></a></a><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><a href="Data.SOP.Strict.html#Z"><span class="hs-identifier hs-var">Z</span></a><span> </span><a name="local-6989586621679604754"><a href="#local-6989586621679604754"><span class="hs-identifier">x</span></a></a><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><a href="Ouroboros.Consensus.HardFork.Combinator.Util.Telescope.html#TS"><span class="hs-identifier hs-var">TS</span></a><span> </span><a name="local-6989586621679604755"><a href="#local-6989586621679604755"><span class="hs-identifier">g</span></a></a><span> </span><a name="local-6989586621679604756"><a href="#local-6989586621679604756"><span class="hs-identifier">f</span></a></a><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span>
-</span><a name="line-55"></a><span>        </span><span class="hs-keyword">case</span><span> </span><span class="hs-identifier">injectTxWith</span><span> </span><a href="#local-6989586621679604752"><span class="hs-identifier hs-var">i</span></a><span> </span><a href="#local-6989586621679604754"><span class="hs-identifier hs-var">x</span></a><span> </span><span class="hs-keyword">of</span><span>
-</span><a name="line-56"></a><span>          </span><span class="hs-identifier hs-var">Nothing</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-var">Left</span><span> </span><span class="hs-operator hs-var">$</span><span> </span><a href="Ouroboros.Consensus.HardFork.Combinator.Util.Match.html#ML"><span class="hs-identifier hs-var">ML</span></a><span> </span><a href="#local-6989586621679604754"><span class="hs-identifier hs-var">x</span></a><span> </span><span class="hs-special">(</span><a href="Ouroboros.Consensus.HardFork.Combinator.Util.Telescope.html#tip"><span class="hs-identifier hs-var">Telescope.tip</span></a><span> </span><a href="#local-6989586621679604756"><span class="hs-identifier hs-var">f</span></a><span class="hs-special">)</span><span>
-</span><a name="line-57"></a><span>          </span><span class="hs-identifier hs-var">Just</span><span> </span><a name="local-6989586621679604757"><a href="#local-6989586621679604757"><span class="hs-identifier">x'</span></a></a><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-var">bimap</span><span> </span><a href="Ouroboros.Consensus.HardFork.Combinator.Util.Match.html#MS"><span class="hs-identifier hs-var">MS</span></a><span> </span><span class="hs-special">(</span><a href="Ouroboros.Consensus.HardFork.Combinator.Util.Telescope.html#TS"><span class="hs-identifier hs-var">TS</span></a><span> </span><a href="#local-6989586621679604755"><span class="hs-identifier hs-var">g</span></a><span class="hs-special">)</span><span> </span><span class="hs-operator hs-var">$</span><span> </span><a href="#local-6989586621679604739"><span class="hs-identifier hs-var">go</span></a><span> </span><a href="#local-6989586621679604753"><span class="hs-identifier hs-var">is</span></a><span> </span><span class="hs-special">(</span><a href="Data.SOP.Strict.html#Z"><span class="hs-identifier hs-var">Z</span></a><span> </span><a href="#local-6989586621679604757"><span class="hs-identifier hs-var">x'</span></a><span class="hs-special">)</span><span> </span><a href="#local-6989586621679604756"><span class="hs-identifier hs-var">f</span></a><span>
-</span><a name="line-58"></a><span>
-</span><a name="line-59"></a><span class="hs-identifier">matchTx</span><span> </span><span class="hs-glyph">::</span><span>
-</span><a name="line-60"></a><span>     </span><span class="hs-identifier hs-type">SListI</span><span> </span><a href="#local-6989586621679604732"><span class="hs-identifier hs-type">xs</span></a><span>
-</span><a name="line-61"></a><span>  </span><span class="hs-glyph">=&gt;</span><span> </span><a href="Ouroboros.Consensus.HardFork.Combinator.Util.InPairs.html#InPairs"><span class="hs-identifier hs-type">InPairs</span></a><span> </span><a href="Ouroboros.Consensus.HardFork.Combinator.InjectTxs.html#InjectTx"><span class="hs-identifier hs-type">InjectTx</span></a><span> </span><a href="#local-6989586621679604732"><span class="hs-identifier hs-type">xs</span></a><span>
-</span><a name="line-62"></a><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><a href="Data.SOP.Strict.html#NS"><span class="hs-identifier hs-type">NS</span></a><span> </span><a href="Ouroboros.Consensus.Ledger.SupportsMempool.html#GenTx"><span class="hs-identifier hs-type">GenTx</span></a><span> </span><a href="#local-6989586621679604732"><span class="hs-identifier hs-type">xs</span></a><span>
-</span><a name="line-63"></a><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><a href="Ouroboros.Consensus.HardFork.Combinator.State.Types.html#HardForkState"><span class="hs-identifier hs-type">HardForkState</span></a><span> </span><a href="#local-6989586621679604733"><span class="hs-identifier hs-type">f</span></a><span> </span><a href="#local-6989586621679604732"><span class="hs-identifier hs-type">xs</span></a><span>
-</span><a name="line-64"></a><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">Either</span><span> </span><span class="hs-special">(</span><a href="Ouroboros.Consensus.HardFork.Combinator.Util.Match.html#Mismatch"><span class="hs-identifier hs-type">Mismatch</span></a><span> </span><a href="Ouroboros.Consensus.Ledger.SupportsMempool.html#GenTx"><span class="hs-identifier hs-type">GenTx</span></a><span> </span><span class="hs-special">(</span><a href="Ouroboros.Consensus.HardFork.Combinator.State.Types.html#Current"><span class="hs-identifier hs-type">Current</span></a><span> </span><a href="#local-6989586621679604733"><span class="hs-identifier hs-type">f</span></a><span class="hs-special">)</span><span> </span><a href="#local-6989586621679604732"><span class="hs-identifier hs-type">xs</span></a><span class="hs-special">)</span><span>
-</span><a name="line-65"></a><span>            </span><span class="hs-special">(</span><a href="Ouroboros.Consensus.HardFork.Combinator.State.Types.html#HardForkState"><span class="hs-identifier hs-type">HardForkState</span></a><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Product</span><span> </span><a href="Ouroboros.Consensus.Ledger.SupportsMempool.html#GenTx"><span class="hs-identifier hs-type">GenTx</span></a><span> </span><a href="#local-6989586621679604733"><span class="hs-identifier hs-type">f</span></a><span class="hs-special">)</span><span> </span><a href="#local-6989586621679604732"><span class="hs-identifier hs-type">xs</span></a><span class="hs-special">)</span><span>
-</span><a name="line-66"></a><a name="matchTx"><a href="Ouroboros.Consensus.HardFork.Combinator.InjectTxs.html#matchTx"><span class="hs-identifier">matchTx</span></a></a><span> </span><a name="local-6989586621679604758"><a href="#local-6989586621679604758"><span class="hs-identifier">is</span></a></a><span> </span><a name="local-6989586621679604759"><a href="#local-6989586621679604759"><span class="hs-identifier">tx</span></a></a><span> </span><span class="hs-glyph">=</span><span>
-</span><a name="line-67"></a><span>      </span><span class="hs-identifier hs-var">fmap</span><span> </span><span class="hs-special">(</span><a href="Ouroboros.Consensus.HardFork.Combinator.State.Types.html#HardForkState"><span class="hs-identifier hs-var">HardForkState</span></a><span> </span><span class="hs-operator hs-var">.</span><span> </span><span class="hs-identifier hs-var">hmap</span><span> </span><a href="#local-6989586621679604760"><span class="hs-identifier hs-var">distrib</span></a><span class="hs-special">)</span><span>
-</span><a name="line-68"></a><span>    </span><span class="hs-operator hs-var">.</span><span> </span><a href="Ouroboros.Consensus.HardFork.Combinator.InjectTxs.html#matchTx%27"><span class="hs-identifier hs-var">matchTx'</span></a><span> </span><a href="#local-6989586621679604758"><span class="hs-identifier hs-var">is</span></a><span> </span><a href="#local-6989586621679604759"><span class="hs-identifier hs-var">tx</span></a><span>
-</span><a name="line-69"></a><span>    </span><span class="hs-operator hs-var">.</span><span> </span><span class="hs-identifier">getHardForkState</span><span>
-</span><a name="line-70"></a><span>  </span><span class="hs-keyword">where</span><span>
-</span><a name="line-71"></a><span>    </span><span class="hs-identifier">distrib</span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">Product</span><span> </span><a href="Ouroboros.Consensus.Ledger.SupportsMempool.html#GenTx"><span class="hs-identifier hs-type">GenTx</span></a><span> </span><span class="hs-special">(</span><a href="Ouroboros.Consensus.HardFork.Combinator.State.Types.html#Current"><span class="hs-identifier hs-type">Current</span></a><span> </span><a href="#local-6989586621679604761"><span class="hs-identifier hs-type">f</span></a><span class="hs-special">)</span><span> </span><a href="#local-6989586621679604762"><span class="hs-identifier hs-type">blk</span></a><span> </span><span class="hs-glyph">-&gt;</span><span> </span><a href="Ouroboros.Consensus.HardFork.Combinator.State.Types.html#Current"><span class="hs-identifier hs-type">Current</span></a><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Product</span><span> </span><a href="Ouroboros.Consensus.Ledger.SupportsMempool.html#GenTx"><span class="hs-identifier hs-type">GenTx</span></a><span> </span><a href="#local-6989586621679604761"><span class="hs-identifier hs-type">f</span></a><span class="hs-special">)</span><span> </span><a href="#local-6989586621679604762"><span class="hs-identifier hs-type">blk</span></a><span>
-</span><a name="line-72"></a><span>    </span><a name="local-6989586621679604760"><a href="#local-6989586621679604760"><span class="hs-identifier">distrib</span></a></a><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-var">Pair</span><span> </span><a name="local-6989586621679604763"><a href="#local-6989586621679604763"><span class="hs-identifier">tx'</span></a></a><span> </span><a href="Ouroboros.Consensus.HardFork.Combinator.State.Types.html#Current"><span class="hs-identifier hs-var">Current</span></a><span class="hs-special">{</span><span class="hs-glyph">..</span><span class="hs-special">}</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><a href="Ouroboros.Consensus.HardFork.Combinator.State.Types.html#Current"><span class="hs-identifier hs-var">Current</span></a><span> </span><span class="hs-special">{</span><span>
-</span><a name="line-73"></a><span>          </span><span class="hs-identifier">currentStart</span><span> </span><span class="hs-glyph">=</span><span> </span><a href="#local-6989586621679604764"><span class="hs-identifier hs-var">currentStart</span></a><span>
-</span><a name="line-74"></a><span>        </span><span class="hs-special">,</span><span> </span><span class="hs-identifier">currentState</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-identifier hs-var">Pair</span><span> </span><a href="#local-6989586621679604763"><span class="hs-identifier hs-var">tx'</span></a><span> </span><a href="#local-6989586621679604765"><span class="hs-identifier hs-var">currentState</span></a><span>
-</span><a name="line-75"></a><span>        </span><span class="hs-special">}</span><span>
-</span><a name="line-76"></a></pre></body></html>
+</span><span id="line-28"></span><span>
+</span><span id="line-29"></span><span class="hs-keyword">data</span><span> </span><span id="InjectTx"><span class="annot"><a href="Ouroboros.Consensus.HardFork.Combinator.InjectTxs.html#InjectTx"><span class="hs-identifier hs-var">InjectTx</span></a></span></span><span> </span><span id="local-6989586621680028216"><span class="annot"><a href="#local-6989586621680028216"><span class="hs-identifier hs-type">blk</span></a></span></span><span> </span><span id="local-6989586621680028215"><span class="annot"><a href="#local-6989586621680028215"><span class="hs-identifier hs-type">blk'</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="InjectTx"><span class="annot"><a href="Ouroboros.Consensus.HardFork.Combinator.InjectTxs.html#InjectTx"><span class="hs-identifier hs-var">InjectTx</span></a></span></span><span> </span><span class="hs-special">{</span><span>
+</span><span id="line-30"></span><span>      </span><span id="injectTxWith"><span class="annot"><span class="annottext">InjectTx blk blk' -&gt; GenTx blk -&gt; Maybe (GenTx blk')
+</span><a href="Ouroboros.Consensus.HardFork.Combinator.InjectTxs.html#injectTxWith"><span class="hs-identifier hs-var hs-var">injectTxWith</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Ledger.SupportsMempool.html#GenTx"><span class="hs-identifier hs-type">GenTx</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680028216"><span class="hs-identifier hs-type">blk</span></a></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Consensus.Ledger.SupportsMempool.html#GenTx"><span class="hs-identifier hs-type">GenTx</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680028215"><span class="hs-identifier hs-type">blk'</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-31"></span><span>    </span><span class="hs-special">}</span><span>
+</span><span id="line-32"></span><span>
+</span><span id="line-33"></span><span id="local-6989586621680028096"><span id="local-6989586621680028097"><span class="annot"><a href="Ouroboros.Consensus.HardFork.Combinator.InjectTxs.html#cannotInjectTx"><span class="hs-identifier hs-type">cannotInjectTx</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.HardFork.Combinator.InjectTxs.html#InjectTx"><span class="hs-identifier hs-type">InjectTx</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680028097"><span class="hs-identifier hs-type">blk</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680028096"><span class="hs-identifier hs-type">blk'</span></a></span></span></span><span>
+</span><span id="line-34"></span><span id="cannotInjectTx"><span class="annot"><span class="annottext">cannotInjectTx :: InjectTx blk blk'
+</span><a href="Ouroboros.Consensus.HardFork.Combinator.InjectTxs.html#cannotInjectTx"><span class="hs-identifier hs-var hs-var">cannotInjectTx</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(GenTx blk -&gt; Maybe (GenTx blk')) -&gt; InjectTx blk blk'
+forall blk blk'.
+(GenTx blk -&gt; Maybe (GenTx blk')) -&gt; InjectTx blk blk'
+</span><a href="Ouroboros.Consensus.HardFork.Combinator.InjectTxs.html#InjectTx"><span class="hs-identifier hs-var">InjectTx</span></a></span><span> </span><span class="annot"><span class="annottext">((GenTx blk -&gt; Maybe (GenTx blk')) -&gt; InjectTx blk blk')
+-&gt; (GenTx blk -&gt; Maybe (GenTx blk')) -&gt; InjectTx blk blk'
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Maybe (GenTx blk') -&gt; GenTx blk -&gt; Maybe (GenTx blk')
+forall a b. a -&gt; b -&gt; a
+</span><span class="hs-identifier hs-var">const</span></span><span> </span><span class="annot"><span class="annottext">Maybe (GenTx blk')
+forall a. Maybe a
+</span><span class="hs-identifier hs-var">Nothing</span></span><span>
+</span><span id="line-35"></span><span>
+</span><span id="line-36"></span><span class="hs-comment">-- | Match transaction with a ledger, attempting to inject where possible</span><span>
+</span><span id="line-37"></span><span id="local-6989586621680028092"><span id="local-6989586621680028093"><span id="local-6989586621680028094"><span class="annot"><a href="Ouroboros.Consensus.HardFork.Combinator.InjectTxs.html#matchTx%27"><span class="hs-identifier hs-type">matchTx'</span></a></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-38"></span><span>     </span><span class="annot"><a href="Ouroboros.Consensus.HardFork.Combinator.Util.InPairs.html#InPairs"><span class="hs-identifier hs-type">InPairs</span></a></span><span> </span><span class="annot"><a href="Ouroboros.Consensus.HardFork.Combinator.InjectTxs.html#InjectTx"><span class="hs-identifier hs-type">InjectTx</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680028094"><span class="hs-identifier hs-type">xs</span></a></span><span>
+</span><span id="line-39"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Data.SOP.Strict.html#NS"><span class="hs-identifier hs-type">NS</span></a></span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Ledger.SupportsMempool.html#GenTx"><span class="hs-identifier hs-type">GenTx</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680028094"><span class="hs-identifier hs-type">xs</span></a></span><span>
+</span><span id="line-40"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.HardFork.Combinator.Util.Telescope.html#Telescope"><span class="hs-identifier hs-type">Telescope</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680028093"><span class="hs-identifier hs-type">g</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680028092"><span class="hs-identifier hs-type">f</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680028094"><span class="hs-identifier hs-type">xs</span></a></span><span>
+</span><span id="line-41"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Either</span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Consensus.HardFork.Combinator.Util.Match.html#Mismatch"><span class="hs-identifier hs-type">Mismatch</span></a></span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Ledger.SupportsMempool.html#GenTx"><span class="hs-identifier hs-type">GenTx</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680028092"><span class="hs-identifier hs-type">f</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680028094"><span class="hs-identifier hs-type">xs</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-42"></span><span>            </span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Consensus.HardFork.Combinator.Util.Telescope.html#Telescope"><span class="hs-identifier hs-type">Telescope</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680028093"><span class="hs-identifier hs-type">g</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Product</span></span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Ledger.SupportsMempool.html#GenTx"><span class="hs-identifier hs-type">GenTx</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680028092"><span class="hs-identifier hs-type">f</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><a href="#local-6989586621680028094"><span class="hs-identifier hs-type">xs</span></a></span><span class="hs-special">)</span></span></span></span><span>
+</span><span id="line-43"></span><span id="matchTx%27"><span class="annot"><span class="annottext">matchTx' :: InPairs InjectTx xs
+-&gt; NS GenTx xs
+-&gt; Telescope g f xs
+-&gt; Either (Mismatch GenTx f xs) (Telescope g (Product GenTx f) xs)
+</span><a href="Ouroboros.Consensus.HardFork.Combinator.InjectTxs.html#matchTx%27"><span class="hs-identifier hs-var hs-var">matchTx'</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">InPairs InjectTx xs
+-&gt; NS GenTx xs
+-&gt; Telescope g f xs
+-&gt; Either (Mismatch GenTx f xs) (Telescope g (Product GenTx f) xs)
+forall (xs :: [*]) (g :: * -&gt; *) (f :: * -&gt; *).
+InPairs InjectTx xs
+-&gt; NS GenTx xs
+-&gt; Telescope g f xs
+-&gt; Either (Mismatch GenTx f xs) (Telescope g (Product GenTx f) xs)
+</span><a href="#local-6989586621680028090"><span class="hs-identifier hs-var">go</span></a></span><span>
+</span><span id="line-44"></span><span>  </span><span class="hs-keyword">where</span><span>
+</span><span id="line-45"></span><span>    </span><span id="local-6989586621680028198"><span id="local-6989586621680028199"><span id="local-6989586621680028200"><span class="annot"><a href="#local-6989586621680028090"><span class="hs-identifier hs-type">go</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.HardFork.Combinator.Util.InPairs.html#InPairs"><span class="hs-identifier hs-type">InPairs</span></a></span><span> </span><span class="annot"><a href="Ouroboros.Consensus.HardFork.Combinator.InjectTxs.html#InjectTx"><span class="hs-identifier hs-type">InjectTx</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680028200"><span class="hs-identifier hs-type">xs</span></a></span><span>
+</span><span id="line-46"></span><span>       </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Data.SOP.Strict.html#NS"><span class="hs-identifier hs-type">NS</span></a></span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Ledger.SupportsMempool.html#GenTx"><span class="hs-identifier hs-type">GenTx</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680028200"><span class="hs-identifier hs-type">xs</span></a></span><span>
+</span><span id="line-47"></span><span>       </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.HardFork.Combinator.Util.Telescope.html#Telescope"><span class="hs-identifier hs-type">Telescope</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680028199"><span class="hs-identifier hs-type">g</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680028198"><span class="hs-identifier hs-type">f</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680028200"><span class="hs-identifier hs-type">xs</span></a></span><span>
+</span><span id="line-48"></span><span>       </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Either</span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Consensus.HardFork.Combinator.Util.Match.html#Mismatch"><span class="hs-identifier hs-type">Mismatch</span></a></span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Ledger.SupportsMempool.html#GenTx"><span class="hs-identifier hs-type">GenTx</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680028198"><span class="hs-identifier hs-type">f</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680028200"><span class="hs-identifier hs-type">xs</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-49"></span><span>                 </span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Consensus.HardFork.Combinator.Util.Telescope.html#Telescope"><span class="hs-identifier hs-type">Telescope</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680028199"><span class="hs-identifier hs-type">g</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Product</span></span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Ledger.SupportsMempool.html#GenTx"><span class="hs-identifier hs-type">GenTx</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680028198"><span class="hs-identifier hs-type">f</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><a href="#local-6989586621680028200"><span class="hs-identifier hs-type">xs</span></a></span><span class="hs-special">)</span></span></span></span><span>
+</span><span id="line-50"></span><span>    </span><span id="local-6989586621680028090"><span class="annot"><span class="annottext">go :: InPairs InjectTx xs
+-&gt; NS GenTx xs
+-&gt; Telescope g f xs
+-&gt; Either (Mismatch GenTx f xs) (Telescope g (Product GenTx f) xs)
+</span><a href="#local-6989586621680028090"><span class="hs-identifier hs-var hs-var">go</span></a></span></span><span> </span><span class="annot"><span class="annottext">InPairs InjectTx xs
+</span><span class="hs-identifier">_</span></span><span>            </span><span class="hs-special">(</span><span class="annot"><a href="Data.SOP.Strict.html#Z"><span class="hs-identifier hs-type">Z</span></a></span><span> </span><span id="local-6989586621680028088"><span class="annot"><span class="annottext">GenTx x
+</span><a href="#local-6989586621680028088"><span class="hs-identifier hs-var">x</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Consensus.HardFork.Combinator.Util.Telescope.html#TZ"><span class="hs-identifier hs-type">TZ</span></a></span><span> </span><span id="local-6989586621680028086"><span class="annot"><span class="annottext">f x
+</span><a href="#local-6989586621680028086"><span class="hs-identifier hs-var">f</span></a></span></span><span class="hs-special">)</span><span>   </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Telescope g (Product GenTx f) (x : xs)
+-&gt; Either
+     (Mismatch GenTx f xs) (Telescope g (Product GenTx f) (x : xs))
+forall a b. b -&gt; Either a b
+</span><span class="hs-identifier hs-var">Right</span></span><span> </span><span class="annot"><span class="annottext">(Telescope g (Product GenTx f) (x : xs)
+ -&gt; Either
+      (Mismatch GenTx f xs) (Telescope g (Product GenTx f) (x : xs)))
+-&gt; Telescope g (Product GenTx f) (x : xs)
+-&gt; Either
+     (Mismatch GenTx f xs) (Telescope g (Product GenTx f) (x : xs))
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Product GenTx f x -&gt; Telescope g (Product GenTx f) (x : xs)
+forall a (f :: a -&gt; *) (x :: a) (g :: a -&gt; *) (xs :: [a]).
+f x -&gt; Telescope g f (x : xs)
+</span><a href="Ouroboros.Consensus.HardFork.Combinator.Util.Telescope.html#TZ"><span class="hs-identifier hs-var">TZ</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">GenTx x -&gt; f x -&gt; Product GenTx f x
+forall k (f :: k -&gt; *) (g :: k -&gt; *) (a :: k).
+f a -&gt; g a -&gt; Product f g a
+</span><span class="hs-identifier hs-var">Pair</span></span><span> </span><span class="annot"><span class="annottext">GenTx x
+</span><a href="#local-6989586621680028088"><span class="hs-identifier hs-var">x</span></a></span><span> </span><span class="annot"><span class="annottext">f x
+f x
+</span><a href="#local-6989586621680028086"><span class="hs-identifier hs-var">f</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-51"></span><span>    </span><span class="annot"><a href="#local-6989586621680028090"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Consensus.HardFork.Combinator.Util.InPairs.html#PCons"><span class="hs-identifier hs-type">PCons</span></a></span><span> </span><span class="annot"><span class="annottext">InjectTx x y
+</span><span class="hs-identifier">_</span></span><span> </span><span id="local-6989586621680028083"><span class="annot"><span class="annottext">InPairs InjectTx (y : zs)
+</span><a href="#local-6989586621680028083"><span class="hs-identifier hs-var">is</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Data.SOP.Strict.html#S"><span class="hs-identifier hs-type">S</span></a></span><span> </span><span id="local-6989586621680028081"><span class="annot"><span class="annottext">NS GenTx xs
+</span><a href="#local-6989586621680028081"><span class="hs-identifier hs-var">x</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Consensus.HardFork.Combinator.Util.Telescope.html#TS"><span class="hs-identifier hs-type">TS</span></a></span><span> </span><span id="local-6989586621680028079"><span class="annot"><span class="annottext">g x
+</span><a href="#local-6989586621680028079"><span class="hs-identifier hs-var">g</span></a></span></span><span> </span><span id="local-6989586621680028078"><span class="annot"><span class="annottext">Telescope g f xs
+</span><a href="#local-6989586621680028078"><span class="hs-identifier hs-var">f</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(Mismatch GenTx f (y : zs) -&gt; Mismatch GenTx f (x : y : zs))
+-&gt; (Telescope g (Product GenTx f) (y : zs)
+    -&gt; Telescope g (Product GenTx f) (x : y : zs))
+-&gt; Either
+     (Mismatch GenTx f (y : zs))
+     (Telescope g (Product GenTx f) (y : zs))
+-&gt; Either
+     (Mismatch GenTx f (x : y : zs))
+     (Telescope g (Product GenTx f) (x : y : zs))
+forall (p :: * -&gt; * -&gt; *) a b c d.
+Bifunctor p =&gt;
+(a -&gt; b) -&gt; (c -&gt; d) -&gt; p a c -&gt; p b d
+</span><span class="hs-identifier hs-var">bimap</span></span><span> </span><span class="annot"><span class="annottext">Mismatch GenTx f (y : zs) -&gt; Mismatch GenTx f (x : y : zs)
+forall a (f :: a -&gt; *) (g :: a -&gt; *) (xs :: [a]) (x :: a).
+Mismatch f g xs -&gt; Mismatch f g (x : xs)
+</span><a href="Ouroboros.Consensus.HardFork.Combinator.Util.Match.html#MS"><span class="hs-identifier hs-var">MS</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">g x
+-&gt; Telescope g (Product GenTx f) (y : zs)
+-&gt; Telescope g (Product GenTx f) (x : y : zs)
+forall a (g :: a -&gt; *) (x :: a) (f :: a -&gt; *) (xs :: [a]).
+g x -&gt; Telescope g f xs -&gt; Telescope g f (x : xs)
+</span><a href="Ouroboros.Consensus.HardFork.Combinator.Util.Telescope.html#TS"><span class="hs-identifier hs-var">TS</span></a></span><span> </span><span class="annot"><span class="annottext">g x
+</span><a href="#local-6989586621680028079"><span class="hs-identifier hs-var">g</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(Either
+   (Mismatch GenTx f (y : zs))
+   (Telescope g (Product GenTx f) (y : zs))
+ -&gt; Either
+      (Mismatch GenTx f (x : y : zs))
+      (Telescope g (Product GenTx f) (x : y : zs)))
+-&gt; Either
+     (Mismatch GenTx f (y : zs))
+     (Telescope g (Product GenTx f) (y : zs))
+-&gt; Either
+     (Mismatch GenTx f (x : y : zs))
+     (Telescope g (Product GenTx f) (x : y : zs))
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">InPairs InjectTx (y : zs)
+-&gt; NS GenTx (y : zs)
+-&gt; Telescope g f (y : zs)
+-&gt; Either
+     (Mismatch GenTx f (y : zs))
+     (Telescope g (Product GenTx f) (y : zs))
+forall (xs :: [*]) (g :: * -&gt; *) (f :: * -&gt; *).
+InPairs InjectTx xs
+-&gt; NS GenTx xs
+-&gt; Telescope g f xs
+-&gt; Either (Mismatch GenTx f xs) (Telescope g (Product GenTx f) xs)
+</span><a href="#local-6989586621680028090"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="annot"><span class="annottext">InPairs InjectTx (y : zs)
+</span><a href="#local-6989586621680028083"><span class="hs-identifier hs-var">is</span></a></span><span> </span><span class="annot"><span class="annottext">NS GenTx xs
+NS GenTx (y : zs)
+</span><a href="#local-6989586621680028081"><span class="hs-identifier hs-var">x</span></a></span><span> </span><span class="annot"><span class="annottext">Telescope g f xs
+Telescope g f (y : zs)
+</span><a href="#local-6989586621680028078"><span class="hs-identifier hs-var">f</span></a></span><span>
+</span><span id="line-52"></span><span>    </span><span class="annot"><a href="#local-6989586621680028090"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="annot"><span class="annottext">InPairs InjectTx xs
+</span><span class="hs-identifier">_</span></span><span>            </span><span class="hs-special">(</span><span class="annot"><a href="Data.SOP.Strict.html#S"><span class="hs-identifier hs-type">S</span></a></span><span> </span><span id="local-6989586621680028075"><span class="annot"><span class="annottext">NS GenTx xs
+</span><a href="#local-6989586621680028075"><span class="hs-identifier hs-var">x</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Consensus.HardFork.Combinator.Util.Telescope.html#TZ"><span class="hs-identifier hs-type">TZ</span></a></span><span> </span><span id="local-6989586621680028074"><span class="annot"><span class="annottext">f x
+</span><a href="#local-6989586621680028074"><span class="hs-identifier hs-var">f</span></a></span></span><span class="hs-special">)</span><span>   </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Mismatch GenTx f (x : xs)
+-&gt; Either
+     (Mismatch GenTx f (x : xs)) (Telescope g (Product GenTx f) xs)
+forall a b. a -&gt; Either a b
+</span><span class="hs-identifier hs-var">Left</span></span><span> </span><span class="annot"><span class="annottext">(Mismatch GenTx f (x : xs)
+ -&gt; Either
+      (Mismatch GenTx f (x : xs)) (Telescope g (Product GenTx f) xs))
+-&gt; Mismatch GenTx f (x : xs)
+-&gt; Either
+     (Mismatch GenTx f (x : xs)) (Telescope g (Product GenTx f) xs)
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">NS GenTx xs -&gt; f x -&gt; Mismatch GenTx f (x : xs)
+forall a (f :: a -&gt; *) (xs :: [a]) (g :: a -&gt; *) (x :: a).
+NS f xs -&gt; g x -&gt; Mismatch f g (x : xs)
+</span><a href="Ouroboros.Consensus.HardFork.Combinator.Util.Match.html#MR"><span class="hs-identifier hs-var">MR</span></a></span><span> </span><span class="annot"><span class="annottext">NS GenTx xs
+</span><a href="#local-6989586621680028075"><span class="hs-identifier hs-var">x</span></a></span><span> </span><span class="annot"><span class="annottext">f x
+</span><a href="#local-6989586621680028074"><span class="hs-identifier hs-var">f</span></a></span><span>
+</span><span id="line-53"></span><span>    </span><span class="annot"><a href="#local-6989586621680028090"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Consensus.HardFork.Combinator.Util.InPairs.html#PCons"><span class="hs-identifier hs-type">PCons</span></a></span><span> </span><span id="local-6989586621680028072"><span class="annot"><span class="annottext">InjectTx x y
+</span><a href="#local-6989586621680028072"><span class="hs-identifier hs-var">i</span></a></span></span><span> </span><span id="local-6989586621680028071"><span class="annot"><span class="annottext">InPairs InjectTx (y : zs)
+</span><a href="#local-6989586621680028071"><span class="hs-identifier hs-var">is</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Data.SOP.Strict.html#Z"><span class="hs-identifier hs-type">Z</span></a></span><span> </span><span id="local-6989586621680028070"><span class="annot"><span class="annottext">GenTx x
+</span><a href="#local-6989586621680028070"><span class="hs-identifier hs-var">x</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Consensus.HardFork.Combinator.Util.Telescope.html#TS"><span class="hs-identifier hs-type">TS</span></a></span><span> </span><span id="local-6989586621680028069"><span class="annot"><span class="annottext">g x
+</span><a href="#local-6989586621680028069"><span class="hs-identifier hs-var">g</span></a></span></span><span> </span><span id="local-6989586621680028068"><span class="annot"><span class="annottext">Telescope g f xs
+</span><a href="#local-6989586621680028068"><span class="hs-identifier hs-var">f</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-54"></span><span>        </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">InjectTx x y -&gt; GenTx x -&gt; Maybe (GenTx y)
+forall blk blk'.
+InjectTx blk blk' -&gt; GenTx blk -&gt; Maybe (GenTx blk')
+</span><a href="Ouroboros.Consensus.HardFork.Combinator.InjectTxs.html#injectTxWith"><span class="hs-identifier hs-var hs-var">injectTxWith</span></a></span><span> </span><span class="annot"><span class="annottext">InjectTx x y
+</span><a href="#local-6989586621680028072"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="annot"><span class="annottext">GenTx x
+GenTx x
+</span><a href="#local-6989586621680028070"><span class="hs-identifier hs-var">x</span></a></span><span> </span><span class="hs-keyword">of</span><span>
+</span><span id="line-55"></span><span>          </span><span class="annot"><span class="annottext">Maybe (GenTx y)
+</span><span class="hs-identifier hs-var">Nothing</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Mismatch GenTx f (x : xs)
+-&gt; Either
+     (Mismatch GenTx f (x : xs)) (Telescope g (Product GenTx f) xs)
+forall a b. a -&gt; Either a b
+</span><span class="hs-identifier hs-var">Left</span></span><span> </span><span class="annot"><span class="annottext">(Mismatch GenTx f (x : xs)
+ -&gt; Either
+      (Mismatch GenTx f (x : xs)) (Telescope g (Product GenTx f) xs))
+-&gt; Mismatch GenTx f (x : xs)
+-&gt; Either
+     (Mismatch GenTx f (x : xs)) (Telescope g (Product GenTx f) xs)
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">GenTx x -&gt; NS f xs -&gt; Mismatch GenTx f (x : xs)
+forall a (f :: a -&gt; *) (x :: a) (g :: a -&gt; *) (xs :: [a]).
+f x -&gt; NS g xs -&gt; Mismatch f g (x : xs)
+</span><a href="Ouroboros.Consensus.HardFork.Combinator.Util.Match.html#ML"><span class="hs-identifier hs-var">ML</span></a></span><span> </span><span class="annot"><span class="annottext">GenTx x
+</span><a href="#local-6989586621680028070"><span class="hs-identifier hs-var">x</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Telescope g f xs -&gt; NS f xs
+forall k (g :: k -&gt; *) (f :: k -&gt; *) (xs :: [k]).
+Telescope g f xs -&gt; NS f xs
+</span><a href="Ouroboros.Consensus.HardFork.Combinator.Util.Telescope.html#tip"><span class="hs-identifier hs-var">Telescope.tip</span></a></span><span> </span><span class="annot"><span class="annottext">Telescope g f xs
+</span><a href="#local-6989586621680028068"><span class="hs-identifier hs-var">f</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-56"></span><span>          </span><span class="annot"><span class="hs-identifier hs-type">Just</span></span><span> </span><span id="local-6989586621680028065"><span class="annot"><span class="annottext">GenTx y
+</span><a href="#local-6989586621680028065"><span class="hs-identifier hs-var">x'</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">(Mismatch GenTx f (y : zs) -&gt; Mismatch GenTx f (x : y : zs))
+-&gt; (Telescope g (Product GenTx f) (y : zs)
+    -&gt; Telescope g (Product GenTx f) (x : y : zs))
+-&gt; Either
+     (Mismatch GenTx f (y : zs))
+     (Telescope g (Product GenTx f) (y : zs))
+-&gt; Either
+     (Mismatch GenTx f (x : y : zs))
+     (Telescope g (Product GenTx f) (x : y : zs))
+forall (p :: * -&gt; * -&gt; *) a b c d.
+Bifunctor p =&gt;
+(a -&gt; b) -&gt; (c -&gt; d) -&gt; p a c -&gt; p b d
+</span><span class="hs-identifier hs-var">bimap</span></span><span> </span><span class="annot"><span class="annottext">Mismatch GenTx f (y : zs) -&gt; Mismatch GenTx f (x : y : zs)
+forall a (f :: a -&gt; *) (g :: a -&gt; *) (xs :: [a]) (x :: a).
+Mismatch f g xs -&gt; Mismatch f g (x : xs)
+</span><a href="Ouroboros.Consensus.HardFork.Combinator.Util.Match.html#MS"><span class="hs-identifier hs-var">MS</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">g x
+-&gt; Telescope g (Product GenTx f) (y : zs)
+-&gt; Telescope g (Product GenTx f) (x : y : zs)
+forall a (g :: a -&gt; *) (x :: a) (f :: a -&gt; *) (xs :: [a]).
+g x -&gt; Telescope g f xs -&gt; Telescope g f (x : xs)
+</span><a href="Ouroboros.Consensus.HardFork.Combinator.Util.Telescope.html#TS"><span class="hs-identifier hs-var">TS</span></a></span><span> </span><span class="annot"><span class="annottext">g x
+</span><a href="#local-6989586621680028069"><span class="hs-identifier hs-var">g</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(Either
+   (Mismatch GenTx f (y : zs))
+   (Telescope g (Product GenTx f) (y : zs))
+ -&gt; Either
+      (Mismatch GenTx f (x : y : zs))
+      (Telescope g (Product GenTx f) (x : y : zs)))
+-&gt; Either
+     (Mismatch GenTx f (y : zs))
+     (Telescope g (Product GenTx f) (y : zs))
+-&gt; Either
+     (Mismatch GenTx f (x : y : zs))
+     (Telescope g (Product GenTx f) (x : y : zs))
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">InPairs InjectTx (y : zs)
+-&gt; NS GenTx (y : zs)
+-&gt; Telescope g f (y : zs)
+-&gt; Either
+     (Mismatch GenTx f (y : zs))
+     (Telescope g (Product GenTx f) (y : zs))
+forall (xs :: [*]) (g :: * -&gt; *) (f :: * -&gt; *).
+InPairs InjectTx xs
+-&gt; NS GenTx xs
+-&gt; Telescope g f xs
+-&gt; Either (Mismatch GenTx f xs) (Telescope g (Product GenTx f) xs)
+</span><a href="#local-6989586621680028090"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="annot"><span class="annottext">InPairs InjectTx (y : zs)
+</span><a href="#local-6989586621680028071"><span class="hs-identifier hs-var">is</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">GenTx y -&gt; NS GenTx (y : zs)
+forall a (f :: a -&gt; *) (x :: a) (xs :: [a]). f x -&gt; NS f (x : xs)
+</span><a href="Data.SOP.Strict.html#Z"><span class="hs-identifier hs-var">Z</span></a></span><span> </span><span class="annot"><span class="annottext">GenTx y
+</span><a href="#local-6989586621680028065"><span class="hs-identifier hs-var">x'</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Telescope g f xs
+Telescope g f (y : zs)
+</span><a href="#local-6989586621680028068"><span class="hs-identifier hs-var">f</span></a></span><span>
+</span><span id="line-57"></span><span>
+</span><span id="line-58"></span><span id="local-6989586621680028063"><span id="local-6989586621680028064"><span class="annot"><a href="Ouroboros.Consensus.HardFork.Combinator.InjectTxs.html#matchTx"><span class="hs-identifier hs-type">matchTx</span></a></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-59"></span><span>     </span><span class="annot"><span class="hs-identifier hs-type">SListI</span></span><span> </span><span class="annot"><a href="#local-6989586621680028064"><span class="hs-identifier hs-type">xs</span></a></span><span>
+</span><span id="line-60"></span><span>  </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.HardFork.Combinator.Util.InPairs.html#InPairs"><span class="hs-identifier hs-type">InPairs</span></a></span><span> </span><span class="annot"><a href="Ouroboros.Consensus.HardFork.Combinator.InjectTxs.html#InjectTx"><span class="hs-identifier hs-type">InjectTx</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680028064"><span class="hs-identifier hs-type">xs</span></a></span><span>
+</span><span id="line-61"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Data.SOP.Strict.html#NS"><span class="hs-identifier hs-type">NS</span></a></span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Ledger.SupportsMempool.html#GenTx"><span class="hs-identifier hs-type">GenTx</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680028064"><span class="hs-identifier hs-type">xs</span></a></span><span>
+</span><span id="line-62"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.HardFork.Combinator.State.Types.html#HardForkState"><span class="hs-identifier hs-type">HardForkState</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680028063"><span class="hs-identifier hs-type">f</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680028064"><span class="hs-identifier hs-type">xs</span></a></span><span>
+</span><span id="line-63"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Either</span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Consensus.HardFork.Combinator.Util.Match.html#Mismatch"><span class="hs-identifier hs-type">Mismatch</span></a></span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Ledger.SupportsMempool.html#GenTx"><span class="hs-identifier hs-type">GenTx</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Consensus.HardFork.Combinator.State.Types.html#Current"><span class="hs-identifier hs-type">Current</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680028063"><span class="hs-identifier hs-type">f</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><a href="#local-6989586621680028064"><span class="hs-identifier hs-type">xs</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-64"></span><span>            </span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Consensus.HardFork.Combinator.State.Types.html#HardForkState"><span class="hs-identifier hs-type">HardForkState</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Product</span></span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Ledger.SupportsMempool.html#GenTx"><span class="hs-identifier hs-type">GenTx</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680028063"><span class="hs-identifier hs-type">f</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><a href="#local-6989586621680028064"><span class="hs-identifier hs-type">xs</span></a></span><span class="hs-special">)</span></span></span><span>
+</span><span id="line-65"></span><span id="matchTx"><span class="annot"><span class="annottext">matchTx :: InPairs InjectTx xs
+-&gt; NS GenTx xs
+-&gt; HardForkState f xs
+-&gt; Either
+     (Mismatch GenTx (Current f) xs)
+     (HardForkState (Product GenTx f) xs)
+</span><a href="Ouroboros.Consensus.HardFork.Combinator.InjectTxs.html#matchTx"><span class="hs-identifier hs-var hs-var">matchTx</span></a></span></span><span> </span><span id="local-6989586621680028061"><span class="annot"><span class="annottext">InPairs InjectTx xs
+</span><a href="#local-6989586621680028061"><span class="hs-identifier hs-var">is</span></a></span></span><span> </span><span id="local-6989586621680028060"><span class="annot"><span class="annottext">NS GenTx xs
+</span><a href="#local-6989586621680028060"><span class="hs-identifier hs-var">tx</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-66"></span><span>      </span><span class="annot"><span class="annottext">(Telescope (K Past) (Product GenTx (Current f)) xs
+ -&gt; HardForkState (Product GenTx f) xs)
+-&gt; Either
+     (Mismatch GenTx (Current f) xs)
+     (Telescope (K Past) (Product GenTx (Current f)) xs)
+-&gt; Either
+     (Mismatch GenTx (Current f) xs)
+     (HardForkState (Product GenTx f) xs)
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-identifier hs-var">fmap</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Telescope (K Past) (Current (Product GenTx f)) xs
+-&gt; HardForkState (Product GenTx f) xs
+forall (f :: * -&gt; *) (xs :: [*]).
+Telescope (K Past) (Current f) xs -&gt; HardForkState f xs
+</span><a href="Ouroboros.Consensus.HardFork.Combinator.State.Types.html#HardForkState"><span class="hs-identifier hs-var">HardForkState</span></a></span><span> </span><span class="annot"><span class="annottext">(Telescope (K Past) (Current (Product GenTx f)) xs
+ -&gt; HardForkState (Product GenTx f) xs)
+-&gt; (Telescope (K Past) (Product GenTx (Current f)) xs
+    -&gt; Telescope (K Past) (Current (Product GenTx f)) xs)
+-&gt; Telescope (K Past) (Product GenTx (Current f)) xs
+-&gt; HardForkState (Product GenTx f) xs
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">(forall a.
+ Product GenTx (Current f) a -&gt; Current (Product GenTx f) a)
+-&gt; Telescope (K Past) (Product GenTx (Current f)) xs
+-&gt; Telescope (K Past) (Current (Product GenTx f)) xs
+forall k l (h :: (k -&gt; *) -&gt; l -&gt; *) (xs :: l) (f :: k -&gt; *)
+       (f' :: k -&gt; *).
+(SListIN (Prod h) xs, HAp h) =&gt;
+(forall (a :: k). f a -&gt; f' a) -&gt; h f xs -&gt; h f' xs
+</span><span class="hs-identifier hs-var">hmap</span></span><span> </span><span class="annot"><span class="annottext">forall a.
+Product GenTx (Current f) a -&gt; Current (Product GenTx f) a
+forall (f :: * -&gt; *) blk.
+Product GenTx (Current f) blk -&gt; Current (Product GenTx f) blk
+</span><a href="#local-6989586621680028056"><span class="hs-identifier hs-var">distrib</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-67"></span><span>    </span><span class="annot"><span class="annottext">(Either
+   (Mismatch GenTx (Current f) xs)
+   (Telescope (K Past) (Product GenTx (Current f)) xs)
+ -&gt; Either
+      (Mismatch GenTx (Current f) xs)
+      (HardForkState (Product GenTx f) xs))
+-&gt; (HardForkState f xs
+    -&gt; Either
+         (Mismatch GenTx (Current f) xs)
+         (Telescope (K Past) (Product GenTx (Current f)) xs))
+-&gt; HardForkState f xs
+-&gt; Either
+     (Mismatch GenTx (Current f) xs)
+     (HardForkState (Product GenTx f) xs)
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">InPairs InjectTx xs
+-&gt; NS GenTx xs
+-&gt; Telescope (K Past) (Current f) xs
+-&gt; Either
+     (Mismatch GenTx (Current f) xs)
+     (Telescope (K Past) (Product GenTx (Current f)) xs)
+forall (xs :: [*]) (g :: * -&gt; *) (f :: * -&gt; *).
+InPairs InjectTx xs
+-&gt; NS GenTx xs
+-&gt; Telescope g f xs
+-&gt; Either (Mismatch GenTx f xs) (Telescope g (Product GenTx f) xs)
+</span><a href="Ouroboros.Consensus.HardFork.Combinator.InjectTxs.html#matchTx%27"><span class="hs-identifier hs-var">matchTx'</span></a></span><span> </span><span class="annot"><span class="annottext">InPairs InjectTx xs
+</span><a href="#local-6989586621680028061"><span class="hs-identifier hs-var">is</span></a></span><span> </span><span class="annot"><span class="annottext">NS GenTx xs
+</span><a href="#local-6989586621680028060"><span class="hs-identifier hs-var">tx</span></a></span><span>
+</span><span id="line-68"></span><span>    </span><span class="annot"><span class="annottext">(Telescope (K Past) (Current f) xs
+ -&gt; Either
+      (Mismatch GenTx (Current f) xs)
+      (Telescope (K Past) (Product GenTx (Current f)) xs))
+-&gt; (HardForkState f xs -&gt; Telescope (K Past) (Current f) xs)
+-&gt; HardForkState f xs
+-&gt; Either
+     (Mismatch GenTx (Current f) xs)
+     (Telescope (K Past) (Product GenTx (Current f)) xs)
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">HardForkState f xs -&gt; Telescope (K Past) (Current f) xs
+forall (f :: * -&gt; *) (xs :: [*]).
+HardForkState f xs -&gt; Telescope (K Past) (Current f) xs
+</span><a href="Ouroboros.Consensus.HardFork.Combinator.State.Types.html#getHardForkState"><span class="hs-identifier hs-var hs-var">getHardForkState</span></a></span><span>
+</span><span id="line-69"></span><span>  </span><span class="hs-keyword">where</span><span>
+</span><span id="line-70"></span><span>    </span><span id="local-6989586621680028107"><span id="local-6989586621680028108"><span class="annot"><a href="#local-6989586621680028056"><span class="hs-identifier hs-type">distrib</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Product</span></span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Ledger.SupportsMempool.html#GenTx"><span class="hs-identifier hs-type">GenTx</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Consensus.HardFork.Combinator.State.Types.html#Current"><span class="hs-identifier hs-type">Current</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680028108"><span class="hs-identifier hs-type">f</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><a href="#local-6989586621680028107"><span class="hs-identifier hs-type">blk</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.HardFork.Combinator.State.Types.html#Current"><span class="hs-identifier hs-type">Current</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Product</span></span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Ledger.SupportsMempool.html#GenTx"><span class="hs-identifier hs-type">GenTx</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680028108"><span class="hs-identifier hs-type">f</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><a href="#local-6989586621680028107"><span class="hs-identifier hs-type">blk</span></a></span></span></span><span>
+</span><span id="line-71"></span><span>    </span><span id="local-6989586621680028056"><span class="annot"><span class="annottext">distrib :: Product GenTx (Current f) blk -&gt; Current (Product GenTx f) blk
+</span><a href="#local-6989586621680028056"><span class="hs-identifier hs-var hs-var">distrib</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Pair</span></span><span> </span><span id="local-6989586621680028054"><span class="annot"><span class="annottext">GenTx blk
+</span><a href="#local-6989586621680028054"><span class="hs-identifier hs-var">tx'</span></a></span></span><span> </span><span class="annot"><a href="Ouroboros.Consensus.HardFork.Combinator.State.Types.html#Current"><span class="hs-identifier hs-type">Current</span></a></span><span class="hs-special">{</span><span id="local-6989586621680028051"><span id="local-6989586621680028052"><span class="annot"><span class="annottext">f blk
+Bound
+currentState :: forall (f :: * -&gt; *) blk. Current f blk -&gt; f blk
+currentStart :: forall (f :: * -&gt; *) blk. Current f blk -&gt; Bound
+currentState :: f blk
+currentStart :: Bound
+</span><a href="Ouroboros.Consensus.HardFork.Combinator.State.Types.html#currentState"><span class="hs-glyph hs-var hs-var hs-var hs-var">..</span></a></span></span></span><span class="hs-special">}</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Current :: forall (f :: * -&gt; *) blk. Bound -&gt; f blk -&gt; Current f blk
+</span><a href="Ouroboros.Consensus.HardFork.Combinator.State.Types.html#Current"><span class="hs-identifier hs-type">Current</span></a></span><span> </span><span class="hs-special">{</span><span>
+</span><span id="line-72"></span><span>          </span><span class="annot"><span class="annottext">currentStart :: Bound
+</span><a href="Ouroboros.Consensus.HardFork.Combinator.State.Types.html#currentStart"><span class="hs-identifier hs-var">currentStart</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Bound
+</span><a href="#local-6989586621680028052"><span class="hs-identifier hs-var">currentStart</span></a></span><span>
+</span><span id="line-73"></span><span>        </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">currentState :: Product GenTx f blk
+</span><a href="Ouroboros.Consensus.HardFork.Combinator.State.Types.html#currentState"><span class="hs-identifier hs-var">currentState</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">GenTx blk -&gt; f blk -&gt; Product GenTx f blk
+forall k (f :: k -&gt; *) (g :: k -&gt; *) (a :: k).
+f a -&gt; g a -&gt; Product f g a
+</span><span class="hs-identifier hs-var">Pair</span></span><span> </span><span class="annot"><span class="annottext">GenTx blk
+</span><a href="#local-6989586621680028054"><span class="hs-identifier hs-var">tx'</span></a></span><span> </span><span class="annot"><span class="annottext">f blk
+</span><a href="#local-6989586621680028051"><span class="hs-identifier hs-var">currentState</span></a></span><span>
+</span><span id="line-74"></span><span>        </span><span class="hs-special">}</span><span>
+</span><span id="line-75"></span></pre></body></html>

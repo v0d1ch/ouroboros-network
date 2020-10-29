@@ -1,58 +1,88 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-pragma">{-# LANGUAGE RecordWildCards #-}</span><span>
-</span><a name="line-2"></a><span>
-</span><a name="line-3"></a><span class="hs-comment">-- | Support for defining 'BlockchainTime' instances</span><span>
-</span><a name="line-4"></a><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Ouroboros.Consensus.BlockchainTime.WallClock.Util</span><span> </span><span class="hs-special">(</span><span>
-</span><a name="line-5"></a><span>    </span><span class="hs-comment">-- * Tracing</span><span>
-</span><a name="line-6"></a><span>    </span><a href="Ouroboros.Consensus.BlockchainTime.WallClock.Util.html#TraceBlockchainTimeEvent"><span class="hs-identifier hs-type">TraceBlockchainTimeEvent</span></a><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
-</span><a name="line-7"></a><span>    </span><span class="hs-comment">-- * Exceptions</span><span>
-</span><a name="line-8"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Ouroboros.Consensus.BlockchainTime.WallClock.Util.html#SystemClockMovedBackException"><span class="hs-identifier hs-type">SystemClockMovedBackException</span></a><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
-</span><a name="line-9"></a><span>  </span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
-</span><a name="line-10"></a><span>
-</span><a name="line-11"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Control.Exception</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Exception</span><span class="hs-special">)</span><span>
-</span><a name="line-12"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data.Time</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">NominalDiffTime</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">UTCTime</span><span class="hs-special">)</span><span>
-</span><a name="line-13"></a><span>
-</span><a name="line-14"></a><span class="hs-keyword">import</span><span>           </span><a href="Ouroboros.Consensus.Block.html"><span class="hs-identifier">Ouroboros.Consensus.Block</span></a><span>
-</span><a name="line-15"></a><span class="hs-keyword">import</span><span>           </span><a href="Ouroboros.Consensus.BlockchainTime.WallClock.Types.html"><span class="hs-identifier">Ouroboros.Consensus.BlockchainTime.WallClock.Types</span></a><span>
-</span><a name="line-16"></a><span>                     </span><span class="hs-special">(</span><a href="Ouroboros.Consensus.BlockchainTime.WallClock.Types.html#SystemStart"><span class="hs-identifier hs-type">SystemStart</span></a><span class="hs-special">)</span><span>
-</span><a name="line-17"></a><span class="hs-keyword">import</span><span>           </span><a href="Ouroboros.Consensus.HardFork.History.html"><span class="hs-identifier">Ouroboros.Consensus.HardFork.History</span></a><span> </span><span class="hs-special">(</span><a href="Ouroboros.Consensus.HardFork.History.Qry.html#PastHorizonException"><span class="hs-identifier hs-type">PastHorizonException</span></a><span class="hs-special">)</span><span>
-</span><a name="line-18"></a><span>
-</span><a name="line-19"></a><span class="hs-comment">{-------------------------------------------------------------------------------
+</span><span id="line-2"></span><span>
+</span><span id="line-3"></span><span class="hs-comment">-- | Support for defining 'BlockchainTime' instances</span><span>
+</span><span id="line-4"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Ouroboros.Consensus.BlockchainTime.WallClock.Util</span><span> </span><span class="hs-special">(</span><span>
+</span><span id="line-5"></span><span>    </span><span class="annot"><span class="hs-comment">-- * Tracing</span></span><span>
+</span><span id="line-6"></span><span>    </span><span class="annot"><a href="Ouroboros.Consensus.BlockchainTime.WallClock.Util.html#TraceBlockchainTimeEvent"><span class="hs-identifier">TraceBlockchainTimeEvent</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
+</span><span id="line-7"></span><span>    </span><span class="annot"><span class="hs-comment">-- * Exceptions</span></span><span>
+</span><span id="line-8"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.BlockchainTime.WallClock.Util.html#SystemClockMovedBackException"><span class="hs-identifier">SystemClockMovedBackException</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
+</span><span id="line-9"></span><span>  </span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-10"></span><span>
+</span><span id="line-11"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><span class="hs-identifier">Control.Exception</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Exception</span></span><span class="hs-special">)</span><span>
+</span><span id="line-12"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><span class="hs-identifier">Data.Time</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">NominalDiffTime</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">UTCTime</span></span><span class="hs-special">)</span><span>
+</span><span id="line-13"></span><span>
+</span><span id="line-14"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="Ouroboros.Consensus.Block.html"><span class="hs-identifier">Ouroboros.Consensus.Block</span></a></span><span>
+</span><span id="line-15"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="Ouroboros.Consensus.BlockchainTime.WallClock.Types.html"><span class="hs-identifier">Ouroboros.Consensus.BlockchainTime.WallClock.Types</span></a></span><span>
+</span><span id="line-16"></span><span>                     </span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Consensus.BlockchainTime.WallClock.Types.html#SystemStart"><span class="hs-identifier">SystemStart</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-17"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="Ouroboros.Consensus.HardFork.History.html"><span class="hs-identifier">Ouroboros.Consensus.HardFork.History</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Consensus.HardFork.History.Qry.html#PastHorizonException"><span class="hs-identifier">PastHorizonException</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-18"></span><span>
+</span><span id="line-19"></span><span class="hs-comment">{-------------------------------------------------------------------------------
   Tracing
 -------------------------------------------------------------------------------}</span><span>
-</span><a name="line-22"></a><span>
-</span><a name="line-23"></a><span class="hs-comment">-- | Time related tracing</span><span>
-</span><a name="line-24"></a><span class="hs-keyword">data</span><span> </span><a name="TraceBlockchainTimeEvent"><a href="Ouroboros.Consensus.BlockchainTime.WallClock.Util.html#TraceBlockchainTimeEvent"><span class="hs-identifier">TraceBlockchainTimeEvent</span></a></a><span> </span><span class="hs-glyph">=</span><span>
-</span><a name="line-25"></a><span>    </span><span class="hs-comment">-- | The start time of the blockchain time is in the future</span><span>
-</span><a name="line-26"></a><span>    </span><span class="hs-comment">--</span><span>
-</span><a name="line-27"></a><span>    </span><span class="hs-comment">-- We have to block (for 'NominalDiffTime') until that time comes.</span><span>
-</span><a name="line-28"></a><span>    </span><a name="TraceStartTimeInTheFuture"><a href="Ouroboros.Consensus.BlockchainTime.WallClock.Util.html#TraceStartTimeInTheFuture"><span class="hs-identifier">TraceStartTimeInTheFuture</span></a></a><span> </span><a href="Ouroboros.Consensus.BlockchainTime.WallClock.Types.html#SystemStart"><span class="hs-identifier hs-type">SystemStart</span></a><span> </span><span class="hs-identifier hs-type">NominalDiffTime</span><span>
-</span><a name="line-29"></a><span>
-</span><a name="line-30"></a><span>    </span><span class="hs-comment">-- | Current slot is not yet known</span><span>
-</span><a name="line-31"></a><span>    </span><span class="hs-comment">--</span><span>
-</span><a name="line-32"></a><span>    </span><span class="hs-comment">-- This happens when the tip of our current chain is so far in the past that</span><span>
-</span><a name="line-33"></a><span>    </span><span class="hs-comment">-- we cannot translate the current wallclock to a slot number, typically</span><span>
-</span><a name="line-34"></a><span>    </span><span class="hs-comment">-- during syncing. Until the current slot number is known, we cannot</span><span>
-</span><a name="line-35"></a><span>    </span><span class="hs-comment">-- produce blocks. Seeing this message during syncing therefore is</span><span>
-</span><a name="line-36"></a><span>    </span><span class="hs-comment">-- normal and to be expected.</span><span>
-</span><a name="line-37"></a><span>    </span><span class="hs-comment">--</span><span>
-</span><a name="line-38"></a><span>    </span><span class="hs-comment">-- We record the current time (the time we tried to translate to a 'SlotNo')</span><span>
-</span><a name="line-39"></a><span>    </span><span class="hs-comment">-- as well as the 'PastHorizonException', which provides detail on the</span><span>
-</span><a name="line-40"></a><span>    </span><span class="hs-comment">-- bounds between which we /can/ do conversions. The distance between the</span><span>
-</span><a name="line-41"></a><span>    </span><span class="hs-comment">-- current time and the upper bound should rapidly decrease with consecutive</span><span>
-</span><a name="line-42"></a><span>    </span><span class="hs-comment">-- 'TraceCurrentSlotUnknown' messages during syncing.</span><span>
-</span><a name="line-43"></a><span>  </span><span class="hs-glyph">|</span><span> </span><a name="TraceCurrentSlotUnknown"><a href="Ouroboros.Consensus.BlockchainTime.WallClock.Util.html#TraceCurrentSlotUnknown"><span class="hs-identifier">TraceCurrentSlotUnknown</span></a></a><span> </span><span class="hs-identifier hs-type">UTCTime</span><span> </span><a href="Ouroboros.Consensus.HardFork.History.Qry.html#PastHorizonException"><span class="hs-identifier hs-type">PastHorizonException</span></a><span>
-</span><a name="line-44"></a><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Show</span><span class="hs-special">)</span><span>
-</span><a name="line-45"></a><span>
-</span><a name="line-46"></a><span class="hs-comment">{-------------------------------------------------------------------------------
+</span><span id="line-22"></span><span>
+</span><span id="line-23"></span><span class="hs-comment">-- | Time related tracing</span><span>
+</span><span id="line-24"></span><span class="hs-keyword">data</span><span> </span><span id="TraceBlockchainTimeEvent"><span class="annot"><a href="Ouroboros.Consensus.BlockchainTime.WallClock.Util.html#TraceBlockchainTimeEvent"><span class="hs-identifier hs-var">TraceBlockchainTimeEvent</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-25"></span><span>    </span><span class="hs-comment">-- | The start time of the blockchain time is in the future</span><span>
+</span><span id="line-26"></span><span>    </span><span class="hs-comment">--</span><span>
+</span><span id="line-27"></span><span>    </span><span class="hs-comment">-- We have to block (for 'NominalDiffTime') until that time comes.</span><span>
+</span><span id="line-28"></span><span>    </span><span id="TraceStartTimeInTheFuture"><span class="annot"><a href="Ouroboros.Consensus.BlockchainTime.WallClock.Util.html#TraceStartTimeInTheFuture"><span class="hs-identifier hs-var">TraceStartTimeInTheFuture</span></a></span></span><span> </span><span class="annot"><a href="Ouroboros.Consensus.BlockchainTime.WallClock.Types.html#SystemStart"><span class="hs-identifier hs-type">SystemStart</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">NominalDiffTime</span></span><span>
+</span><span id="line-29"></span><span>
+</span><span id="line-30"></span><span>    </span><span class="hs-comment">-- | Current slot is not yet known</span><span>
+</span><span id="line-31"></span><span>    </span><span class="hs-comment">--</span><span>
+</span><span id="line-32"></span><span>    </span><span class="hs-comment">-- This happens when the tip of our current chain is so far in the past that</span><span>
+</span><span id="line-33"></span><span>    </span><span class="hs-comment">-- we cannot translate the current wallclock to a slot number, typically</span><span>
+</span><span id="line-34"></span><span>    </span><span class="hs-comment">-- during syncing. Until the current slot number is known, we cannot</span><span>
+</span><span id="line-35"></span><span>    </span><span class="hs-comment">-- produce blocks. Seeing this message during syncing therefore is</span><span>
+</span><span id="line-36"></span><span>    </span><span class="hs-comment">-- normal and to be expected.</span><span>
+</span><span id="line-37"></span><span>    </span><span class="hs-comment">--</span><span>
+</span><span id="line-38"></span><span>    </span><span class="hs-comment">-- We record the current time (the time we tried to translate to a 'SlotNo')</span><span>
+</span><span id="line-39"></span><span>    </span><span class="hs-comment">-- as well as the 'PastHorizonException', which provides detail on the</span><span>
+</span><span id="line-40"></span><span>    </span><span class="hs-comment">-- bounds between which we /can/ do conversions. The distance between the</span><span>
+</span><span id="line-41"></span><span>    </span><span class="hs-comment">-- current time and the upper bound should rapidly decrease with consecutive</span><span>
+</span><span id="line-42"></span><span>    </span><span class="hs-comment">-- 'TraceCurrentSlotUnknown' messages during syncing.</span><span>
+</span><span id="line-43"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span id="TraceCurrentSlotUnknown"><span class="annot"><a href="Ouroboros.Consensus.BlockchainTime.WallClock.Util.html#TraceCurrentSlotUnknown"><span class="hs-identifier hs-var">TraceCurrentSlotUnknown</span></a></span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">UTCTime</span></span><span> </span><span class="annot"><a href="Ouroboros.Consensus.HardFork.History.Qry.html#PastHorizonException"><span class="hs-identifier hs-type">PastHorizonException</span></a></span><span>
+</span><span id="line-44"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621680025848"><span id="local-6989586621680025850"><span id="local-6989586621680025852"><span class="annot"><span class="annottext">Int -&gt; TraceBlockchainTimeEvent -&gt; ShowS
+[TraceBlockchainTimeEvent] -&gt; ShowS
+TraceBlockchainTimeEvent -&gt; String
+(Int -&gt; TraceBlockchainTimeEvent -&gt; ShowS)
+-&gt; (TraceBlockchainTimeEvent -&gt; String)
+-&gt; ([TraceBlockchainTimeEvent] -&gt; ShowS)
+-&gt; Show TraceBlockchainTimeEvent
+forall a.
+(Int -&gt; a -&gt; ShowS) -&gt; (a -&gt; String) -&gt; ([a] -&gt; ShowS) -&gt; Show a
+showList :: [TraceBlockchainTimeEvent] -&gt; ShowS
+$cshowList :: [TraceBlockchainTimeEvent] -&gt; ShowS
+show :: TraceBlockchainTimeEvent -&gt; String
+$cshow :: TraceBlockchainTimeEvent -&gt; String
+showsPrec :: Int -&gt; TraceBlockchainTimeEvent -&gt; ShowS
+$cshowsPrec :: Int -&gt; TraceBlockchainTimeEvent -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">)</span><span>
+</span><span id="line-45"></span><span>
+</span><span id="line-46"></span><span class="hs-comment">{-------------------------------------------------------------------------------
   Exceptions
 -------------------------------------------------------------------------------}</span><span>
-</span><a name="line-49"></a><span>
-</span><a name="line-50"></a><span class="hs-keyword">data</span><span> </span><a name="SystemClockMovedBackException"><a href="Ouroboros.Consensus.BlockchainTime.WallClock.Util.html#SystemClockMovedBackException"><span class="hs-identifier">SystemClockMovedBackException</span></a></a><span> </span><span class="hs-glyph">=</span><span>
-</span><a name="line-51"></a><span>    </span><span class="hs-comment">-- | The system clock got moved back so far that the slot number decreased</span><span>
-</span><a name="line-52"></a><span>    </span><span class="hs-comment">--</span><span>
-</span><a name="line-53"></a><span>    </span><span class="hs-comment">-- We record the the slot number before and after the change.</span><span>
-</span><a name="line-54"></a><span>    </span><a name="SystemClockMovedBack"><a href="Ouroboros.Consensus.BlockchainTime.WallClock.Util.html#SystemClockMovedBack"><span class="hs-identifier">SystemClockMovedBack</span></a></a><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-slotting-0.1.0.0/noopt/doc/html/cardano-slotting/src/Cardano.Slotting.Slot.html#SlotNo"><span class="hs-identifier hs-type">SlotNo</span></a><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-slotting-0.1.0.0/noopt/doc/html/cardano-slotting/src/Cardano.Slotting.Slot.html#SlotNo"><span class="hs-identifier hs-type">SlotNo</span></a><span>
-</span><a name="line-55"></a><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Show</span><span class="hs-special">)</span><span>
-</span><a name="line-56"></a><span>
-</span><a name="line-57"></a><span class="hs-keyword">instance</span><span> </span><span class="hs-identifier hs-type">Exception</span><span> </span><a href="Ouroboros.Consensus.BlockchainTime.WallClock.Util.html#SystemClockMovedBackException"><span class="hs-identifier hs-type">SystemClockMovedBackException</span></a><span>
-</span><a name="line-58"></a></pre></body></html>
+</span><span id="line-49"></span><span>
+</span><span id="line-50"></span><span class="hs-keyword">data</span><span> </span><span id="SystemClockMovedBackException"><span class="annot"><a href="Ouroboros.Consensus.BlockchainTime.WallClock.Util.html#SystemClockMovedBackException"><span class="hs-identifier hs-var">SystemClockMovedBackException</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-51"></span><span>    </span><span class="hs-comment">-- | The system clock got moved back so far that the slot number decreased</span><span>
+</span><span id="line-52"></span><span>    </span><span class="hs-comment">--</span><span>
+</span><span id="line-53"></span><span>    </span><span class="hs-comment">-- We record the the slot number before and after the change.</span><span>
+</span><span id="line-54"></span><span>    </span><span id="SystemClockMovedBack"><span class="annot"><a href="Ouroboros.Consensus.BlockchainTime.WallClock.Util.html#SystemClockMovedBack"><span class="hs-identifier hs-var">SystemClockMovedBack</span></a></span></span><span> </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-slotting-0.1.0.0/noopt/doc/html/cardano-slotting/src"><span class="hs-identifier hs-type">SlotNo</span></a></span><span> </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-slotting-0.1.0.0/noopt/doc/html/cardano-slotting/src"><span class="hs-identifier hs-type">SlotNo</span></a></span><span>
+</span><span id="line-55"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621680025839"><span id="local-6989586621680025841"><span id="local-6989586621680025843"><span class="annot"><span class="annottext">Int -&gt; SystemClockMovedBackException -&gt; ShowS
+[SystemClockMovedBackException] -&gt; ShowS
+SystemClockMovedBackException -&gt; String
+(Int -&gt; SystemClockMovedBackException -&gt; ShowS)
+-&gt; (SystemClockMovedBackException -&gt; String)
+-&gt; ([SystemClockMovedBackException] -&gt; ShowS)
+-&gt; Show SystemClockMovedBackException
+forall a.
+(Int -&gt; a -&gt; ShowS) -&gt; (a -&gt; String) -&gt; ([a] -&gt; ShowS) -&gt; Show a
+showList :: [SystemClockMovedBackException] -&gt; ShowS
+$cshowList :: [SystemClockMovedBackException] -&gt; ShowS
+show :: SystemClockMovedBackException -&gt; String
+$cshow :: SystemClockMovedBackException -&gt; String
+showsPrec :: Int -&gt; SystemClockMovedBackException -&gt; ShowS
+$cshowsPrec :: Int -&gt; SystemClockMovedBackException -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">)</span><span>
+</span><span id="line-56"></span><span>
+</span><span id="line-57"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621680025831"><span id="local-6989586621680025833"><span id="local-6989586621680025835"><span class="annot"><span class="hs-identifier hs-type">Exception</span></span><span> </span><span class="annot"><a href="Ouroboros.Consensus.BlockchainTime.WallClock.Util.html#SystemClockMovedBackException"><span class="hs-identifier hs-type">SystemClockMovedBackException</span></a></span></span></span></span><span>
+</span><span id="line-58"></span></pre></body></html>

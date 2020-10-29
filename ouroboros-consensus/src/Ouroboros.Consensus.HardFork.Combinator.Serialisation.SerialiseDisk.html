@@ -1,132 +1,574 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-pragma">{-# LANGUAGE FlexibleInstances     #-}</span><span>
-</span><a name="line-2"></a><span class="hs-pragma">{-# LANGUAGE MultiParamTypeClasses #-}</span><span>
-</span><a name="line-3"></a><span class="hs-pragma">{-# LANGUAGE ScopedTypeVariables   #-}</span><span>
-</span><a name="line-4"></a><span>
-</span><a name="line-5"></a><span class="hs-pragma">{-# OPTIONS_GHC -Wno-orphans #-}</span><span>
-</span><a name="line-6"></a><span>
-</span><a name="line-7"></a><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Ouroboros.Consensus.HardFork.Combinator.Serialisation.SerialiseDisk</span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
-</span><a name="line-8"></a><span>
-</span><a name="line-9"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Codec.CBOR.Encoding</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Encoding</span><span class="hs-special">)</span><span>
-</span><a name="line-10"></a><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-identifier">Data.ByteString.Lazy</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">Lazy</span><span>
-</span><a name="line-11"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data.SOP.Dict</span><span>
-</span><a name="line-12"></a><span class="hs-keyword">import</span><span>           </span><a href="Data.SOP.Strict.html"><span class="hs-identifier">Data.SOP.Strict</span></a><span>
-</span><a name="line-13"></a><span>
-</span><a name="line-14"></a><span class="hs-keyword">import</span><span>           </span><a href="Ouroboros.Consensus.Block.html"><span class="hs-identifier">Ouroboros.Consensus.Block</span></a><span>
-</span><a name="line-15"></a><span class="hs-keyword">import</span><span>           </span><a href="Ouroboros.Consensus.HardFork.Combinator.html"><span class="hs-identifier">Ouroboros.Consensus.HardFork.Combinator</span></a><span>
-</span><a name="line-16"></a><span class="hs-keyword">import</span><span>           </span><a href="Ouroboros.Consensus.HardFork.Combinator.Serialisation.Common.html"><span class="hs-identifier">Ouroboros.Consensus.HardFork.Combinator.Serialisation.Common</span></a><span>
-</span><a name="line-17"></a><span class="hs-keyword">import</span><span>           </span><a href="Ouroboros.Consensus.HeaderValidation.html"><span class="hs-identifier">Ouroboros.Consensus.HeaderValidation</span></a><span>
-</span><a name="line-18"></a><span class="hs-keyword">import</span><span>           </span><a href="Ouroboros.Consensus.TypeFamilyWrappers.html"><span class="hs-identifier">Ouroboros.Consensus.TypeFamilyWrappers</span></a><span>
-</span><a name="line-19"></a><span class="hs-keyword">import</span><span>           </span><a href="Ouroboros.Consensus.Util.html"><span class="hs-identifier">Ouroboros.Consensus.Util</span></a><span> </span><span class="hs-special">(</span><span class="hs-special">(</span><a href="Ouroboros.Consensus.Util.html#.%3A"><span class="hs-operator hs-var">.:</span></a><span class="hs-special">)</span><span class="hs-special">)</span><span>
-</span><a name="line-20"></a><span>
-</span><a name="line-21"></a><span class="hs-keyword">import</span><span>           </span><a href="Ouroboros.Consensus.Storage.ChainDB.html"><span class="hs-identifier">Ouroboros.Consensus.Storage.ChainDB</span></a><span>
-</span><a name="line-22"></a><span class="hs-keyword">import</span><span>           </span><a href="Ouroboros.Consensus.Storage.Serialisation.html"><span class="hs-identifier">Ouroboros.Consensus.Storage.Serialisation</span></a><span>
-</span><a name="line-23"></a><span>
-</span><a name="line-24"></a><span class="hs-keyword">instance</span><span> </span><a href="Ouroboros.Consensus.HardFork.Combinator.Serialisation.Common.html#SerialiseHFC"><span class="hs-identifier hs-type">SerialiseHFC</span></a><span> </span><a href="#local-6989586621680288410"><span class="hs-identifier hs-type">xs</span></a><span> </span><span class="hs-glyph">=&gt;</span><span> </span><a href="Ouroboros.Consensus.Storage.ChainDB.Impl.Types.html#SerialiseDiskConstraints"><span class="hs-identifier hs-type">SerialiseDiskConstraints</span></a><span>  </span><span class="hs-special">(</span><a href="Ouroboros.Consensus.HardFork.Combinator.Basics.html#HardForkBlock"><span class="hs-identifier hs-type">HardForkBlock</span></a><span> </span><a href="#local-6989586621680288410"><span class="hs-identifier hs-type">xs</span></a><span class="hs-special">)</span><span>
-</span><a name="line-25"></a><span>
-</span><a name="line-26"></a><span class="hs-comment">{-------------------------------------------------------------------------------
+</span><span id="line-2"></span><span class="hs-pragma">{-# LANGUAGE MultiParamTypeClasses #-}</span><span>
+</span><span id="line-3"></span><span class="hs-pragma">{-# LANGUAGE ScopedTypeVariables   #-}</span><span>
+</span><span id="line-4"></span><span>
+</span><span id="line-5"></span><span class="hs-pragma">{-# OPTIONS_GHC -Wno-orphans #-}</span><span>
+</span><span id="line-6"></span><span>
+</span><span id="line-7"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Ouroboros.Consensus.HardFork.Combinator.Serialisation.SerialiseDisk</span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-8"></span><span>
+</span><span id="line-9"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><span class="hs-identifier">Codec.CBOR.Encoding</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Encoding</span></span><span class="hs-special">)</span><span>
+</span><span id="line-10"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Data.ByteString.Lazy</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Lazy</span></span><span>
+</span><span id="line-11"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><span class="hs-identifier">Data.SOP.Dict</span></span><span>
+</span><span id="line-12"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="Data.SOP.Strict.html"><span class="hs-identifier">Data.SOP.Strict</span></a></span><span>
+</span><span id="line-13"></span><span>
+</span><span id="line-14"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="Ouroboros.Consensus.Block.html"><span class="hs-identifier">Ouroboros.Consensus.Block</span></a></span><span>
+</span><span id="line-15"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="Ouroboros.Consensus.HardFork.Combinator.AcrossEras.html"><span class="hs-identifier">Ouroboros.Consensus.HardFork.Combinator.AcrossEras</span></a></span><span>
+</span><span id="line-16"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="Ouroboros.Consensus.HardFork.Combinator.Basics.html"><span class="hs-identifier">Ouroboros.Consensus.HardFork.Combinator.Basics</span></a></span><span>
+</span><span id="line-17"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="Ouroboros.Consensus.HardFork.Combinator.Protocol.html"><span class="hs-identifier">Ouroboros.Consensus.HardFork.Combinator.Protocol</span></a></span><span>
+</span><span id="line-18"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="Ouroboros.Consensus.HardFork.Combinator.Serialisation.Common.html"><span class="hs-identifier">Ouroboros.Consensus.HardFork.Combinator.Serialisation.Common</span></a></span><span>
+</span><span id="line-19"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="Ouroboros.Consensus.HeaderValidation.html"><span class="hs-identifier">Ouroboros.Consensus.HeaderValidation</span></a></span><span>
+</span><span id="line-20"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="Ouroboros.Consensus.TypeFamilyWrappers.html"><span class="hs-identifier">Ouroboros.Consensus.TypeFamilyWrappers</span></a></span><span>
+</span><span id="line-21"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="Ouroboros.Consensus.Util.html"><span class="hs-identifier">Ouroboros.Consensus.Util</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Consensus.Util.html#.%3A"><span class="hs-operator">(.:)</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-22"></span><span>
+</span><span id="line-23"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="Ouroboros.Consensus.Storage.ChainDB.html"><span class="hs-identifier">Ouroboros.Consensus.Storage.ChainDB</span></a></span><span>
+</span><span id="line-24"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="Ouroboros.Consensus.Storage.Serialisation.html"><span class="hs-identifier">Ouroboros.Consensus.Storage.Serialisation</span></a></span><span>
+</span><span id="line-25"></span><span>
+</span><span id="line-26"></span><span id="local-6989586621680050265"><span class="hs-keyword">instance</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.HardFork.Combinator.Serialisation.Common.html#SerialiseHFC"><span class="hs-identifier hs-type">SerialiseHFC</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680050265"><span class="hs-identifier hs-type">xs</span></a></span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Storage.ChainDB.Impl.Types.html#SerialiseDiskConstraints"><span class="hs-identifier hs-type">SerialiseDiskConstraints</span></a></span><span>  </span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Consensus.HardFork.Combinator.Basics.html#HardForkBlock"><span class="hs-identifier hs-type">HardForkBlock</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680050265"><span class="hs-identifier hs-type">xs</span></a></span><span class="hs-special">)</span></span><span>
+</span><span id="line-27"></span><span>
+</span><span id="line-28"></span><span class="hs-comment">{-------------------------------------------------------------------------------
   'ReconstructNestedCtxt'
 -------------------------------------------------------------------------------}</span><span>
-</span><a name="line-29"></a><span>
-</span><a name="line-30"></a><span class="hs-keyword">instance</span><span> </span><a href="Ouroboros.Consensus.HardFork.Combinator.Serialisation.Common.html#SerialiseHFC"><span class="hs-identifier hs-type">SerialiseHFC</span></a><span> </span><a href="#local-6989586621680288409"><span class="hs-identifier hs-type">xs</span></a><span> </span><span class="hs-glyph">=&gt;</span><span> </span><a href="Ouroboros.Consensus.Storage.Serialisation.html#ReconstructNestedCtxt"><span class="hs-identifier hs-type">ReconstructNestedCtxt</span></a><span> </span><a href="Ouroboros.Consensus.Block.Abstract.html#Header"><span class="hs-identifier hs-type">Header</span></a><span> </span><span class="hs-special">(</span><a href="Ouroboros.Consensus.HardFork.Combinator.Basics.html#HardForkBlock"><span class="hs-identifier hs-type">HardForkBlock</span></a><span> </span><a href="#local-6989586621680288409"><span class="hs-identifier hs-type">xs</span></a><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
-</span><a name="line-31"></a><span>  </span><a name="local-8214565720324192613"><a href="Ouroboros.Consensus.Storage.Serialisation.html#reconstructPrefixLen"><span class="hs-identifier">reconstructPrefixLen</span></a></a><span>  </span><span class="hs-glyph">=</span><span> </span><a href="Ouroboros.Consensus.HardFork.Combinator.Serialisation.Common.html#reconstructHfcPrefixLen"><span class="hs-identifier hs-var">reconstructHfcPrefixLen</span></a><span>
-</span><a name="line-32"></a><span>  </span><a name="local-8214565720324192614"><a href="Ouroboros.Consensus.Storage.Serialisation.html#reconstructNestedCtxt"><span class="hs-identifier">reconstructNestedCtxt</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><a href="Ouroboros.Consensus.HardFork.Combinator.Serialisation.Common.html#reconstructHfcNestedCtxt"><span class="hs-identifier hs-var">reconstructHfcNestedCtxt</span></a><span>
-</span><a name="line-33"></a><span>
-</span><a name="line-34"></a><span class="hs-comment">{-------------------------------------------------------------------------------
+</span><span id="line-31"></span><span>
+</span><span id="line-32"></span><span id="local-6989586621680050259"><span class="hs-keyword">instance</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.HardFork.Combinator.Serialisation.Common.html#SerialiseHFC"><span class="hs-identifier hs-type">SerialiseHFC</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680050259"><span class="hs-identifier hs-type">xs</span></a></span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Storage.Serialisation.html#ReconstructNestedCtxt"><span class="hs-identifier hs-type">ReconstructNestedCtxt</span></a></span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Block.Abstract.html#Header"><span class="hs-identifier hs-type">Header</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Consensus.HardFork.Combinator.Basics.html#HardForkBlock"><span class="hs-identifier hs-type">HardForkBlock</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680050259"><span class="hs-identifier hs-type">xs</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-33"></span><span>  </span><span id="local-6989586621680050254"><span class="annot"><span class="annottext">reconstructPrefixLen :: proxy (Header (HardForkBlock xs)) -&gt; PrefixLen
+</span><a href="Ouroboros.Consensus.Storage.Serialisation.html#reconstructPrefixLen"><span class="hs-identifier hs-var hs-var hs-var hs-var">reconstructPrefixLen</span></a></span></span><span>  </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">proxy (Header (HardForkBlock xs)) -&gt; PrefixLen
+forall (xs :: [*]) (proxy :: * -&gt; *).
+SerialiseHFC xs =&gt;
+proxy (Header (HardForkBlock xs)) -&gt; PrefixLen
+</span><a href="Ouroboros.Consensus.HardFork.Combinator.Serialisation.Common.html#reconstructHfcPrefixLen"><span class="hs-identifier hs-var">reconstructHfcPrefixLen</span></a></span><span>
+</span><span id="line-34"></span><span>  </span><span id="local-6989586621680050251"><span class="annot"><span class="annottext">reconstructNestedCtxt :: proxy (Header (HardForkBlock xs))
+-&gt; ShortByteString
+-&gt; SizeInBytes
+-&gt; SomeSecond (NestedCtxt Header) (HardForkBlock xs)
+</span><a href="Ouroboros.Consensus.Storage.Serialisation.html#reconstructNestedCtxt"><span class="hs-identifier hs-var hs-var hs-var hs-var">reconstructNestedCtxt</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">proxy (Header (HardForkBlock xs))
+-&gt; ShortByteString
+-&gt; SizeInBytes
+-&gt; SomeSecond (NestedCtxt Header) (HardForkBlock xs)
+forall (xs :: [*]) (proxy :: * -&gt; *).
+SerialiseHFC xs =&gt;
+proxy (Header (HardForkBlock xs))
+-&gt; ShortByteString
+-&gt; SizeInBytes
+-&gt; SomeSecond (NestedCtxt Header) (HardForkBlock xs)
+</span><a href="Ouroboros.Consensus.HardFork.Combinator.Serialisation.Common.html#reconstructHfcNestedCtxt"><span class="hs-identifier hs-var">reconstructHfcNestedCtxt</span></a></span></span><span>
+</span><span id="line-35"></span><span>
+</span><span id="line-36"></span><span class="hs-comment">{-------------------------------------------------------------------------------
   'HasBinaryBlockInfo'
 -------------------------------------------------------------------------------}</span><span>
-</span><a name="line-37"></a><span>
-</span><a name="line-38"></a><span class="hs-keyword">instance</span><span> </span><a href="Ouroboros.Consensus.HardFork.Combinator.Serialisation.Common.html#SerialiseHFC"><span class="hs-identifier hs-type">SerialiseHFC</span></a><span> </span><a href="#local-6989586621680288408"><span class="hs-identifier hs-type">xs</span></a><span> </span><span class="hs-glyph">=&gt;</span><span> </span><a href="Ouroboros.Consensus.Storage.Serialisation.html#HasBinaryBlockInfo"><span class="hs-identifier hs-type">HasBinaryBlockInfo</span></a><span> </span><span class="hs-special">(</span><a href="Ouroboros.Consensus.HardFork.Combinator.Basics.html#HardForkBlock"><span class="hs-identifier hs-type">HardForkBlock</span></a><span> </span><a href="#local-6989586621680288408"><span class="hs-identifier hs-type">xs</span></a><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
-</span><a name="line-39"></a><span>  </span><a name="local-8214565720324192611"><a href="Ouroboros.Consensus.Storage.Serialisation.html#getBinaryBlockInfo"><span class="hs-identifier">getBinaryBlockInfo</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><a href="Ouroboros.Consensus.HardFork.Combinator.Serialisation.Common.html#getHfcBinaryBlockInfo"><span class="hs-identifier hs-var">getHfcBinaryBlockInfo</span></a><span>
-</span><a name="line-40"></a><span>
-</span><a name="line-41"></a><span class="hs-comment">{-------------------------------------------------------------------------------
+</span><span id="line-39"></span><span>
+</span><span id="line-40"></span><span id="local-6989586621680050248"><span class="hs-keyword">instance</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.HardFork.Combinator.Serialisation.Common.html#SerialiseHFC"><span class="hs-identifier hs-type">SerialiseHFC</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680050248"><span class="hs-identifier hs-type">xs</span></a></span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Storage.Serialisation.html#HasBinaryBlockInfo"><span class="hs-identifier hs-type">HasBinaryBlockInfo</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Consensus.HardFork.Combinator.Basics.html#HardForkBlock"><span class="hs-identifier hs-type">HardForkBlock</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680050248"><span class="hs-identifier hs-type">xs</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-41"></span><span>  </span><span id="local-6989586621680050245"><span class="annot"><span class="annottext">getBinaryBlockInfo :: HardForkBlock xs -&gt; BinaryBlockInfo
+</span><a href="Ouroboros.Consensus.Storage.Serialisation.html#getBinaryBlockInfo"><span class="hs-identifier hs-var hs-var hs-var hs-var">getBinaryBlockInfo</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">HardForkBlock xs -&gt; BinaryBlockInfo
+forall (xs :: [*]).
+SerialiseHFC xs =&gt;
+HardForkBlock xs -&gt; BinaryBlockInfo
+</span><a href="Ouroboros.Consensus.HardFork.Combinator.Serialisation.Common.html#getHfcBinaryBlockInfo"><span class="hs-identifier hs-var">getHfcBinaryBlockInfo</span></a></span></span><span>
+</span><span id="line-42"></span><span>
+</span><span id="line-43"></span><span class="hs-comment">{-------------------------------------------------------------------------------
   Blocks/headers
 -------------------------------------------------------------------------------}</span><span>
-</span><a name="line-44"></a><span>
-</span><a name="line-45"></a><span class="hs-keyword">instance</span><span> </span><a href="Ouroboros.Consensus.HardFork.Combinator.Serialisation.Common.html#SerialiseHFC"><span class="hs-identifier hs-type">SerialiseHFC</span></a><span> </span><a href="#local-6989586621680288407"><span class="hs-identifier hs-type">xs</span></a><span>
-</span><a name="line-46"></a><span>      </span><span class="hs-glyph">=&gt;</span><span> </span><a href="Ouroboros.Consensus.Storage.Serialisation.html#EncodeDisk"><span class="hs-identifier hs-type">EncodeDisk</span></a><span> </span><span class="hs-special">(</span><a href="Ouroboros.Consensus.HardFork.Combinator.Basics.html#HardForkBlock"><span class="hs-identifier hs-type">HardForkBlock</span></a><span> </span><a href="#local-6989586621680288407"><span class="hs-identifier hs-type">xs</span></a><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><a href="Ouroboros.Consensus.HardFork.Combinator.Basics.html#HardForkBlock"><span class="hs-identifier hs-type">HardForkBlock</span></a><span> </span><a href="#local-6989586621680288407"><span class="hs-identifier hs-type">xs</span></a><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
-</span><a name="line-47"></a><span>  </span><a name="local-8214565720324192629"><a href="Ouroboros.Consensus.Storage.Serialisation.html#encodeDisk"><span class="hs-identifier">encodeDisk</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><a href="Ouroboros.Consensus.HardFork.Combinator.Serialisation.Common.html#encodeDiskHfcBlock"><span class="hs-identifier hs-var">encodeDiskHfcBlock</span></a><span>
-</span><a name="line-48"></a><span>
-</span><a name="line-49"></a><span class="hs-keyword">instance</span><span> </span><a href="Ouroboros.Consensus.HardFork.Combinator.Serialisation.Common.html#SerialiseHFC"><span class="hs-identifier hs-type">SerialiseHFC</span></a><span> </span><a href="#local-6989586621680288406"><span class="hs-identifier hs-type">xs</span></a><span>
-</span><a name="line-50"></a><span>      </span><span class="hs-glyph">=&gt;</span><span> </span><a href="Ouroboros.Consensus.Storage.Serialisation.html#DecodeDisk"><span class="hs-identifier hs-type">DecodeDisk</span></a><span> </span><span class="hs-special">(</span><a href="Ouroboros.Consensus.HardFork.Combinator.Basics.html#HardForkBlock"><span class="hs-identifier hs-type">HardForkBlock</span></a><span> </span><a href="#local-6989586621680288406"><span class="hs-identifier hs-type">xs</span></a><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Lazy.ByteString</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><a href="Ouroboros.Consensus.HardFork.Combinator.Basics.html#HardForkBlock"><span class="hs-identifier hs-type">HardForkBlock</span></a><span> </span><a href="#local-6989586621680288406"><span class="hs-identifier hs-type">xs</span></a><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
-</span><a name="line-51"></a><span>  </span><a name="local-8214565720324192627"><a href="Ouroboros.Consensus.Storage.Serialisation.html#decodeDisk"><span class="hs-identifier">decodeDisk</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><a href="Ouroboros.Consensus.HardFork.Combinator.Serialisation.Common.html#decodeDiskHfcBlock"><span class="hs-identifier hs-var">decodeDiskHfcBlock</span></a><span>
-</span><a name="line-52"></a><span>
-</span><a name="line-53"></a><span class="hs-keyword">instance</span><span> </span><a href="Ouroboros.Consensus.HardFork.Combinator.Serialisation.Common.html#SerialiseHFC"><span class="hs-identifier hs-type">SerialiseHFC</span></a><span> </span><a href="#local-6989586621680288405"><span class="hs-identifier hs-type">xs</span></a><span>
-</span><a name="line-54"></a><span>      </span><span class="hs-glyph">=&gt;</span><span> </span><a href="Ouroboros.Consensus.Storage.Serialisation.html#EncodeDiskDepIx"><span class="hs-identifier hs-type">EncodeDiskDepIx</span></a><span> </span><span class="hs-special">(</span><a href="Ouroboros.Consensus.Block.NestedContent.html#NestedCtxt"><span class="hs-identifier hs-type">NestedCtxt</span></a><span> </span><a href="Ouroboros.Consensus.Block.Abstract.html#Header"><span class="hs-identifier hs-type">Header</span></a><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><a href="Ouroboros.Consensus.HardFork.Combinator.Basics.html#HardForkBlock"><span class="hs-identifier hs-type">HardForkBlock</span></a><span> </span><a href="#local-6989586621680288405"><span class="hs-identifier hs-type">xs</span></a><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
-</span><a name="line-55"></a><span>  </span><a name="local-8214565720324192625"><a href="Ouroboros.Consensus.Storage.Serialisation.html#encodeDiskDepIx"><span class="hs-identifier">encodeDiskDepIx</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><a href="Ouroboros.Consensus.HardFork.Combinator.Serialisation.Common.html#encodeNestedCtxt"><span class="hs-identifier hs-var">encodeNestedCtxt</span></a><span>
-</span><a name="line-56"></a><span>
-</span><a name="line-57"></a><span class="hs-keyword">instance</span><span> </span><a href="Ouroboros.Consensus.HardFork.Combinator.Serialisation.Common.html#SerialiseHFC"><span class="hs-identifier hs-type">SerialiseHFC</span></a><span> </span><a href="#local-6989586621680288404"><span class="hs-identifier hs-type">xs</span></a><span>
-</span><a name="line-58"></a><span>      </span><span class="hs-glyph">=&gt;</span><span> </span><a href="Ouroboros.Consensus.Storage.Serialisation.html#DecodeDiskDepIx"><span class="hs-identifier hs-type">DecodeDiskDepIx</span></a><span> </span><span class="hs-special">(</span><a href="Ouroboros.Consensus.Block.NestedContent.html#NestedCtxt"><span class="hs-identifier hs-type">NestedCtxt</span></a><span> </span><a href="Ouroboros.Consensus.Block.Abstract.html#Header"><span class="hs-identifier hs-type">Header</span></a><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><a href="Ouroboros.Consensus.HardFork.Combinator.Basics.html#HardForkBlock"><span class="hs-identifier hs-type">HardForkBlock</span></a><span> </span><a href="#local-6989586621680288404"><span class="hs-identifier hs-type">xs</span></a><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
-</span><a name="line-59"></a><span>  </span><a name="local-8214565720324192621"><a href="Ouroboros.Consensus.Storage.Serialisation.html#decodeDiskDepIx"><span class="hs-identifier">decodeDiskDepIx</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><a href="Ouroboros.Consensus.HardFork.Combinator.Serialisation.Common.html#decodeNestedCtxt"><span class="hs-identifier hs-var">decodeNestedCtxt</span></a><span>
-</span><a name="line-60"></a><span>
-</span><a name="line-61"></a><span class="hs-keyword">instance</span><span> </span><a href="Ouroboros.Consensus.HardFork.Combinator.Serialisation.Common.html#SerialiseHFC"><span class="hs-identifier hs-type">SerialiseHFC</span></a><span> </span><a href="#local-6989586621680288402"><span class="hs-identifier hs-type">xs</span></a><span>
-</span><a name="line-62"></a><span>      </span><span class="hs-glyph">=&gt;</span><span> </span><a href="Ouroboros.Consensus.Storage.Serialisation.html#EncodeDiskDep"><span class="hs-identifier hs-type">EncodeDiskDep</span></a><span> </span><span class="hs-special">(</span><a href="Ouroboros.Consensus.Block.NestedContent.html#NestedCtxt"><span class="hs-identifier hs-type">NestedCtxt</span></a><span> </span><a href="Ouroboros.Consensus.Block.Abstract.html#Header"><span class="hs-identifier hs-type">Header</span></a><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><a href="Ouroboros.Consensus.HardFork.Combinator.Basics.html#HardForkBlock"><span class="hs-identifier hs-type">HardForkBlock</span></a><span> </span><a href="#local-6989586621680288402"><span class="hs-identifier hs-type">xs</span></a><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
-</span><a name="line-63"></a><span>  </span><a name="local-8214565720324192623"><a href="Ouroboros.Consensus.Storage.Serialisation.html#encodeDiskDep"><span class="hs-identifier">encodeDiskDep</span></a></a><span> </span><span class="hs-glyph">=</span><span>
-</span><a name="line-64"></a><span>      </span><span class="hs-keyword">case</span><span> </span><a href="#local-6989586621680288403"><span class="hs-identifier hs-var">dict</span></a><span> </span><span class="hs-keyword">of</span><span>
-</span><a name="line-65"></a><span>        </span><span class="hs-identifier hs-var">Dict</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><a href="Ouroboros.Consensus.HardFork.Combinator.Serialisation.Common.html#encodeNested"><span class="hs-identifier hs-var">encodeNested</span></a><span>
-</span><a name="line-66"></a><span>    </span><span class="hs-keyword">where</span><span>
-</span><a name="line-67"></a><span>      </span><span class="hs-identifier">dict</span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">Dict</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">All</span><span> </span><span class="hs-special">(</span><a href="Ouroboros.Consensus.Storage.Serialisation.html#EncodeDiskDep"><span class="hs-identifier hs-type">EncodeDiskDep</span></a><span> </span><span class="hs-special">(</span><a href="Ouroboros.Consensus.Block.NestedContent.html#NestedCtxt"><span class="hs-identifier hs-type">NestedCtxt</span></a><span> </span><a href="Ouroboros.Consensus.Block.Abstract.html#Header"><span class="hs-identifier hs-type">Header</span></a><span class="hs-special">)</span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><a href="#local-6989586621680288402"><span class="hs-identifier hs-type">xs</span></a><span>
-</span><a name="line-68"></a><span>      </span><a name="local-6989586621680288403"><a href="#local-6989586621680288403"><span class="hs-identifier">dict</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-identifier hs-var">all_NP</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-var">hcpure</span><span> </span><a href="Ouroboros.Consensus.HardFork.Combinator.Serialisation.Common.html#pSHFC"><span class="hs-identifier hs-var">pSHFC</span></a><span> </span><span class="hs-identifier hs-var">Dict</span><span class="hs-special">)</span><span>
-</span><a name="line-69"></a><span>
-</span><a name="line-70"></a><span class="hs-keyword">instance</span><span> </span><a href="Ouroboros.Consensus.HardFork.Combinator.Serialisation.Common.html#SerialiseHFC"><span class="hs-identifier hs-type">SerialiseHFC</span></a><span> </span><a href="#local-6989586621680288400"><span class="hs-identifier hs-type">xs</span></a><span>
-</span><a name="line-71"></a><span>      </span><span class="hs-glyph">=&gt;</span><span> </span><a href="Ouroboros.Consensus.Storage.Serialisation.html#DecodeDiskDep"><span class="hs-identifier hs-type">DecodeDiskDep</span></a><span> </span><span class="hs-special">(</span><a href="Ouroboros.Consensus.Block.NestedContent.html#NestedCtxt"><span class="hs-identifier hs-type">NestedCtxt</span></a><span> </span><a href="Ouroboros.Consensus.Block.Abstract.html#Header"><span class="hs-identifier hs-type">Header</span></a><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><a href="Ouroboros.Consensus.HardFork.Combinator.Basics.html#HardForkBlock"><span class="hs-identifier hs-type">HardForkBlock</span></a><span> </span><a href="#local-6989586621680288400"><span class="hs-identifier hs-type">xs</span></a><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
-</span><a name="line-72"></a><span>  </span><a name="local-8214565720324192619"><a href="Ouroboros.Consensus.Storage.Serialisation.html#decodeDiskDep"><span class="hs-identifier">decodeDiskDep</span></a></a><span> </span><span class="hs-glyph">=</span><span>
-</span><a name="line-73"></a><span>      </span><span class="hs-keyword">case</span><span> </span><a href="#local-6989586621680288401"><span class="hs-identifier hs-var">dict</span></a><span> </span><span class="hs-keyword">of</span><span>
-</span><a name="line-74"></a><span>        </span><span class="hs-identifier hs-var">Dict</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><a href="Ouroboros.Consensus.HardFork.Combinator.Serialisation.Common.html#decodeNested"><span class="hs-identifier hs-var">decodeNested</span></a><span>
-</span><a name="line-75"></a><span>    </span><span class="hs-keyword">where</span><span>
-</span><a name="line-76"></a><span>      </span><span class="hs-identifier">dict</span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">Dict</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">All</span><span> </span><span class="hs-special">(</span><a href="Ouroboros.Consensus.Storage.Serialisation.html#DecodeDiskDep"><span class="hs-identifier hs-type">DecodeDiskDep</span></a><span> </span><span class="hs-special">(</span><a href="Ouroboros.Consensus.Block.NestedContent.html#NestedCtxt"><span class="hs-identifier hs-type">NestedCtxt</span></a><span> </span><a href="Ouroboros.Consensus.Block.Abstract.html#Header"><span class="hs-identifier hs-type">Header</span></a><span class="hs-special">)</span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><a href="#local-6989586621680288400"><span class="hs-identifier hs-type">xs</span></a><span>
-</span><a name="line-77"></a><span>      </span><a name="local-6989586621680288401"><a href="#local-6989586621680288401"><span class="hs-identifier">dict</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-identifier hs-var">all_NP</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-var">hcpure</span><span> </span><a href="Ouroboros.Consensus.HardFork.Combinator.Serialisation.Common.html#pSHFC"><span class="hs-identifier hs-var">pSHFC</span></a><span> </span><span class="hs-identifier hs-var">Dict</span><span class="hs-special">)</span><span>
-</span><a name="line-78"></a><span>
-</span><a name="line-79"></a><span class="hs-comment">{-------------------------------------------------------------------------------
+</span><span id="line-46"></span><span>
+</span><span id="line-47"></span><span id="local-6989586621680050242"><span class="hs-keyword">instance</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.HardFork.Combinator.Serialisation.Common.html#SerialiseHFC"><span class="hs-identifier hs-type">SerialiseHFC</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680050242"><span class="hs-identifier hs-type">xs</span></a></span><span>
+</span><span id="line-48"></span><span>      </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Storage.Serialisation.html#EncodeDisk"><span class="hs-identifier hs-type">EncodeDisk</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Consensus.HardFork.Combinator.Basics.html#HardForkBlock"><span class="hs-identifier hs-type">HardForkBlock</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680050242"><span class="hs-identifier hs-type">xs</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Consensus.HardFork.Combinator.Basics.html#HardForkBlock"><span class="hs-identifier hs-type">HardForkBlock</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680050242"><span class="hs-identifier hs-type">xs</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-49"></span><span>  </span><span id="local-6989586621680050239"><span class="annot"><span class="annottext">encodeDisk :: CodecConfig (HardForkBlock xs) -&gt; HardForkBlock xs -&gt; Encoding
+</span><a href="Ouroboros.Consensus.Storage.Serialisation.html#encodeDisk"><span class="hs-identifier hs-var hs-var hs-var hs-var">encodeDisk</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">CodecConfig (HardForkBlock xs) -&gt; HardForkBlock xs -&gt; Encoding
+forall (xs :: [*]).
+SerialiseHFC xs =&gt;
+CodecConfig (HardForkBlock xs) -&gt; HardForkBlock xs -&gt; Encoding
+</span><a href="Ouroboros.Consensus.HardFork.Combinator.Serialisation.Common.html#encodeDiskHfcBlock"><span class="hs-identifier hs-var">encodeDiskHfcBlock</span></a></span></span><span>
+</span><span id="line-50"></span><span>
+</span><span id="line-51"></span><span id="local-6989586621680050236"><span class="hs-keyword">instance</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.HardFork.Combinator.Serialisation.Common.html#SerialiseHFC"><span class="hs-identifier hs-type">SerialiseHFC</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680050236"><span class="hs-identifier hs-type">xs</span></a></span><span>
+</span><span id="line-52"></span><span>      </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Storage.Serialisation.html#DecodeDisk"><span class="hs-identifier hs-type">DecodeDisk</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Consensus.HardFork.Combinator.Basics.html#HardForkBlock"><span class="hs-identifier hs-type">HardForkBlock</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680050236"><span class="hs-identifier hs-type">xs</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Lazy.ByteString</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.HardFork.Combinator.Basics.html#HardForkBlock"><span class="hs-identifier hs-type">HardForkBlock</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680050236"><span class="hs-identifier hs-type">xs</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-53"></span><span>  </span><span id="local-6989586621680050233"><span class="annot"><span class="annottext">decodeDisk :: CodecConfig (HardForkBlock xs)
+-&gt; forall s. Decoder s (ByteString -&gt; HardForkBlock xs)
+</span><a href="Ouroboros.Consensus.Storage.Serialisation.html#decodeDisk"><span class="hs-identifier hs-var hs-var hs-var hs-var">decodeDisk</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">CodecConfig (HardForkBlock xs)
+-&gt; Decoder s (ByteString -&gt; HardForkBlock xs)
+forall (xs :: [*]).
+SerialiseHFC xs =&gt;
+CodecConfig (HardForkBlock xs)
+-&gt; forall s. Decoder s (ByteString -&gt; HardForkBlock xs)
+</span><a href="Ouroboros.Consensus.HardFork.Combinator.Serialisation.Common.html#decodeDiskHfcBlock"><span class="hs-identifier hs-var">decodeDiskHfcBlock</span></a></span></span><span>
+</span><span id="line-54"></span><span>
+</span><span id="line-55"></span><span id="local-6989586621680050230"><span class="hs-keyword">instance</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.HardFork.Combinator.Serialisation.Common.html#SerialiseHFC"><span class="hs-identifier hs-type">SerialiseHFC</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680050230"><span class="hs-identifier hs-type">xs</span></a></span><span>
+</span><span id="line-56"></span><span>      </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Storage.Serialisation.html#EncodeDiskDepIx"><span class="hs-identifier hs-type">EncodeDiskDepIx</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Consensus.Block.NestedContent.html#NestedCtxt"><span class="hs-identifier hs-type">NestedCtxt</span></a></span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Block.Abstract.html#Header"><span class="hs-identifier hs-type">Header</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Consensus.HardFork.Combinator.Basics.html#HardForkBlock"><span class="hs-identifier hs-type">HardForkBlock</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680050230"><span class="hs-identifier hs-type">xs</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-57"></span><span>  </span><span id="local-6989586621680050227"><span class="annot"><span class="annottext">encodeDiskDepIx :: CodecConfig (HardForkBlock xs)
+-&gt; SomeSecond (NestedCtxt Header) (HardForkBlock xs) -&gt; Encoding
+</span><a href="Ouroboros.Consensus.Storage.Serialisation.html#encodeDiskDepIx"><span class="hs-identifier hs-var hs-var hs-var hs-var">encodeDiskDepIx</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">CodecConfig (HardForkBlock xs)
+-&gt; SomeSecond (NestedCtxt Header) (HardForkBlock xs) -&gt; Encoding
+forall (f :: * -&gt; *) (xs :: [*]).
+All (EncodeDiskDepIx (NestedCtxt f)) xs =&gt;
+CodecConfig (HardForkBlock xs)
+-&gt; SomeSecond (NestedCtxt f) (HardForkBlock xs) -&gt; Encoding
+</span><a href="Ouroboros.Consensus.HardFork.Combinator.Serialisation.Common.html#encodeNestedCtxt"><span class="hs-identifier hs-var">encodeNestedCtxt</span></a></span></span><span>
+</span><span id="line-58"></span><span>
+</span><span id="line-59"></span><span id="local-6989586621680050224"><span class="hs-keyword">instance</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.HardFork.Combinator.Serialisation.Common.html#SerialiseHFC"><span class="hs-identifier hs-type">SerialiseHFC</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680050224"><span class="hs-identifier hs-type">xs</span></a></span><span>
+</span><span id="line-60"></span><span>      </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Storage.Serialisation.html#DecodeDiskDepIx"><span class="hs-identifier hs-type">DecodeDiskDepIx</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Consensus.Block.NestedContent.html#NestedCtxt"><span class="hs-identifier hs-type">NestedCtxt</span></a></span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Block.Abstract.html#Header"><span class="hs-identifier hs-type">Header</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Consensus.HardFork.Combinator.Basics.html#HardForkBlock"><span class="hs-identifier hs-type">HardForkBlock</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680050224"><span class="hs-identifier hs-type">xs</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-61"></span><span>  </span><span id="local-6989586621680050221"><span class="annot"><span class="annottext">decodeDiskDepIx :: CodecConfig (HardForkBlock xs)
+-&gt; Decoder s (SomeSecond (NestedCtxt Header) (HardForkBlock xs))
+</span><a href="Ouroboros.Consensus.Storage.Serialisation.html#decodeDiskDepIx"><span class="hs-identifier hs-var hs-var hs-var hs-var">decodeDiskDepIx</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">CodecConfig (HardForkBlock xs)
+-&gt; Decoder s (SomeSecond (NestedCtxt Header) (HardForkBlock xs))
+forall (f :: * -&gt; *) (xs :: [*]).
+All (DecodeDiskDepIx (NestedCtxt f)) xs =&gt;
+CodecConfig (HardForkBlock xs)
+-&gt; forall s.
+   Decoder s (SomeSecond (NestedCtxt f) (HardForkBlock xs))
+</span><a href="Ouroboros.Consensus.HardFork.Combinator.Serialisation.Common.html#decodeNestedCtxt"><span class="hs-identifier hs-var">decodeNestedCtxt</span></a></span></span><span>
+</span><span id="line-62"></span><span>
+</span><span id="line-63"></span><span id="local-6989586621680050218"><span class="hs-keyword">instance</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.HardFork.Combinator.Serialisation.Common.html#SerialiseHFC"><span class="hs-identifier hs-type">SerialiseHFC</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680050218"><span class="hs-identifier hs-type">xs</span></a></span><span>
+</span><span id="line-64"></span><span>      </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Storage.Serialisation.html#EncodeDiskDep"><span class="hs-identifier hs-type">EncodeDiskDep</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Consensus.Block.NestedContent.html#NestedCtxt"><span class="hs-identifier hs-type">NestedCtxt</span></a></span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Block.Abstract.html#Header"><span class="hs-identifier hs-type">Header</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Consensus.HardFork.Combinator.Basics.html#HardForkBlock"><span class="hs-identifier hs-type">HardForkBlock</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680050218"><span class="hs-identifier hs-type">xs</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-65"></span><span>  </span><span id="local-6989586621680050215"><span class="annot"><span class="annottext">encodeDiskDep :: CodecConfig (HardForkBlock xs)
+-&gt; NestedCtxt Header (HardForkBlock xs) a -&gt; a -&gt; Encoding
+</span><a href="Ouroboros.Consensus.Storage.Serialisation.html#encodeDiskDep"><span class="hs-identifier hs-var hs-var hs-var hs-var">encodeDiskDep</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-66"></span><span>      </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">Dict (All (EncodeDiskDep (NestedCtxt Header))) xs
+</span><a href="#local-6989586621680050213"><span class="hs-identifier hs-var">dict</span></a></span><span> </span><span class="hs-keyword">of</span><span>
+</span><span id="line-67"></span><span>        </span><span class="annot"><span class="annottext">Dict (All (EncodeDiskDep (NestedCtxt Header))) xs
+</span><span class="hs-identifier hs-var">Dict</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">CodecConfig (HardForkBlock xs)
+-&gt; NestedCtxt Header (HardForkBlock xs) a -&gt; a -&gt; Encoding
+forall (f :: * -&gt; *) (xs :: [*]) a.
+All (EncodeDiskDep (NestedCtxt f)) xs =&gt;
+CodecConfig (HardForkBlock xs)
+-&gt; NestedCtxt f (HardForkBlock xs) a -&gt; a -&gt; Encoding
+</span><a href="Ouroboros.Consensus.HardFork.Combinator.Serialisation.Common.html#encodeNested"><span class="hs-identifier hs-var">encodeNested</span></a></span><span>
+</span><span id="line-68"></span><span>    </span><span class="hs-keyword">where</span><span>
+</span><span id="line-69"></span><span>      </span><span class="annot"><a href="#local-6989586621680050213"><span class="hs-identifier hs-type">dict</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Dict</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">All</span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Consensus.Storage.Serialisation.html#EncodeDiskDep"><span class="hs-identifier hs-type">EncodeDiskDep</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Consensus.Block.NestedContent.html#NestedCtxt"><span class="hs-identifier hs-type">NestedCtxt</span></a></span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Block.Abstract.html#Header"><span class="hs-identifier hs-type">Header</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="annot"><a href="#local-6989586621680050218"><span class="hs-identifier hs-type">xs</span></a></span><span>
+</span><span id="line-70"></span><span>      </span><span id="local-6989586621680050213"><span class="annot"><span class="annottext">dict :: Dict (All (EncodeDiskDep (NestedCtxt Header))) xs
+</span><a href="#local-6989586621680050213"><span class="hs-identifier hs-var hs-var">dict</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">NP (Dict (EncodeDiskDep (NestedCtxt Header))) xs
+-&gt; Dict (All (EncodeDiskDep (NestedCtxt Header))) xs
+forall k (c :: k -&gt; Constraint) (xs :: [k]).
+NP (Dict c) xs -&gt; Dict (All c) xs
+</span><span class="hs-identifier hs-var">all_NP</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Proxy SerialiseConstraintsHFC
+-&gt; (forall a.
+    SerialiseConstraintsHFC a =&gt;
+    Dict (EncodeDiskDep (NestedCtxt Header)) a)
+-&gt; NP (Dict (EncodeDiskDep (NestedCtxt Header))) xs
+forall k l (h :: (k -&gt; *) -&gt; l -&gt; *) (c :: k -&gt; Constraint)
+       (xs :: l) (proxy :: (k -&gt; Constraint) -&gt; *) (f :: k -&gt; *).
+(HPure h, AllN h c xs) =&gt;
+proxy c -&gt; (forall (a :: k). c a =&gt; f a) -&gt; h f xs
+</span><span class="hs-identifier hs-var">hcpure</span></span><span> </span><span class="annot"><span class="annottext">Proxy SerialiseConstraintsHFC
+</span><a href="Ouroboros.Consensus.HardFork.Combinator.Serialisation.Common.html#pSHFC"><span class="hs-identifier hs-var">pSHFC</span></a></span><span> </span><span class="annot"><span class="annottext">forall a.
+SerialiseConstraintsHFC a =&gt;
+Dict (EncodeDiskDep (NestedCtxt Header)) a
+forall k (c :: k -&gt; Constraint) (a :: k). c a =&gt; Dict c a
+</span><span class="hs-identifier hs-var">Dict</span></span><span class="hs-special">)</span></span><span>
+</span><span id="line-71"></span><span>
+</span><span id="line-72"></span><span id="local-6989586621680050207"><span class="hs-keyword">instance</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.HardFork.Combinator.Serialisation.Common.html#SerialiseHFC"><span class="hs-identifier hs-type">SerialiseHFC</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680050207"><span class="hs-identifier hs-type">xs</span></a></span><span>
+</span><span id="line-73"></span><span>      </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Storage.Serialisation.html#DecodeDiskDep"><span class="hs-identifier hs-type">DecodeDiskDep</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Consensus.Block.NestedContent.html#NestedCtxt"><span class="hs-identifier hs-type">NestedCtxt</span></a></span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Block.Abstract.html#Header"><span class="hs-identifier hs-type">Header</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Consensus.HardFork.Combinator.Basics.html#HardForkBlock"><span class="hs-identifier hs-type">HardForkBlock</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680050207"><span class="hs-identifier hs-type">xs</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-74"></span><span>  </span><span id="local-6989586621680050204"><span class="annot"><span class="annottext">decodeDiskDep :: CodecConfig (HardForkBlock xs)
+-&gt; NestedCtxt Header (HardForkBlock xs) a
+-&gt; forall s. Decoder s (ByteString -&gt; a)
+</span><a href="Ouroboros.Consensus.Storage.Serialisation.html#decodeDiskDep"><span class="hs-identifier hs-var hs-var hs-var hs-var">decodeDiskDep</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-75"></span><span>      </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">Dict (All (DecodeDiskDep (NestedCtxt Header))) xs
+</span><a href="#local-6989586621680050202"><span class="hs-identifier hs-var">dict</span></a></span><span> </span><span class="hs-keyword">of</span><span>
+</span><span id="line-76"></span><span>        </span><span class="annot"><span class="annottext">Dict (All (DecodeDiskDep (NestedCtxt Header))) xs
+</span><span class="hs-identifier hs-var">Dict</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">CodecConfig (HardForkBlock xs)
+-&gt; NestedCtxt Header (HardForkBlock xs) a
+-&gt; Decoder s (ByteString -&gt; a)
+forall (f :: * -&gt; *) (xs :: [*]) a.
+All (DecodeDiskDep (NestedCtxt f)) xs =&gt;
+CodecConfig (HardForkBlock xs)
+-&gt; NestedCtxt f (HardForkBlock xs) a
+-&gt; forall s. Decoder s (ByteString -&gt; a)
+</span><a href="Ouroboros.Consensus.HardFork.Combinator.Serialisation.Common.html#decodeNested"><span class="hs-identifier hs-var">decodeNested</span></a></span><span>
+</span><span id="line-77"></span><span>    </span><span class="hs-keyword">where</span><span>
+</span><span id="line-78"></span><span>      </span><span class="annot"><a href="#local-6989586621680050202"><span class="hs-identifier hs-type">dict</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Dict</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">All</span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Consensus.Storage.Serialisation.html#DecodeDiskDep"><span class="hs-identifier hs-type">DecodeDiskDep</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Consensus.Block.NestedContent.html#NestedCtxt"><span class="hs-identifier hs-type">NestedCtxt</span></a></span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Block.Abstract.html#Header"><span class="hs-identifier hs-type">Header</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="annot"><a href="#local-6989586621680050207"><span class="hs-identifier hs-type">xs</span></a></span><span>
+</span><span id="line-79"></span><span>      </span><span id="local-6989586621680050202"><span class="annot"><span class="annottext">dict :: Dict (All (DecodeDiskDep (NestedCtxt Header))) xs
+</span><a href="#local-6989586621680050202"><span class="hs-identifier hs-var hs-var">dict</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">NP (Dict (DecodeDiskDep (NestedCtxt Header))) xs
+-&gt; Dict (All (DecodeDiskDep (NestedCtxt Header))) xs
+forall k (c :: k -&gt; Constraint) (xs :: [k]).
+NP (Dict c) xs -&gt; Dict (All c) xs
+</span><span class="hs-identifier hs-var">all_NP</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Proxy SerialiseConstraintsHFC
+-&gt; (forall a.
+    SerialiseConstraintsHFC a =&gt;
+    Dict (DecodeDiskDep (NestedCtxt Header)) a)
+-&gt; NP (Dict (DecodeDiskDep (NestedCtxt Header))) xs
+forall k l (h :: (k -&gt; *) -&gt; l -&gt; *) (c :: k -&gt; Constraint)
+       (xs :: l) (proxy :: (k -&gt; Constraint) -&gt; *) (f :: k -&gt; *).
+(HPure h, AllN h c xs) =&gt;
+proxy c -&gt; (forall (a :: k). c a =&gt; f a) -&gt; h f xs
+</span><span class="hs-identifier hs-var">hcpure</span></span><span> </span><span class="annot"><span class="annottext">Proxy SerialiseConstraintsHFC
+</span><a href="Ouroboros.Consensus.HardFork.Combinator.Serialisation.Common.html#pSHFC"><span class="hs-identifier hs-var">pSHFC</span></a></span><span> </span><span class="annot"><span class="annottext">forall a.
+SerialiseConstraintsHFC a =&gt;
+Dict (DecodeDiskDep (NestedCtxt Header)) a
+forall k (c :: k -&gt; Constraint) (a :: k). c a =&gt; Dict c a
+</span><span class="hs-identifier hs-var">Dict</span></span><span class="hs-special">)</span></span><span>
+</span><span id="line-80"></span><span>
+</span><span id="line-81"></span><span class="hs-comment">{-------------------------------------------------------------------------------
   Ledger state
 -------------------------------------------------------------------------------}</span><span>
-</span><a name="line-82"></a><span>
-</span><a name="line-83"></a><span class="hs-keyword">instance</span><span> </span><a href="Ouroboros.Consensus.HardFork.Combinator.Serialisation.Common.html#SerialiseHFC"><span class="hs-identifier hs-type">SerialiseHFC</span></a><span> </span><a href="#local-6989586621680288397"><span class="hs-identifier hs-type">xs</span></a><span>
-</span><a name="line-84"></a><span>      </span><span class="hs-glyph">=&gt;</span><span> </span><a href="Ouroboros.Consensus.Storage.Serialisation.html#EncodeDisk"><span class="hs-identifier hs-type">EncodeDisk</span></a><span> </span><span class="hs-special">(</span><a href="Ouroboros.Consensus.HardFork.Combinator.Basics.html#HardForkBlock"><span class="hs-identifier hs-type">HardForkBlock</span></a><span> </span><a href="#local-6989586621680288397"><span class="hs-identifier hs-type">xs</span></a><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><a href="Ouroboros.Consensus.HeaderValidation.html#AnnTip"><span class="hs-identifier hs-type">AnnTip</span></a><span> </span><span class="hs-special">(</span><a href="Ouroboros.Consensus.HardFork.Combinator.Basics.html#HardForkBlock"><span class="hs-identifier hs-type">HardForkBlock</span></a><span> </span><a href="#local-6989586621680288397"><span class="hs-identifier hs-type">xs</span></a><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
-</span><a name="line-85"></a><span>  </span><a name="local-8214565720324192629"><a href="Ouroboros.Consensus.Storage.Serialisation.html#encodeDisk"><span class="hs-identifier">encodeDisk</span></a></a><span> </span><a name="local-6989586621680288398"><a href="#local-6989586621680288398"><span class="hs-identifier">cfg</span></a></a><span> </span><span class="hs-glyph">=</span><span>
-</span><a name="line-86"></a><span>        </span><a href="Ouroboros.Consensus.HardFork.Combinator.Serialisation.Common.html#encodeNS"><span class="hs-identifier hs-var">encodeNS</span></a><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-var">hcmap</span><span> </span><a href="Ouroboros.Consensus.HardFork.Combinator.Serialisation.Common.html#pSHFC"><span class="hs-identifier hs-var">pSHFC</span></a><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-var">fn</span><span> </span><span class="hs-operator hs-var">.</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-var">K</span><span> </span><a href="Ouroboros.Consensus.Util.html#.%3A"><span class="hs-operator hs-var">.:</span></a><span> </span><a href="Ouroboros.Consensus.Storage.Serialisation.html#encodeDisk"><span class="hs-identifier hs-var">encodeDisk</span></a><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><a href="#local-6989586621680288399"><span class="hs-identifier hs-var">cfgs</span></a><span class="hs-special">)</span><span>
-</span><a name="line-87"></a><span>      </span><span class="hs-operator hs-var">.</span><span> </span><a href="Ouroboros.Consensus.HardFork.Combinator.Serialisation.Common.html#distribAnnTip"><span class="hs-identifier hs-var">distribAnnTip</span></a><span>
-</span><a name="line-88"></a><span>    </span><span class="hs-keyword">where</span><span>
-</span><a name="line-89"></a><span>      </span><a name="local-6989586621680288399"><a href="#local-6989586621680288399"><span class="hs-identifier">cfgs</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-identifier">getPerEraCodecConfig</span><span> </span><span class="hs-special">(</span><span class="hs-identifier">hardForkCodecConfigPerEra</span><span> </span><a href="#local-6989586621680288398"><span class="hs-identifier hs-var">cfg</span></a><span class="hs-special">)</span><span>
-</span><a name="line-90"></a><span>
-</span><a name="line-91"></a><span class="hs-keyword">instance</span><span> </span><a href="Ouroboros.Consensus.HardFork.Combinator.Serialisation.Common.html#SerialiseHFC"><span class="hs-identifier hs-type">SerialiseHFC</span></a><span> </span><a href="#local-6989586621680288394"><span class="hs-identifier hs-type">xs</span></a><span>
-</span><a name="line-92"></a><span>      </span><span class="hs-glyph">=&gt;</span><span> </span><a href="Ouroboros.Consensus.Storage.Serialisation.html#DecodeDisk"><span class="hs-identifier hs-type">DecodeDisk</span></a><span> </span><span class="hs-special">(</span><a href="Ouroboros.Consensus.HardFork.Combinator.Basics.html#HardForkBlock"><span class="hs-identifier hs-type">HardForkBlock</span></a><span> </span><a href="#local-6989586621680288394"><span class="hs-identifier hs-type">xs</span></a><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><a href="Ouroboros.Consensus.HeaderValidation.html#AnnTip"><span class="hs-identifier hs-type">AnnTip</span></a><span> </span><span class="hs-special">(</span><a href="Ouroboros.Consensus.HardFork.Combinator.Basics.html#HardForkBlock"><span class="hs-identifier hs-type">HardForkBlock</span></a><span> </span><a href="#local-6989586621680288394"><span class="hs-identifier hs-type">xs</span></a><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
-</span><a name="line-93"></a><span>  </span><a name="local-8214565720324192627"><a href="Ouroboros.Consensus.Storage.Serialisation.html#decodeDisk"><span class="hs-identifier">decodeDisk</span></a></a><span> </span><a name="local-6989586621680288395"><a href="#local-6989586621680288395"><span class="hs-identifier">cfg</span></a></a><span> </span><span class="hs-glyph">=</span><span>
-</span><a name="line-94"></a><span>        </span><span class="hs-identifier hs-var">fmap</span><span> </span><a href="Ouroboros.Consensus.HardFork.Combinator.Serialisation.Common.html#undistribAnnTip"><span class="hs-identifier hs-var">undistribAnnTip</span></a><span>
-</span><a name="line-95"></a><span>      </span><span class="hs-operator hs-var">$</span><span> </span><a href="Ouroboros.Consensus.HardFork.Combinator.Serialisation.Common.html#decodeNS"><span class="hs-identifier hs-var">decodeNS</span></a><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-var">hcmap</span><span> </span><a href="Ouroboros.Consensus.HardFork.Combinator.Serialisation.Common.html#pSHFC"><span class="hs-identifier hs-var">pSHFC</span></a><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-var">Comp</span><span> </span><span class="hs-operator hs-var">.</span><span> </span><a href="Ouroboros.Consensus.Storage.Serialisation.html#decodeDisk"><span class="hs-identifier hs-var">decodeDisk</span></a><span class="hs-special">)</span><span> </span><a href="#local-6989586621680288396"><span class="hs-identifier hs-var">cfgs</span></a><span class="hs-special">)</span><span>
-</span><a name="line-96"></a><span>    </span><span class="hs-keyword">where</span><span>
-</span><a name="line-97"></a><span>      </span><a name="local-6989586621680288396"><a href="#local-6989586621680288396"><span class="hs-identifier">cfgs</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-identifier">getPerEraCodecConfig</span><span> </span><span class="hs-special">(</span><span class="hs-identifier">hardForkCodecConfigPerEra</span><span> </span><a href="#local-6989586621680288395"><span class="hs-identifier hs-var">cfg</span></a><span class="hs-special">)</span><span>
-</span><a name="line-98"></a><span>
-</span><a name="line-99"></a><span class="hs-keyword">instance</span><span> </span><a href="Ouroboros.Consensus.HardFork.Combinator.Serialisation.Common.html#SerialiseHFC"><span class="hs-identifier hs-type">SerialiseHFC</span></a><span> </span><a href="#local-6989586621680288387"><span class="hs-identifier hs-type">xs</span></a><span>
-</span><a name="line-100"></a><span>      </span><span class="hs-glyph">=&gt;</span><span> </span><a href="Ouroboros.Consensus.Storage.Serialisation.html#EncodeDisk"><span class="hs-identifier hs-type">EncodeDisk</span></a><span> </span><span class="hs-special">(</span><a href="Ouroboros.Consensus.HardFork.Combinator.Basics.html#HardForkBlock"><span class="hs-identifier hs-type">HardForkBlock</span></a><span> </span><a href="#local-6989586621680288387"><span class="hs-identifier hs-type">xs</span></a><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><a href="Ouroboros.Consensus.HardFork.Combinator.Protocol.html#HardForkChainDepState"><span class="hs-identifier hs-type">HardForkChainDepState</span></a><span> </span><a href="#local-6989586621680288387"><span class="hs-identifier hs-type">xs</span></a><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
-</span><a name="line-101"></a><span>  </span><a name="local-8214565720324192629"><a href="Ouroboros.Consensus.Storage.Serialisation.html#encodeDisk"><span class="hs-identifier">encodeDisk</span></a></a><span> </span><a name="local-6989586621680288388"><a href="#local-6989586621680288388"><span class="hs-identifier">cfg</span></a></a><span> </span><span class="hs-glyph">=</span><span>
-</span><a name="line-102"></a><span>      </span><a href="Ouroboros.Consensus.HardFork.Combinator.Serialisation.Common.html#encodeTelescope"><span class="hs-identifier hs-var">encodeTelescope</span></a><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-var">hcmap</span><span> </span><a href="Ouroboros.Consensus.HardFork.Combinator.Serialisation.Common.html#pSHFC"><span class="hs-identifier hs-var">pSHFC</span></a><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-var">fn</span><span> </span><span class="hs-operator hs-var">.</span><span> </span><a href="#local-6989586621680288390"><span class="hs-identifier hs-var">aux</span></a><span class="hs-special">)</span><span> </span><a href="#local-6989586621680288389"><span class="hs-identifier hs-var">cfgs</span></a><span class="hs-special">)</span><span>
-</span><a name="line-103"></a><span>    </span><span class="hs-keyword">where</span><span>
-</span><a name="line-104"></a><span>      </span><a name="local-6989586621680288389"><a href="#local-6989586621680288389"><span class="hs-identifier">cfgs</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-identifier">getPerEraCodecConfig</span><span> </span><span class="hs-special">(</span><span class="hs-identifier">hardForkCodecConfigPerEra</span><span> </span><a href="#local-6989586621680288388"><span class="hs-identifier hs-var">cfg</span></a><span class="hs-special">)</span><span>
-</span><a name="line-105"></a><span>
-</span><a name="line-106"></a><span>      </span><span class="hs-identifier">aux</span><span> </span><span class="hs-glyph">::</span><span> </span><a href="Ouroboros.Consensus.Storage.ChainDB.Impl.Types.html#SerialiseDiskConstraints"><span class="hs-identifier hs-type">SerialiseDiskConstraints</span></a><span> </span><a href="#local-6989586621680288391"><span class="hs-identifier hs-type">blk</span></a><span>
-</span><a name="line-107"></a><span>          </span><span class="hs-glyph">=&gt;</span><span> </span><a href="Ouroboros.Consensus.Block.Abstract.html#CodecConfig"><span class="hs-identifier hs-type">CodecConfig</span></a><span> </span><a href="#local-6989586621680288391"><span class="hs-identifier hs-type">blk</span></a><span> </span><span class="hs-glyph">-&gt;</span><span> </span><a href="Ouroboros.Consensus.TypeFamilyWrappers.html#WrapChainDepState"><span class="hs-identifier hs-type">WrapChainDepState</span></a><span> </span><a href="#local-6989586621680288391"><span class="hs-identifier hs-type">blk</span></a><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">K</span><span> </span><span class="hs-identifier hs-type">Encoding</span><span> </span><a href="#local-6989586621680288391"><span class="hs-identifier hs-type">blk</span></a><span>
-</span><a name="line-108"></a><span>      </span><a name="local-6989586621680288390"><a href="#local-6989586621680288390"><span class="hs-identifier">aux</span></a></a><span> </span><a name="local-6989586621680288392"><a href="#local-6989586621680288392"><span class="hs-identifier">cfg'</span></a></a><span> </span><span class="hs-special">(</span><a href="Ouroboros.Consensus.TypeFamilyWrappers.html#WrapChainDepState"><span class="hs-identifier hs-var">WrapChainDepState</span></a><span> </span><a name="local-6989586621680288393"><a href="#local-6989586621680288393"><span class="hs-identifier">st</span></a></a><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-identifier hs-var">K</span><span> </span><span class="hs-operator hs-var">$</span><span> </span><a href="Ouroboros.Consensus.Storage.Serialisation.html#encodeDisk"><span class="hs-identifier hs-var">encodeDisk</span></a><span> </span><a href="#local-6989586621680288392"><span class="hs-identifier hs-var">cfg'</span></a><span> </span><a href="#local-6989586621680288393"><span class="hs-identifier hs-var">st</span></a><span>
-</span><a name="line-109"></a><span>
-</span><a name="line-110"></a><span class="hs-keyword">instance</span><span> </span><a href="Ouroboros.Consensus.HardFork.Combinator.Serialisation.Common.html#SerialiseHFC"><span class="hs-identifier hs-type">SerialiseHFC</span></a><span> </span><a href="#local-6989586621680288384"><span class="hs-identifier hs-type">xs</span></a><span>
-</span><a name="line-111"></a><span>      </span><span class="hs-glyph">=&gt;</span><span> </span><a href="Ouroboros.Consensus.Storage.Serialisation.html#DecodeDisk"><span class="hs-identifier hs-type">DecodeDisk</span></a><span> </span><span class="hs-special">(</span><a href="Ouroboros.Consensus.HardFork.Combinator.Basics.html#HardForkBlock"><span class="hs-identifier hs-type">HardForkBlock</span></a><span> </span><a href="#local-6989586621680288384"><span class="hs-identifier hs-type">xs</span></a><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><a href="Ouroboros.Consensus.HardFork.Combinator.Protocol.html#HardForkChainDepState"><span class="hs-identifier hs-type">HardForkChainDepState</span></a><span> </span><a href="#local-6989586621680288384"><span class="hs-identifier hs-type">xs</span></a><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
-</span><a name="line-112"></a><span>  </span><a name="local-8214565720324192627"><a href="Ouroboros.Consensus.Storage.Serialisation.html#decodeDisk"><span class="hs-identifier">decodeDisk</span></a></a><span> </span><a name="local-6989586621680288385"><a href="#local-6989586621680288385"><span class="hs-identifier">cfg</span></a></a><span> </span><span class="hs-glyph">=</span><span>
-</span><a name="line-113"></a><span>      </span><a href="Ouroboros.Consensus.HardFork.Combinator.Serialisation.Common.html#decodeTelescope"><span class="hs-identifier hs-var">decodeTelescope</span></a><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-var">hcmap</span><span> </span><a href="Ouroboros.Consensus.HardFork.Combinator.Serialisation.Common.html#pSHFC"><span class="hs-identifier hs-var">pSHFC</span></a><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-var">Comp</span><span> </span><span class="hs-operator hs-var">.</span><span> </span><span class="hs-identifier hs-var">fmap</span><span> </span><a href="Ouroboros.Consensus.TypeFamilyWrappers.html#WrapChainDepState"><span class="hs-identifier hs-var">WrapChainDepState</span></a><span> </span><span class="hs-operator hs-var">.</span><span> </span><a href="Ouroboros.Consensus.Storage.Serialisation.html#decodeDisk"><span class="hs-identifier hs-var">decodeDisk</span></a><span class="hs-special">)</span><span> </span><a href="#local-6989586621680288386"><span class="hs-identifier hs-var">cfgs</span></a><span class="hs-special">)</span><span>
-</span><a name="line-114"></a><span>    </span><span class="hs-keyword">where</span><span>
-</span><a name="line-115"></a><span>      </span><a name="local-6989586621680288386"><a href="#local-6989586621680288386"><span class="hs-identifier">cfgs</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-identifier">getPerEraCodecConfig</span><span> </span><span class="hs-special">(</span><span class="hs-identifier">hardForkCodecConfigPerEra</span><span> </span><a href="#local-6989586621680288385"><span class="hs-identifier hs-var">cfg</span></a><span class="hs-special">)</span><span>
-</span><a name="line-116"></a><span>
-</span><a name="line-117"></a><span class="hs-keyword">instance</span><span> </span><a href="Ouroboros.Consensus.HardFork.Combinator.Serialisation.Common.html#SerialiseHFC"><span class="hs-identifier hs-type">SerialiseHFC</span></a><span> </span><a href="#local-6989586621680288381"><span class="hs-identifier hs-type">xs</span></a><span>
-</span><a name="line-118"></a><span>      </span><span class="hs-glyph">=&gt;</span><span> </span><a href="Ouroboros.Consensus.Storage.Serialisation.html#EncodeDisk"><span class="hs-identifier hs-type">EncodeDisk</span></a><span> </span><span class="hs-special">(</span><a href="Ouroboros.Consensus.HardFork.Combinator.Basics.html#HardForkBlock"><span class="hs-identifier hs-type">HardForkBlock</span></a><span> </span><a href="#local-6989586621680288381"><span class="hs-identifier hs-type">xs</span></a><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><a href="Ouroboros.Consensus.Ledger.Basics.html#LedgerState"><span class="hs-identifier hs-type">LedgerState</span></a><span> </span><span class="hs-special">(</span><a href="Ouroboros.Consensus.HardFork.Combinator.Basics.html#HardForkBlock"><span class="hs-identifier hs-type">HardForkBlock</span></a><span> </span><a href="#local-6989586621680288381"><span class="hs-identifier hs-type">xs</span></a><span class="hs-special">)</span><span> </span><span class="hs-special">)</span><span class="hs-keyword">where</span><span>
-</span><a name="line-119"></a><span>  </span><a name="local-8214565720324192629"><a href="Ouroboros.Consensus.Storage.Serialisation.html#encodeDisk"><span class="hs-identifier">encodeDisk</span></a></a><span> </span><a name="local-6989586621680288382"><a href="#local-6989586621680288382"><span class="hs-identifier">cfg</span></a></a><span> </span><span class="hs-glyph">=</span><span>
-</span><a name="line-120"></a><span>        </span><a href="Ouroboros.Consensus.HardFork.Combinator.Serialisation.Common.html#encodeTelescope"><span class="hs-identifier hs-var">encodeTelescope</span></a><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-var">hcmap</span><span> </span><a href="Ouroboros.Consensus.HardFork.Combinator.Serialisation.Common.html#pSHFC"><span class="hs-identifier hs-var">pSHFC</span></a><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-var">fn</span><span> </span><span class="hs-operator hs-var">.</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-var">K</span><span> </span><a href="Ouroboros.Consensus.Util.html#.%3A"><span class="hs-operator hs-var">.:</span></a><span> </span><a href="Ouroboros.Consensus.Storage.Serialisation.html#encodeDisk"><span class="hs-identifier hs-var">encodeDisk</span></a><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><a href="#local-6989586621680288383"><span class="hs-identifier hs-var">cfgs</span></a><span class="hs-special">)</span><span>
-</span><a name="line-121"></a><span>      </span><span class="hs-operator hs-var">.</span><span> </span><span class="hs-identifier">hardForkLedgerStatePerEra</span><span>
-</span><a name="line-122"></a><span>    </span><span class="hs-keyword">where</span><span>
-</span><a name="line-123"></a><span>      </span><a name="local-6989586621680288383"><a href="#local-6989586621680288383"><span class="hs-identifier">cfgs</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-identifier">getPerEraCodecConfig</span><span> </span><span class="hs-special">(</span><span class="hs-identifier">hardForkCodecConfigPerEra</span><span> </span><a href="#local-6989586621680288382"><span class="hs-identifier hs-var">cfg</span></a><span class="hs-special">)</span><span>
-</span><a name="line-124"></a><span>
-</span><a name="line-125"></a><span class="hs-keyword">instance</span><span> </span><a href="Ouroboros.Consensus.HardFork.Combinator.Serialisation.Common.html#SerialiseHFC"><span class="hs-identifier hs-type">SerialiseHFC</span></a><span> </span><a href="#local-6989586621680288378"><span class="hs-identifier hs-type">xs</span></a><span>
-</span><a name="line-126"></a><span>      </span><span class="hs-glyph">=&gt;</span><span> </span><a href="Ouroboros.Consensus.Storage.Serialisation.html#DecodeDisk"><span class="hs-identifier hs-type">DecodeDisk</span></a><span> </span><span class="hs-special">(</span><a href="Ouroboros.Consensus.HardFork.Combinator.Basics.html#HardForkBlock"><span class="hs-identifier hs-type">HardForkBlock</span></a><span> </span><a href="#local-6989586621680288378"><span class="hs-identifier hs-type">xs</span></a><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><a href="Ouroboros.Consensus.Ledger.Basics.html#LedgerState"><span class="hs-identifier hs-type">LedgerState</span></a><span> </span><span class="hs-special">(</span><a href="Ouroboros.Consensus.HardFork.Combinator.Basics.html#HardForkBlock"><span class="hs-identifier hs-type">HardForkBlock</span></a><span> </span><a href="#local-6989586621680288378"><span class="hs-identifier hs-type">xs</span></a><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
-</span><a name="line-127"></a><span>  </span><a name="local-8214565720324192627"><a href="Ouroboros.Consensus.Storage.Serialisation.html#decodeDisk"><span class="hs-identifier">decodeDisk</span></a></a><span> </span><a name="local-6989586621680288379"><a href="#local-6989586621680288379"><span class="hs-identifier">cfg</span></a></a><span> </span><span class="hs-glyph">=</span><span>
-</span><a name="line-128"></a><span>        </span><span class="hs-identifier hs-var">fmap</span><span> </span><a href="Ouroboros.Consensus.HardFork.Combinator.Basics.html#HardForkLedgerState"><span class="hs-identifier hs-var">HardForkLedgerState</span></a><span>
-</span><a name="line-129"></a><span>      </span><span class="hs-operator hs-var">$</span><span> </span><a href="Ouroboros.Consensus.HardFork.Combinator.Serialisation.Common.html#decodeTelescope"><span class="hs-identifier hs-var">decodeTelescope</span></a><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-var">hcmap</span><span> </span><a href="Ouroboros.Consensus.HardFork.Combinator.Serialisation.Common.html#pSHFC"><span class="hs-identifier hs-var">pSHFC</span></a><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-var">Comp</span><span> </span><span class="hs-operator hs-var">.</span><span> </span><a href="Ouroboros.Consensus.Storage.Serialisation.html#decodeDisk"><span class="hs-identifier hs-var">decodeDisk</span></a><span class="hs-special">)</span><span> </span><a href="#local-6989586621680288380"><span class="hs-identifier hs-var">cfgs</span></a><span class="hs-special">)</span><span>
-</span><a name="line-130"></a><span>    </span><span class="hs-keyword">where</span><span>
-</span><a name="line-131"></a><span>      </span><a name="local-6989586621680288380"><a href="#local-6989586621680288380"><span class="hs-identifier">cfgs</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-identifier">getPerEraCodecConfig</span><span> </span><span class="hs-special">(</span><span class="hs-identifier">hardForkCodecConfigPerEra</span><span> </span><a href="#local-6989586621680288379"><span class="hs-identifier hs-var">cfg</span></a><span class="hs-special">)</span><span>
-</span><a name="line-132"></a></pre></body></html>
+</span><span id="line-84"></span><span>
+</span><span id="line-85"></span><span id="local-6989586621680050200"><span class="hs-keyword">instance</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.HardFork.Combinator.Serialisation.Common.html#SerialiseHFC"><span class="hs-identifier hs-type">SerialiseHFC</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680050200"><span class="hs-identifier hs-type">xs</span></a></span><span>
+</span><span id="line-86"></span><span>      </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Storage.Serialisation.html#EncodeDisk"><span class="hs-identifier hs-type">EncodeDisk</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Consensus.HardFork.Combinator.Basics.html#HardForkBlock"><span class="hs-identifier hs-type">HardForkBlock</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680050200"><span class="hs-identifier hs-type">xs</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Consensus.HeaderValidation.html#AnnTip"><span class="hs-identifier hs-type">AnnTip</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Consensus.HardFork.Combinator.Basics.html#HardForkBlock"><span class="hs-identifier hs-type">HardForkBlock</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680050200"><span class="hs-identifier hs-type">xs</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-87"></span><span>  </span><span id="local-6989586621680050198"><span class="annot"><span class="annottext">encodeDisk :: CodecConfig (HardForkBlock xs)
+-&gt; AnnTip (HardForkBlock xs) -&gt; Encoding
+</span><a href="#local-6989586621680050198"><span class="hs-identifier hs-var hs-var hs-var hs-var">encodeDisk</span></a></span></span><span> </span><span id="local-6989586621680050197"><span class="annot"><span class="annottext">CodecConfig (HardForkBlock xs)
+</span><a href="#local-6989586621680050197"><span class="hs-identifier hs-var">cfg</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-88"></span><span>        </span><span class="annot"><span class="annottext">NP (AnnTip -.-&gt; K Encoding) xs -&gt; NS AnnTip xs -&gt; Encoding
+forall (xs :: [*]) (f :: * -&gt; *).
+SListI xs =&gt;
+NP (f -.-&gt; K Encoding) xs -&gt; NS f xs -&gt; Encoding
+</span><a href="Ouroboros.Consensus.HardFork.Combinator.Serialisation.Common.html#encodeNS"><span class="hs-identifier hs-var">encodeNS</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Proxy SerialiseConstraintsHFC
+-&gt; (forall a.
+    SerialiseConstraintsHFC a =&gt;
+    CodecConfig a -&gt; (-.-&gt;) AnnTip (K Encoding) a)
+-&gt; NP CodecConfig xs
+-&gt; NP (AnnTip -.-&gt; K Encoding) xs
+forall k l (h :: (k -&gt; *) -&gt; l -&gt; *) (c :: k -&gt; Constraint)
+       (xs :: l) (proxy :: (k -&gt; Constraint) -&gt; *) (f :: k -&gt; *)
+       (f' :: k -&gt; *).
+(AllN (Prod h) c xs, HAp h) =&gt;
+proxy c
+-&gt; (forall (a :: k). c a =&gt; f a -&gt; f' a) -&gt; h f xs -&gt; h f' xs
+</span><span class="hs-identifier hs-var">hcmap</span></span><span> </span><span class="annot"><span class="annottext">Proxy SerialiseConstraintsHFC
+</span><a href="Ouroboros.Consensus.HardFork.Combinator.Serialisation.Common.html#pSHFC"><span class="hs-identifier hs-var">pSHFC</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">(AnnTip a -&gt; K Encoding a) -&gt; (-.-&gt;) AnnTip (K Encoding) a
+forall k (f :: k -&gt; *) (a :: k) (f' :: k -&gt; *).
+(f a -&gt; f' a) -&gt; (-.-&gt;) f f' a
+</span><span class="hs-identifier hs-var">fn</span></span><span> </span><span class="annot"><span class="annottext">((AnnTip a -&gt; K Encoding a) -&gt; (-.-&gt;) AnnTip (K Encoding) a)
+-&gt; (CodecConfig a -&gt; AnnTip a -&gt; K Encoding a)
+-&gt; CodecConfig a
+-&gt; (-.-&gt;) AnnTip (K Encoding) a
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Encoding -&gt; K Encoding a
+forall k a (b :: k). a -&gt; K a b
+</span><span class="hs-identifier hs-var">K</span></span><span> </span><span class="annot"><span class="annottext">(Encoding -&gt; K Encoding a)
+-&gt; (CodecConfig a -&gt; AnnTip a -&gt; Encoding)
+-&gt; CodecConfig a
+-&gt; AnnTip a
+-&gt; K Encoding a
+forall y z x0 x1. (y -&gt; z) -&gt; (x0 -&gt; x1 -&gt; y) -&gt; x0 -&gt; x1 -&gt; z
+</span><a href="Ouroboros.Consensus.Util.html#.%3A"><span class="hs-operator hs-var">.:</span></a></span><span> </span><span class="annot"><span class="annottext">CodecConfig a -&gt; AnnTip a -&gt; Encoding
+forall blk a. EncodeDisk blk a =&gt; CodecConfig blk -&gt; a -&gt; Encoding
+</span><a href="Ouroboros.Consensus.Storage.Serialisation.html#encodeDisk"><span class="hs-identifier hs-var">encodeDisk</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">NP CodecConfig xs
+</span><a href="#local-6989586621680050191"><span class="hs-identifier hs-var">cfgs</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-89"></span><span>      </span><span class="annot"><span class="annottext">(NS AnnTip xs -&gt; Encoding)
+-&gt; (AnnTip (HardForkBlock xs) -&gt; NS AnnTip xs)
+-&gt; AnnTip (HardForkBlock xs)
+-&gt; Encoding
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">AnnTip (HardForkBlock xs) -&gt; NS AnnTip xs
+forall (xs :: [*]).
+SListI xs =&gt;
+AnnTip (HardForkBlock xs) -&gt; NS AnnTip xs
+</span><a href="Ouroboros.Consensus.HardFork.Combinator.Block.html#distribAnnTip"><span class="hs-identifier hs-var">distribAnnTip</span></a></span><span>
+</span><span id="line-90"></span><span>    </span><span class="hs-keyword">where</span><span>
+</span><span id="line-91"></span><span>      </span><span id="local-6989586621680050191"><span class="annot"><span class="annottext">cfgs :: NP CodecConfig xs
+</span><a href="#local-6989586621680050191"><span class="hs-identifier hs-var hs-var">cfgs</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">PerEraCodecConfig xs -&gt; NP CodecConfig xs
+forall (xs :: [*]). PerEraCodecConfig xs -&gt; NP CodecConfig xs
+</span><a href="Ouroboros.Consensus.HardFork.Combinator.AcrossEras.html#getPerEraCodecConfig"><span class="hs-identifier hs-var hs-var">getPerEraCodecConfig</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">CodecConfig (HardForkBlock xs) -&gt; PerEraCodecConfig xs
+forall (xs :: [*]).
+CodecConfig (HardForkBlock xs) -&gt; PerEraCodecConfig xs
+</span><a href="Ouroboros.Consensus.HardFork.Combinator.Basics.html#hardForkCodecConfigPerEra"><span class="hs-identifier hs-var hs-var">hardForkCodecConfigPerEra</span></a></span><span> </span><span class="annot"><span class="annottext">CodecConfig (HardForkBlock xs)
+</span><a href="#local-6989586621680050197"><span class="hs-identifier hs-var">cfg</span></a></span><span class="hs-special">)</span></span><span>
+</span><span id="line-92"></span><span>
+</span><span id="line-93"></span><span id="local-6989586621680050187"><span class="hs-keyword">instance</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.HardFork.Combinator.Serialisation.Common.html#SerialiseHFC"><span class="hs-identifier hs-type">SerialiseHFC</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680050187"><span class="hs-identifier hs-type">xs</span></a></span><span>
+</span><span id="line-94"></span><span>      </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Storage.Serialisation.html#DecodeDisk"><span class="hs-identifier hs-type">DecodeDisk</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Consensus.HardFork.Combinator.Basics.html#HardForkBlock"><span class="hs-identifier hs-type">HardForkBlock</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680050187"><span class="hs-identifier hs-type">xs</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Consensus.HeaderValidation.html#AnnTip"><span class="hs-identifier hs-type">AnnTip</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Consensus.HardFork.Combinator.Basics.html#HardForkBlock"><span class="hs-identifier hs-type">HardForkBlock</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680050187"><span class="hs-identifier hs-type">xs</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-95"></span><span>  </span><span id="local-6989586621680050185"><span class="annot"><span class="annottext">decodeDisk :: CodecConfig (HardForkBlock xs)
+-&gt; forall s. Decoder s (AnnTip (HardForkBlock xs))
+</span><a href="#local-6989586621680050185"><span class="hs-identifier hs-var hs-var hs-var hs-var">decodeDisk</span></a></span></span><span> </span><span id="local-6989586621680050184"><span class="annot"><span class="annottext">CodecConfig (HardForkBlock xs)
+</span><a href="#local-6989586621680050184"><span class="hs-identifier hs-var">cfg</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-96"></span><span>        </span><span class="annot"><span class="annottext">(NS AnnTip xs -&gt; AnnTip (HardForkBlock xs))
+-&gt; Decoder s (NS AnnTip xs)
+-&gt; Decoder s (AnnTip (HardForkBlock xs))
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-identifier hs-var">fmap</span></span><span> </span><span class="annot"><span class="annottext">NS AnnTip xs -&gt; AnnTip (HardForkBlock xs)
+forall (xs :: [*]).
+SListI xs =&gt;
+NS AnnTip xs -&gt; AnnTip (HardForkBlock xs)
+</span><a href="Ouroboros.Consensus.HardFork.Combinator.Block.html#undistribAnnTip"><span class="hs-identifier hs-var">undistribAnnTip</span></a></span><span>
+</span><span id="line-97"></span><span>      </span><span class="annot"><span class="annottext">(Decoder s (NS AnnTip xs) -&gt; Decoder s (AnnTip (HardForkBlock xs)))
+-&gt; Decoder s (NS AnnTip xs)
+-&gt; Decoder s (AnnTip (HardForkBlock xs))
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">NP (Decoder s :.: AnnTip) xs -&gt; Decoder s (NS AnnTip xs)
+forall (xs :: [*]) s (f :: * -&gt; *).
+SListI xs =&gt;
+NP (Decoder s :.: f) xs -&gt; Decoder s (NS f xs)
+</span><a href="Ouroboros.Consensus.HardFork.Combinator.Serialisation.Common.html#decodeNS"><span class="hs-identifier hs-var">decodeNS</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Proxy SerialiseConstraintsHFC
+-&gt; (forall a.
+    SerialiseConstraintsHFC a =&gt;
+    CodecConfig a -&gt; (:.:) (Decoder s) AnnTip a)
+-&gt; NP CodecConfig xs
+-&gt; NP (Decoder s :.: AnnTip) xs
+forall k l (h :: (k -&gt; *) -&gt; l -&gt; *) (c :: k -&gt; Constraint)
+       (xs :: l) (proxy :: (k -&gt; Constraint) -&gt; *) (f :: k -&gt; *)
+       (f' :: k -&gt; *).
+(AllN (Prod h) c xs, HAp h) =&gt;
+proxy c
+-&gt; (forall (a :: k). c a =&gt; f a -&gt; f' a) -&gt; h f xs -&gt; h f' xs
+</span><span class="hs-identifier hs-var">hcmap</span></span><span> </span><span class="annot"><span class="annottext">Proxy SerialiseConstraintsHFC
+</span><a href="Ouroboros.Consensus.HardFork.Combinator.Serialisation.Common.html#pSHFC"><span class="hs-identifier hs-var">pSHFC</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Decoder s (AnnTip a) -&gt; (:.:) (Decoder s) AnnTip a
+forall l k (f :: l -&gt; *) (g :: k -&gt; l) (p :: k).
+f (g p) -&gt; (:.:) f g p
+</span><span class="hs-identifier hs-var">Comp</span></span><span> </span><span class="annot"><span class="annottext">(Decoder s (AnnTip a) -&gt; (:.:) (Decoder s) AnnTip a)
+-&gt; (CodecConfig a -&gt; Decoder s (AnnTip a))
+-&gt; CodecConfig a
+-&gt; (:.:) (Decoder s) AnnTip a
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">CodecConfig a -&gt; Decoder s (AnnTip a)
+forall blk a.
+DecodeDisk blk a =&gt;
+CodecConfig blk -&gt; forall s. Decoder s a
+</span><a href="Ouroboros.Consensus.Storage.Serialisation.html#decodeDisk"><span class="hs-identifier hs-var">decodeDisk</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">NP CodecConfig xs
+</span><a href="#local-6989586621680050180"><span class="hs-identifier hs-var">cfgs</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-98"></span><span>    </span><span class="hs-keyword">where</span><span>
+</span><span id="line-99"></span><span>      </span><span id="local-6989586621680050180"><span class="annot"><span class="annottext">cfgs :: NP CodecConfig xs
+</span><a href="#local-6989586621680050180"><span class="hs-identifier hs-var hs-var">cfgs</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">PerEraCodecConfig xs -&gt; NP CodecConfig xs
+forall (xs :: [*]). PerEraCodecConfig xs -&gt; NP CodecConfig xs
+</span><a href="Ouroboros.Consensus.HardFork.Combinator.AcrossEras.html#getPerEraCodecConfig"><span class="hs-identifier hs-var hs-var">getPerEraCodecConfig</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">CodecConfig (HardForkBlock xs) -&gt; PerEraCodecConfig xs
+forall (xs :: [*]).
+CodecConfig (HardForkBlock xs) -&gt; PerEraCodecConfig xs
+</span><a href="Ouroboros.Consensus.HardFork.Combinator.Basics.html#hardForkCodecConfigPerEra"><span class="hs-identifier hs-var hs-var">hardForkCodecConfigPerEra</span></a></span><span> </span><span class="annot"><span class="annottext">CodecConfig (HardForkBlock xs)
+</span><a href="#local-6989586621680050184"><span class="hs-identifier hs-var">cfg</span></a></span><span class="hs-special">)</span></span><span>
+</span><span id="line-100"></span><span>
+</span><span id="line-101"></span><span id="local-6989586621680050179"><span class="hs-keyword">instance</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.HardFork.Combinator.Serialisation.Common.html#SerialiseHFC"><span class="hs-identifier hs-type">SerialiseHFC</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680050179"><span class="hs-identifier hs-type">xs</span></a></span><span>
+</span><span id="line-102"></span><span>      </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Storage.Serialisation.html#EncodeDisk"><span class="hs-identifier hs-type">EncodeDisk</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Consensus.HardFork.Combinator.Basics.html#HardForkBlock"><span class="hs-identifier hs-type">HardForkBlock</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680050179"><span class="hs-identifier hs-type">xs</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Consensus.HardFork.Combinator.Protocol.html#HardForkChainDepState"><span class="hs-identifier hs-type">HardForkChainDepState</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680050179"><span class="hs-identifier hs-type">xs</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-103"></span><span>  </span><span id="local-6989586621680050177"><span class="annot"><span class="annottext">encodeDisk :: CodecConfig (HardForkBlock xs)
+-&gt; HardForkChainDepState xs -&gt; Encoding
+</span><a href="#local-6989586621680050177"><span class="hs-identifier hs-var hs-var hs-var hs-var">encodeDisk</span></a></span></span><span> </span><span id="local-6989586621680050176"><span class="annot"><span class="annottext">CodecConfig (HardForkBlock xs)
+</span><a href="#local-6989586621680050176"><span class="hs-identifier hs-var">cfg</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-104"></span><span>      </span><span class="annot"><span class="annottext">NP (WrapChainDepState -.-&gt; K Encoding) xs
+-&gt; HardForkChainDepState xs -&gt; Encoding
+forall (xs :: [*]) (f :: * -&gt; *).
+SListI xs =&gt;
+NP (f -.-&gt; K Encoding) xs -&gt; HardForkState f xs -&gt; Encoding
+</span><a href="Ouroboros.Consensus.HardFork.Combinator.Serialisation.Common.html#encodeTelescope"><span class="hs-identifier hs-var">encodeTelescope</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Proxy SerialiseConstraintsHFC
+-&gt; (forall a.
+    SerialiseConstraintsHFC a =&gt;
+    CodecConfig a -&gt; (-.-&gt;) WrapChainDepState (K Encoding) a)
+-&gt; NP CodecConfig xs
+-&gt; NP (WrapChainDepState -.-&gt; K Encoding) xs
+forall k l (h :: (k -&gt; *) -&gt; l -&gt; *) (c :: k -&gt; Constraint)
+       (xs :: l) (proxy :: (k -&gt; Constraint) -&gt; *) (f :: k -&gt; *)
+       (f' :: k -&gt; *).
+(AllN (Prod h) c xs, HAp h) =&gt;
+proxy c
+-&gt; (forall (a :: k). c a =&gt; f a -&gt; f' a) -&gt; h f xs -&gt; h f' xs
+</span><span class="hs-identifier hs-var">hcmap</span></span><span> </span><span class="annot"><span class="annottext">Proxy SerialiseConstraintsHFC
+</span><a href="Ouroboros.Consensus.HardFork.Combinator.Serialisation.Common.html#pSHFC"><span class="hs-identifier hs-var">pSHFC</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">(WrapChainDepState a -&gt; K Encoding a)
+-&gt; (-.-&gt;) WrapChainDepState (K Encoding) a
+forall k (f :: k -&gt; *) (a :: k) (f' :: k -&gt; *).
+(f a -&gt; f' a) -&gt; (-.-&gt;) f f' a
+</span><span class="hs-identifier hs-var">fn</span></span><span> </span><span class="annot"><span class="annottext">((WrapChainDepState a -&gt; K Encoding a)
+ -&gt; (-.-&gt;) WrapChainDepState (K Encoding) a)
+-&gt; (CodecConfig a -&gt; WrapChainDepState a -&gt; K Encoding a)
+-&gt; CodecConfig a
+-&gt; (-.-&gt;) WrapChainDepState (K Encoding) a
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">CodecConfig a -&gt; WrapChainDepState a -&gt; K Encoding a
+forall blk.
+SerialiseDiskConstraints blk =&gt;
+CodecConfig blk -&gt; WrapChainDepState blk -&gt; K Encoding blk
+</span><a href="#local-6989586621680050174"><span class="hs-identifier hs-var">aux</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">NP CodecConfig xs
+</span><a href="#local-6989586621680050173"><span class="hs-identifier hs-var">cfgs</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-105"></span><span>    </span><span class="hs-keyword">where</span><span>
+</span><span id="line-106"></span><span>      </span><span id="local-6989586621680050173"><span class="annot"><span class="annottext">cfgs :: NP CodecConfig xs
+</span><a href="#local-6989586621680050173"><span class="hs-identifier hs-var hs-var">cfgs</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">PerEraCodecConfig xs -&gt; NP CodecConfig xs
+forall (xs :: [*]). PerEraCodecConfig xs -&gt; NP CodecConfig xs
+</span><a href="Ouroboros.Consensus.HardFork.Combinator.AcrossEras.html#getPerEraCodecConfig"><span class="hs-identifier hs-var hs-var">getPerEraCodecConfig</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">CodecConfig (HardForkBlock xs) -&gt; PerEraCodecConfig xs
+forall (xs :: [*]).
+CodecConfig (HardForkBlock xs) -&gt; PerEraCodecConfig xs
+</span><a href="Ouroboros.Consensus.HardFork.Combinator.Basics.html#hardForkCodecConfigPerEra"><span class="hs-identifier hs-var hs-var">hardForkCodecConfigPerEra</span></a></span><span> </span><span class="annot"><span class="annottext">CodecConfig (HardForkBlock xs)
+</span><a href="#local-6989586621680050176"><span class="hs-identifier hs-var">cfg</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-107"></span><span>
+</span><span id="line-108"></span><span>      </span><span id="local-6989586621680050284"><span class="annot"><a href="#local-6989586621680050174"><span class="hs-identifier hs-type">aux</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Storage.ChainDB.Impl.Types.html#SerialiseDiskConstraints"><span class="hs-identifier hs-type">SerialiseDiskConstraints</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680050284"><span class="hs-identifier hs-type">blk</span></a></span><span>
+</span><span id="line-109"></span><span>          </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Block.Abstract.html#CodecConfig"><span class="hs-identifier hs-type">CodecConfig</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680050284"><span class="hs-identifier hs-type">blk</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.TypeFamilyWrappers.html#WrapChainDepState"><span class="hs-identifier hs-type">WrapChainDepState</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680050284"><span class="hs-identifier hs-type">blk</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">K</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Encoding</span></span><span> </span><span class="annot"><a href="#local-6989586621680050284"><span class="hs-identifier hs-type">blk</span></a></span></span><span>
+</span><span id="line-110"></span><span>      </span><span id="local-6989586621680050174"><span class="annot"><span class="annottext">aux :: CodecConfig blk -&gt; WrapChainDepState blk -&gt; K Encoding blk
+</span><a href="#local-6989586621680050174"><span class="hs-identifier hs-var hs-var">aux</span></a></span></span><span> </span><span id="local-6989586621680050172"><span class="annot"><span class="annottext">CodecConfig blk
+</span><a href="#local-6989586621680050172"><span class="hs-identifier hs-var">cfg'</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Consensus.TypeFamilyWrappers.html#WrapChainDepState"><span class="hs-identifier hs-type">WrapChainDepState</span></a></span><span> </span><span id="local-6989586621680050170"><span class="annot"><span class="annottext">ChainDepState (BlockProtocol blk)
+</span><a href="#local-6989586621680050170"><span class="hs-identifier hs-var">st</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Encoding -&gt; K Encoding blk
+forall k a (b :: k). a -&gt; K a b
+</span><span class="hs-identifier hs-var">K</span></span><span> </span><span class="annot"><span class="annottext">(Encoding -&gt; K Encoding blk) -&gt; Encoding -&gt; K Encoding blk
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">CodecConfig blk -&gt; ChainDepState (BlockProtocol blk) -&gt; Encoding
+forall blk a. EncodeDisk blk a =&gt; CodecConfig blk -&gt; a -&gt; Encoding
+</span><a href="Ouroboros.Consensus.Storage.Serialisation.html#encodeDisk"><span class="hs-identifier hs-var">encodeDisk</span></a></span><span> </span><span class="annot"><span class="annottext">CodecConfig blk
+</span><a href="#local-6989586621680050172"><span class="hs-identifier hs-var">cfg'</span></a></span><span> </span><span class="annot"><span class="annottext">ChainDepState (BlockProtocol blk)
+</span><a href="#local-6989586621680050170"><span class="hs-identifier hs-var">st</span></a></span></span><span>
+</span><span id="line-111"></span><span>
+</span><span id="line-112"></span><span id="local-6989586621680050169"><span class="hs-keyword">instance</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.HardFork.Combinator.Serialisation.Common.html#SerialiseHFC"><span class="hs-identifier hs-type">SerialiseHFC</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680050169"><span class="hs-identifier hs-type">xs</span></a></span><span>
+</span><span id="line-113"></span><span>      </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Storage.Serialisation.html#DecodeDisk"><span class="hs-identifier hs-type">DecodeDisk</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Consensus.HardFork.Combinator.Basics.html#HardForkBlock"><span class="hs-identifier hs-type">HardForkBlock</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680050169"><span class="hs-identifier hs-type">xs</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Consensus.HardFork.Combinator.Protocol.html#HardForkChainDepState"><span class="hs-identifier hs-type">HardForkChainDepState</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680050169"><span class="hs-identifier hs-type">xs</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-114"></span><span>  </span><span id="local-6989586621680050167"><span class="annot"><span class="annottext">decodeDisk :: CodecConfig (HardForkBlock xs)
+-&gt; forall s. Decoder s (HardForkChainDepState xs)
+</span><a href="#local-6989586621680050167"><span class="hs-identifier hs-var hs-var hs-var hs-var">decodeDisk</span></a></span></span><span> </span><span id="local-6989586621680050166"><span class="annot"><span class="annottext">CodecConfig (HardForkBlock xs)
+</span><a href="#local-6989586621680050166"><span class="hs-identifier hs-var">cfg</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-115"></span><span>      </span><span class="annot"><span class="annottext">NP (Decoder s :.: WrapChainDepState) xs
+-&gt; Decoder s (HardForkChainDepState xs)
+forall s (f :: * -&gt; *) (xs :: [*]).
+NP (Decoder s :.: f) xs -&gt; Decoder s (HardForkState f xs)
+</span><a href="Ouroboros.Consensus.HardFork.Combinator.Serialisation.Common.html#decodeTelescope"><span class="hs-identifier hs-var">decodeTelescope</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Proxy SerialiseConstraintsHFC
+-&gt; (forall a.
+    SerialiseConstraintsHFC a =&gt;
+    CodecConfig a -&gt; (:.:) (Decoder s) WrapChainDepState a)
+-&gt; NP CodecConfig xs
+-&gt; NP (Decoder s :.: WrapChainDepState) xs
+forall k l (h :: (k -&gt; *) -&gt; l -&gt; *) (c :: k -&gt; Constraint)
+       (xs :: l) (proxy :: (k -&gt; Constraint) -&gt; *) (f :: k -&gt; *)
+       (f' :: k -&gt; *).
+(AllN (Prod h) c xs, HAp h) =&gt;
+proxy c
+-&gt; (forall (a :: k). c a =&gt; f a -&gt; f' a) -&gt; h f xs -&gt; h f' xs
+</span><span class="hs-identifier hs-var">hcmap</span></span><span> </span><span class="annot"><span class="annottext">Proxy SerialiseConstraintsHFC
+</span><a href="Ouroboros.Consensus.HardFork.Combinator.Serialisation.Common.html#pSHFC"><span class="hs-identifier hs-var">pSHFC</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Decoder s (WrapChainDepState a)
+-&gt; (:.:) (Decoder s) WrapChainDepState a
+forall l k (f :: l -&gt; *) (g :: k -&gt; l) (p :: k).
+f (g p) -&gt; (:.:) f g p
+</span><span class="hs-identifier hs-var">Comp</span></span><span> </span><span class="annot"><span class="annottext">(Decoder s (WrapChainDepState a)
+ -&gt; (:.:) (Decoder s) WrapChainDepState a)
+-&gt; (CodecConfig a -&gt; Decoder s (WrapChainDepState a))
+-&gt; CodecConfig a
+-&gt; (:.:) (Decoder s) WrapChainDepState a
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">(ChainDepState (BlockProtocol a) -&gt; WrapChainDepState a)
+-&gt; Decoder s (ChainDepState (BlockProtocol a))
+-&gt; Decoder s (WrapChainDepState a)
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-identifier hs-var">fmap</span></span><span> </span><span class="annot"><span class="annottext">ChainDepState (BlockProtocol a) -&gt; WrapChainDepState a
+forall blk.
+ChainDepState (BlockProtocol blk) -&gt; WrapChainDepState blk
+</span><a href="Ouroboros.Consensus.TypeFamilyWrappers.html#WrapChainDepState"><span class="hs-identifier hs-var">WrapChainDepState</span></a></span><span> </span><span class="annot"><span class="annottext">(Decoder s (ChainDepState (BlockProtocol a))
+ -&gt; Decoder s (WrapChainDepState a))
+-&gt; (CodecConfig a -&gt; Decoder s (ChainDepState (BlockProtocol a)))
+-&gt; CodecConfig a
+-&gt; Decoder s (WrapChainDepState a)
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">CodecConfig a -&gt; Decoder s (ChainDepState (BlockProtocol a))
+forall blk a.
+DecodeDisk blk a =&gt;
+CodecConfig blk -&gt; forall s. Decoder s a
+</span><a href="Ouroboros.Consensus.Storage.Serialisation.html#decodeDisk"><span class="hs-identifier hs-var">decodeDisk</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">NP CodecConfig xs
+</span><a href="#local-6989586621680050164"><span class="hs-identifier hs-var">cfgs</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-116"></span><span>    </span><span class="hs-keyword">where</span><span>
+</span><span id="line-117"></span><span>      </span><span id="local-6989586621680050164"><span class="annot"><span class="annottext">cfgs :: NP CodecConfig xs
+</span><a href="#local-6989586621680050164"><span class="hs-identifier hs-var hs-var">cfgs</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">PerEraCodecConfig xs -&gt; NP CodecConfig xs
+forall (xs :: [*]). PerEraCodecConfig xs -&gt; NP CodecConfig xs
+</span><a href="Ouroboros.Consensus.HardFork.Combinator.AcrossEras.html#getPerEraCodecConfig"><span class="hs-identifier hs-var hs-var">getPerEraCodecConfig</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">CodecConfig (HardForkBlock xs) -&gt; PerEraCodecConfig xs
+forall (xs :: [*]).
+CodecConfig (HardForkBlock xs) -&gt; PerEraCodecConfig xs
+</span><a href="Ouroboros.Consensus.HardFork.Combinator.Basics.html#hardForkCodecConfigPerEra"><span class="hs-identifier hs-var hs-var">hardForkCodecConfigPerEra</span></a></span><span> </span><span class="annot"><span class="annottext">CodecConfig (HardForkBlock xs)
+</span><a href="#local-6989586621680050166"><span class="hs-identifier hs-var">cfg</span></a></span><span class="hs-special">)</span></span><span>
+</span><span id="line-118"></span><span>
+</span><span id="line-119"></span><span id="local-6989586621680050163"><span class="hs-keyword">instance</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.HardFork.Combinator.Serialisation.Common.html#SerialiseHFC"><span class="hs-identifier hs-type">SerialiseHFC</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680050163"><span class="hs-identifier hs-type">xs</span></a></span><span>
+</span><span id="line-120"></span><span>      </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Storage.Serialisation.html#EncodeDisk"><span class="hs-identifier hs-type">EncodeDisk</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Consensus.HardFork.Combinator.Basics.html#HardForkBlock"><span class="hs-identifier hs-type">HardForkBlock</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680050163"><span class="hs-identifier hs-type">xs</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Consensus.Ledger.Basics.html#LedgerState"><span class="hs-identifier hs-type">LedgerState</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Consensus.HardFork.Combinator.Basics.html#HardForkBlock"><span class="hs-identifier hs-type">HardForkBlock</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680050163"><span class="hs-identifier hs-type">xs</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">)</span><span class="hs-keyword">where</span><span>
+</span><span id="line-121"></span><span>  </span><span id="local-6989586621680050161"><span class="annot"><span class="annottext">encodeDisk :: CodecConfig (HardForkBlock xs)
+-&gt; LedgerState (HardForkBlock xs) -&gt; Encoding
+</span><a href="#local-6989586621680050161"><span class="hs-identifier hs-var hs-var hs-var hs-var">encodeDisk</span></a></span></span><span> </span><span id="local-6989586621680050160"><span class="annot"><span class="annottext">CodecConfig (HardForkBlock xs)
+</span><a href="#local-6989586621680050160"><span class="hs-identifier hs-var">cfg</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-122"></span><span>        </span><span class="annot"><span class="annottext">NP (LedgerState -.-&gt; K Encoding) xs
+-&gt; HardForkState LedgerState xs -&gt; Encoding
+forall (xs :: [*]) (f :: * -&gt; *).
+SListI xs =&gt;
+NP (f -.-&gt; K Encoding) xs -&gt; HardForkState f xs -&gt; Encoding
+</span><a href="Ouroboros.Consensus.HardFork.Combinator.Serialisation.Common.html#encodeTelescope"><span class="hs-identifier hs-var">encodeTelescope</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Proxy SerialiseConstraintsHFC
+-&gt; (forall a.
+    SerialiseConstraintsHFC a =&gt;
+    CodecConfig a -&gt; (-.-&gt;) LedgerState (K Encoding) a)
+-&gt; NP CodecConfig xs
+-&gt; NP (LedgerState -.-&gt; K Encoding) xs
+forall k l (h :: (k -&gt; *) -&gt; l -&gt; *) (c :: k -&gt; Constraint)
+       (xs :: l) (proxy :: (k -&gt; Constraint) -&gt; *) (f :: k -&gt; *)
+       (f' :: k -&gt; *).
+(AllN (Prod h) c xs, HAp h) =&gt;
+proxy c
+-&gt; (forall (a :: k). c a =&gt; f a -&gt; f' a) -&gt; h f xs -&gt; h f' xs
+</span><span class="hs-identifier hs-var">hcmap</span></span><span> </span><span class="annot"><span class="annottext">Proxy SerialiseConstraintsHFC
+</span><a href="Ouroboros.Consensus.HardFork.Combinator.Serialisation.Common.html#pSHFC"><span class="hs-identifier hs-var">pSHFC</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">(LedgerState a -&gt; K Encoding a)
+-&gt; (-.-&gt;) LedgerState (K Encoding) a
+forall k (f :: k -&gt; *) (a :: k) (f' :: k -&gt; *).
+(f a -&gt; f' a) -&gt; (-.-&gt;) f f' a
+</span><span class="hs-identifier hs-var">fn</span></span><span> </span><span class="annot"><span class="annottext">((LedgerState a -&gt; K Encoding a)
+ -&gt; (-.-&gt;) LedgerState (K Encoding) a)
+-&gt; (CodecConfig a -&gt; LedgerState a -&gt; K Encoding a)
+-&gt; CodecConfig a
+-&gt; (-.-&gt;) LedgerState (K Encoding) a
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Encoding -&gt; K Encoding a
+forall k a (b :: k). a -&gt; K a b
+</span><span class="hs-identifier hs-var">K</span></span><span> </span><span class="annot"><span class="annottext">(Encoding -&gt; K Encoding a)
+-&gt; (CodecConfig a -&gt; LedgerState a -&gt; Encoding)
+-&gt; CodecConfig a
+-&gt; LedgerState a
+-&gt; K Encoding a
+forall y z x0 x1. (y -&gt; z) -&gt; (x0 -&gt; x1 -&gt; y) -&gt; x0 -&gt; x1 -&gt; z
+</span><a href="Ouroboros.Consensus.Util.html#.%3A"><span class="hs-operator hs-var">.:</span></a></span><span> </span><span class="annot"><span class="annottext">CodecConfig a -&gt; LedgerState a -&gt; Encoding
+forall blk a. EncodeDisk blk a =&gt; CodecConfig blk -&gt; a -&gt; Encoding
+</span><a href="Ouroboros.Consensus.Storage.Serialisation.html#encodeDisk"><span class="hs-identifier hs-var">encodeDisk</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">NP CodecConfig xs
+</span><a href="#local-6989586621680050159"><span class="hs-identifier hs-var">cfgs</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-123"></span><span>      </span><span class="annot"><span class="annottext">(HardForkState LedgerState xs -&gt; Encoding)
+-&gt; (LedgerState (HardForkBlock xs) -&gt; HardForkState LedgerState xs)
+-&gt; LedgerState (HardForkBlock xs)
+-&gt; Encoding
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">LedgerState (HardForkBlock xs) -&gt; HardForkState LedgerState xs
+forall (xs :: [*]).
+LedgerState (HardForkBlock xs) -&gt; HardForkState LedgerState xs
+</span><a href="Ouroboros.Consensus.HardFork.Combinator.Basics.html#hardForkLedgerStatePerEra"><span class="hs-identifier hs-var hs-var">hardForkLedgerStatePerEra</span></a></span><span>
+</span><span id="line-124"></span><span>    </span><span class="hs-keyword">where</span><span>
+</span><span id="line-125"></span><span>      </span><span id="local-6989586621680050159"><span class="annot"><span class="annottext">cfgs :: NP CodecConfig xs
+</span><a href="#local-6989586621680050159"><span class="hs-identifier hs-var hs-var">cfgs</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">PerEraCodecConfig xs -&gt; NP CodecConfig xs
+forall (xs :: [*]). PerEraCodecConfig xs -&gt; NP CodecConfig xs
+</span><a href="Ouroboros.Consensus.HardFork.Combinator.AcrossEras.html#getPerEraCodecConfig"><span class="hs-identifier hs-var hs-var">getPerEraCodecConfig</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">CodecConfig (HardForkBlock xs) -&gt; PerEraCodecConfig xs
+forall (xs :: [*]).
+CodecConfig (HardForkBlock xs) -&gt; PerEraCodecConfig xs
+</span><a href="Ouroboros.Consensus.HardFork.Combinator.Basics.html#hardForkCodecConfigPerEra"><span class="hs-identifier hs-var hs-var">hardForkCodecConfigPerEra</span></a></span><span> </span><span class="annot"><span class="annottext">CodecConfig (HardForkBlock xs)
+</span><a href="#local-6989586621680050160"><span class="hs-identifier hs-var">cfg</span></a></span><span class="hs-special">)</span></span><span>
+</span><span id="line-126"></span><span>
+</span><span id="line-127"></span><span id="local-6989586621680050157"><span class="hs-keyword">instance</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.HardFork.Combinator.Serialisation.Common.html#SerialiseHFC"><span class="hs-identifier hs-type">SerialiseHFC</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680050157"><span class="hs-identifier hs-type">xs</span></a></span><span>
+</span><span id="line-128"></span><span>      </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Storage.Serialisation.html#DecodeDisk"><span class="hs-identifier hs-type">DecodeDisk</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Consensus.HardFork.Combinator.Basics.html#HardForkBlock"><span class="hs-identifier hs-type">HardForkBlock</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680050157"><span class="hs-identifier hs-type">xs</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Consensus.Ledger.Basics.html#LedgerState"><span class="hs-identifier hs-type">LedgerState</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Consensus.HardFork.Combinator.Basics.html#HardForkBlock"><span class="hs-identifier hs-type">HardForkBlock</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680050157"><span class="hs-identifier hs-type">xs</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-129"></span><span>  </span><span id="local-6989586621680050155"><span class="annot"><span class="annottext">decodeDisk :: CodecConfig (HardForkBlock xs)
+-&gt; forall s. Decoder s (LedgerState (HardForkBlock xs))
+</span><a href="#local-6989586621680050155"><span class="hs-identifier hs-var hs-var hs-var hs-var">decodeDisk</span></a></span></span><span> </span><span id="local-6989586621680050154"><span class="annot"><span class="annottext">CodecConfig (HardForkBlock xs)
+</span><a href="#local-6989586621680050154"><span class="hs-identifier hs-var">cfg</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-130"></span><span>        </span><span class="annot"><span class="annottext">(HardForkState LedgerState xs -&gt; LedgerState (HardForkBlock xs))
+-&gt; Decoder s (HardForkState LedgerState xs)
+-&gt; Decoder s (LedgerState (HardForkBlock xs))
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-identifier hs-var">fmap</span></span><span> </span><span class="annot"><span class="annottext">HardForkState LedgerState xs -&gt; LedgerState (HardForkBlock xs)
+forall (xs :: [*]).
+HardForkState LedgerState xs -&gt; LedgerState (HardForkBlock xs)
+</span><a href="Ouroboros.Consensus.HardFork.Combinator.Basics.html#HardForkLedgerState"><span class="hs-identifier hs-var">HardForkLedgerState</span></a></span><span>
+</span><span id="line-131"></span><span>      </span><span class="annot"><span class="annottext">(Decoder s (HardForkState LedgerState xs)
+ -&gt; Decoder s (LedgerState (HardForkBlock xs)))
+-&gt; Decoder s (HardForkState LedgerState xs)
+-&gt; Decoder s (LedgerState (HardForkBlock xs))
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">NP (Decoder s :.: LedgerState) xs
+-&gt; Decoder s (HardForkState LedgerState xs)
+forall s (f :: * -&gt; *) (xs :: [*]).
+NP (Decoder s :.: f) xs -&gt; Decoder s (HardForkState f xs)
+</span><a href="Ouroboros.Consensus.HardFork.Combinator.Serialisation.Common.html#decodeTelescope"><span class="hs-identifier hs-var">decodeTelescope</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Proxy SerialiseConstraintsHFC
+-&gt; (forall a.
+    SerialiseConstraintsHFC a =&gt;
+    CodecConfig a -&gt; (:.:) (Decoder s) LedgerState a)
+-&gt; NP CodecConfig xs
+-&gt; NP (Decoder s :.: LedgerState) xs
+forall k l (h :: (k -&gt; *) -&gt; l -&gt; *) (c :: k -&gt; Constraint)
+       (xs :: l) (proxy :: (k -&gt; Constraint) -&gt; *) (f :: k -&gt; *)
+       (f' :: k -&gt; *).
+(AllN (Prod h) c xs, HAp h) =&gt;
+proxy c
+-&gt; (forall (a :: k). c a =&gt; f a -&gt; f' a) -&gt; h f xs -&gt; h f' xs
+</span><span class="hs-identifier hs-var">hcmap</span></span><span> </span><span class="annot"><span class="annottext">Proxy SerialiseConstraintsHFC
+</span><a href="Ouroboros.Consensus.HardFork.Combinator.Serialisation.Common.html#pSHFC"><span class="hs-identifier hs-var">pSHFC</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Decoder s (LedgerState a) -&gt; (:.:) (Decoder s) LedgerState a
+forall l k (f :: l -&gt; *) (g :: k -&gt; l) (p :: k).
+f (g p) -&gt; (:.:) f g p
+</span><span class="hs-identifier hs-var">Comp</span></span><span> </span><span class="annot"><span class="annottext">(Decoder s (LedgerState a) -&gt; (:.:) (Decoder s) LedgerState a)
+-&gt; (CodecConfig a -&gt; Decoder s (LedgerState a))
+-&gt; CodecConfig a
+-&gt; (:.:) (Decoder s) LedgerState a
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">CodecConfig a -&gt; Decoder s (LedgerState a)
+forall blk a.
+DecodeDisk blk a =&gt;
+CodecConfig blk -&gt; forall s. Decoder s a
+</span><a href="Ouroboros.Consensus.Storage.Serialisation.html#decodeDisk"><span class="hs-identifier hs-var">decodeDisk</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">NP CodecConfig xs
+</span><a href="#local-6989586621680050152"><span class="hs-identifier hs-var">cfgs</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-132"></span><span>    </span><span class="hs-keyword">where</span><span>
+</span><span id="line-133"></span><span>      </span><span id="local-6989586621680050152"><span class="annot"><span class="annottext">cfgs :: NP CodecConfig xs
+</span><a href="#local-6989586621680050152"><span class="hs-identifier hs-var hs-var">cfgs</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">PerEraCodecConfig xs -&gt; NP CodecConfig xs
+forall (xs :: [*]). PerEraCodecConfig xs -&gt; NP CodecConfig xs
+</span><a href="Ouroboros.Consensus.HardFork.Combinator.AcrossEras.html#getPerEraCodecConfig"><span class="hs-identifier hs-var hs-var">getPerEraCodecConfig</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">CodecConfig (HardForkBlock xs) -&gt; PerEraCodecConfig xs
+forall (xs :: [*]).
+CodecConfig (HardForkBlock xs) -&gt; PerEraCodecConfig xs
+</span><a href="Ouroboros.Consensus.HardFork.Combinator.Basics.html#hardForkCodecConfigPerEra"><span class="hs-identifier hs-var hs-var">hardForkCodecConfigPerEra</span></a></span><span> </span><span class="annot"><span class="annottext">CodecConfig (HardForkBlock xs)
+</span><a href="#local-6989586621680050154"><span class="hs-identifier hs-var">cfg</span></a></span><span class="hs-special">)</span></span><span>
+</span><span id="line-134"></span></pre></body></html>

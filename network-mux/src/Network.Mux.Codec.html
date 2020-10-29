@@ -1,71 +1,207 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-pragma">{-# LANGUAGE NamedFieldPuns #-}</span><span>
-</span><a name="line-2"></a><span>
-</span><a name="line-3"></a><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Network.Mux.Codec</span><span> </span><span class="hs-keyword">where</span><span>
-</span><a name="line-4"></a><span>
-</span><a name="line-5"></a><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-identifier">Data.Binary.Get</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">Bin</span><span>
-</span><a name="line-6"></a><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-identifier">Data.Binary.Put</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">Bin</span><span>
-</span><a name="line-7"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data.Bits</span><span>
-</span><a name="line-8"></a><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-identifier">Data.ByteString.Lazy</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">BL</span><span>
-</span><a name="line-9"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data.Word</span><span>
-</span><a name="line-10"></a><span>
-</span><a name="line-11"></a><span class="hs-keyword">import</span><span>           </span><a href="Network.Mux.Types.html"><span class="hs-identifier">Network.Mux.Types</span></a><span>
-</span><a name="line-12"></a><span class="hs-keyword">import</span><span>           </span><a href="Network.Mux.Trace.html"><span class="hs-identifier">Network.Mux.Trace</span></a><span>
-</span><a name="line-13"></a><span>
-</span><a name="line-14"></a><span>
-</span><a name="line-15"></a><span class="hs-comment">-- | Encode a 'MuxSDU' as a 'ByteString'.</span><span>
-</span><a name="line-16"></a><span class="hs-comment">--</span><span>
-</span><a name="line-17"></a><span class="hs-comment">-- &gt; Binary format used by 'encodeMuxSDU' and 'decodeMuxSDUHeader'</span><span>
-</span><a name="line-18"></a><span class="hs-comment">-- &gt;  0                   1                   2                   3</span><span>
-</span><a name="line-19"></a><span class="hs-comment">-- &gt;  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1</span><span>
-</span><a name="line-20"></a><span class="hs-comment">-- &gt; +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+</span><span>
-</span><a name="line-21"></a><span class="hs-comment">-- &gt; |              transmission time                                |</span><span>
-</span><a name="line-22"></a><span class="hs-comment">-- &gt; +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+</span><span>
-</span><a name="line-23"></a><span class="hs-comment">-- &gt; |M|    conversation id          |              length           |</span><span>
-</span><a name="line-24"></a><span class="hs-comment">-- &gt; +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+</span><span>
-</span><a name="line-25"></a><span class="hs-comment">--</span><span>
-</span><a name="line-26"></a><span class="hs-comment">-- All fields are in big endian byteorder.</span><span>
-</span><a name="line-27"></a><span class="hs-comment">--</span><span>
-</span><a name="line-28"></a><span class="hs-identifier">encodeMuxSDU</span><span> </span><span class="hs-glyph">::</span><span> </span><a href="Network.Mux.Types.html#MuxSDU"><span class="hs-identifier hs-type">MuxSDU</span></a><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">BL.ByteString</span><span>
-</span><a name="line-29"></a><a name="encodeMuxSDU"><a href="Network.Mux.Codec.html#encodeMuxSDU"><span class="hs-identifier">encodeMuxSDU</span></a></a><span> </span><a name="local-6989586621679120402"><a href="#local-6989586621679120402"><span class="hs-identifier">sdu</span></a></a><span> </span><span class="hs-glyph">=</span><span>
-</span><a name="line-30"></a><span>  </span><span class="hs-keyword">let</span><span> </span><a name="local-6989586621679120407"><a href="#local-6989586621679120407"><span class="hs-identifier">hdr</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-identifier hs-var">Bin.runPut</span><span> </span><a href="#local-6989586621679120403"><span class="hs-identifier hs-var">enc</span></a><span> </span><span class="hs-keyword">in</span><span>
-</span><a name="line-31"></a><span>  </span><span class="hs-identifier hs-var">BL.append</span><span> </span><a href="#local-6989586621679120407"><span class="hs-identifier hs-var">hdr</span></a><span> </span><span class="hs-operator hs-var">$</span><span> </span><span class="hs-identifier">msBlob</span><span> </span><a href="#local-6989586621679120402"><span class="hs-identifier hs-var">sdu</span></a><span>
-</span><a name="line-32"></a><span>  </span><span class="hs-keyword">where</span><span>
-</span><a name="line-33"></a><span>    </span><a name="local-6989586621679120403"><a href="#local-6989586621679120403"><span class="hs-identifier">enc</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
-</span><a name="line-34"></a><span>        </span><span class="hs-identifier hs-var">Bin.putWord32be</span><span> </span><span class="hs-operator hs-var">$</span><span> </span><span class="hs-identifier">unRemoteClockModel</span><span> </span><span class="hs-operator hs-var">$</span><span> </span><a href="Network.Mux.Types.html#msTimestamp"><span class="hs-identifier hs-var">msTimestamp</span></a><span> </span><a href="#local-6989586621679120402"><span class="hs-identifier hs-var">sdu</span></a><span>
-</span><a name="line-35"></a><span>        </span><span class="hs-identifier hs-var">Bin.putWord16be</span><span> </span><span class="hs-operator hs-var">$</span><span> </span><a href="#local-6989586621679120404"><span class="hs-identifier hs-var">putNumAndMode</span></a><span> </span><span class="hs-special">(</span><a href="Network.Mux.Types.html#msNum"><span class="hs-identifier hs-var">msNum</span></a><span> </span><a href="#local-6989586621679120402"><span class="hs-identifier hs-var">sdu</span></a><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><a href="Network.Mux.Types.html#msDir"><span class="hs-identifier hs-var">msDir</span></a><span> </span><a href="#local-6989586621679120402"><span class="hs-identifier hs-var">sdu</span></a><span class="hs-special">)</span><span>
-</span><a name="line-36"></a><span>        </span><span class="hs-identifier hs-var">Bin.putWord16be</span><span> </span><span class="hs-operator hs-var">$</span><span> </span><span class="hs-identifier hs-var">fromIntegral</span><span> </span><span class="hs-operator hs-var">$</span><span> </span><span class="hs-identifier hs-var">BL.length</span><span> </span><span class="hs-operator hs-var">$</span><span> </span><span class="hs-identifier">msBlob</span><span> </span><a href="#local-6989586621679120402"><span class="hs-identifier hs-var">sdu</span></a><span>
-</span><a name="line-37"></a><span>
-</span><a name="line-38"></a><span>    </span><span class="hs-identifier">putNumAndMode</span><span> </span><span class="hs-glyph">::</span><span> </span><a href="Network.Mux.Types.html#MiniProtocolNum"><span class="hs-identifier hs-type">MiniProtocolNum</span></a><span> </span><span class="hs-glyph">-&gt;</span><span> </span><a href="Network.Mux.Types.html#MiniProtocolDir"><span class="hs-identifier hs-type">MiniProtocolDir</span></a><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">Word16</span><span>
-</span><a name="line-39"></a><span>    </span><a name="local-6989586621679120404"><a href="#local-6989586621679120404"><span class="hs-identifier">putNumAndMode</span></a></a><span> </span><span class="hs-special">(</span><a href="Network.Mux.Types.html#MiniProtocolNum"><span class="hs-identifier hs-var">MiniProtocolNum</span></a><span> </span><a name="local-6989586621679120405"><a href="#local-6989586621679120405"><span class="hs-identifier">n</span></a></a><span class="hs-special">)</span><span> </span><a href="Network.Mux.Types.html#InitiatorDir"><span class="hs-identifier hs-var">InitiatorDir</span></a><span> </span><span class="hs-glyph">=</span><span> </span><a href="#local-6989586621679120405"><span class="hs-identifier hs-var">n</span></a><span>
-</span><a name="line-40"></a><span>    </span><span class="hs-identifier">putNumAndMode</span><span> </span><span class="hs-special">(</span><a href="Network.Mux.Types.html#MiniProtocolNum"><span class="hs-identifier hs-var">MiniProtocolNum</span></a><span> </span><a name="local-6989586621679120406"><a href="#local-6989586621679120406"><span class="hs-identifier">n</span></a></a><span class="hs-special">)</span><span> </span><a href="Network.Mux.Types.html#ResponderDir"><span class="hs-identifier hs-var">ResponderDir</span></a><span> </span><span class="hs-glyph">=</span><span> </span><a href="#local-6989586621679120406"><span class="hs-identifier hs-var">n</span></a><span> </span><span class="hs-operator hs-var">.|.</span><span> </span><span class="hs-number">0x8000</span><span>
-</span><a name="line-41"></a><span>
-</span><a name="line-42"></a><span>
-</span><a name="line-43"></a><span class="hs-comment">-- | Decode a 'MuSDU' header.  A left inverse of 'encodeMuxSDU'.</span><span>
-</span><a name="line-44"></a><span class="hs-comment">--</span><span>
-</span><a name="line-45"></a><span class="hs-identifier">decodeMuxSDU</span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">BL.ByteString</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">Either</span><span> </span><a href="Network.Mux.Trace.html#MuxError"><span class="hs-identifier hs-type">MuxError</span></a><span> </span><a href="Network.Mux.Types.html#MuxSDU"><span class="hs-identifier hs-type">MuxSDU</span></a><span>
-</span><a name="line-46"></a><a name="decodeMuxSDU"><a href="Network.Mux.Codec.html#decodeMuxSDU"><span class="hs-identifier">decodeMuxSDU</span></a></a><span> </span><a name="local-6989586621679120408"><a href="#local-6989586621679120408"><span class="hs-identifier">buf</span></a></a><span> </span><span class="hs-glyph">=</span><span>
-</span><a name="line-47"></a><span>    </span><span class="hs-keyword">case</span><span> </span><span class="hs-identifier hs-var">Bin.runGetOrFail</span><span> </span><a href="#local-6989586621679120409"><span class="hs-identifier hs-var">dec</span></a><span> </span><a href="#local-6989586621679120408"><span class="hs-identifier hs-var">buf</span></a><span> </span><span class="hs-keyword">of</span><span>
-</span><a name="line-48"></a><span>         </span><span class="hs-identifier hs-var">Left</span><span>  </span><span class="hs-special">(</span><span class="hs-identifier">_</span><span class="hs-special">,</span><span> </span><span class="hs-identifier">_</span><span class="hs-special">,</span><span> </span><a name="local-6989586621679120417"><a href="#local-6989586621679120417"><span class="hs-identifier">e</span></a></a><span class="hs-special">)</span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-var">Left</span><span> </span><span class="hs-operator hs-var">$</span><span> </span><a href="Network.Mux.Trace.html#MuxError"><span class="hs-identifier hs-var">MuxError</span></a><span> </span><a href="Network.Mux.Trace.html#MuxDecodeError"><span class="hs-identifier hs-var">MuxDecodeError</span></a><span> </span><a href="#local-6989586621679120417"><span class="hs-identifier hs-var">e</span></a><span>
-</span><a name="line-49"></a><span>         </span><span class="hs-identifier hs-var">Right</span><span> </span><span class="hs-special">(</span><span class="hs-identifier">_</span><span class="hs-special">,</span><span> </span><span class="hs-identifier">_</span><span class="hs-special">,</span><span> </span><a name="local-6989586621679120418"><a href="#local-6989586621679120418"><span class="hs-identifier">h</span></a></a><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
-</span><a name="line-50"></a><span>             </span><span class="hs-identifier hs-var">Right</span><span> </span><span class="hs-operator hs-var">$</span><span> </span><a href="Network.Mux.Types.html#MuxSDU"><span class="hs-identifier hs-var">MuxSDU</span></a><span> </span><span class="hs-special">{</span><span>
-</span><a name="line-51"></a><span>                   </span><span class="hs-identifier">msHeader</span><span> </span><span class="hs-glyph">=</span><span> </span><a href="#local-6989586621679120418"><span class="hs-identifier hs-var">h</span></a><span>
-</span><a name="line-52"></a><span>                 </span><span class="hs-special">,</span><span> </span><span class="hs-identifier">msBlob</span><span>   </span><span class="hs-glyph">=</span><span> </span><span class="hs-identifier hs-var">BL.empty</span><span>
-</span><a name="line-53"></a><span>                 </span><span class="hs-special">}</span><span>
-</span><a name="line-54"></a><span>  </span><span class="hs-keyword">where</span><span>
-</span><a name="line-55"></a><span>    </span><a name="local-6989586621679120409"><a href="#local-6989586621679120409"><span class="hs-identifier">dec</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
-</span><a name="line-56"></a><span>        </span><a name="local-6989586621679120411"><a href="#local-6989586621679120411"><span class="hs-identifier">mhTimestamp</span></a></a><span> </span><span class="hs-glyph">&lt;-</span><span> </span><a href="Network.Mux.Types.html#RemoteClockModel"><span class="hs-identifier hs-var">RemoteClockModel</span></a><span> </span><span class="hs-operator hs-var">&lt;$&gt;</span><span> </span><span class="hs-identifier hs-var">Bin.getWord32be</span><span>
-</span><a name="line-57"></a><span>        </span><a name="local-6989586621679120412"><a href="#local-6989586621679120412"><span class="hs-identifier">a</span></a></a><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="hs-identifier hs-var">Bin.getWord16be</span><span>
-</span><a name="line-58"></a><span>        </span><a name="local-6989586621679120413"><a href="#local-6989586621679120413"><span class="hs-identifier">mhLength</span></a></a><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="hs-identifier hs-var">Bin.getWord16be</span><span>
-</span><a name="line-59"></a><span>        </span><span class="hs-keyword">let</span><span> </span><a name="local-6989586621679120414"><a href="#local-6989586621679120414"><span class="hs-identifier">mhDir</span></a></a><span>  </span><span class="hs-glyph">=</span><span> </span><a href="#local-6989586621679120410"><span class="hs-identifier hs-var">getDir</span></a><span> </span><a href="#local-6989586621679120412"><span class="hs-identifier hs-var">a</span></a><span>
-</span><a name="line-60"></a><span>            </span><a name="local-6989586621679120415"><a href="#local-6989586621679120415"><span class="hs-identifier">mhNum</span></a></a><span>  </span><span class="hs-glyph">=</span><span> </span><a href="Network.Mux.Types.html#MiniProtocolNum"><span class="hs-identifier hs-var">MiniProtocolNum</span></a><span> </span><span class="hs-special">(</span><a href="#local-6989586621679120412"><span class="hs-identifier hs-var">a</span></a><span> </span><span class="hs-operator hs-var">.&amp;.</span><span> </span><span class="hs-number">0x7fff</span><span class="hs-special">)</span><span>
-</span><a name="line-61"></a><span>        </span><span class="hs-identifier hs-var">return</span><span> </span><span class="hs-operator hs-var">$</span><span> </span><a href="Network.Mux.Types.html#MuxSDUHeader"><span class="hs-identifier hs-var">MuxSDUHeader</span></a><span> </span><span class="hs-special">{</span><span>
-</span><a name="line-62"></a><span>            </span><a href="#local-6989586621679120411"><span class="hs-identifier hs-var">mhTimestamp</span></a><span class="hs-special">,</span><span>
-</span><a name="line-63"></a><span>            </span><a href="#local-6989586621679120415"><span class="hs-identifier hs-var">mhNum</span></a><span class="hs-special">,</span><span>
-</span><a name="line-64"></a><span>            </span><a href="#local-6989586621679120414"><span class="hs-identifier hs-var">mhDir</span></a><span class="hs-special">,</span><span>
-</span><a name="line-65"></a><span>            </span><a href="#local-6989586621679120413"><span class="hs-identifier hs-var">mhLength</span></a><span>
-</span><a name="line-66"></a><span>          </span><span class="hs-special">}</span><span>
-</span><a name="line-67"></a><span>
-</span><a name="line-68"></a><span>    </span><a name="local-6989586621679120410"><a href="#local-6989586621679120410"><span class="hs-identifier">getDir</span></a></a><span> </span><a name="local-6989586621679120416"><a href="#local-6989586621679120416"><span class="hs-identifier">mid</span></a></a><span> </span><span class="hs-glyph">=</span><span>
-</span><a name="line-69"></a><span>        </span><span class="hs-keyword">if</span><span> </span><a href="#local-6989586621679120416"><span class="hs-identifier hs-var">mid</span></a><span> </span><span class="hs-operator hs-var">.&amp;.</span><span> </span><span class="hs-number">0x8000</span><span> </span><span class="hs-operator hs-var">==</span><span> </span><span class="hs-number">0</span><span> </span><span class="hs-keyword">then</span><span> </span><a href="Network.Mux.Types.html#InitiatorDir"><span class="hs-identifier hs-var">InitiatorDir</span></a><span>
-</span><a name="line-70"></a><span>                               </span><span class="hs-keyword">else</span><span> </span><a href="Network.Mux.Types.html#ResponderDir"><span class="hs-identifier hs-var">ResponderDir</span></a><span>
-</span><a name="line-71"></a></pre></body></html>
+</span><span id="line-2"></span><span>
+</span><span id="line-3"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Network.Mux.Codec</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-4"></span><span>
+</span><span id="line-5"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Data.Binary.Get</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Bin</span></span><span>
+</span><span id="line-6"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Data.Binary.Put</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Bin</span></span><span>
+</span><span id="line-7"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><span class="hs-identifier">Data.Bits</span></span><span>
+</span><span id="line-8"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Data.ByteString.Lazy</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">BL</span></span><span>
+</span><span id="line-9"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><span class="hs-identifier">Data.Word</span></span><span>
+</span><span id="line-10"></span><span>
+</span><span id="line-11"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="Network.Mux.Types.html"><span class="hs-identifier">Network.Mux.Types</span></a></span><span>
+</span><span id="line-12"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="Network.Mux.Trace.html"><span class="hs-identifier">Network.Mux.Trace</span></a></span><span>
+</span><span id="line-13"></span><span>
+</span><span id="line-14"></span><span>
+</span><span id="line-15"></span><span class="hs-comment">-- | Encode a 'MuxSDU' as a 'ByteString'.</span><span>
+</span><span id="line-16"></span><span class="hs-comment">--</span><span>
+</span><span id="line-17"></span><span class="hs-comment">-- &gt; Binary format used by 'encodeMuxSDU' and 'decodeMuxSDUHeader'</span><span>
+</span><span id="line-18"></span><span class="hs-comment">-- &gt;  0                   1                   2                   3</span><span>
+</span><span id="line-19"></span><span class="hs-comment">-- &gt;  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1</span><span>
+</span><span id="line-20"></span><span class="hs-comment">-- &gt; +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+</span><span>
+</span><span id="line-21"></span><span class="hs-comment">-- &gt; |              transmission time                                |</span><span>
+</span><span id="line-22"></span><span class="hs-comment">-- &gt; +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+</span><span>
+</span><span id="line-23"></span><span class="hs-comment">-- &gt; |M|    conversation id          |              length           |</span><span>
+</span><span id="line-24"></span><span class="hs-comment">-- &gt; +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+</span><span>
+</span><span id="line-25"></span><span class="hs-comment">--</span><span>
+</span><span id="line-26"></span><span class="hs-comment">-- All fields are in big endian byteorder.</span><span>
+</span><span id="line-27"></span><span class="hs-comment">--</span><span>
+</span><span id="line-28"></span><span class="annot"><a href="Network.Mux.Codec.html#encodeMuxSDU"><span class="hs-identifier hs-type">encodeMuxSDU</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Network.Mux.Types.html#MuxSDU"><span class="hs-identifier hs-type">MuxSDU</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">BL.ByteString</span></span><span>
+</span><span id="line-29"></span><span id="encodeMuxSDU"><span class="annot"><span class="annottext">encodeMuxSDU :: MuxSDU -&gt; ByteString
+</span><a href="Network.Mux.Codec.html#encodeMuxSDU"><span class="hs-identifier hs-var hs-var">encodeMuxSDU</span></a></span></span><span> </span><span id="local-6989586621679098080"><span class="annot"><span class="annottext">MuxSDU
+</span><a href="#local-6989586621679098080"><span class="hs-identifier hs-var">sdu</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-30"></span><span>  </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679098079"><span class="annot"><span class="annottext">hdr :: ByteString
+</span><a href="#local-6989586621679098079"><span class="hs-identifier hs-var hs-var">hdr</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Put -&gt; ByteString
+</span><span class="hs-identifier hs-var">Bin.runPut</span></span><span> </span><span class="annot"><span class="annottext">Put
+</span><a href="#local-6989586621679098077"><span class="hs-identifier hs-var">enc</span></a></span><span> </span><span class="hs-keyword">in</span><span>
+</span><span id="line-31"></span><span>  </span><span class="annot"><span class="annottext">ByteString -&gt; ByteString -&gt; ByteString
+</span><span class="hs-identifier hs-var">BL.append</span></span><span> </span><span class="annot"><span class="annottext">ByteString
+</span><a href="#local-6989586621679098079"><span class="hs-identifier hs-var">hdr</span></a></span><span> </span><span class="annot"><span class="annottext">(ByteString -&gt; ByteString) -&gt; ByteString -&gt; ByteString
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">MuxSDU -&gt; ByteString
+</span><a href="Network.Mux.Types.html#msBlob"><span class="hs-identifier hs-var hs-var">msBlob</span></a></span><span> </span><span class="annot"><span class="annottext">MuxSDU
+</span><a href="#local-6989586621679098080"><span class="hs-identifier hs-var">sdu</span></a></span><span>
+</span><span id="line-32"></span><span>  </span><span class="hs-keyword">where</span><span>
+</span><span id="line-33"></span><span>    </span><span id="local-6989586621679098077"><span class="annot"><span class="annottext">enc :: Put
+</span><a href="#local-6989586621679098077"><span class="hs-identifier hs-var hs-var">enc</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-34"></span><span>        </span><span class="annot"><span class="annottext">Word32 -&gt; Put
+</span><span class="hs-identifier hs-var">Bin.putWord32be</span></span><span> </span><span class="annot"><span class="annottext">(Word32 -&gt; Put) -&gt; Word32 -&gt; Put
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">RemoteClockModel -&gt; Word32
+</span><a href="Network.Mux.Types.html#unRemoteClockModel"><span class="hs-identifier hs-var hs-var">unRemoteClockModel</span></a></span><span> </span><span class="annot"><span class="annottext">(RemoteClockModel -&gt; Word32) -&gt; RemoteClockModel -&gt; Word32
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">MuxSDU -&gt; RemoteClockModel
+</span><a href="Network.Mux.Types.html#msTimestamp"><span class="hs-identifier hs-var">msTimestamp</span></a></span><span> </span><span class="annot"><span class="annottext">MuxSDU
+</span><a href="#local-6989586621679098080"><span class="hs-identifier hs-var">sdu</span></a></span><span>
+</span><span id="line-35"></span><span>        </span><span class="annot"><span class="annottext">Word16 -&gt; Put
+</span><span class="hs-identifier hs-var">Bin.putWord16be</span></span><span> </span><span class="annot"><span class="annottext">(Word16 -&gt; Put) -&gt; Word16 -&gt; Put
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">MiniProtocolNum -&gt; MiniProtocolDir -&gt; Word16
+</span><a href="#local-6989586621679098070"><span class="hs-identifier hs-var">putNumAndMode</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">MuxSDU -&gt; MiniProtocolNum
+</span><a href="Network.Mux.Types.html#msNum"><span class="hs-identifier hs-var">msNum</span></a></span><span> </span><span class="annot"><span class="annottext">MuxSDU
+</span><a href="#local-6989586621679098080"><span class="hs-identifier hs-var">sdu</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">MuxSDU -&gt; MiniProtocolDir
+</span><a href="Network.Mux.Types.html#msDir"><span class="hs-identifier hs-var">msDir</span></a></span><span> </span><span class="annot"><span class="annottext">MuxSDU
+</span><a href="#local-6989586621679098080"><span class="hs-identifier hs-var">sdu</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-36"></span><span>        </span><span class="annot"><span class="annottext">Word16 -&gt; Put
+</span><span class="hs-identifier hs-var">Bin.putWord16be</span></span><span> </span><span class="annot"><span class="annottext">(Word16 -&gt; Put) -&gt; Word16 -&gt; Put
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Int64 -&gt; Word16
+forall a b. (Integral a, Num b) =&gt; a -&gt; b
+</span><span class="hs-identifier hs-var">fromIntegral</span></span><span> </span><span class="annot"><span class="annottext">(Int64 -&gt; Word16) -&gt; Int64 -&gt; Word16
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">ByteString -&gt; Int64
+</span><span class="hs-identifier hs-var">BL.length</span></span><span> </span><span class="annot"><span class="annottext">(ByteString -&gt; Int64) -&gt; ByteString -&gt; Int64
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">MuxSDU -&gt; ByteString
+</span><a href="Network.Mux.Types.html#msBlob"><span class="hs-identifier hs-var hs-var">msBlob</span></a></span><span> </span><span class="annot"><span class="annottext">MuxSDU
+</span><a href="#local-6989586621679098080"><span class="hs-identifier hs-var">sdu</span></a></span><span>
+</span><span id="line-37"></span><span>
+</span><span id="line-38"></span><span>    </span><span class="annot"><a href="#local-6989586621679098070"><span class="hs-identifier hs-type">putNumAndMode</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Network.Mux.Types.html#MiniProtocolNum"><span class="hs-identifier hs-type">MiniProtocolNum</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Network.Mux.Types.html#MiniProtocolDir"><span class="hs-identifier hs-type">MiniProtocolDir</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Word16</span></span><span>
+</span><span id="line-39"></span><span>    </span><span id="local-6989586621679098070"><span class="annot"><span class="annottext">putNumAndMode :: MiniProtocolNum -&gt; MiniProtocolDir -&gt; Word16
+</span><a href="#local-6989586621679098070"><span class="hs-identifier hs-var hs-var">putNumAndMode</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Network.Mux.Types.html#MiniProtocolNum"><span class="hs-identifier hs-type">MiniProtocolNum</span></a></span><span> </span><span id="local-6989586621679098065"><span class="annot"><span class="annottext">Word16
+</span><a href="#local-6989586621679098065"><span class="hs-identifier hs-var">n</span></a></span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">MiniProtocolDir
+</span><a href="Network.Mux.Types.html#InitiatorDir"><span class="hs-identifier hs-var">InitiatorDir</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Word16
+</span><a href="#local-6989586621679098065"><span class="hs-identifier hs-var">n</span></a></span><span>
+</span><span id="line-40"></span><span>    </span><span class="annot"><a href="#local-6989586621679098070"><span class="hs-identifier hs-var">putNumAndMode</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Network.Mux.Types.html#MiniProtocolNum"><span class="hs-identifier hs-type">MiniProtocolNum</span></a></span><span> </span><span id="local-6989586621679098063"><span class="annot"><span class="annottext">Word16
+</span><a href="#local-6989586621679098063"><span class="hs-identifier hs-var">n</span></a></span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">MiniProtocolDir
+</span><a href="Network.Mux.Types.html#ResponderDir"><span class="hs-identifier hs-var">ResponderDir</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Word16
+</span><a href="#local-6989586621679098063"><span class="hs-identifier hs-var">n</span></a></span><span> </span><span class="annot"><span class="annottext">Word16 -&gt; Word16 -&gt; Word16
+forall a. Bits a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">.|.</span></span><span> </span><span class="annot"><span class="annottext">Word16
+</span><span class="hs-number">0x8000</span></span><span>
+</span><span id="line-41"></span><span>
+</span><span id="line-42"></span><span>
+</span><span id="line-43"></span><span class="hs-comment">-- | Decode a 'MuSDU' header.  A left inverse of 'encodeMuxSDU'.</span><span>
+</span><span id="line-44"></span><span class="hs-comment">--</span><span>
+</span><span id="line-45"></span><span class="annot"><a href="Network.Mux.Codec.html#decodeMuxSDU"><span class="hs-identifier hs-type">decodeMuxSDU</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">BL.ByteString</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Either</span></span><span> </span><span class="annot"><a href="Network.Mux.Trace.html#MuxError"><span class="hs-identifier hs-type">MuxError</span></a></span><span> </span><span class="annot"><a href="Network.Mux.Types.html#MuxSDU"><span class="hs-identifier hs-type">MuxSDU</span></a></span><span>
+</span><span id="line-46"></span><span id="decodeMuxSDU"><span class="annot"><span class="annottext">decodeMuxSDU :: ByteString -&gt; Either MuxError MuxSDU
+</span><a href="Network.Mux.Codec.html#decodeMuxSDU"><span class="hs-identifier hs-var hs-var">decodeMuxSDU</span></a></span></span><span> </span><span id="local-6989586621679098059"><span class="annot"><span class="annottext">ByteString
+</span><a href="#local-6989586621679098059"><span class="hs-identifier hs-var">buf</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-47"></span><span>    </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">Get MuxSDUHeader
+-&gt; ByteString
+-&gt; Either
+     (ByteString, Int64, String) (ByteString, Int64, MuxSDUHeader)
+forall a.
+Get a
+-&gt; ByteString
+-&gt; Either (ByteString, Int64, String) (ByteString, Int64, a)
+</span><span class="hs-identifier hs-var">Bin.runGetOrFail</span></span><span> </span><span class="annot"><span class="annottext">Get MuxSDUHeader
+</span><a href="#local-6989586621679098057"><span class="hs-identifier hs-var">dec</span></a></span><span> </span><span class="annot"><span class="annottext">ByteString
+</span><a href="#local-6989586621679098059"><span class="hs-identifier hs-var">buf</span></a></span><span> </span><span class="hs-keyword">of</span><span>
+</span><span id="line-48"></span><span>         </span><span class="annot"><span class="hs-identifier hs-type">Left</span></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="annottext">ByteString
+</span><span class="hs-identifier">_</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Int64
+</span><span class="hs-identifier">_</span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679098056"><span class="annot"><span class="annottext">String
+</span><a href="#local-6989586621679098056"><span class="hs-identifier hs-var">e</span></a></span></span><span class="hs-special">)</span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">MuxError -&gt; Either MuxError MuxSDU
+forall a b. a -&gt; Either a b
+</span><span class="hs-identifier hs-var">Left</span></span><span> </span><span class="annot"><span class="annottext">(MuxError -&gt; Either MuxError MuxSDU)
+-&gt; MuxError -&gt; Either MuxError MuxSDU
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">MuxErrorType -&gt; String -&gt; MuxError
+</span><a href="Network.Mux.Trace.html#MuxError"><span class="hs-identifier hs-var">MuxError</span></a></span><span> </span><span class="annot"><span class="annottext">MuxErrorType
+</span><a href="Network.Mux.Trace.html#MuxDecodeError"><span class="hs-identifier hs-var">MuxDecodeError</span></a></span><span> </span><span class="annot"><span class="annottext">String
+</span><a href="#local-6989586621679098056"><span class="hs-identifier hs-var">e</span></a></span><span>
+</span><span id="line-49"></span><span>         </span><span class="annot"><span class="hs-identifier hs-type">Right</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">ByteString
+</span><span class="hs-identifier">_</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Int64
+</span><span class="hs-identifier">_</span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679098053"><span class="annot"><span class="annottext">MuxSDUHeader
+</span><a href="#local-6989586621679098053"><span class="hs-identifier hs-var">h</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-50"></span><span>             </span><span class="annot"><span class="annottext">MuxSDU -&gt; Either MuxError MuxSDU
+forall a b. b -&gt; Either a b
+</span><span class="hs-identifier hs-var">Right</span></span><span> </span><span class="annot"><span class="annottext">(MuxSDU -&gt; Either MuxError MuxSDU)
+-&gt; MuxSDU -&gt; Either MuxError MuxSDU
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">MuxSDU :: MuxSDUHeader -&gt; ByteString -&gt; MuxSDU
+</span><a href="Network.Mux.Types.html#MuxSDU"><span class="hs-identifier hs-type">MuxSDU</span></a></span><span> </span><span class="hs-special">{</span><span>
+</span><span id="line-51"></span><span>                   </span><span class="annot"><span class="annottext">msHeader :: MuxSDUHeader
+</span><a href="Network.Mux.Types.html#msHeader"><span class="hs-identifier hs-var">msHeader</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">MuxSDUHeader
+</span><a href="#local-6989586621679098053"><span class="hs-identifier hs-var">h</span></a></span><span>
+</span><span id="line-52"></span><span>                 </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">msBlob :: ByteString
+</span><a href="Network.Mux.Types.html#msBlob"><span class="hs-identifier hs-var">msBlob</span></a></span><span>   </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">ByteString
+</span><span class="hs-identifier hs-var">BL.empty</span></span><span>
+</span><span id="line-53"></span><span>                 </span><span class="hs-special">}</span><span>
+</span><span id="line-54"></span><span>  </span><span class="hs-keyword">where</span><span>
+</span><span id="line-55"></span><span>    </span><span id="local-6989586621679098057"><span class="annot"><span class="annottext">dec :: Get MuxSDUHeader
+</span><a href="#local-6989586621679098057"><span class="hs-identifier hs-var hs-var">dec</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-56"></span><span>        </span><span id="local-6989586621679098049"><span class="annot"><span class="annottext">RemoteClockModel
+</span><a href="#local-6989586621679098049"><span class="hs-identifier hs-var">mhTimestamp</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Word32 -&gt; RemoteClockModel
+</span><a href="Network.Mux.Types.html#RemoteClockModel"><span class="hs-identifier hs-var">RemoteClockModel</span></a></span><span> </span><span class="annot"><span class="annottext">(Word32 -&gt; RemoteClockModel) -&gt; Get Word32 -&gt; Get RemoteClockModel
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">Get Word32
+</span><span class="hs-identifier hs-var">Bin.getWord32be</span></span><span>
+</span><span id="line-57"></span><span>        </span><span id="local-6989586621679098045"><span class="annot"><span class="annottext">Word16
+</span><a href="#local-6989586621679098045"><span class="hs-identifier hs-var">a</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Get Word16
+</span><span class="hs-identifier hs-var">Bin.getWord16be</span></span><span>
+</span><span id="line-58"></span><span>        </span><span id="local-6989586621679098043"><span class="annot"><span class="annottext">Word16
+</span><a href="#local-6989586621679098043"><span class="hs-identifier hs-var">mhLength</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Get Word16
+</span><span class="hs-identifier hs-var">Bin.getWord16be</span></span><span>
+</span><span id="line-59"></span><span>        </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679098042"><span class="annot"><span class="annottext">mhDir :: MiniProtocolDir
+</span><a href="#local-6989586621679098042"><span class="hs-identifier hs-var hs-var">mhDir</span></a></span></span><span>  </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Word16 -&gt; MiniProtocolDir
+forall a. (Bits a, Num a) =&gt; a -&gt; MiniProtocolDir
+</span><a href="#local-6989586621679098041"><span class="hs-identifier hs-var">getDir</span></a></span><span> </span><span class="annot"><span class="annottext">Word16
+</span><a href="#local-6989586621679098045"><span class="hs-identifier hs-var">a</span></a></span><span>
+</span><span id="line-60"></span><span>            </span><span id="local-6989586621679098040"><span class="annot"><span class="annottext">mhNum :: MiniProtocolNum
+</span><a href="#local-6989586621679098040"><span class="hs-identifier hs-var hs-var">mhNum</span></a></span></span><span>  </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Word16 -&gt; MiniProtocolNum
+</span><a href="Network.Mux.Types.html#MiniProtocolNum"><span class="hs-identifier hs-var">MiniProtocolNum</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Word16
+</span><a href="#local-6989586621679098045"><span class="hs-identifier hs-var">a</span></a></span><span> </span><span class="annot"><span class="annottext">Word16 -&gt; Word16 -&gt; Word16
+forall a. Bits a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">.&amp;.</span></span><span> </span><span class="annot"><span class="annottext">Word16
+</span><span class="hs-number">0x7fff</span></span><span class="hs-special">)</span><span>
+</span><span id="line-61"></span><span>        </span><span class="annot"><span class="annottext">MuxSDUHeader -&gt; Get MuxSDUHeader
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">(MuxSDUHeader -&gt; Get MuxSDUHeader)
+-&gt; MuxSDUHeader -&gt; Get MuxSDUHeader
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">MuxSDUHeader :: RemoteClockModel
+-&gt; MiniProtocolNum -&gt; MiniProtocolDir -&gt; Word16 -&gt; MuxSDUHeader
+</span><a href="Network.Mux.Types.html#MuxSDUHeader"><span class="hs-identifier hs-type">MuxSDUHeader</span></a></span><span> </span><span class="hs-special">{</span><span>
+</span><span id="line-62"></span><span>            </span><span class="annot"><span class="annottext">RemoteClockModel
+mhTimestamp :: RemoteClockModel
+mhTimestamp :: RemoteClockModel
+</span><a href="Network.Mux.Types.html#mhTimestamp"><span class="hs-identifier hs-var hs-var">mhTimestamp</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-63"></span><span>            </span><span class="annot"><span class="annottext">MiniProtocolNum
+mhNum :: MiniProtocolNum
+mhNum :: MiniProtocolNum
+</span><a href="Network.Mux.Types.html#mhNum"><span class="hs-identifier hs-var hs-var">mhNum</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-64"></span><span>            </span><span class="annot"><span class="annottext">MiniProtocolDir
+mhDir :: MiniProtocolDir
+mhDir :: MiniProtocolDir
+</span><a href="#local-6989586621679098035"><span class="hs-identifier hs-var hs-var">mhDir</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-65"></span><span>            </span><span class="annot"><span class="annottext">Word16
+mhLength :: Word16
+mhLength :: Word16
+</span><a href="#local-6989586621679098034"><span class="hs-identifier hs-var hs-var">mhLength</span></a></span><span>
+</span><span id="line-66"></span><span>          </span><span class="hs-special">}</span><span>
+</span><span id="line-67"></span><span>
+</span><span id="line-68"></span><span>    </span><span id="local-6989586621679098041"><span class="annot"><span class="annottext">getDir :: a -&gt; MiniProtocolDir
+</span><a href="#local-6989586621679098041"><span class="hs-identifier hs-var hs-var">getDir</span></a></span></span><span> </span><span id="local-6989586621679098033"><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679098033"><span class="hs-identifier hs-var">mid</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-69"></span><span>        </span><span class="hs-keyword">if</span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679098033"><span class="hs-identifier hs-var">mid</span></a></span><span> </span><span class="annot"><span class="annottext">a -&gt; a -&gt; a
+forall a. Bits a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">.&amp;.</span></span><span> </span><span class="annot"><span class="annottext">a
+</span><span class="hs-number">0x8000</span></span><span> </span><span class="annot"><span class="annottext">a -&gt; a -&gt; Bool
+forall a. Eq a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">==</span></span><span> </span><span class="annot"><span class="annottext">a
+</span><span class="hs-number">0</span></span><span> </span><span class="hs-keyword">then</span><span> </span><span class="annot"><span class="annottext">MiniProtocolDir
+</span><a href="Network.Mux.Types.html#InitiatorDir"><span class="hs-identifier hs-var">InitiatorDir</span></a></span><span>
+</span><span id="line-70"></span><span>                               </span><span class="hs-keyword">else</span><span> </span><span class="annot"><span class="annottext">MiniProtocolDir
+</span><a href="Network.Mux.Types.html#ResponderDir"><span class="hs-identifier hs-var">ResponderDir</span></a></span><span>
+</span><span id="line-71"></span></pre></body></html>

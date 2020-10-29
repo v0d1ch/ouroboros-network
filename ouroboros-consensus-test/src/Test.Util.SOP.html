@@ -1,32 +1,116 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-pragma">{-# LANGUAGE ScopedTypeVariables #-}</span><span>
-</span><a name="line-2"></a><span class="hs-pragma">{-# LANGUAGE TypeApplications    #-}</span><span>
-</span><a name="line-3"></a><span>
-</span><a name="line-4"></a><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Test.Util.SOP</span><span> </span><span class="hs-special">(</span><span>
-</span><a name="line-5"></a><span>    </span><a href="Test.Util.SOP.html#constrName"><span class="hs-identifier hs-var">constrName</span></a><span>
-</span><a name="line-6"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Test.Util.SOP.html#constrNames"><span class="hs-identifier hs-var">constrNames</span></a><span>
-</span><a name="line-7"></a><span>  </span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
-</span><a name="line-8"></a><span>
-</span><a name="line-9"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data.Proxy</span><span>
-</span><a name="line-10"></a><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-identifier">Generics.SOP</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">SOP</span><span>
-</span><a name="line-11"></a><span>
-</span><a name="line-12"></a><span class="hs-identifier">constrInfo</span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">SOP.HasDatatypeInfo</span><span> </span><a href="#local-6989586621679205740"><span class="hs-identifier hs-type">a</span></a><span>
-</span><a name="line-13"></a><span>           </span><span class="hs-glyph">=&gt;</span><span> </span><a href="#local-6989586621679205741"><span class="hs-identifier hs-type">proxy</span></a><span> </span><a href="#local-6989586621679205740"><span class="hs-identifier hs-type">a</span></a><span>
-</span><a name="line-14"></a><span>           </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">SOP.NP</span><span> </span><span class="hs-identifier hs-type">SOP.ConstructorInfo</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">SOP.Code</span><span> </span><a href="#local-6989586621679205740"><span class="hs-identifier hs-type">a</span></a><span class="hs-special">)</span><span>
-</span><a name="line-15"></a><a name="constrInfo"><a href="Test.Util.SOP.html#constrInfo"><span class="hs-identifier">constrInfo</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-identifier hs-var">SOP.constructorInfo</span><span> </span><span class="hs-operator hs-var">.</span><span> </span><span class="hs-identifier hs-var">SOP.datatypeInfo</span><span>
-</span><a name="line-16"></a><span>
-</span><a name="line-17"></a><span class="hs-identifier">constrName</span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-keyword">forall</span><span> </span><a name="local-6989586621679205739"><a href="#local-6989586621679205739"><span class="hs-identifier">a</span></a></a><span class="hs-operator">.</span><span> </span><span class="hs-identifier hs-type">SOP.HasDatatypeInfo</span><span> </span><a href="#local-6989586621679205739"><span class="hs-identifier hs-type">a</span></a><span> </span><span class="hs-glyph">=&gt;</span><span> </span><a href="#local-6989586621679205739"><span class="hs-identifier hs-type">a</span></a><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">String</span><span>
-</span><a name="line-18"></a><a name="constrName"><a href="Test.Util.SOP.html#constrName"><span class="hs-identifier">constrName</span></a></a><span> </span><a name="local-6989586621679206049"><a href="#local-6989586621679206049"><span class="hs-identifier">a</span></a></a><span> </span><span class="hs-glyph">=</span><span>
-</span><a name="line-19"></a><span>    </span><span class="hs-identifier hs-var">SOP.hcollapse</span><span> </span><span class="hs-operator hs-var">$</span><span> </span><span class="hs-identifier hs-var">SOP.hliftA2</span><span> </span><a href="#local-6989586621679206050"><span class="hs-identifier hs-var">go</span></a><span> </span><span class="hs-special">(</span><a href="Test.Util.SOP.html#constrInfo"><span class="hs-identifier hs-var">constrInfo</span></a><span> </span><a href="#local-6989586621679206051"><span class="hs-identifier hs-var">p</span></a><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-var">SOP.unSOP</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-var">SOP.from</span><span> </span><a href="#local-6989586621679206049"><span class="hs-identifier hs-var">a</span></a><span class="hs-special">)</span><span class="hs-special">)</span><span>
-</span><a name="line-20"></a><span>  </span><span class="hs-keyword">where</span><span>
-</span><a name="line-21"></a><span>    </span><span class="hs-identifier">go</span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">SOP.ConstructorInfo</span><span> </span><a href="#local-6989586621679206052"><span class="hs-identifier hs-type">b</span></a><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">SOP.NP</span><span> </span><span class="hs-identifier hs-type">SOP.I</span><span> </span><a href="#local-6989586621679206052"><span class="hs-identifier hs-type">b</span></a><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">SOP.K</span><span> </span><span class="hs-identifier hs-type">String</span><span> </span><a href="#local-6989586621679206052"><span class="hs-identifier hs-type">b</span></a><span>
-</span><a name="line-22"></a><span>    </span><a name="local-6989586621679206050"><a href="#local-6989586621679206050"><span class="hs-identifier">go</span></a></a><span> </span><a name="local-6989586621679206053"><a href="#local-6989586621679206053"><span class="hs-identifier">nfo</span></a></a><span> </span><span class="hs-identifier">_</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-identifier hs-var">SOP.K</span><span> </span><span class="hs-operator hs-var">$</span><span> </span><span class="hs-identifier hs-var">SOP.constructorName</span><span> </span><a href="#local-6989586621679206053"><span class="hs-identifier hs-var">nfo</span></a><span>
-</span><a name="line-23"></a><span>
-</span><a name="line-24"></a><span>    </span><a name="local-6989586621679206051"><a href="#local-6989586621679206051"><span class="hs-identifier">p</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-identifier hs-var">Proxy</span><span> </span><span class="hs-glyph">@</span><a href="#local-6989586621679205739"><span class="hs-identifier hs-type">a</span></a><span>
-</span><a name="line-25"></a><span>
-</span><a name="line-26"></a><span class="hs-identifier">constrNames</span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">SOP.HasDatatypeInfo</span><span> </span><a href="#local-6989586621679205673"><span class="hs-identifier hs-type">a</span></a><span> </span><span class="hs-glyph">=&gt;</span><span> </span><a href="#local-6989586621679205674"><span class="hs-identifier hs-type">proxy</span></a><span> </span><a href="#local-6989586621679205673"><span class="hs-identifier hs-type">a</span></a><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">[</span><span class="hs-identifier hs-type">String</span><span class="hs-special">]</span><span>
-</span><a name="line-27"></a><a name="constrNames"><a href="Test.Util.SOP.html#constrNames"><span class="hs-identifier">constrNames</span></a></a><span> </span><a name="local-6989586621679206223"><a href="#local-6989586621679206223"><span class="hs-identifier">p</span></a></a><span> </span><span class="hs-glyph">=</span><span>
-</span><a name="line-28"></a><span>    </span><span class="hs-identifier hs-var">SOP.hcollapse</span><span> </span><span class="hs-operator hs-var">$</span><span> </span><span class="hs-identifier hs-var">SOP.hmap</span><span> </span><a href="#local-6989586621679206224"><span class="hs-identifier hs-var">go</span></a><span> </span><span class="hs-special">(</span><a href="Test.Util.SOP.html#constrInfo"><span class="hs-identifier hs-var">constrInfo</span></a><span> </span><a href="#local-6989586621679206223"><span class="hs-identifier hs-var">p</span></a><span class="hs-special">)</span><span>
-</span><a name="line-29"></a><span>  </span><span class="hs-keyword">where</span><span>
-</span><a name="line-30"></a><span>    </span><span class="hs-identifier">go</span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">SOP.ConstructorInfo</span><span> </span><a href="#local-6989586621679206225"><span class="hs-identifier hs-type">a</span></a><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">SOP.K</span><span> </span><span class="hs-identifier hs-type">String</span><span> </span><a href="#local-6989586621679206225"><span class="hs-identifier hs-type">a</span></a><span>
-</span><a name="line-31"></a><span>    </span><a name="local-6989586621679206224"><a href="#local-6989586621679206224"><span class="hs-identifier">go</span></a></a><span> </span><a name="local-6989586621679206226"><a href="#local-6989586621679206226"><span class="hs-identifier">nfo</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-identifier hs-var">SOP.K</span><span> </span><span class="hs-operator hs-var">$</span><span> </span><span class="hs-identifier hs-var">SOP.constructorName</span><span> </span><a href="#local-6989586621679206226"><span class="hs-identifier hs-var">nfo</span></a><span>
-</span><a name="line-32"></a></pre></body></html>
+</span><span id="line-2"></span><span class="hs-pragma">{-# LANGUAGE TypeApplications    #-}</span><span>
+</span><span id="line-3"></span><span>
+</span><span id="line-4"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Test.Util.SOP</span><span> </span><span class="hs-special">(</span><span>
+</span><span id="line-5"></span><span>    </span><span class="annot"><a href="Test.Util.SOP.html#constrName"><span class="hs-identifier">constrName</span></a></span><span>
+</span><span id="line-6"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Test.Util.SOP.html#constrNames"><span class="hs-identifier">constrNames</span></a></span><span>
+</span><span id="line-7"></span><span>  </span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-8"></span><span>
+</span><span id="line-9"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><span class="hs-identifier">Data.Proxy</span></span><span>
+</span><span id="line-10"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Generics.SOP</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">SOP</span></span><span>
+</span><span id="line-11"></span><span>
+</span><span id="line-12"></span><span id="local-6989586621679252108"><span id="local-6989586621679252109"><span class="annot"><a href="Test.Util.SOP.html#constrInfo"><span class="hs-identifier hs-type">constrInfo</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">SOP.HasDatatypeInfo</span></span><span> </span><span class="annot"><a href="#local-6989586621679252109"><span class="hs-identifier hs-type">a</span></a></span><span>
+</span><span id="line-13"></span><span>           </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679252108"><span class="hs-identifier hs-type">proxy</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679252109"><span class="hs-identifier hs-type">a</span></a></span><span>
+</span><span id="line-14"></span><span>           </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">SOP.NP</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">SOP.ConstructorInfo</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">SOP.Code</span></span><span> </span><span class="annot"><a href="#local-6989586621679252109"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span></span></span><span>
+</span><span id="line-15"></span><span id="constrInfo"><span class="annot"><span class="annottext">constrInfo :: proxy a -&gt; NP ConstructorInfo (Code a)
+</span><a href="Test.Util.SOP.html#constrInfo"><span class="hs-identifier hs-var hs-var">constrInfo</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">DatatypeInfo (Code a) -&gt; NP ConstructorInfo (Code a)
+forall (xss :: [[*]]). DatatypeInfo xss -&gt; NP ConstructorInfo xss
+</span><span class="hs-identifier hs-var">SOP.constructorInfo</span></span><span> </span><span class="annot"><span class="annottext">(DatatypeInfo (Code a) -&gt; NP ConstructorInfo (Code a))
+-&gt; (proxy a -&gt; DatatypeInfo (Code a))
+-&gt; proxy a
+-&gt; NP ConstructorInfo (Code a)
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">proxy a -&gt; DatatypeInfo (Code a)
+forall a (proxy :: * -&gt; *).
+HasDatatypeInfo a =&gt;
+proxy a -&gt; DatatypeInfo (Code a)
+</span><span class="hs-identifier hs-var">SOP.datatypeInfo</span></span><span>
+</span><span id="line-16"></span><span>
+</span><span id="line-17"></span><span class="annot"><a href="Test.Util.SOP.html#constrName"><span class="hs-identifier hs-type">constrName</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-keyword">forall</span><span> </span><span id="local-6989586621679252077"><span class="annot"><a href="#local-6989586621679252077"><span class="hs-identifier hs-type">a</span></a></span></span><span class="hs-operator">.</span><span> </span><span class="annot"><span class="hs-identifier hs-type">SOP.HasDatatypeInfo</span></span><span> </span><span class="annot"><a href="#local-6989586621679252077"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679252077"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">String</span></span><span>
+</span><span id="line-18"></span><span id="constrName"><span class="annot"><span class="annottext">constrName :: a -&gt; String
+</span><a href="Test.Util.SOP.html#constrName"><span class="hs-identifier hs-var hs-var">constrName</span></a></span></span><span> </span><span id="local-6989586621679252076"><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679252076"><span class="hs-identifier hs-var">a</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-19"></span><span>    </span><span class="annot"><span class="annottext">NS (K String) (Code a) -&gt; CollapseTo NS String
+forall k l (h :: (k -&gt; *) -&gt; l -&gt; *) (xs :: l) a.
+(HCollapse h, SListIN h xs) =&gt;
+h (K a) xs -&gt; CollapseTo h a
+</span><span class="hs-identifier hs-var">SOP.hcollapse</span></span><span> </span><span class="annot"><span class="annottext">(NS (K String) (Code a) -&gt; CollapseTo NS String)
+-&gt; NS (K String) (Code a) -&gt; CollapseTo NS String
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">(forall (a :: [*]). ConstructorInfo a -&gt; NP I a -&gt; K String a)
+-&gt; Prod NS ConstructorInfo (Code a)
+-&gt; NS (NP I) (Code a)
+-&gt; NS (K String) (Code a)
+forall k l (h :: (k -&gt; *) -&gt; l -&gt; *) (xs :: l) (f :: k -&gt; *)
+       (f' :: k -&gt; *) (f'' :: k -&gt; *).
+(SListIN (Prod h) xs, HAp h, HAp (Prod h)) =&gt;
+(forall (a :: k). f a -&gt; f' a -&gt; f'' a)
+-&gt; Prod h f xs -&gt; h f' xs -&gt; h f'' xs
+</span><span class="hs-identifier hs-var">SOP.hliftA2</span></span><span> </span><span class="annot"><span class="annottext">forall (a :: [*]). ConstructorInfo a -&gt; NP I a -&gt; K String a
+</span><a href="#local-6989586621679252073"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Proxy a -&gt; NP ConstructorInfo (Code a)
+forall a (proxy :: * -&gt; *).
+HasDatatypeInfo a =&gt;
+proxy a -&gt; NP ConstructorInfo (Code a)
+</span><a href="Test.Util.SOP.html#constrInfo"><span class="hs-identifier hs-var">constrInfo</span></a></span><span> </span><span class="annot"><span class="annottext">Proxy a
+</span><a href="#local-6989586621679252072"><span class="hs-identifier hs-var">p</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">SOP I (Code a) -&gt; NS (NP I) (Code a)
+forall k (f :: k -&gt; *) (xss :: [[k]]). SOP f xss -&gt; NS (NP f) xss
+</span><span class="hs-identifier hs-var">SOP.unSOP</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">a -&gt; SOP I (Code a)
+forall a. Generic a =&gt; a -&gt; Rep a
+</span><span class="hs-identifier hs-var">SOP.from</span></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679252076"><span class="hs-identifier hs-var">a</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-20"></span><span>  </span><span class="hs-keyword">where</span><span>
+</span><span id="line-21"></span><span>    </span><span id="local-6989586621679252069"><span class="annot"><a href="#local-6989586621679252073"><span class="hs-identifier hs-type">go</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">SOP.ConstructorInfo</span></span><span> </span><span class="annot"><a href="#local-6989586621679252069"><span class="hs-identifier hs-type">b</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">SOP.NP</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">SOP.I</span></span><span> </span><span class="annot"><a href="#local-6989586621679252069"><span class="hs-identifier hs-type">b</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">SOP.K</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">String</span></span><span> </span><span class="annot"><a href="#local-6989586621679252069"><span class="hs-identifier hs-type">b</span></a></span></span><span>
+</span><span id="line-22"></span><span>    </span><span id="local-6989586621679252073"><span class="annot"><span class="annottext">go :: ConstructorInfo b -&gt; NP I b -&gt; K String b
+</span><a href="#local-6989586621679252073"><span class="hs-identifier hs-var hs-var">go</span></a></span></span><span> </span><span id="local-6989586621679252068"><span class="annot"><span class="annottext">ConstructorInfo b
+</span><a href="#local-6989586621679252068"><span class="hs-identifier hs-var">nfo</span></a></span></span><span> </span><span class="annot"><span class="annottext">NP I b
+</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">String -&gt; K String b
+forall k a (b :: k). a -&gt; K a b
+</span><span class="hs-identifier hs-var">SOP.K</span></span><span> </span><span class="annot"><span class="annottext">(String -&gt; K String b) -&gt; String -&gt; K String b
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">ConstructorInfo b -&gt; String
+forall (xs :: [*]). ConstructorInfo xs -&gt; String
+</span><span class="hs-identifier hs-var">SOP.constructorName</span></span><span> </span><span class="annot"><span class="annottext">ConstructorInfo b
+</span><a href="#local-6989586621679252068"><span class="hs-identifier hs-var">nfo</span></a></span><span>
+</span><span id="line-23"></span><span>
+</span><span id="line-24"></span><span>    </span><span id="local-6989586621679252072"><span class="annot"><span class="annottext">p :: Proxy a
+</span><a href="#local-6989586621679252072"><span class="hs-identifier hs-var hs-var">p</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Proxy a
+forall k (t :: k). Proxy t
+</span><span class="hs-identifier hs-var">Proxy</span></span><span> </span><span class="hs-glyph">@</span><span class="annot"><a href="#local-6989586621679252077"><span class="hs-identifier hs-type">a</span></a></span><span>
+</span><span id="line-25"></span><span>
+</span><span id="line-26"></span><span id="local-6989586621679252063"><span id="local-6989586621679252064"><span class="annot"><a href="Test.Util.SOP.html#constrNames"><span class="hs-identifier hs-type">constrNames</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">SOP.HasDatatypeInfo</span></span><span> </span><span class="annot"><a href="#local-6989586621679252064"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679252063"><span class="hs-identifier hs-type">proxy</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679252064"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">[</span><span class="annot"><span class="hs-identifier hs-type">String</span></span><span class="hs-special">]</span></span></span><span>
+</span><span id="line-27"></span><span id="constrNames"><span class="annot"><span class="annottext">constrNames :: proxy a -&gt; [String]
+</span><a href="Test.Util.SOP.html#constrNames"><span class="hs-identifier hs-var hs-var">constrNames</span></a></span></span><span> </span><span id="local-6989586621679252062"><span class="annot"><span class="annottext">proxy a
+</span><a href="#local-6989586621679252062"><span class="hs-identifier hs-var">p</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-28"></span><span>    </span><span class="annot"><span class="annottext">NP (K String) (Code a) -&gt; CollapseTo NP String
+forall k l (h :: (k -&gt; *) -&gt; l -&gt; *) (xs :: l) a.
+(HCollapse h, SListIN h xs) =&gt;
+h (K a) xs -&gt; CollapseTo h a
+</span><span class="hs-identifier hs-var">SOP.hcollapse</span></span><span> </span><span class="annot"><span class="annottext">(NP (K String) (Code a) -&gt; CollapseTo NP String)
+-&gt; NP (K String) (Code a) -&gt; CollapseTo NP String
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">(forall (a :: [*]). ConstructorInfo a -&gt; K String a)
+-&gt; NP ConstructorInfo (Code a) -&gt; NP (K String) (Code a)
+forall k l (h :: (k -&gt; *) -&gt; l -&gt; *) (xs :: l) (f :: k -&gt; *)
+       (f' :: k -&gt; *).
+(SListIN (Prod h) xs, HAp h) =&gt;
+(forall (a :: k). f a -&gt; f' a) -&gt; h f xs -&gt; h f' xs
+</span><span class="hs-identifier hs-var">SOP.hmap</span></span><span> </span><span class="annot"><span class="annottext">forall (a :: [*]). ConstructorInfo a -&gt; K String a
+</span><a href="#local-6989586621679252060"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">proxy a -&gt; NP ConstructorInfo (Code a)
+forall a (proxy :: * -&gt; *).
+HasDatatypeInfo a =&gt;
+proxy a -&gt; NP ConstructorInfo (Code a)
+</span><a href="Test.Util.SOP.html#constrInfo"><span class="hs-identifier hs-var">constrInfo</span></a></span><span> </span><span class="annot"><span class="annottext">proxy a
+</span><a href="#local-6989586621679252062"><span class="hs-identifier hs-var">p</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-29"></span><span>  </span><span class="hs-keyword">where</span><span>
+</span><span id="line-30"></span><span>    </span><span id="local-6989586621679252059"><span class="annot"><a href="#local-6989586621679252060"><span class="hs-identifier hs-type">go</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">SOP.ConstructorInfo</span></span><span> </span><span class="annot"><a href="#local-6989586621679252059"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">SOP.K</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">String</span></span><span> </span><span class="annot"><a href="#local-6989586621679252059"><span class="hs-identifier hs-type">a</span></a></span></span><span>
+</span><span id="line-31"></span><span>    </span><span id="local-6989586621679252060"><span class="annot"><span class="annottext">go :: ConstructorInfo a -&gt; K String a
+</span><a href="#local-6989586621679252060"><span class="hs-identifier hs-var hs-var">go</span></a></span></span><span> </span><span id="local-6989586621679252058"><span class="annot"><span class="annottext">ConstructorInfo a
+</span><a href="#local-6989586621679252058"><span class="hs-identifier hs-var">nfo</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">String -&gt; K String a
+forall k a (b :: k). a -&gt; K a b
+</span><span class="hs-identifier hs-var">SOP.K</span></span><span> </span><span class="annot"><span class="annottext">(String -&gt; K String a) -&gt; String -&gt; K String a
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">ConstructorInfo a -&gt; String
+forall (xs :: [*]). ConstructorInfo xs -&gt; String
+</span><span class="hs-identifier hs-var">SOP.constructorName</span></span><span> </span><span class="annot"><span class="annottext">ConstructorInfo a
+</span><a href="#local-6989586621679252058"><span class="hs-identifier hs-var">nfo</span></a></span><span>
+</span><span id="line-32"></span></pre></body></html>

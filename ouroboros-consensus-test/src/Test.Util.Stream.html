@@ -1,19 +1,215 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-pragma">{-# LANGUAGE DeriveTraversable #-}</span><span>
-</span><a name="line-2"></a><span>
-</span><a name="line-3"></a><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Test.Util.Stream</span><span> </span><span class="hs-special">(</span><span>
-</span><a name="line-4"></a><span>  </span><a href="Test.Util.Stream.html#Stream"><span class="hs-identifier hs-type">Stream</span></a><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span>
-</span><a name="line-5"></a><span>  </span><a href="Test.Util.Stream.html#nubOrdBy"><span class="hs-identifier hs-var">nubOrdBy</span></a><span class="hs-special">,</span><span>
-</span><a name="line-6"></a><span>  </span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
-</span><a name="line-7"></a><span>
-</span><a name="line-8"></a><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-identifier">Data.Set</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">Set</span><span>
-</span><a name="line-9"></a><span>
-</span><a name="line-10"></a><span class="hs-keyword">data</span><span> </span><a name="Stream"><a href="Test.Util.Stream.html#Stream"><span class="hs-identifier">Stream</span></a></a><span> </span><a name="local-6989586621679244440"><a href="#local-6989586621679244440"><span class="hs-identifier">a</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><a href="#local-6989586621679244440"><span class="hs-identifier hs-type">a</span></a><span> </span><a name="%3A%3C"><a href="Test.Util.Stream.html#%3A%3C"><span class="hs-operator">:&lt;</span></a></a><span> </span><a href="Test.Util.Stream.html#Stream"><span class="hs-identifier hs-type">Stream</span></a><span> </span><a href="#local-6989586621679244440"><span class="hs-identifier hs-type">a</span></a><span>
-</span><a name="line-11"></a><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Foldable</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Functor</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Show</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Traversable</span><span class="hs-special">)</span><span>
-</span><a name="line-12"></a><span>
-</span><a name="line-13"></a><span class="hs-identifier">nubOrdBy</span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">Ord</span><span> </span><a href="#local-6989586621679244441"><span class="hs-identifier hs-type">b</span></a><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="hs-special">(</span><a href="#local-6989586621679244442"><span class="hs-identifier hs-type">a</span></a><span> </span><span class="hs-glyph">-&gt;</span><span> </span><a href="#local-6989586621679244441"><span class="hs-identifier hs-type">b</span></a><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">Set.Set</span><span> </span><a href="#local-6989586621679244441"><span class="hs-identifier hs-type">b</span></a><span> </span><span class="hs-glyph">-&gt;</span><span> </span><a href="Test.Util.Stream.html#Stream"><span class="hs-identifier hs-type">Stream</span></a><span> </span><a href="#local-6989586621679244442"><span class="hs-identifier hs-type">a</span></a><span> </span><span class="hs-glyph">-&gt;</span><span> </span><a href="Test.Util.Stream.html#Stream"><span class="hs-identifier hs-type">Stream</span></a><span> </span><a href="#local-6989586621679244442"><span class="hs-identifier hs-type">a</span></a><span>
-</span><a name="line-14"></a><a name="nubOrdBy"><a href="Test.Util.Stream.html#nubOrdBy"><span class="hs-identifier">nubOrdBy</span></a></a><span> </span><a name="local-6989586621679244443"><a href="#local-6989586621679244443"><span class="hs-identifier">f</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><a href="#local-6989586621679244444"><span class="hs-identifier hs-var">go</span></a><span>
-</span><a name="line-15"></a><span>  </span><span class="hs-keyword">where</span><span>
-</span><a name="line-16"></a><span>    </span><a name="local-6989586621679244444"><a href="#local-6989586621679244444"><span class="hs-identifier">go</span></a></a><span> </span><a name="local-6989586621679244445"><a href="#local-6989586621679244445"><span class="hs-identifier">acc</span></a></a><span> </span><span class="hs-special">(</span><a name="local-6989586621679244446"><a href="#local-6989586621679244446"><span class="hs-identifier">x</span></a></a><span> </span><a href="Test.Util.Stream.html#%3A%3C"><span class="hs-operator hs-var">:&lt;</span></a><span> </span><a name="local-6989586621679244447"><a href="#local-6989586621679244447"><span class="hs-identifier">xs</span></a></a><span class="hs-special">)</span><span>
-</span><a name="line-17"></a><span>      </span><span class="hs-glyph">|</span><span> </span><span class="hs-identifier hs-var">Set.member</span><span> </span><span class="hs-special">(</span><a href="#local-6989586621679244443"><span class="hs-identifier hs-var">f</span></a><span> </span><a href="#local-6989586621679244446"><span class="hs-identifier hs-var">x</span></a><span class="hs-special">)</span><span> </span><a href="#local-6989586621679244445"><span class="hs-identifier hs-var">acc</span></a><span> </span><span class="hs-glyph">=</span><span> </span><a href="#local-6989586621679244444"><span class="hs-identifier hs-var">go</span></a><span> </span><a href="#local-6989586621679244445"><span class="hs-identifier hs-var">acc</span></a><span> </span><a href="#local-6989586621679244447"><span class="hs-identifier hs-var">xs</span></a><span>
-</span><a name="line-18"></a><span>      </span><span class="hs-glyph">|</span><span> </span><span class="hs-identifier hs-var">otherwise</span><span>            </span><span class="hs-glyph">=</span><span> </span><a href="#local-6989586621679244446"><span class="hs-identifier hs-var">x</span></a><span> </span><a href="Test.Util.Stream.html#%3A%3C"><span class="hs-operator hs-var">:&lt;</span></a><span> </span><a href="#local-6989586621679244444"><span class="hs-identifier hs-var">go</span></a><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-var">Set.insert</span><span> </span><span class="hs-special">(</span><a href="#local-6989586621679244443"><span class="hs-identifier hs-var">f</span></a><span> </span><a href="#local-6989586621679244446"><span class="hs-identifier hs-var">x</span></a><span class="hs-special">)</span><span> </span><a href="#local-6989586621679244445"><span class="hs-identifier hs-var">acc</span></a><span class="hs-special">)</span><span> </span><a href="#local-6989586621679244447"><span class="hs-identifier hs-var">xs</span></a><span>
-</span><a name="line-19"></a></pre></body></html>
+</span><span id="line-2"></span><span>
+</span><span id="line-3"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Test.Util.Stream</span><span> </span><span class="hs-special">(</span><span>
+</span><span id="line-4"></span><span>  </span><span class="annot"><a href="Test.Util.Stream.html#Stream"><span class="hs-identifier">Stream</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span>
+</span><span id="line-5"></span><span>  </span><span class="annot"><a href="Test.Util.Stream.html#nubOrdBy"><span class="hs-identifier">nubOrdBy</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-6"></span><span>  </span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-7"></span><span>
+</span><span id="line-8"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Data.Set</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Set</span></span><span>
+</span><span id="line-9"></span><span>
+</span><span id="line-10"></span><span class="hs-keyword">data</span><span> </span><span id="Stream"><span class="annot"><a href="Test.Util.Stream.html#Stream"><span class="hs-identifier hs-var">Stream</span></a></span></span><span> </span><span id="local-6989586621679254093"><span class="annot"><a href="#local-6989586621679254093"><span class="hs-identifier hs-type">a</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><a href="#local-6989586621679254093"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span id="%3A%3C"><span class="annot"><a href="Test.Util.Stream.html#%3A%3C"><span class="hs-operator hs-var">:&lt;</span></a></span></span><span> </span><span class="annot"><a href="Test.Util.Stream.html#Stream"><span class="hs-identifier hs-type">Stream</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679254093"><span class="hs-identifier hs-type">a</span></a></span><span>
+</span><span id="line-11"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679254056"><span id="local-6989586621679254058"><span id="local-6989586621679254060"><span id="local-6989586621679254062"><span id="local-6989586621679254064"><span id="local-6989586621679254066"><span id="local-6989586621679254068"><span id="local-6989586621679254070"><span id="local-6989586621679254072"><span id="local-6989586621679254074"><span id="local-6989586621679254076"><span id="local-6989586621679254078"><span id="local-6989586621679254080"><span id="local-6989586621679254082"><span id="local-6989586621679254084"><span id="local-6989586621679254086"><span id="local-6989586621679254088"><span class="annot"><span class="annottext">Stream a -&gt; Bool
+(a -&gt; m) -&gt; Stream a -&gt; m
+(a -&gt; b -&gt; b) -&gt; b -&gt; Stream a -&gt; b
+(forall m. Monoid m =&gt; Stream m -&gt; m)
+-&gt; (forall m a. Monoid m =&gt; (a -&gt; m) -&gt; Stream a -&gt; m)
+-&gt; (forall m a. Monoid m =&gt; (a -&gt; m) -&gt; Stream a -&gt; m)
+-&gt; (forall a b. (a -&gt; b -&gt; b) -&gt; b -&gt; Stream a -&gt; b)
+-&gt; (forall a b. (a -&gt; b -&gt; b) -&gt; b -&gt; Stream a -&gt; b)
+-&gt; (forall b a. (b -&gt; a -&gt; b) -&gt; b -&gt; Stream a -&gt; b)
+-&gt; (forall b a. (b -&gt; a -&gt; b) -&gt; b -&gt; Stream a -&gt; b)
+-&gt; (forall a. (a -&gt; a -&gt; a) -&gt; Stream a -&gt; a)
+-&gt; (forall a. (a -&gt; a -&gt; a) -&gt; Stream a -&gt; a)
+-&gt; (forall a. Stream a -&gt; [a])
+-&gt; (forall a. Stream a -&gt; Bool)
+-&gt; (forall a. Stream a -&gt; Int)
+-&gt; (forall a. Eq a =&gt; a -&gt; Stream a -&gt; Bool)
+-&gt; (forall a. Ord a =&gt; Stream a -&gt; a)
+-&gt; (forall a. Ord a =&gt; Stream a -&gt; a)
+-&gt; (forall a. Num a =&gt; Stream a -&gt; a)
+-&gt; (forall a. Num a =&gt; Stream a -&gt; a)
+-&gt; Foldable Stream
+forall a. Eq a =&gt; a -&gt; Stream a -&gt; Bool
+forall a. Num a =&gt; Stream a -&gt; a
+forall a. Ord a =&gt; Stream a -&gt; a
+forall m. Monoid m =&gt; Stream m -&gt; m
+forall a. Stream a -&gt; Bool
+forall a. Stream a -&gt; Int
+forall a. Stream a -&gt; [a]
+forall a. (a -&gt; a -&gt; a) -&gt; Stream a -&gt; a
+forall m a. Monoid m =&gt; (a -&gt; m) -&gt; Stream a -&gt; m
+forall b a. (b -&gt; a -&gt; b) -&gt; b -&gt; Stream a -&gt; b
+forall a b. (a -&gt; b -&gt; b) -&gt; b -&gt; Stream a -&gt; b
+forall (t :: * -&gt; *).
+(forall m. Monoid m =&gt; t m -&gt; m)
+-&gt; (forall m a. Monoid m =&gt; (a -&gt; m) -&gt; t a -&gt; m)
+-&gt; (forall m a. Monoid m =&gt; (a -&gt; m) -&gt; t a -&gt; m)
+-&gt; (forall a b. (a -&gt; b -&gt; b) -&gt; b -&gt; t a -&gt; b)
+-&gt; (forall a b. (a -&gt; b -&gt; b) -&gt; b -&gt; t a -&gt; b)
+-&gt; (forall b a. (b -&gt; a -&gt; b) -&gt; b -&gt; t a -&gt; b)
+-&gt; (forall b a. (b -&gt; a -&gt; b) -&gt; b -&gt; t a -&gt; b)
+-&gt; (forall a. (a -&gt; a -&gt; a) -&gt; t a -&gt; a)
+-&gt; (forall a. (a -&gt; a -&gt; a) -&gt; t a -&gt; a)
+-&gt; (forall a. t a -&gt; [a])
+-&gt; (forall a. t a -&gt; Bool)
+-&gt; (forall a. t a -&gt; Int)
+-&gt; (forall a. Eq a =&gt; a -&gt; t a -&gt; Bool)
+-&gt; (forall a. Ord a =&gt; t a -&gt; a)
+-&gt; (forall a. Ord a =&gt; t a -&gt; a)
+-&gt; (forall a. Num a =&gt; t a -&gt; a)
+-&gt; (forall a. Num a =&gt; t a -&gt; a)
+-&gt; Foldable t
+product :: Stream a -&gt; a
+$cproduct :: forall a. Num a =&gt; Stream a -&gt; a
+sum :: Stream a -&gt; a
+$csum :: forall a. Num a =&gt; Stream a -&gt; a
+minimum :: Stream a -&gt; a
+$cminimum :: forall a. Ord a =&gt; Stream a -&gt; a
+maximum :: Stream a -&gt; a
+$cmaximum :: forall a. Ord a =&gt; Stream a -&gt; a
+elem :: a -&gt; Stream a -&gt; Bool
+$celem :: forall a. Eq a =&gt; a -&gt; Stream a -&gt; Bool
+length :: Stream a -&gt; Int
+$clength :: forall a. Stream a -&gt; Int
+null :: Stream a -&gt; Bool
+$cnull :: forall a. Stream a -&gt; Bool
+toList :: Stream a -&gt; [a]
+$ctoList :: forall a. Stream a -&gt; [a]
+foldl1 :: (a -&gt; a -&gt; a) -&gt; Stream a -&gt; a
+$cfoldl1 :: forall a. (a -&gt; a -&gt; a) -&gt; Stream a -&gt; a
+foldr1 :: (a -&gt; a -&gt; a) -&gt; Stream a -&gt; a
+$cfoldr1 :: forall a. (a -&gt; a -&gt; a) -&gt; Stream a -&gt; a
+foldl' :: (b -&gt; a -&gt; b) -&gt; b -&gt; Stream a -&gt; b
+$cfoldl' :: forall b a. (b -&gt; a -&gt; b) -&gt; b -&gt; Stream a -&gt; b
+foldl :: (b -&gt; a -&gt; b) -&gt; b -&gt; Stream a -&gt; b
+$cfoldl :: forall b a. (b -&gt; a -&gt; b) -&gt; b -&gt; Stream a -&gt; b
+foldr' :: (a -&gt; b -&gt; b) -&gt; b -&gt; Stream a -&gt; b
+$cfoldr' :: forall a b. (a -&gt; b -&gt; b) -&gt; b -&gt; Stream a -&gt; b
+foldr :: (a -&gt; b -&gt; b) -&gt; b -&gt; Stream a -&gt; b
+$cfoldr :: forall a b. (a -&gt; b -&gt; b) -&gt; b -&gt; Stream a -&gt; b
+foldMap' :: (a -&gt; m) -&gt; Stream a -&gt; m
+$cfoldMap' :: forall m a. Monoid m =&gt; (a -&gt; m) -&gt; Stream a -&gt; m
+foldMap :: (a -&gt; m) -&gt; Stream a -&gt; m
+$cfoldMap :: forall m a. Monoid m =&gt; (a -&gt; m) -&gt; Stream a -&gt; m
+fold :: Stream m -&gt; m
+$cfold :: forall m. Monoid m =&gt; Stream m -&gt; m
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Foldable</span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679254051"><span id="local-6989586621679254053"><span class="annot"><span class="annottext">a -&gt; Stream b -&gt; Stream a
+(a -&gt; b) -&gt; Stream a -&gt; Stream b
+(forall a b. (a -&gt; b) -&gt; Stream a -&gt; Stream b)
+-&gt; (forall a b. a -&gt; Stream b -&gt; Stream a) -&gt; Functor Stream
+forall a b. a -&gt; Stream b -&gt; Stream a
+forall a b. (a -&gt; b) -&gt; Stream a -&gt; Stream b
+forall (f :: * -&gt; *).
+(forall a b. (a -&gt; b) -&gt; f a -&gt; f b)
+-&gt; (forall a b. a -&gt; f b -&gt; f a) -&gt; Functor f
+&lt;$ :: a -&gt; Stream b -&gt; Stream a
+$c&lt;$ :: forall a b. a -&gt; Stream b -&gt; Stream a
+fmap :: (a -&gt; b) -&gt; Stream a -&gt; Stream b
+$cfmap :: forall a b. (a -&gt; b) -&gt; Stream a -&gt; Stream b
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Functor</span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679254044"><span id="local-6989586621679254046"><span id="local-6989586621679254048"><span class="annot"><span class="annottext">Int -&gt; Stream a -&gt; ShowS
+[Stream a] -&gt; ShowS
+Stream a -&gt; String
+(Int -&gt; Stream a -&gt; ShowS)
+-&gt; (Stream a -&gt; String) -&gt; ([Stream a] -&gt; ShowS) -&gt; Show (Stream a)
+forall a. Show a =&gt; Int -&gt; Stream a -&gt; ShowS
+forall a. Show a =&gt; [Stream a] -&gt; ShowS
+forall a. Show a =&gt; Stream a -&gt; String
+forall a.
+(Int -&gt; a -&gt; ShowS) -&gt; (a -&gt; String) -&gt; ([a] -&gt; ShowS) -&gt; Show a
+showList :: [Stream a] -&gt; ShowS
+$cshowList :: forall a. Show a =&gt; [Stream a] -&gt; ShowS
+show :: Stream a -&gt; String
+$cshow :: forall a. Show a =&gt; Stream a -&gt; String
+showsPrec :: Int -&gt; Stream a -&gt; ShowS
+$cshowsPrec :: forall a. Show a =&gt; Int -&gt; Stream a -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679254033"><span id="local-6989586621679254035"><span id="local-6989586621679254037"><span id="local-6989586621679254039"><span class="annot"><span class="annottext">Functor Stream
+Foldable Stream
+Functor Stream
+-&gt; Foldable Stream
+-&gt; (forall (f :: * -&gt; *) a b.
+    Applicative f =&gt;
+    (a -&gt; f b) -&gt; Stream a -&gt; f (Stream b))
+-&gt; (forall (f :: * -&gt; *) a.
+    Applicative f =&gt;
+    Stream (f a) -&gt; f (Stream a))
+-&gt; (forall (m :: * -&gt; *) a b.
+    Monad m =&gt;
+    (a -&gt; m b) -&gt; Stream a -&gt; m (Stream b))
+-&gt; (forall (m :: * -&gt; *) a.
+    Monad m =&gt;
+    Stream (m a) -&gt; m (Stream a))
+-&gt; Traversable Stream
+(a -&gt; f b) -&gt; Stream a -&gt; f (Stream b)
+forall (t :: * -&gt; *).
+Functor t
+-&gt; Foldable t
+-&gt; (forall (f :: * -&gt; *) a b.
+    Applicative f =&gt;
+    (a -&gt; f b) -&gt; t a -&gt; f (t b))
+-&gt; (forall (f :: * -&gt; *) a. Applicative f =&gt; t (f a) -&gt; f (t a))
+-&gt; (forall (m :: * -&gt; *) a b.
+    Monad m =&gt;
+    (a -&gt; m b) -&gt; t a -&gt; m (t b))
+-&gt; (forall (m :: * -&gt; *) a. Monad m =&gt; t (m a) -&gt; m (t a))
+-&gt; Traversable t
+forall (m :: * -&gt; *) a. Monad m =&gt; Stream (m a) -&gt; m (Stream a)
+forall (f :: * -&gt; *) a.
+Applicative f =&gt;
+Stream (f a) -&gt; f (Stream a)
+forall (m :: * -&gt; *) a b.
+Monad m =&gt;
+(a -&gt; m b) -&gt; Stream a -&gt; m (Stream b)
+forall (f :: * -&gt; *) a b.
+Applicative f =&gt;
+(a -&gt; f b) -&gt; Stream a -&gt; f (Stream b)
+sequence :: Stream (m a) -&gt; m (Stream a)
+$csequence :: forall (m :: * -&gt; *) a. Monad m =&gt; Stream (m a) -&gt; m (Stream a)
+mapM :: (a -&gt; m b) -&gt; Stream a -&gt; m (Stream b)
+$cmapM :: forall (m :: * -&gt; *) a b.
+Monad m =&gt;
+(a -&gt; m b) -&gt; Stream a -&gt; m (Stream b)
+sequenceA :: Stream (f a) -&gt; f (Stream a)
+$csequenceA :: forall (f :: * -&gt; *) a.
+Applicative f =&gt;
+Stream (f a) -&gt; f (Stream a)
+traverse :: (a -&gt; f b) -&gt; Stream a -&gt; f (Stream b)
+$ctraverse :: forall (f :: * -&gt; *) a b.
+Applicative f =&gt;
+(a -&gt; f b) -&gt; Stream a -&gt; f (Stream b)
+$cp2Traversable :: Foldable Stream
+$cp1Traversable :: Functor Stream
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Traversable</span></span></span></span></span></span><span class="hs-special">)</span><span>
+</span><span id="line-12"></span><span>
+</span><span id="line-13"></span><span id="local-6989586621679254030"><span id="local-6989586621679254031"><span class="annot"><a href="Test.Util.Stream.html#nubOrdBy"><span class="hs-identifier hs-type">nubOrdBy</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Ord</span></span><span> </span><span class="annot"><a href="#local-6989586621679254031"><span class="hs-identifier hs-type">b</span></a></span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="#local-6989586621679254030"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679254031"><span class="hs-identifier hs-type">b</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Set.Set</span></span><span> </span><span class="annot"><a href="#local-6989586621679254031"><span class="hs-identifier hs-type">b</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Test.Util.Stream.html#Stream"><span class="hs-identifier hs-type">Stream</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679254030"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Test.Util.Stream.html#Stream"><span class="hs-identifier hs-type">Stream</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679254030"><span class="hs-identifier hs-type">a</span></a></span></span></span><span>
+</span><span id="line-14"></span><span id="nubOrdBy"><span class="annot"><span class="annottext">nubOrdBy :: (a -&gt; b) -&gt; Set b -&gt; Stream a -&gt; Stream a
+</span><a href="Test.Util.Stream.html#nubOrdBy"><span class="hs-identifier hs-var hs-var">nubOrdBy</span></a></span></span><span> </span><span id="local-6989586621679254029"><span class="annot"><span class="annottext">a -&gt; b
+</span><a href="#local-6989586621679254029"><span class="hs-identifier hs-var">f</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Set b -&gt; Stream a -&gt; Stream a
+</span><a href="#local-6989586621679254028"><span class="hs-identifier hs-var">go</span></a></span><span>
+</span><span id="line-15"></span><span>  </span><span class="hs-keyword">where</span><span>
+</span><span id="line-16"></span><span>    </span><span id="local-6989586621679254028"><span class="annot"><span class="annottext">go :: Set b -&gt; Stream a -&gt; Stream a
+</span><a href="#local-6989586621679254028"><span class="hs-identifier hs-var hs-var">go</span></a></span></span><span> </span><span id="local-6989586621679254027"><span class="annot"><span class="annottext">Set b
+</span><a href="#local-6989586621679254027"><span class="hs-identifier hs-var">acc</span></a></span></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679254026"><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679254026"><span class="hs-identifier hs-var">x</span></a></span></span><span> </span><span class="annot"><a href="Test.Util.Stream.html#%3A%3C"><span class="hs-operator hs-type">:&lt;</span></a></span><span> </span><span id="local-6989586621679254025"><span class="annot"><span class="annottext">Stream a
+</span><a href="#local-6989586621679254025"><span class="hs-identifier hs-var">xs</span></a></span></span><span class="hs-special">)</span><span>
+</span><span id="line-17"></span><span>      </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">b -&gt; Set b -&gt; Bool
+forall a. Ord a =&gt; a -&gt; Set a -&gt; Bool
+</span><span class="hs-identifier hs-var">Set.member</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">a -&gt; b
+</span><a href="#local-6989586621679254029"><span class="hs-identifier hs-var">f</span></a></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679254026"><span class="hs-identifier hs-var">x</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Set b
+</span><a href="#local-6989586621679254027"><span class="hs-identifier hs-var">acc</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Set b -&gt; Stream a -&gt; Stream a
+</span><a href="#local-6989586621679254028"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="annot"><span class="annottext">Set b
+</span><a href="#local-6989586621679254027"><span class="hs-identifier hs-var">acc</span></a></span><span> </span><span class="annot"><span class="annottext">Stream a
+</span><a href="#local-6989586621679254025"><span class="hs-identifier hs-var">xs</span></a></span><span>
+</span><span id="line-18"></span><span>      </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">otherwise</span></span><span>            </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679254026"><span class="hs-identifier hs-var">x</span></a></span><span> </span><span class="annot"><span class="annottext">a -&gt; Stream a -&gt; Stream a
+forall a. a -&gt; Stream a -&gt; Stream a
+</span><a href="Test.Util.Stream.html#%3A%3C"><span class="hs-operator hs-var">:&lt;</span></a></span><span> </span><span class="annot"><span class="annottext">Set b -&gt; Stream a -&gt; Stream a
+</span><a href="#local-6989586621679254028"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">b -&gt; Set b -&gt; Set b
+forall a. Ord a =&gt; a -&gt; Set a -&gt; Set a
+</span><span class="hs-identifier hs-var">Set.insert</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">a -&gt; b
+</span><a href="#local-6989586621679254029"><span class="hs-identifier hs-var">f</span></a></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679254026"><span class="hs-identifier hs-var">x</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Set b
+</span><a href="#local-6989586621679254027"><span class="hs-identifier hs-var">acc</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Stream a
+</span><a href="#local-6989586621679254025"><span class="hs-identifier hs-var">xs</span></a></span><span>
+</span><span id="line-19"></span></pre></body></html>

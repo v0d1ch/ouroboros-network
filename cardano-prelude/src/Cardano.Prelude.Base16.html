@@ -1,33 +1,172 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-pragma">{-# LANGUAGE OverloadedStrings #-}</span><span>
-</span><a name="line-2"></a><span>
-</span><a name="line-3"></a><span class="hs-comment">-- | Helper functions for parsing</span><span>
-</span><a name="line-4"></a><span>
-</span><a name="line-5"></a><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Cardano.Prelude.Base16</span><span>
-</span><a name="line-6"></a><span>  </span><span class="hs-special">(</span><span> </span><a href="Cardano.Prelude.Base16.html#parseBase16"><span class="hs-identifier hs-var">parseBase16</span></a><span>
-</span><a name="line-7"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Cardano.Prelude.Base16.html#Base16ParseError"><span class="hs-identifier hs-type">Base16ParseError</span></a><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
-</span><a name="line-8"></a><span>  </span><span class="hs-special">)</span><span>
-</span><a name="line-9"></a><span class="hs-keyword">where</span><span>
-</span><a name="line-10"></a><span>
-</span><a name="line-11"></a><span class="hs-keyword">import</span><span> </span><a href="Cardano.Prelude.Base.html"><span class="hs-identifier">Cardano.Prelude.Base</span></a><span>
-</span><a name="line-12"></a><span>
-</span><a name="line-13"></a><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-identifier">Data.ByteString.Base16</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">B16</span><span>
-</span><a name="line-14"></a><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-identifier">Data.ByteString.Char8</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">BS</span><span>
-</span><a name="line-15"></a><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-identifier">Data.Text.Encoding</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">Text</span><span>
-</span><a name="line-16"></a><span class="hs-keyword">import</span><span> </span><span class="hs-identifier">Formatting</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-var">bprint</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-var">shown</span><span class="hs-special">)</span><span>
-</span><a name="line-17"></a><span class="hs-keyword">import</span><span> </span><span class="hs-identifier">Formatting.Buildable</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Buildable</span><span class="hs-special">(</span><span class="hs-identifier hs-var">build</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
-</span><a name="line-18"></a><span>
-</span><a name="line-19"></a><span>
-</span><a name="line-20"></a><span class="hs-keyword">newtype</span><span> </span><a name="Base16ParseError"><a href="Cardano.Prelude.Base16.html#Base16ParseError"><span class="hs-identifier">Base16ParseError</span></a></a><span> </span><span class="hs-glyph">=</span><span>
-</span><a name="line-21"></a><span>  </span><a name="Base16IncorrectSuffix"><a href="Cardano.Prelude.Base16.html#Base16IncorrectSuffix"><span class="hs-identifier">Base16IncorrectSuffix</span></a></a><span> </span><span class="hs-identifier hs-type">ByteString</span><span>
-</span><a name="line-22"></a><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Eq</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Show</span><span class="hs-special">)</span><span>
-</span><a name="line-23"></a><span>
-</span><a name="line-24"></a><span class="hs-keyword">instance</span><span> </span><span class="hs-identifier hs-type">Buildable</span><span> </span><a href="Cardano.Prelude.Base16.html#Base16ParseError"><span class="hs-identifier hs-type">Base16ParseError</span></a><span> </span><span class="hs-keyword">where</span><span>
-</span><a name="line-25"></a><span>  </span><a name="local-8214565720323841431"><span class="hs-identifier">build</span></a><span> </span><span class="hs-special">(</span><a href="Cardano.Prelude.Base16.html#Base16IncorrectSuffix"><span class="hs-identifier hs-var">Base16IncorrectSuffix</span></a><span> </span><a name="local-6989586621679067638"><a href="#local-6989586621679067638"><span class="hs-identifier">suffix</span></a></a><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span>
-</span><a name="line-26"></a><span>    </span><span class="hs-identifier hs-var">bprint</span><span> </span><span class="hs-special">(</span><span class="hs-string">&quot;Base16 parsing failed with incorrect suffix &quot;</span><span> </span><span class="hs-operator hs-var">.</span><span> </span><span class="hs-identifier hs-var">shown</span><span class="hs-special">)</span><span> </span><a href="#local-6989586621679067638"><span class="hs-identifier hs-var">suffix</span></a><span>
-</span><a name="line-27"></a><span>
-</span><a name="line-28"></a><span class="hs-identifier">parseBase16</span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">Text</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">Either</span><span> </span><a href="Cardano.Prelude.Base16.html#Base16ParseError"><span class="hs-identifier hs-type">Base16ParseError</span></a><span> </span><span class="hs-identifier hs-type">ByteString</span><span>
-</span><a name="line-29"></a><a name="parseBase16"><a href="Cardano.Prelude.Base16.html#parseBase16"><span class="hs-identifier">parseBase16</span></a></a><span> </span><a name="local-6989586621679067851"><a href="#local-6989586621679067851"><span class="hs-identifier">s</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
-</span><a name="line-30"></a><span>  </span><span class="hs-keyword">let</span><span> </span><span class="hs-special">(</span><a name="local-6989586621679067852"><a href="#local-6989586621679067852"><span class="hs-identifier">bs</span></a></a><span class="hs-special">,</span><span> </span><a name="local-6989586621679067853"><a href="#local-6989586621679067853"><span class="hs-identifier">suffix</span></a></a><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-identifier hs-var">B16.decode</span><span> </span><span class="hs-operator hs-var">$</span><span> </span><span class="hs-identifier hs-var">Text.encodeUtf8</span><span> </span><a href="#local-6989586621679067851"><span class="hs-identifier hs-var">s</span></a><span>
-</span><a name="line-31"></a><span>  </span><span class="hs-identifier hs-var">unless</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-var">BS.null</span><span> </span><a href="#local-6989586621679067853"><span class="hs-identifier hs-var">suffix</span></a><span class="hs-special">)</span><span> </span><span class="hs-operator hs-var">.</span><span> </span><span class="hs-identifier hs-var">Left</span><span> </span><span class="hs-operator hs-var">$</span><span> </span><a href="Cardano.Prelude.Base16.html#Base16IncorrectSuffix"><span class="hs-identifier hs-var">Base16IncorrectSuffix</span></a><span> </span><a href="#local-6989586621679067853"><span class="hs-identifier hs-var">suffix</span></a><span>
-</span><a name="line-32"></a><span>  </span><span class="hs-identifier hs-var">pure</span><span> </span><a href="#local-6989586621679067852"><span class="hs-identifier hs-var">bs</span></a><span>
-</span><a name="line-33"></a></pre></body></html>
+</span><span id="line-2"></span><span>
+</span><span id="line-3"></span><span class="hs-comment">-- | Helper functions for parsing</span><span>
+</span><span id="line-4"></span><span>
+</span><span id="line-5"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Cardano.Prelude.Base16</span><span>
+</span><span id="line-6"></span><span>  </span><span class="hs-special">(</span><span> </span><span class="annot"><a href="Cardano.Prelude.Base16.html#Base16ParseError"><span class="hs-identifier">Base16ParseError</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
+</span><span id="line-7"></span><span>
+</span><span id="line-8"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cardano.Prelude.Base16.html#decodeEitherBase16"><span class="hs-identifier">decodeEitherBase16</span></a></span><span>
+</span><span id="line-9"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cardano.Prelude.Base16.html#parseBase16"><span class="hs-identifier">parseBase16</span></a></span><span>
+</span><span id="line-10"></span><span>  </span><span class="hs-special">)</span><span>
+</span><span id="line-11"></span><span class="hs-keyword">where</span><span>
+</span><span id="line-12"></span><span>
+</span><span id="line-13"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Cardano.Prelude.Base.html"><span class="hs-identifier">Cardano.Prelude.Base</span></a></span><span>
+</span><span id="line-14"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.String</span></span><span>
+</span><span id="line-15"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Formatting</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">bprint</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">shown</span></span><span class="hs-special">)</span><span>
+</span><span id="line-16"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Formatting.Buildable</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Buildable</span></span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">build</span></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-17"></span><span>
+</span><span id="line-18"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><a href="Cardano.Prelude.Base16.Internal.html"><span class="hs-identifier">Cardano.Prelude.Base16.Internal</span></a></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">B16</span></span><span>
+</span><span id="line-19"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Data.ByteString.Char8</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">BS</span></span><span>
+</span><span id="line-20"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Data.Text.Encoding</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Text</span></span><span>
+</span><span id="line-21"></span><span>
+</span><span id="line-22"></span><span class="hs-comment">{- HLINT ignore &quot;Use isDigit&quot; -}</span><span>
+</span><span id="line-23"></span><span>
+</span><span id="line-24"></span><span class="hs-keyword">newtype</span><span> </span><span id="Base16ParseError"><span class="annot"><a href="Cardano.Prelude.Base16.html#Base16ParseError"><span class="hs-identifier hs-var">Base16ParseError</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-25"></span><span>  </span><span id="Base16IncorrectSuffix"><span class="annot"><a href="Cardano.Prelude.Base16.html#Base16IncorrectSuffix"><span class="hs-identifier hs-var">Base16IncorrectSuffix</span></a></span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">ByteString</span></span><span>
+</span><span id="line-26"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679092350"><span id="local-6989586621679092352"><span class="annot"><span class="annottext">Base16ParseError -&gt; Base16ParseError -&gt; Bool
+(Base16ParseError -&gt; Base16ParseError -&gt; Bool)
+-&gt; (Base16ParseError -&gt; Base16ParseError -&gt; Bool)
+-&gt; Eq Base16ParseError
+forall a. (a -&gt; a -&gt; Bool) -&gt; (a -&gt; a -&gt; Bool) -&gt; Eq a
+/= :: Base16ParseError -&gt; Base16ParseError -&gt; Bool
+$c/= :: Base16ParseError -&gt; Base16ParseError -&gt; Bool
+== :: Base16ParseError -&gt; Base16ParseError -&gt; Bool
+$c== :: Base16ParseError -&gt; Base16ParseError -&gt; Bool
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679092343"><span id="local-6989586621679092345"><span id="local-6989586621679092347"><span class="annot"><span class="annottext">Int -&gt; Base16ParseError -&gt; ShowS
+[Base16ParseError] -&gt; ShowS
+Base16ParseError -&gt; String
+(Int -&gt; Base16ParseError -&gt; ShowS)
+-&gt; (Base16ParseError -&gt; String)
+-&gt; ([Base16ParseError] -&gt; ShowS)
+-&gt; Show Base16ParseError
+forall a.
+(Int -&gt; a -&gt; ShowS) -&gt; (a -&gt; String) -&gt; ([a] -&gt; ShowS) -&gt; Show a
+showList :: [Base16ParseError] -&gt; ShowS
+$cshowList :: [Base16ParseError] -&gt; ShowS
+show :: Base16ParseError -&gt; String
+$cshow :: Base16ParseError -&gt; String
+showsPrec :: Int -&gt; Base16ParseError -&gt; ShowS
+$cshowsPrec :: Int -&gt; Base16ParseError -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">)</span><span>
+</span><span id="line-27"></span><span>
+</span><span id="line-28"></span><span class="hs-keyword">instance</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Buildable</span></span><span> </span><span class="annot"><a href="Cardano.Prelude.Base16.html#Base16ParseError"><span class="hs-identifier hs-type">Base16ParseError</span></a></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-29"></span><span>  </span><span id="local-6989586621679092339"><span class="annot"><span class="annottext">build :: Base16ParseError -&gt; Builder
+</span><a href="#local-6989586621679092339"><span class="hs-identifier hs-var hs-var hs-var hs-var">build</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cardano.Prelude.Base16.html#Base16IncorrectSuffix"><span class="hs-identifier hs-type">Base16IncorrectSuffix</span></a></span><span> </span><span id="local-6989586621679092338"><span class="annot"><span class="annottext">ByteString
+</span><a href="#local-6989586621679092338"><span class="hs-identifier hs-var">suffix</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-30"></span><span>    </span><span class="annot"><span class="annottext">Format Builder (ByteString -&gt; Builder) -&gt; ByteString -&gt; Builder
+forall a. Format Builder a -&gt; a
+</span><span class="hs-identifier hs-var">bprint</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Format (ByteString -&gt; Builder) (ByteString -&gt; Builder)
+</span><span class="hs-string">&quot;Base16 parsing failed with incorrect suffix &quot;</span></span><span> </span><span class="annot"><span class="annottext">Format (ByteString -&gt; Builder) (ByteString -&gt; Builder)
+-&gt; Format Builder (ByteString -&gt; Builder)
+-&gt; Format Builder (ByteString -&gt; Builder)
+forall k (cat :: k -&gt; k -&gt; *) (b :: k) (c :: k) (a :: k).
+Category cat =&gt;
+cat b c -&gt; cat a b -&gt; cat a c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Format Builder (ByteString -&gt; Builder)
+forall a r. Show a =&gt; Format r (a -&gt; r)
+</span><span class="hs-identifier hs-var">shown</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">ByteString
+</span><a href="#local-6989586621679092338"><span class="hs-identifier hs-var">suffix</span></a></span><span>
+</span><span id="line-31"></span><span>
+</span><span id="line-32"></span><span class="annot"><a href="Cardano.Prelude.Base16.html#parseBase16"><span class="hs-identifier hs-type">parseBase16</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Text</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Either</span></span><span> </span><span class="annot"><a href="Cardano.Prelude.Base16.html#Base16ParseError"><span class="hs-identifier hs-type">Base16ParseError</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">ByteString</span></span><span>
+</span><span id="line-33"></span><span id="parseBase16"><span class="annot"><span class="annottext">parseBase16 :: Text -&gt; Either Base16ParseError ByteString
+</span><a href="Cardano.Prelude.Base16.html#parseBase16"><span class="hs-identifier hs-var hs-var">parseBase16</span></a></span></span><span> </span><span id="local-6989586621679092336"><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679092336"><span class="hs-identifier hs-var">s</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-34"></span><span>  </span><span class="hs-keyword">let</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679092335"><span class="annot"><span class="annottext">ByteString
+</span><a href="#local-6989586621679092335"><span class="hs-identifier hs-var">bs</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679092334"><span class="annot"><span class="annottext">ByteString
+</span><a href="#local-6989586621679092334"><span class="hs-identifier hs-var">suffix</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">ByteString -&gt; (ByteString, ByteString)
+</span><a href="Cardano.Prelude.Base16.Internal.html#decode"><span class="hs-identifier hs-var">B16.decode</span></a></span><span> </span><span class="annot"><span class="annottext">(ByteString -&gt; (ByteString, ByteString))
+-&gt; ByteString -&gt; (ByteString, ByteString)
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Text -&gt; ByteString
+</span><span class="hs-identifier hs-var">Text.encodeUtf8</span></span><span> </span><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679092336"><span class="hs-identifier hs-var">s</span></a></span><span>
+</span><span id="line-35"></span><span>  </span><span class="annot"><span class="annottext">Bool -&gt; Either Base16ParseError () -&gt; Either Base16ParseError ()
+forall (f :: * -&gt; *). Applicative f =&gt; Bool -&gt; f () -&gt; f ()
+</span><span class="hs-identifier hs-var">unless</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">ByteString -&gt; Bool
+</span><span class="hs-identifier hs-var">BS.null</span></span><span> </span><span class="annot"><span class="annottext">ByteString
+</span><a href="#local-6989586621679092334"><span class="hs-identifier hs-var">suffix</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(Either Base16ParseError () -&gt; Either Base16ParseError ())
+-&gt; (Base16ParseError -&gt; Either Base16ParseError ())
+-&gt; Base16ParseError
+-&gt; Either Base16ParseError ()
+forall k (cat :: k -&gt; k -&gt; *) (b :: k) (c :: k) (a :: k).
+Category cat =&gt;
+cat b c -&gt; cat a b -&gt; cat a c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Base16ParseError -&gt; Either Base16ParseError ()
+forall a b. a -&gt; Either a b
+</span><span class="hs-identifier hs-var">Left</span></span><span> </span><span class="annot"><span class="annottext">(Base16ParseError -&gt; Either Base16ParseError ())
+-&gt; Base16ParseError -&gt; Either Base16ParseError ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">ByteString -&gt; Base16ParseError
+</span><a href="Cardano.Prelude.Base16.html#Base16IncorrectSuffix"><span class="hs-identifier hs-var">Base16IncorrectSuffix</span></a></span><span> </span><span class="annot"><span class="annottext">ByteString
+</span><a href="#local-6989586621679092334"><span class="hs-identifier hs-var">suffix</span></a></span><span>
+</span><span id="line-36"></span><span>  </span><span class="annot"><span class="annottext">ByteString -&gt; Either Base16ParseError ByteString
+forall (f :: * -&gt; *) a. Applicative f =&gt; a -&gt; f a
+</span><span class="hs-identifier hs-var">pure</span></span><span> </span><span class="annot"><span class="annottext">ByteString
+</span><a href="#local-6989586621679092335"><span class="hs-identifier hs-var">bs</span></a></span><span>
+</span><span id="line-37"></span><span>
+</span><span id="line-38"></span><span class="annot"><a href="Cardano.Prelude.Base16.html#decodeEitherBase16"><span class="hs-identifier hs-type">decodeEitherBase16</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">ByteString</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Either</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">String</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">ByteString</span></span><span>
+</span><span id="line-39"></span><span id="decodeEitherBase16"><span class="annot"><span class="annottext">decodeEitherBase16 :: ByteString -&gt; Either String ByteString
+</span><a href="Cardano.Prelude.Base16.html#decodeEitherBase16"><span class="hs-identifier hs-var hs-var">decodeEitherBase16</span></a></span></span><span> </span><span id="local-6989586621679092329"><span class="annot"><span class="annottext">ByteString
+</span><a href="#local-6989586621679092329"><span class="hs-identifier hs-var">bs</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">ByteString -&gt; (ByteString, ByteString)
+</span><a href="Cardano.Prelude.Base16.Internal.html#decode"><span class="hs-identifier hs-var">B16.decode</span></a></span><span> </span><span class="annot"><span class="annottext">ByteString
+</span><a href="#local-6989586621679092329"><span class="hs-identifier hs-var">bs</span></a></span><span> </span><span class="hs-keyword">of</span><span>
+</span><span id="line-40"></span><span>  </span><span class="hs-special">(</span><span id="local-6989586621679092328"><span class="annot"><span class="annottext">ByteString
+</span><a href="#local-6989586621679092328"><span class="hs-identifier hs-var">decodedBs</span></a></span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">ByteString
+</span><span class="hs-string">&quot;&quot;</span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">ByteString -&gt; Either String ByteString
+forall a b. b -&gt; Either a b
+</span><span class="hs-identifier hs-var">Right</span></span><span> </span><span class="annot"><span class="annottext">ByteString
+</span><a href="#local-6989586621679092328"><span class="hs-identifier hs-var">decodedBs</span></a></span><span>
+</span><span id="line-41"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="annottext">ByteString
+</span><span class="hs-identifier">_</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">ByteString
+</span><span class="hs-identifier">_</span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">String -&gt; Either String ByteString
+forall a b. a -&gt; Either a b
+</span><span class="hs-identifier hs-var">Left</span></span><span> </span><span class="annot"><span class="annottext">(String -&gt; Either String ByteString)
+-&gt; String -&gt; Either String ByteString
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;invalid character at offset: &quot;</span></span><span> </span><span class="annot"><span class="annottext">String -&gt; ShowS
+forall a. Semigroup a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">&lt;&gt;</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; String
+forall a b. (Show a, ConvertText String b) =&gt; a -&gt; b
+</span><span class="hs-identifier hs-var">show</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">ByteString -&gt; Int
+</span><span class="hs-identifier hs-var">BS.length</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">(Char -&gt; Bool) -&gt; ByteString -&gt; ByteString
+</span><span class="hs-identifier hs-var">BS.takeWhile</span></span><span> </span><span class="annot"><span class="annottext">Char -&gt; Bool
+</span><a href="#local-6989586621679092324"><span class="hs-identifier hs-var">isHex</span></a></span><span> </span><span class="annot"><span class="annottext">ByteString
+</span><a href="#local-6989586621679092329"><span class="hs-identifier hs-var">bs</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-42"></span><span>  </span><span class="hs-keyword">where</span><span> </span><span class="annot"><a href="#local-6989586621679092324"><span class="hs-identifier hs-type">isHex</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Char</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span><span>
+</span><span id="line-43"></span><span>        </span><span id="local-6989586621679092324"><span class="annot"><span class="annottext">isHex :: Char -&gt; Bool
+</span><a href="#local-6989586621679092324"><span class="hs-identifier hs-var hs-var">isHex</span></a></span></span><span> </span><span id="local-6989586621679092323"><span class="annot"><span class="annottext">Char
+</span><a href="#local-6989586621679092323"><span class="hs-identifier hs-var">w</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-44"></span><span>          </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Char
+</span><a href="#local-6989586621679092323"><span class="hs-identifier hs-var">w</span></a></span><span> </span><span class="annot"><span class="annottext">Char -&gt; Char -&gt; Bool
+forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">&gt;=</span></span><span> </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">'0'</span></span><span> </span><span class="annot"><span class="annottext">Bool -&gt; Bool -&gt; Bool
+</span><span class="hs-operator hs-var">&amp;&amp;</span></span><span> </span><span class="annot"><span class="annottext">Char
+</span><a href="#local-6989586621679092323"><span class="hs-identifier hs-var">w</span></a></span><span> </span><span class="annot"><span class="annottext">Char -&gt; Char -&gt; Bool
+forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">&lt;=</span></span><span> </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">'9'</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Bool -&gt; Bool -&gt; Bool
+</span><span class="hs-operator hs-var">||</span></span><span>
+</span><span id="line-45"></span><span>          </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Char
+</span><a href="#local-6989586621679092323"><span class="hs-identifier hs-var">w</span></a></span><span> </span><span class="annot"><span class="annottext">Char -&gt; Char -&gt; Bool
+forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">&gt;=</span></span><span> </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">'a'</span></span><span> </span><span class="annot"><span class="annottext">Bool -&gt; Bool -&gt; Bool
+</span><span class="hs-operator hs-var">&amp;&amp;</span></span><span> </span><span class="annot"><span class="annottext">Char
+</span><a href="#local-6989586621679092323"><span class="hs-identifier hs-var">w</span></a></span><span> </span><span class="annot"><span class="annottext">Char -&gt; Char -&gt; Bool
+forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">&lt;=</span></span><span> </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">'f'</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Bool -&gt; Bool -&gt; Bool
+</span><span class="hs-operator hs-var">||</span></span><span>
+</span><span id="line-46"></span><span>          </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Char
+</span><a href="#local-6989586621679092323"><span class="hs-identifier hs-var">w</span></a></span><span> </span><span class="annot"><span class="annottext">Char -&gt; Char -&gt; Bool
+forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">&gt;=</span></span><span> </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">'A'</span></span><span> </span><span class="annot"><span class="annottext">Bool -&gt; Bool -&gt; Bool
+</span><span class="hs-operator hs-var">&amp;&amp;</span></span><span> </span><span class="annot"><span class="annottext">Char
+</span><a href="#local-6989586621679092323"><span class="hs-identifier hs-var">w</span></a></span><span> </span><span class="annot"><span class="annottext">Char -&gt; Char -&gt; Bool
+forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">&lt;=</span></span><span> </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">'F'</span></span><span class="hs-special">)</span><span>
+</span><span id="line-47"></span></pre></body></html>

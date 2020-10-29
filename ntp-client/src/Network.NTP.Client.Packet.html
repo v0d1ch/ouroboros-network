@@ -1,166 +1,802 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-pragma">{-# LANGUAGE GeneralizedNewtypeDeriving #-}</span><span>
-</span><a name="line-2"></a><span class="hs-pragma">{-# LANGUAGE RecordWildCards            #-}</span><span>
-</span><a name="line-3"></a><span>
-</span><a name="line-4"></a><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Network.NTP.Client.Packet</span><span>
-</span><a name="line-5"></a><span>    </span><span class="hs-special">(</span><span> </span><a href="Network.NTP.Client.Packet.html#NtpPacket"><span class="hs-identifier hs-type">NtpPacket</span></a><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
-</span><a name="line-6"></a><span>    </span><span class="hs-special">,</span><span> </span><a href="Network.NTP.Client.Packet.html#ntpPacketSize"><span class="hs-identifier hs-var">ntpPacketSize</span></a><span>
-</span><a name="line-7"></a><span>    </span><span class="hs-special">,</span><span> </span><a href="Network.NTP.Client.Packet.html#mkNtpPacket"><span class="hs-identifier hs-var">mkNtpPacket</span></a><span>
-</span><a name="line-8"></a><span>    </span><span class="hs-special">,</span><span> </span><a href="Network.NTP.Client.Packet.html#NtpOffset"><span class="hs-identifier hs-type">NtpOffset</span></a><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
-</span><a name="line-9"></a><span>    </span><span class="hs-special">,</span><span> </span><a href="Network.NTP.Client.Packet.html#getCurrentTime"><span class="hs-identifier hs-var">getCurrentTime</span></a><span>
-</span><a name="line-10"></a><span>    </span><span class="hs-special">,</span><span> </span><a href="Network.NTP.Client.Packet.html#clockOffsetPure"><span class="hs-identifier hs-var">clockOffsetPure</span></a><span>
-</span><a name="line-11"></a><span>    </span><span class="hs-special">,</span><span> </span><a href="Network.NTP.Client.Packet.html#clockOffset"><span class="hs-identifier hs-var">clockOffset</span></a><span>
-</span><a name="line-12"></a><span>    </span><span class="hs-special">,</span><span> </span><a href="Network.NTP.Client.Packet.html#realMcsToNtp"><span class="hs-identifier hs-var">realMcsToNtp</span></a><span>
-</span><a name="line-13"></a><span>    </span><span class="hs-special">,</span><span> </span><a href="Network.NTP.Client.Packet.html#ntpToRealMcs"><span class="hs-identifier hs-var">ntpToRealMcs</span></a><span>
-</span><a name="line-14"></a><span>    </span><span class="hs-special">,</span><span> </span><a href="Network.NTP.Client.Packet.html#Microsecond"><span class="hs-identifier hs-type">Microsecond</span></a><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
-</span><a name="line-15"></a><span>    </span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
-</span><a name="line-16"></a><span>
-</span><a name="line-17"></a><span>
-</span><a name="line-18"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Control.Monad</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-var">replicateM_</span><span class="hs-special">)</span><span>
-</span><a name="line-19"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data.Binary</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Binary</span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
-</span><a name="line-20"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data.Binary.Get</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-var">getInt8</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-var">getWord32be</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-var">getWord8</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-var">skip</span><span class="hs-special">)</span><span>
-</span><a name="line-21"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data.Binary.Put</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-var">putInt8</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-var">putWord32be</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-var">putWord8</span><span class="hs-special">)</span><span>
-</span><a name="line-22"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data.Int</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Int8</span><span class="hs-special">)</span><span>
-</span><a name="line-23"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data.Time.Clock.POSIX</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-var">getPOSIXTime</span><span class="hs-special">)</span><span>
-</span><a name="line-24"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data.Word</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Word32</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Word8</span><span class="hs-special">)</span><span>
-</span><a name="line-25"></a><span>
-</span><a name="line-26"></a><span class="hs-keyword">newtype</span><span> </span><a name="Microsecond"><a href="Network.NTP.Client.Packet.html#Microsecond"><span class="hs-identifier">Microsecond</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><a name="Microsecond"><a href="Network.NTP.Client.Packet.html#Microsecond"><span class="hs-identifier">Microsecond</span></a></a><span> </span><span class="hs-identifier hs-type">Integer</span><span>
-</span><a name="line-27"></a><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Enum</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Eq</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Num</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Ord</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Real</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Show</span><span class="hs-special">)</span><span>
-</span><a name="line-28"></a><span>
-</span><a name="line-29"></a><span class="hs-comment">-- The derived instance is using `toInteger :: Integer -&gt; Integer` which gives</span><span>
-</span><a name="line-30"></a><span class="hs-comment">-- a warning (`-Widentities`)</span><span>
-</span><a name="line-31"></a><span class="hs-keyword">instance</span><span> </span><span class="hs-identifier hs-type">Integral</span><span> </span><a href="Network.NTP.Client.Packet.html#Microsecond"><span class="hs-identifier hs-type">Microsecond</span></a><span> </span><span class="hs-keyword">where</span><span>
-</span><a name="line-32"></a><span>  </span><a name="local-3458764513820541120"><span class="hs-identifier">toInteger</span></a><span> </span><span class="hs-special">(</span><a href="Network.NTP.Client.Packet.html#Microsecond"><span class="hs-identifier hs-var">Microsecond</span></a><span> </span><a name="local-6989586621679030209"><a href="#local-6989586621679030209"><span class="hs-identifier">a</span></a></a><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><a href="#local-6989586621679030209"><span class="hs-identifier hs-var">a</span></a><span>
-</span><a name="line-33"></a><span>  </span><span class="hs-special">(</span><a href="Network.NTP.Client.Packet.html#Microsecond"><span class="hs-identifier hs-var">Microsecond</span></a><span> </span><a name="local-6989586621679030210"><a href="#local-6989586621679030210"><span class="hs-identifier">a</span></a></a><span class="hs-special">)</span><span> </span><span class="hs-special">`</span><a name="local-8214565720323790304"><span class="hs-identifier">quotRem</span></a><span class="hs-special">`</span><span> </span><span class="hs-special">(</span><a href="Network.NTP.Client.Packet.html#Microsecond"><span class="hs-identifier hs-var">Microsecond</span></a><span> </span><a name="local-6989586621679030211"><a href="#local-6989586621679030211"><span class="hs-identifier">b</span></a></a><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span>
-</span><a name="line-34"></a><span>    </span><span class="hs-keyword">case</span><span> </span><a href="#local-6989586621679030210"><span class="hs-identifier hs-var">a</span></a><span> </span><span class="hs-special">`</span><span class="hs-identifier hs-var">quotRem</span><span class="hs-special">`</span><span> </span><a href="#local-6989586621679030211"><span class="hs-identifier hs-var">b</span></a><span> </span><span class="hs-keyword">of</span><span>
-</span><a name="line-35"></a><span>      </span><span class="hs-special">(</span><a name="local-6989586621679030212"><a href="#local-6989586621679030212"><span class="hs-identifier">x</span></a></a><span class="hs-special">,</span><span> </span><a name="local-6989586621679030213"><a href="#local-6989586621679030213"><span class="hs-identifier">r</span></a></a><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">(</span><a href="Network.NTP.Client.Packet.html#Microsecond"><span class="hs-identifier hs-var">Microsecond</span></a><span> </span><a href="#local-6989586621679030212"><span class="hs-identifier hs-var">x</span></a><span class="hs-special">,</span><span> </span><a href="Network.NTP.Client.Packet.html#Microsecond"><span class="hs-identifier hs-var">Microsecond</span></a><span> </span><a href="#local-6989586621679030213"><span class="hs-identifier hs-var">r</span></a><span class="hs-special">)</span><span>
-</span><a name="line-36"></a><span>
-</span><a name="line-37"></a><span class="hs-keyword">data</span><span> </span><a name="NtpPacket"><a href="Network.NTP.Client.Packet.html#NtpPacket"><span class="hs-identifier">NtpPacket</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><a name="NtpPacket"><a href="Network.NTP.Client.Packet.html#NtpPacket"><span class="hs-identifier">NtpPacket</span></a></a><span>
-</span><a name="line-38"></a><span>    </span><span class="hs-special">{</span><span> </span><a name="ntpParams"><a href="Network.NTP.Client.Packet.html#ntpParams"><span class="hs-identifier">ntpParams</span></a></a><span>       </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">Word8</span><span>        </span><span class="hs-comment">-- ^ some magic parameters</span><span>
-</span><a name="line-39"></a><span>    </span><span class="hs-special">,</span><span> </span><a name="ntpPoll"><a href="Network.NTP.Client.Packet.html#ntpPoll"><span class="hs-identifier">ntpPoll</span></a></a><span>         </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">Int8</span><span>         </span><span class="hs-comment">-- ^ poll delay between requests</span><span>
-</span><a name="line-40"></a><span>    </span><span class="hs-special">,</span><span> </span><a name="ntpOriginTime"><a href="Network.NTP.Client.Packet.html#ntpOriginTime"><span class="hs-identifier">ntpOriginTime</span></a></a><span>   </span><span class="hs-glyph">::</span><span> </span><a href="Network.NTP.Client.Packet.html#Microsecond"><span class="hs-identifier hs-type">Microsecond</span></a><span>  </span><span class="hs-comment">-- ^ when server sent reply</span><span>
-</span><a name="line-41"></a><span>    </span><span class="hs-special">,</span><span> </span><a name="ntpReceivedTime"><a href="Network.NTP.Client.Packet.html#ntpReceivedTime"><span class="hs-identifier">ntpReceivedTime</span></a></a><span> </span><span class="hs-glyph">::</span><span> </span><a href="Network.NTP.Client.Packet.html#Microsecond"><span class="hs-identifier hs-type">Microsecond</span></a><span>  </span><span class="hs-comment">-- ^ when server got request</span><span>
-</span><a name="line-42"></a><span>    </span><span class="hs-special">,</span><span> </span><a name="ntpTransmitTime"><a href="Network.NTP.Client.Packet.html#ntpTransmitTime"><span class="hs-identifier">ntpTransmitTime</span></a></a><span> </span><span class="hs-glyph">::</span><span> </span><a href="Network.NTP.Client.Packet.html#Microsecond"><span class="hs-identifier hs-type">Microsecond</span></a><span>  </span><span class="hs-comment">-- ^ when client sent request</span><span>
-</span><a name="line-43"></a><span>    </span><span class="hs-special">}</span><span> </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Show</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Eq</span><span class="hs-special">)</span><span>
-</span><a name="line-44"></a><span>
-</span><a name="line-45"></a><span class="hs-keyword">instance</span><span> </span><span class="hs-identifier hs-type">Binary</span><span> </span><a href="Network.NTP.Client.Packet.html#NtpPacket"><span class="hs-identifier hs-type">NtpPacket</span></a><span> </span><span class="hs-keyword">where</span><span>
-</span><a name="line-46"></a><span>    </span><a name="local-8214565720323790569"><span class="hs-identifier">put</span></a><span> </span><a href="Network.NTP.Client.Packet.html#NtpPacket"><span class="hs-identifier hs-var">NtpPacket</span></a><span class="hs-special">{</span><span class="hs-glyph">..</span><span class="hs-special">}</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
-</span><a name="line-47"></a><span>        </span><span class="hs-identifier hs-var">putWord8</span><span> </span><a href="#local-6989586621679030178"><span class="hs-identifier hs-var">ntpParams</span></a><span>
-</span><a name="line-48"></a><span>        </span><span class="hs-identifier hs-var">putWord8</span><span> </span><span class="hs-number">0</span><span>
-</span><a name="line-49"></a><span>        </span><span class="hs-identifier hs-var">putInt8</span><span> </span><a href="#local-6989586621679030179"><span class="hs-identifier hs-var">ntpPoll</span></a><span>
-</span><a name="line-50"></a><span>        </span><span class="hs-identifier hs-var">putWord8</span><span> </span><span class="hs-number">0</span><span>
-</span><a name="line-51"></a><span>
-</span><a name="line-52"></a><span>        </span><span class="hs-identifier hs-var">replicateM_</span><span> </span><span class="hs-number">5</span><span> </span><span class="hs-operator hs-var">$</span><span> </span><span class="hs-identifier hs-var">putWord32be</span><span> </span><span class="hs-number">0</span><span>
-</span><a name="line-53"></a><span>
-</span><a name="line-54"></a><span>        </span><span class="hs-keyword">let</span><span> </span><span class="hs-special">(</span><a name="local-6989586621679030183"><a href="#local-6989586621679030183"><span class="hs-identifier">osec</span></a></a><span class="hs-special">,</span><span> </span><a name="local-6989586621679030184"><a href="#local-6989586621679030184"><span class="hs-identifier">ofrac</span></a></a><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><a href="Network.NTP.Client.Packet.html#realMcsToNtp"><span class="hs-identifier hs-var">realMcsToNtp</span></a><span> </span><a href="#local-6989586621679030180"><span class="hs-identifier hs-var">ntpOriginTime</span></a><span>
-</span><a name="line-55"></a><span>        </span><span class="hs-identifier hs-var">putWord32be</span><span> </span><a href="#local-6989586621679030183"><span class="hs-identifier hs-var">osec</span></a><span>
-</span><a name="line-56"></a><span>        </span><span class="hs-identifier hs-var">putWord32be</span><span> </span><a href="#local-6989586621679030184"><span class="hs-identifier hs-var">ofrac</span></a><span>
-</span><a name="line-57"></a><span>
-</span><a name="line-58"></a><span>        </span><span class="hs-keyword">let</span><span> </span><span class="hs-special">(</span><a name="local-6989586621679030185"><a href="#local-6989586621679030185"><span class="hs-identifier">rsec</span></a></a><span class="hs-special">,</span><span> </span><a name="local-6989586621679030186"><a href="#local-6989586621679030186"><span class="hs-identifier">rfrac</span></a></a><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><a href="Network.NTP.Client.Packet.html#realMcsToNtp"><span class="hs-identifier hs-var">realMcsToNtp</span></a><span> </span><a href="#local-6989586621679030181"><span class="hs-identifier hs-var">ntpReceivedTime</span></a><span>
-</span><a name="line-59"></a><span>        </span><span class="hs-identifier hs-var">putWord32be</span><span> </span><a href="#local-6989586621679030185"><span class="hs-identifier hs-var">rsec</span></a><span>
-</span><a name="line-60"></a><span>        </span><span class="hs-identifier hs-var">putWord32be</span><span> </span><a href="#local-6989586621679030186"><span class="hs-identifier hs-var">rfrac</span></a><span>
-</span><a name="line-61"></a><span>
-</span><a name="line-62"></a><span>        </span><span class="hs-keyword">let</span><span> </span><span class="hs-special">(</span><a name="local-6989586621679030187"><a href="#local-6989586621679030187"><span class="hs-identifier">tsec</span></a></a><span class="hs-special">,</span><span> </span><a name="local-6989586621679030188"><a href="#local-6989586621679030188"><span class="hs-identifier">tfrac</span></a></a><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><a href="Network.NTP.Client.Packet.html#realMcsToNtp"><span class="hs-identifier hs-var">realMcsToNtp</span></a><span> </span><a href="#local-6989586621679030182"><span class="hs-identifier hs-var">ntpTransmitTime</span></a><span>
-</span><a name="line-63"></a><span>        </span><span class="hs-identifier hs-var">putWord32be</span><span> </span><a href="#local-6989586621679030187"><span class="hs-identifier hs-var">tsec</span></a><span>
-</span><a name="line-64"></a><span>        </span><span class="hs-identifier hs-var">putWord32be</span><span> </span><a href="#local-6989586621679030188"><span class="hs-identifier hs-var">tfrac</span></a><span>
-</span><a name="line-65"></a><span>
-</span><a name="line-66"></a><span>    </span><a name="local-8214565720323790568"><span class="hs-identifier">get</span></a><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
-</span><a name="line-67"></a><span>        </span><a name="local-6989586621679030204"><a href="#local-6989586621679030204"><span class="hs-identifier">ntpParams</span></a></a><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="hs-identifier hs-var">getWord8</span><span>
-</span><a name="line-68"></a><span>        </span><span class="hs-identifier">_</span><span>         </span><span class="hs-glyph">&lt;-</span><span> </span><span class="hs-identifier hs-var">getWord8</span><span>
-</span><a name="line-69"></a><span>        </span><a name="local-6989586621679030205"><a href="#local-6989586621679030205"><span class="hs-identifier">ntpPoll</span></a></a><span>   </span><span class="hs-glyph">&lt;-</span><span> </span><span class="hs-identifier hs-var">getInt8</span><span>
-</span><a name="line-70"></a><span>        </span><span class="hs-identifier">_</span><span>         </span><span class="hs-glyph">&lt;-</span><span> </span><span class="hs-identifier hs-var">getWord8</span><span>
-</span><a name="line-71"></a><span>
-</span><a name="line-72"></a><span>        </span><span class="hs-comment">-- skip 5 @'Word32'@ words</span><span>
-</span><a name="line-73"></a><span>        </span><span class="hs-identifier hs-var">skip</span><span> </span><span class="hs-number">20</span><span>
-</span><a name="line-74"></a><span>
-</span><a name="line-75"></a><span>        </span><a name="local-6989586621679030206"><a href="#local-6989586621679030206"><span class="hs-identifier">ntpOriginTime</span></a></a><span>   </span><span class="hs-glyph">&lt;-</span><span> </span><a href="#local-6989586621679030189"><span class="hs-identifier hs-var">getTimestamp</span></a><span>
-</span><a name="line-76"></a><span>        </span><a name="local-6989586621679030207"><a href="#local-6989586621679030207"><span class="hs-identifier">ntpReceivedTime</span></a></a><span> </span><span class="hs-glyph">&lt;-</span><span> </span><a href="#local-6989586621679030189"><span class="hs-identifier hs-var">getTimestamp</span></a><span>
-</span><a name="line-77"></a><span>        </span><a name="local-6989586621679030208"><a href="#local-6989586621679030208"><span class="hs-identifier">ntpTransmitTime</span></a></a><span> </span><span class="hs-glyph">&lt;-</span><span> </span><a href="#local-6989586621679030189"><span class="hs-identifier hs-var">getTimestamp</span></a><span>
-</span><a name="line-78"></a><span>        </span><span class="hs-identifier hs-var">return</span><span> </span><a href="Network.NTP.Client.Packet.html#NtpPacket"><span class="hs-identifier hs-var">NtpPacket</span></a><span class="hs-special">{</span><span class="hs-glyph">..</span><span class="hs-special">}</span><span>
-</span><a name="line-79"></a><span>      </span><span class="hs-keyword">where</span><span>
-</span><a name="line-80"></a><span>        </span><a name="local-6989586621679030189"><a href="#local-6989586621679030189"><span class="hs-identifier">getTimestamp</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><a href="Network.NTP.Client.Packet.html#ntpToRealMcs"><span class="hs-identifier hs-var">ntpToRealMcs</span></a><span> </span><span class="hs-operator hs-var">&lt;$&gt;</span><span> </span><span class="hs-identifier hs-var">getWord32be</span><span> </span><span class="hs-operator hs-var">&lt;*&gt;</span><span> </span><span class="hs-identifier hs-var">getWord32be</span><span>
-</span><a name="line-81"></a><span>
-</span><a name="line-82"></a><span class="hs-comment">-- |</span><span>
-</span><a name="line-83"></a><span class="hs-comment">-- NTP timestamp start in 1.1.1900, i.e. 70 years before UNIX epoch.</span><span>
-</span><a name="line-84"></a><span class="hs-comment">-- references:</span><span>
-</span><a name="line-85"></a><span class="hs-comment">--  * https://tools.ietf.org/html/rfc5905#section-6</span><span>
-</span><a name="line-86"></a><span class="hs-comment">--  * https://tools.ietf.org/html/rfc5905#appendix-A.4</span><span>
-</span><a name="line-87"></a><span class="hs-identifier">ntpTimestampDelta</span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">Integer</span><span>
-</span><a name="line-88"></a><a name="ntpTimestampDelta"><a href="Network.NTP.Client.Packet.html#ntpTimestampDelta"><span class="hs-identifier">ntpTimestampDelta</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-number">2208988800</span><span>
-</span><a name="line-89"></a><span>
-</span><a name="line-90"></a><span class="hs-comment">-- |</span><span>
-</span><a name="line-91"></a><span class="hs-comment">-- We only need first 48 bytes of a packet:</span><span>
-</span><a name="line-92"></a><span class="hs-comment">-- reference: https://tools.ietf.org/html/rfc5905#section-7.3</span><span>
-</span><a name="line-93"></a><span class="hs-identifier">ntpPacketSize</span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">Int</span><span>
-</span><a name="line-94"></a><a name="ntpPacketSize"><a href="Network.NTP.Client.Packet.html#ntpPacketSize"><span class="hs-identifier">ntpPacketSize</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-number">48</span><span>
-</span><a name="line-95"></a><span>
-</span><a name="line-96"></a><span class="hs-comment">-- |</span><span>
-</span><a name="line-97"></a><span class="hs-comment">-- For pairs @(x, y) :: (Word32, Word32)@ with @y \`mod\` 4294 == 0@ it is</span><span>
-</span><a name="line-98"></a><span class="hs-comment">-- be right inverse of @'realMsgToNtp'@.   In general it is not injective (for that</span><span>
-</span><a name="line-99"></a><span class="hs-comment">-- we'd need to use @'Picosecond'@ instead of @'Microsecond'@).</span><span>
-</span><a name="line-100"></a><span class="hs-identifier">ntpToRealMcs</span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">Word32</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">Word32</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><a href="Network.NTP.Client.Packet.html#Microsecond"><span class="hs-identifier hs-type">Microsecond</span></a><span>
-</span><a name="line-101"></a><a name="ntpToRealMcs"><a href="Network.NTP.Client.Packet.html#ntpToRealMcs"><span class="hs-identifier">ntpToRealMcs</span></a></a><span> </span><a name="local-6989586621679032104"><a href="#local-6989586621679032104"><span class="hs-identifier">sec</span></a></a><span> </span><a name="local-6989586621679032105"><a href="#local-6989586621679032105"><span class="hs-identifier">frac</span></a></a><span> </span><span class="hs-glyph">=</span><span>
-</span><a name="line-102"></a><span>    </span><span class="hs-keyword">let</span><span> </span><span class="hs-comment">-- microseconds</span><span>
-</span><a name="line-103"></a><span>        </span><span class="hs-identifier">secMicro</span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">Integer</span><span>
-</span><a name="line-104"></a><span>        </span><a name="local-6989586621679032106"><a href="#local-6989586621679032106"><span class="hs-identifier">secMicro</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-var">fromIntegral</span><span> </span><a href="#local-6989586621679032104"><span class="hs-identifier hs-var">sec</span></a><span> </span><span class="hs-glyph">-</span><span> </span><a href="Network.NTP.Client.Packet.html#ntpTimestampDelta"><span class="hs-identifier hs-var">ntpTimestampDelta</span></a><span class="hs-special">)</span><span> </span><span class="hs-operator hs-var">*</span><span> </span><span class="hs-number">1000000</span><span>
-</span><a name="line-105"></a><span>        </span><span class="hs-comment">-- We divide 1 second into 2 ^ 32 parts, giving 2.3283064365386963e-10</span><span>
-</span><a name="line-106"></a><span>        </span><span class="hs-comment">-- as the quantum. A picosecond is 10e-12 of a second, so this is 232</span><span>
-</span><a name="line-107"></a><span>        </span><span class="hs-comment">-- picoseconds or `1/4294` of a millisecond.</span><span>
-</span><a name="line-108"></a><span>        </span><span class="hs-comment">-- ref: https://tools.ietf.org/html/rfc5905#section-6</span><span>
-</span><a name="line-109"></a><span>        </span><span class="hs-identifier">fracMicro</span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">Integer</span><span>
-</span><a name="line-110"></a><span>        </span><a name="local-6989586621679032107"><a href="#local-6989586621679032107"><span class="hs-identifier">fracMicro</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-var">fromIntegral</span><span> </span><a href="#local-6989586621679032105"><span class="hs-identifier hs-var">frac</span></a><span class="hs-special">)</span><span> </span><span class="hs-special">`</span><span class="hs-identifier hs-var">div</span><span class="hs-special">`</span><span> </span><span class="hs-number">4294</span><span>
-</span><a name="line-111"></a><span>    </span><span class="hs-keyword">in</span><span> </span><a href="Network.NTP.Client.Packet.html#Microsecond"><span class="hs-identifier hs-var">Microsecond</span></a><span> </span><span class="hs-operator hs-var">$</span><span> </span><a href="#local-6989586621679032106"><span class="hs-identifier hs-var">secMicro</span></a><span> </span><span class="hs-operator hs-var">+</span><span> </span><a href="#local-6989586621679032107"><span class="hs-identifier hs-var">fracMicro</span></a><span>
-</span><a name="line-112"></a><span>
-</span><a name="line-113"></a><span class="hs-comment">-- |</span><span>
-</span><a name="line-114"></a><span class="hs-comment">-- It is a partial function, since @Microsecond ~ Integer@; it is well defined</span><span>
-</span><a name="line-115"></a><span class="hs-comment">-- for:</span><span>
-</span><a name="line-116"></a><span class="hs-comment">-- @</span><span>
-</span><a name="line-117"></a><span class="hs-comment">--  x &lt; 2085978496 = (maxBound @Word32 * 1000000) - ntpTimestampDelta + 1`</span><span>
-</span><a name="line-118"></a><span class="hs-comment">-- @</span><span>
-</span><a name="line-119"></a><span class="hs-comment">-- (in microseconds; this is roughly 66 years, so we're fine untill 2036).</span><span>
-</span><a name="line-120"></a><span class="hs-identifier">realMcsToNtp</span><span> </span><span class="hs-glyph">::</span><span> </span><a href="Network.NTP.Client.Packet.html#Microsecond"><span class="hs-identifier hs-type">Microsecond</span></a><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Word32</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Word32</span><span class="hs-special">)</span><span>
-</span><a name="line-121"></a><a name="realMcsToNtp"><a href="Network.NTP.Client.Packet.html#realMcsToNtp"><span class="hs-identifier">realMcsToNtp</span></a></a><span> </span><span class="hs-special">(</span><a href="Network.NTP.Client.Packet.html#Microsecond"><span class="hs-identifier hs-var">Microsecond</span></a><span> </span><a name="local-6989586621679032108"><a href="#local-6989586621679032108"><span class="hs-identifier">mcs</span></a></a><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span>
-</span><a name="line-122"></a><span>    </span><span class="hs-keyword">let</span><span> </span><span class="hs-special">(</span><a name="local-6989586621679032109"><a href="#local-6989586621679032109"><span class="hs-identifier">sec</span></a></a><span class="hs-special">,</span><span> </span><a name="local-6989586621679032110"><a href="#local-6989586621679032110"><span class="hs-identifier">frac</span></a></a><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-identifier hs-var">divMod</span><span> </span><a href="#local-6989586621679032108"><span class="hs-identifier hs-var">mcs</span></a><span> </span><span class="hs-number">1000000</span><span>
-</span><a name="line-123"></a><span>    </span><span class="hs-keyword">in</span><span>  </span><span class="hs-special">(</span><span> </span><span class="hs-identifier hs-var">fromIntegral</span><span> </span><span class="hs-operator hs-var">$</span><span> </span><a href="#local-6989586621679032109"><span class="hs-identifier hs-var">sec</span></a><span> </span><span class="hs-operator hs-var">+</span><span> </span><a href="Network.NTP.Client.Packet.html#ntpTimestampDelta"><span class="hs-identifier hs-var">ntpTimestampDelta</span></a><span>
-</span><a name="line-124"></a><span>        </span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-var">fromIntegral</span><span> </span><span class="hs-operator hs-var">$</span><span> </span><a href="#local-6989586621679032110"><span class="hs-identifier hs-var">frac</span></a><span> </span><span class="hs-operator hs-var">*</span><span> </span><span class="hs-number">4294</span><span class="hs-special">)</span><span>
-</span><a name="line-125"></a><span>
-</span><a name="line-126"></a><span class="hs-comment">-- |</span><span>
-</span><a name="line-127"></a><span class="hs-comment">-- Smart constructor for @'NtpPacket'@.</span><span>
-</span><a name="line-128"></a><span class="hs-identifier">mkNtpPacket</span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">IO</span><span> </span><a href="Network.NTP.Client.Packet.html#NtpPacket"><span class="hs-identifier hs-type">NtpPacket</span></a><span>
-</span><a name="line-129"></a><a name="mkNtpPacket"><a href="Network.NTP.Client.Packet.html#mkNtpPacket"><span class="hs-identifier">mkNtpPacket</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
-</span><a name="line-130"></a><span>    </span><span class="hs-keyword">let</span><span> </span><a name="local-6989586621679032111"><a href="#local-6989586621679032111"><span class="hs-identifier">ntpParams</span></a></a><span>       </span><span class="hs-glyph">=</span><span> </span><span class="hs-number">0x1b</span><span>
-</span><a name="line-131"></a><span>        </span><a name="local-6989586621679032112"><a href="#local-6989586621679032112"><span class="hs-identifier">ntpPoll</span></a></a><span>         </span><span class="hs-glyph">=</span><span> </span><span class="hs-number">0</span><span>
-</span><a name="line-132"></a><span>        </span><a name="local-6989586621679032113"><a href="#local-6989586621679032113"><span class="hs-identifier">ntpOriginTime</span></a></a><span>   </span><span class="hs-glyph">=</span><span> </span><span class="hs-number">0</span><span>
-</span><a name="line-133"></a><span>        </span><a name="local-6989586621679032114"><a href="#local-6989586621679032114"><span class="hs-identifier">ntpReceivedTime</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-number">0</span><span>
-</span><a name="line-134"></a><span>    </span><a name="local-6989586621679032115"><a href="#local-6989586621679032115"><span class="hs-identifier">ntpTransmitTime</span></a></a><span> </span><span class="hs-glyph">&lt;-</span><span> </span><a href="Network.NTP.Client.Packet.html#getCurrentTime"><span class="hs-identifier hs-var">getCurrentTime</span></a><span>
-</span><a name="line-135"></a><span>    </span><span class="hs-identifier hs-var">return</span><span> </span><a href="Network.NTP.Client.Packet.html#NtpPacket"><span class="hs-identifier hs-var">NtpPacket</span></a><span class="hs-special">{</span><span class="hs-glyph">..</span><span class="hs-special">}</span><span>
-</span><a name="line-136"></a><span>
-</span><a name="line-137"></a><span class="hs-comment">-- |</span><span>
-</span><a name="line-138"></a><span class="hs-comment">-- @'NtpOffset'@ is the difference between NTP time and local time.</span><span>
-</span><a name="line-139"></a><span class="hs-keyword">newtype</span><span> </span><a name="NtpOffset"><a href="Network.NTP.Client.Packet.html#NtpOffset"><span class="hs-identifier">NtpOffset</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><a name="NtpOffset"><a href="Network.NTP.Client.Packet.html#NtpOffset"><span class="hs-identifier">NtpOffset</span></a></a><span> </span><span class="hs-special">{</span><span> </span><a name="getNtpOffset"><a href="Network.NTP.Client.Packet.html#getNtpOffset"><span class="hs-identifier">getNtpOffset</span></a></a><span> </span><span class="hs-glyph">::</span><span> </span><a href="Network.NTP.Client.Packet.html#Microsecond"><span class="hs-identifier hs-type">Microsecond</span></a><span> </span><span class="hs-special">}</span><span>
-</span><a name="line-140"></a><span>    </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Enum</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Eq</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Integral</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Num</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Ord</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Real</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Show</span><span class="hs-special">)</span><span>
-</span><a name="line-141"></a><span>
-</span><a name="line-142"></a><span class="hs-identifier">clockOffsetPure</span><span> </span><span class="hs-glyph">::</span><span> </span><a href="Network.NTP.Client.Packet.html#NtpPacket"><span class="hs-identifier hs-type">NtpPacket</span></a><span> </span><span class="hs-glyph">-&gt;</span><span> </span><a href="Network.NTP.Client.Packet.html#Microsecond"><span class="hs-identifier hs-type">Microsecond</span></a><span> </span><span class="hs-glyph">-&gt;</span><span> </span><a href="Network.NTP.Client.Packet.html#NtpOffset"><span class="hs-identifier hs-type">NtpOffset</span></a><span>
-</span><a name="line-143"></a><a name="clockOffsetPure"><a href="Network.NTP.Client.Packet.html#clockOffsetPure"><span class="hs-identifier">clockOffsetPure</span></a></a><span> </span><a href="Network.NTP.Client.Packet.html#NtpPacket"><span class="hs-identifier hs-var">NtpPacket</span></a><span class="hs-special">{</span><span class="hs-glyph">..</span><span class="hs-special">}</span><span> </span><a name="local-6989586621679032121"><a href="#local-6989586621679032121"><span class="hs-identifier">localTime</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><a href="Network.NTP.Client.Packet.html#NtpOffset"><span class="hs-identifier hs-var">NtpOffset</span></a><span>
-</span><a name="line-144"></a><span>    </span><span class="hs-operator hs-var">$</span><span> </span><span class="hs-special">(</span><a href="#local-6989586621679032119"><span class="hs-identifier hs-var">ntpReceivedTime</span></a><span> </span><span class="hs-glyph">-</span><span> </span><a href="#local-6989586621679032118"><span class="hs-identifier hs-var">ntpOriginTime</span></a><span> </span><span class="hs-operator hs-var">+</span><span> </span><a href="#local-6989586621679032120"><span class="hs-identifier hs-var">ntpTransmitTime</span></a><span> </span><span class="hs-glyph">-</span><span> </span><a href="#local-6989586621679032121"><span class="hs-identifier hs-var">localTime</span></a><span class="hs-special">)</span><span>
-</span><a name="line-145"></a><span>      </span><span class="hs-special">`</span><span class="hs-identifier hs-var">div</span><span class="hs-special">`</span><span> </span><span class="hs-number">2</span><span>
-</span><a name="line-146"></a><span>
-</span><a name="line-147"></a><span class="hs-comment">-- |</span><span>
-</span><a name="line-148"></a><span class="hs-comment">-- Compute clock offset unless the NTP packet was requested more than the given</span><span>
-</span><a name="line-149"></a><span class="hs-comment">-- timeout.</span><span>
-</span><a name="line-150"></a><span class="hs-identifier">clockOffset</span><span>
-</span><a name="line-151"></a><span>    </span><span class="hs-glyph">::</span><span> </span><a href="Network.NTP.Client.Packet.html#Microsecond"><span class="hs-identifier hs-type">Microsecond</span></a><span>
-</span><a name="line-152"></a><span>    </span><span class="hs-comment">-- ^ @'ntpResponseTimeout'@, ignore responses which come after it passed.</span><span>
-</span><a name="line-153"></a><span>    </span><span class="hs-glyph">-&gt;</span><span> </span><a href="Network.NTP.Client.Packet.html#NtpPacket"><span class="hs-identifier hs-type">NtpPacket</span></a><span>
-</span><a name="line-154"></a><span>    </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">IO</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Maybe</span><span> </span><a href="Network.NTP.Client.Packet.html#NtpOffset"><span class="hs-identifier hs-type">NtpOffset</span></a><span class="hs-special">)</span><span>
-</span><a name="line-155"></a><a name="clockOffset"><a href="Network.NTP.Client.Packet.html#clockOffset"><span class="hs-identifier">clockOffset</span></a></a><span> </span><a name="local-6989586621679032122"><a href="#local-6989586621679032122"><span class="hs-identifier">respTimeout</span></a></a><span> </span><a name="local-6989586621679032123"><a href="#local-6989586621679032123"><span class="hs-identifier">packet</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
-</span><a name="line-156"></a><span>    </span><a name="local-6989586621679032124"><a href="#local-6989586621679032124"><span class="hs-identifier">time</span></a></a><span> </span><span class="hs-glyph">&lt;-</span><span> </span><a href="Network.NTP.Client.Packet.html#getCurrentTime"><span class="hs-identifier hs-var">getCurrentTime</span></a><span>
-</span><a name="line-157"></a><span>    </span><span class="hs-keyword">let</span><span> </span><a name="local-6989586621679032125"><a href="#local-6989586621679032125"><span class="hs-identifier">isLate</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><a href="#local-6989586621679032124"><span class="hs-identifier hs-var">time</span></a><span> </span><span class="hs-glyph">-</span><span> </span><span class="hs-identifier">ntpOriginTime</span><span> </span><a href="#local-6989586621679032123"><span class="hs-identifier hs-var">packet</span></a><span> </span><span class="hs-operator hs-var">&gt;=</span><span> </span><a href="#local-6989586621679032122"><span class="hs-identifier hs-var">respTimeout</span></a><span>
-</span><a name="line-158"></a><span>    </span><span class="hs-keyword">if</span><span> </span><a href="#local-6989586621679032125"><span class="hs-identifier hs-var">isLate</span></a><span>
-</span><a name="line-159"></a><span>        </span><span class="hs-keyword">then</span><span> </span><span class="hs-identifier hs-var">return</span><span> </span><span class="hs-identifier hs-var">Nothing</span><span>
-</span><a name="line-160"></a><span>        </span><span class="hs-keyword">else</span><span> </span><span class="hs-identifier hs-var">return</span><span> </span><span class="hs-operator hs-var">$</span><span> </span><span class="hs-identifier hs-var">Just</span><span> </span><span class="hs-operator hs-var">$</span><span> </span><a href="Network.NTP.Client.Packet.html#clockOffsetPure"><span class="hs-identifier hs-var">clockOffsetPure</span></a><span> </span><a href="#local-6989586621679032123"><span class="hs-identifier hs-var">packet</span></a><span> </span><a href="#local-6989586621679032124"><span class="hs-identifier hs-var">time</span></a><span>
-</span><a name="line-161"></a><span>
-</span><a name="line-162"></a><span class="hs-comment">-- |</span><span>
-</span><a name="line-163"></a><span class="hs-comment">-- Helper function to get current time in @Microsecond@.</span><span>
-</span><a name="line-164"></a><span class="hs-identifier">getCurrentTime</span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">IO</span><span> </span><a href="Network.NTP.Client.Packet.html#Microsecond"><span class="hs-identifier hs-type">Microsecond</span></a><span>
-</span><a name="line-165"></a><a name="getCurrentTime"><a href="Network.NTP.Client.Packet.html#getCurrentTime"><span class="hs-identifier">getCurrentTime</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><a href="Network.NTP.Client.Packet.html#Microsecond"><span class="hs-identifier hs-var">Microsecond</span></a><span> </span><span class="hs-operator hs-var">.</span><span> </span><span class="hs-identifier hs-var">round</span><span> </span><span class="hs-operator hs-var">.</span><span> </span><span class="hs-special">(</span><span> </span><span class="hs-operator hs-var">*</span><span> </span><span class="hs-number">1000000</span><span class="hs-special">)</span><span> </span><span class="hs-operator hs-var">&lt;$&gt;</span><span> </span><span class="hs-identifier hs-var">getPOSIXTime</span><span>
-</span><a name="line-166"></a></pre></body></html>
+</span><span id="line-2"></span><span class="hs-pragma">{-# LANGUAGE RecordWildCards            #-}</span><span>
+</span><span id="line-3"></span><span>
+</span><span id="line-4"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Network.NTP.Client.Packet</span><span>
+</span><span id="line-5"></span><span>    </span><span class="hs-special">(</span><span> </span><span class="annot"><a href="Network.NTP.Client.Packet.html#NtpPacket"><span class="hs-identifier">NtpPacket</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
+</span><span id="line-6"></span><span>    </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Network.NTP.Client.Packet.html#ntpPacketSize"><span class="hs-identifier">ntpPacketSize</span></a></span><span>
+</span><span id="line-7"></span><span>    </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Network.NTP.Client.Packet.html#mkNtpPacket"><span class="hs-identifier">mkNtpPacket</span></a></span><span>
+</span><span id="line-8"></span><span>    </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Network.NTP.Client.Packet.html#NtpOffset"><span class="hs-identifier">NtpOffset</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
+</span><span id="line-9"></span><span>    </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Network.NTP.Client.Packet.html#getCurrentTime"><span class="hs-identifier">getCurrentTime</span></a></span><span>
+</span><span id="line-10"></span><span>    </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Network.NTP.Client.Packet.html#clockOffsetPure"><span class="hs-identifier">clockOffsetPure</span></a></span><span>
+</span><span id="line-11"></span><span>    </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Network.NTP.Client.Packet.html#clockOffset"><span class="hs-identifier">clockOffset</span></a></span><span>
+</span><span id="line-12"></span><span>    </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Network.NTP.Client.Packet.html#realMcsToNtp"><span class="hs-identifier">realMcsToNtp</span></a></span><span>
+</span><span id="line-13"></span><span>    </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Network.NTP.Client.Packet.html#ntpToRealMcs"><span class="hs-identifier">ntpToRealMcs</span></a></span><span>
+</span><span id="line-14"></span><span>    </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Network.NTP.Client.Packet.html#Microsecond"><span class="hs-identifier">Microsecond</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
+</span><span id="line-15"></span><span>    </span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-16"></span><span>
+</span><span id="line-17"></span><span>
+</span><span id="line-18"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><span class="hs-identifier">Control.Monad</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">replicateM_</span></span><span class="hs-special">)</span><span>
+</span><span id="line-19"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><span class="hs-identifier">Data.Binary</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Binary</span></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-20"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><span class="hs-identifier">Data.Binary.Get</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">getInt8</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">getWord32be</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">getWord8</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">skip</span></span><span class="hs-special">)</span><span>
+</span><span id="line-21"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><span class="hs-identifier">Data.Binary.Put</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">putInt8</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">putWord32be</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">putWord8</span></span><span class="hs-special">)</span><span>
+</span><span id="line-22"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><span class="hs-identifier">Data.Int</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Int8</span></span><span class="hs-special">)</span><span>
+</span><span id="line-23"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><span class="hs-identifier">Data.Time.Clock.POSIX</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">getPOSIXTime</span></span><span class="hs-special">)</span><span>
+</span><span id="line-24"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><span class="hs-identifier">Data.Word</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Word32</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">Word8</span></span><span class="hs-special">)</span><span>
+</span><span id="line-25"></span><span>
+</span><span id="line-26"></span><span class="hs-keyword">newtype</span><span> </span><span id="Microsecond"><span class="annot"><a href="Network.NTP.Client.Packet.html#Microsecond"><span class="hs-identifier hs-var">Microsecond</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="Microsecond"><span class="annot"><a href="Network.NTP.Client.Packet.html#Microsecond"><span class="hs-identifier hs-var">Microsecond</span></a></span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Integer</span></span><span>
+</span><span id="line-27"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679048637"><span id="local-6989586621679048639"><span id="local-6989586621679048641"><span id="local-6989586621679048643"><span id="local-6989586621679048645"><span id="local-6989586621679048647"><span id="local-6989586621679048649"><span id="local-6989586621679048651"><span class="annot"><span class="annottext">Int -&gt; Microsecond
+Microsecond -&gt; Int
+Microsecond -&gt; [Microsecond]
+Microsecond -&gt; Microsecond
+Microsecond -&gt; Microsecond -&gt; [Microsecond]
+Microsecond -&gt; Microsecond -&gt; Microsecond -&gt; [Microsecond]
+(Microsecond -&gt; Microsecond)
+-&gt; (Microsecond -&gt; Microsecond)
+-&gt; (Int -&gt; Microsecond)
+-&gt; (Microsecond -&gt; Int)
+-&gt; (Microsecond -&gt; [Microsecond])
+-&gt; (Microsecond -&gt; Microsecond -&gt; [Microsecond])
+-&gt; (Microsecond -&gt; Microsecond -&gt; [Microsecond])
+-&gt; (Microsecond -&gt; Microsecond -&gt; Microsecond -&gt; [Microsecond])
+-&gt; Enum Microsecond
+forall a.
+(a -&gt; a)
+-&gt; (a -&gt; a)
+-&gt; (Int -&gt; a)
+-&gt; (a -&gt; Int)
+-&gt; (a -&gt; [a])
+-&gt; (a -&gt; a -&gt; [a])
+-&gt; (a -&gt; a -&gt; [a])
+-&gt; (a -&gt; a -&gt; a -&gt; [a])
+-&gt; Enum a
+enumFromThenTo :: Microsecond -&gt; Microsecond -&gt; Microsecond -&gt; [Microsecond]
+$cenumFromThenTo :: Microsecond -&gt; Microsecond -&gt; Microsecond -&gt; [Microsecond]
+enumFromTo :: Microsecond -&gt; Microsecond -&gt; [Microsecond]
+$cenumFromTo :: Microsecond -&gt; Microsecond -&gt; [Microsecond]
+enumFromThen :: Microsecond -&gt; Microsecond -&gt; [Microsecond]
+$cenumFromThen :: Microsecond -&gt; Microsecond -&gt; [Microsecond]
+enumFrom :: Microsecond -&gt; [Microsecond]
+$cenumFrom :: Microsecond -&gt; [Microsecond]
+fromEnum :: Microsecond -&gt; Int
+$cfromEnum :: Microsecond -&gt; Int
+toEnum :: Int -&gt; Microsecond
+$ctoEnum :: Int -&gt; Microsecond
+pred :: Microsecond -&gt; Microsecond
+$cpred :: Microsecond -&gt; Microsecond
+succ :: Microsecond -&gt; Microsecond
+$csucc :: Microsecond -&gt; Microsecond
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Enum</span></span></span></span></span></span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679048632"><span id="local-6989586621679048634"><span class="annot"><span class="annottext">Microsecond -&gt; Microsecond -&gt; Bool
+(Microsecond -&gt; Microsecond -&gt; Bool)
+-&gt; (Microsecond -&gt; Microsecond -&gt; Bool) -&gt; Eq Microsecond
+forall a. (a -&gt; a -&gt; Bool) -&gt; (a -&gt; a -&gt; Bool) -&gt; Eq a
+/= :: Microsecond -&gt; Microsecond -&gt; Bool
+$c/= :: Microsecond -&gt; Microsecond -&gt; Bool
+== :: Microsecond -&gt; Microsecond -&gt; Bool
+$c== :: Microsecond -&gt; Microsecond -&gt; Bool
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679048617"><span id="local-6989586621679048619"><span id="local-6989586621679048621"><span id="local-6989586621679048623"><span id="local-6989586621679048625"><span id="local-6989586621679048627"><span id="local-6989586621679048629"><span class="annot"><span class="annottext">Integer -&gt; Microsecond
+Microsecond -&gt; Microsecond
+Microsecond -&gt; Microsecond -&gt; Microsecond
+(Microsecond -&gt; Microsecond -&gt; Microsecond)
+-&gt; (Microsecond -&gt; Microsecond -&gt; Microsecond)
+-&gt; (Microsecond -&gt; Microsecond -&gt; Microsecond)
+-&gt; (Microsecond -&gt; Microsecond)
+-&gt; (Microsecond -&gt; Microsecond)
+-&gt; (Microsecond -&gt; Microsecond)
+-&gt; (Integer -&gt; Microsecond)
+-&gt; Num Microsecond
+forall a.
+(a -&gt; a -&gt; a)
+-&gt; (a -&gt; a -&gt; a)
+-&gt; (a -&gt; a -&gt; a)
+-&gt; (a -&gt; a)
+-&gt; (a -&gt; a)
+-&gt; (a -&gt; a)
+-&gt; (Integer -&gt; a)
+-&gt; Num a
+fromInteger :: Integer -&gt; Microsecond
+$cfromInteger :: Integer -&gt; Microsecond
+signum :: Microsecond -&gt; Microsecond
+$csignum :: Microsecond -&gt; Microsecond
+abs :: Microsecond -&gt; Microsecond
+$cabs :: Microsecond -&gt; Microsecond
+negate :: Microsecond -&gt; Microsecond
+$cnegate :: Microsecond -&gt; Microsecond
+* :: Microsecond -&gt; Microsecond -&gt; Microsecond
+$c* :: Microsecond -&gt; Microsecond -&gt; Microsecond
+- :: Microsecond -&gt; Microsecond -&gt; Microsecond
+$c- :: Microsecond -&gt; Microsecond -&gt; Microsecond
++ :: Microsecond -&gt; Microsecond -&gt; Microsecond
+$c+ :: Microsecond -&gt; Microsecond -&gt; Microsecond
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Num</span></span></span></span></span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679048601"><span id="local-6989586621679048603"><span id="local-6989586621679048605"><span id="local-6989586621679048607"><span id="local-6989586621679048609"><span id="local-6989586621679048611"><span id="local-6989586621679048613"><span class="annot"><span class="annottext">Eq Microsecond
+Eq Microsecond
+-&gt; (Microsecond -&gt; Microsecond -&gt; Ordering)
+-&gt; (Microsecond -&gt; Microsecond -&gt; Bool)
+-&gt; (Microsecond -&gt; Microsecond -&gt; Bool)
+-&gt; (Microsecond -&gt; Microsecond -&gt; Bool)
+-&gt; (Microsecond -&gt; Microsecond -&gt; Bool)
+-&gt; (Microsecond -&gt; Microsecond -&gt; Microsecond)
+-&gt; (Microsecond -&gt; Microsecond -&gt; Microsecond)
+-&gt; Ord Microsecond
+Microsecond -&gt; Microsecond -&gt; Bool
+Microsecond -&gt; Microsecond -&gt; Ordering
+Microsecond -&gt; Microsecond -&gt; Microsecond
+forall a.
+Eq a
+-&gt; (a -&gt; a -&gt; Ordering)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; a)
+-&gt; (a -&gt; a -&gt; a)
+-&gt; Ord a
+min :: Microsecond -&gt; Microsecond -&gt; Microsecond
+$cmin :: Microsecond -&gt; Microsecond -&gt; Microsecond
+max :: Microsecond -&gt; Microsecond -&gt; Microsecond
+$cmax :: Microsecond -&gt; Microsecond -&gt; Microsecond
+&gt;= :: Microsecond -&gt; Microsecond -&gt; Bool
+$c&gt;= :: Microsecond -&gt; Microsecond -&gt; Bool
+&gt; :: Microsecond -&gt; Microsecond -&gt; Bool
+$c&gt; :: Microsecond -&gt; Microsecond -&gt; Bool
+&lt;= :: Microsecond -&gt; Microsecond -&gt; Bool
+$c&lt;= :: Microsecond -&gt; Microsecond -&gt; Bool
+&lt; :: Microsecond -&gt; Microsecond -&gt; Bool
+$c&lt; :: Microsecond -&gt; Microsecond -&gt; Bool
+compare :: Microsecond -&gt; Microsecond -&gt; Ordering
+$ccompare :: Microsecond -&gt; Microsecond -&gt; Ordering
+$cp1Ord :: Eq Microsecond
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Ord</span></span></span></span></span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679048596"><span class="annot"><span class="annottext">Num Microsecond
+Ord Microsecond
+Num Microsecond
+-&gt; Ord Microsecond -&gt; (Microsecond -&gt; Rational) -&gt; Real Microsecond
+Microsecond -&gt; Rational
+forall a. Num a -&gt; Ord a -&gt; (a -&gt; Rational) -&gt; Real a
+toRational :: Microsecond -&gt; Rational
+$ctoRational :: Microsecond -&gt; Rational
+$cp2Real :: Ord Microsecond
+$cp1Real :: Num Microsecond
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Real</span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679048589"><span id="local-6989586621679048591"><span id="local-6989586621679048593"><span class="annot"><span class="annottext">Int -&gt; Microsecond -&gt; ShowS
+[Microsecond] -&gt; ShowS
+Microsecond -&gt; String
+(Int -&gt; Microsecond -&gt; ShowS)
+-&gt; (Microsecond -&gt; String)
+-&gt; ([Microsecond] -&gt; ShowS)
+-&gt; Show Microsecond
+forall a.
+(Int -&gt; a -&gt; ShowS) -&gt; (a -&gt; String) -&gt; ([a] -&gt; ShowS) -&gt; Show a
+showList :: [Microsecond] -&gt; ShowS
+$cshowList :: [Microsecond] -&gt; ShowS
+show :: Microsecond -&gt; String
+$cshow :: Microsecond -&gt; String
+showsPrec :: Int -&gt; Microsecond -&gt; ShowS
+$cshowsPrec :: Int -&gt; Microsecond -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">)</span><span>
+</span><span id="line-28"></span><span>
+</span><span id="line-29"></span><span class="hs-comment">-- The derived instance is using `toInteger :: Integer -&gt; Integer` which gives</span><span>
+</span><span id="line-30"></span><span class="hs-comment">-- a warning (`-Widentities`)</span><span>
+</span><span id="line-31"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679048575"><span id="local-6989586621679048578"><span id="local-6989586621679048580"><span id="local-6989586621679048582"><span id="local-6989586621679048584"><span class="annot"><span class="hs-identifier hs-type">Integral</span></span><span> </span><span class="annot"><a href="Network.NTP.Client.Packet.html#Microsecond"><span class="hs-identifier hs-type">Microsecond</span></a></span></span></span></span></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-32"></span><span>  </span><span id="local-6989586621679048572"><span class="annot"><span class="annottext">toInteger :: Microsecond -&gt; Integer
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">toInteger</span></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Network.NTP.Client.Packet.html#Microsecond"><span class="hs-identifier hs-type">Microsecond</span></a></span><span> </span><span id="local-6989586621679048571"><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679048571"><span class="hs-identifier hs-var">a</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679048571"><span class="hs-identifier hs-var">a</span></a></span><span>
+</span><span id="line-33"></span><span>  </span><span class="hs-special">(</span><span class="annot"><a href="Network.NTP.Client.Packet.html#Microsecond"><span class="hs-identifier hs-type">Microsecond</span></a></span><span> </span><span id="local-6989586621679048570"><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679048570"><span class="hs-identifier hs-var">a</span></a></span></span><span class="hs-special">)</span><span> </span><span id="local-6989586621679048569"><span class="annot"><span class="annottext">quotRem :: Microsecond -&gt; Microsecond -&gt; (Microsecond, Microsecond)
+</span><span class="hs-operator hs-var hs-var hs-var hs-var">`quotRem`</span></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Network.NTP.Client.Packet.html#Microsecond"><span class="hs-identifier hs-type">Microsecond</span></a></span><span> </span><span id="local-6989586621679048567"><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679048567"><span class="hs-identifier hs-var">b</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-34"></span><span>    </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679048570"><span class="hs-identifier hs-var">a</span></a></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Integer -&gt; (Integer, Integer)
+forall a. Integral a =&gt; a -&gt; a -&gt; (a, a)
+</span><span class="hs-operator hs-var">`quotRem`</span></span><span> </span><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679048567"><span class="hs-identifier hs-var">b</span></a></span><span> </span><span class="hs-keyword">of</span><span>
+</span><span id="line-35"></span><span>      </span><span class="hs-special">(</span><span id="local-6989586621679048566"><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679048566"><span class="hs-identifier hs-var">x</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679048565"><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679048565"><span class="hs-identifier hs-var">r</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Integer -&gt; Microsecond
+</span><a href="Network.NTP.Client.Packet.html#Microsecond"><span class="hs-identifier hs-var">Microsecond</span></a></span><span> </span><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679048566"><span class="hs-identifier hs-var">x</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Microsecond
+</span><a href="Network.NTP.Client.Packet.html#Microsecond"><span class="hs-identifier hs-var">Microsecond</span></a></span><span> </span><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679048565"><span class="hs-identifier hs-var">r</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-36"></span><span>
+</span><span id="line-37"></span><span class="hs-keyword">data</span><span> </span><span id="NtpPacket"><span class="annot"><a href="Network.NTP.Client.Packet.html#NtpPacket"><span class="hs-identifier hs-var">NtpPacket</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="NtpPacket"><span class="annot"><a href="Network.NTP.Client.Packet.html#NtpPacket"><span class="hs-identifier hs-var">NtpPacket</span></a></span></span><span>
+</span><span id="line-38"></span><span>    </span><span class="hs-special">{</span><span> </span><span id="ntpParams"><span class="annot"><span class="annottext">NtpPacket -&gt; Word8
+</span><a href="Network.NTP.Client.Packet.html#ntpParams"><span class="hs-identifier hs-var hs-var">ntpParams</span></a></span></span><span>       </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Word8</span></span><span>        </span><span class="hs-comment">-- ^ some magic parameters</span><span>
+</span><span id="line-39"></span><span>    </span><span class="hs-special">,</span><span> </span><span id="ntpPoll"><span class="annot"><span class="annottext">NtpPacket -&gt; Int8
+</span><a href="Network.NTP.Client.Packet.html#ntpPoll"><span class="hs-identifier hs-var hs-var">ntpPoll</span></a></span></span><span>         </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int8</span></span><span>         </span><span class="hs-comment">-- ^ poll delay between requests</span><span>
+</span><span id="line-40"></span><span>    </span><span class="hs-special">,</span><span> </span><span id="ntpOriginTime"><span class="annot"><span class="annottext">NtpPacket -&gt; Microsecond
+</span><a href="Network.NTP.Client.Packet.html#ntpOriginTime"><span class="hs-identifier hs-var hs-var">ntpOriginTime</span></a></span></span><span>   </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Network.NTP.Client.Packet.html#Microsecond"><span class="hs-identifier hs-type">Microsecond</span></a></span><span>  </span><span class="hs-comment">-- ^ when server sent reply</span><span>
+</span><span id="line-41"></span><span>    </span><span class="hs-special">,</span><span> </span><span id="ntpReceivedTime"><span class="annot"><span class="annottext">NtpPacket -&gt; Microsecond
+</span><a href="Network.NTP.Client.Packet.html#ntpReceivedTime"><span class="hs-identifier hs-var hs-var">ntpReceivedTime</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Network.NTP.Client.Packet.html#Microsecond"><span class="hs-identifier hs-type">Microsecond</span></a></span><span>  </span><span class="hs-comment">-- ^ when server got request</span><span>
+</span><span id="line-42"></span><span>    </span><span class="hs-special">,</span><span> </span><span id="ntpTransmitTime"><span class="annot"><span class="annottext">NtpPacket -&gt; Microsecond
+</span><a href="Network.NTP.Client.Packet.html#ntpTransmitTime"><span class="hs-identifier hs-var hs-var">ntpTransmitTime</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Network.NTP.Client.Packet.html#Microsecond"><span class="hs-identifier hs-type">Microsecond</span></a></span><span>  </span><span class="hs-comment">-- ^ when client sent request</span><span>
+</span><span id="line-43"></span><span>    </span><span class="hs-special">}</span><span> </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679048553"><span id="local-6989586621679048555"><span id="local-6989586621679048557"><span class="annot"><span class="annottext">Int -&gt; NtpPacket -&gt; ShowS
+[NtpPacket] -&gt; ShowS
+NtpPacket -&gt; String
+(Int -&gt; NtpPacket -&gt; ShowS)
+-&gt; (NtpPacket -&gt; String)
+-&gt; ([NtpPacket] -&gt; ShowS)
+-&gt; Show NtpPacket
+forall a.
+(Int -&gt; a -&gt; ShowS) -&gt; (a -&gt; String) -&gt; ([a] -&gt; ShowS) -&gt; Show a
+showList :: [NtpPacket] -&gt; ShowS
+$cshowList :: [NtpPacket] -&gt; ShowS
+show :: NtpPacket -&gt; String
+$cshow :: NtpPacket -&gt; String
+showsPrec :: Int -&gt; NtpPacket -&gt; ShowS
+$cshowsPrec :: Int -&gt; NtpPacket -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679048549"><span id="local-6989586621679048551"><span class="annot"><span class="annottext">NtpPacket -&gt; NtpPacket -&gt; Bool
+(NtpPacket -&gt; NtpPacket -&gt; Bool)
+-&gt; (NtpPacket -&gt; NtpPacket -&gt; Bool) -&gt; Eq NtpPacket
+forall a. (a -&gt; a -&gt; Bool) -&gt; (a -&gt; a -&gt; Bool) -&gt; Eq a
+/= :: NtpPacket -&gt; NtpPacket -&gt; Bool
+$c/= :: NtpPacket -&gt; NtpPacket -&gt; Bool
+== :: NtpPacket -&gt; NtpPacket -&gt; Bool
+$c== :: NtpPacket -&gt; NtpPacket -&gt; Bool
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">)</span><span>
+</span><span id="line-44"></span><span>
+</span><span id="line-45"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679048545"><span class="annot"><span class="hs-identifier hs-type">Binary</span></span><span> </span><span class="annot"><a href="Network.NTP.Client.Packet.html#NtpPacket"><span class="hs-identifier hs-type">NtpPacket</span></a></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-46"></span><span>    </span><span id="local-6989586621679048543"><span class="annot"><span class="annottext">put :: NtpPacket -&gt; Put
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">put</span></span></span><span> </span><span class="annot"><a href="Network.NTP.Client.Packet.html#NtpPacket"><span class="hs-identifier hs-type">NtpPacket</span></a></span><span class="hs-special">{</span><span id="local-6989586621679048537"><span id="local-6989586621679048538"><span id="local-6989586621679048539"><span id="local-6989586621679048540"><span id="local-6989586621679048541"><span class="annot"><span class="annottext">Int8
+Word8
+Microsecond
+ntpTransmitTime :: Microsecond
+ntpReceivedTime :: Microsecond
+ntpOriginTime :: Microsecond
+ntpPoll :: Int8
+ntpParams :: Word8
+ntpTransmitTime :: NtpPacket -&gt; Microsecond
+ntpReceivedTime :: NtpPacket -&gt; Microsecond
+ntpOriginTime :: NtpPacket -&gt; Microsecond
+ntpPoll :: NtpPacket -&gt; Int8
+ntpParams :: NtpPacket -&gt; Word8
+</span><a href="#local-6989586621679048537"><span class="hs-glyph hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">..</span></a></span></span></span></span></span></span><span class="hs-special">}</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-47"></span><span>        </span><span class="annot"><span class="annottext">Word8 -&gt; Put
+</span><span class="hs-identifier hs-var">putWord8</span></span><span> </span><span class="annot"><span class="annottext">Word8
+</span><a href="#local-6989586621679048541"><span class="hs-identifier hs-var">ntpParams</span></a></span><span>
+</span><span id="line-48"></span><span>        </span><span class="annot"><span class="annottext">Word8 -&gt; Put
+</span><span class="hs-identifier hs-var">putWord8</span></span><span> </span><span class="annot"><span class="annottext">Word8
+</span><span class="hs-number">0</span></span><span>
+</span><span id="line-49"></span><span>        </span><span class="annot"><span class="annottext">Int8 -&gt; Put
+</span><span class="hs-identifier hs-var">putInt8</span></span><span> </span><span class="annot"><span class="annottext">Int8
+</span><a href="#local-6989586621679048540"><span class="hs-identifier hs-var">ntpPoll</span></a></span><span>
+</span><span id="line-50"></span><span>        </span><span class="annot"><span class="annottext">Word8 -&gt; Put
+</span><span class="hs-identifier hs-var">putWord8</span></span><span> </span><span class="annot"><span class="annottext">Word8
+</span><span class="hs-number">0</span></span><span>
+</span><span id="line-51"></span><span>
+</span><span id="line-52"></span><span>        </span><span class="annot"><span class="annottext">Int -&gt; Put -&gt; Put
+forall (m :: * -&gt; *) a. Applicative m =&gt; Int -&gt; m a -&gt; m ()
+</span><span class="hs-identifier hs-var">replicateM_</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">5</span></span><span> </span><span class="annot"><span class="annottext">(Put -&gt; Put) -&gt; Put -&gt; Put
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Word32 -&gt; Put
+</span><span class="hs-identifier hs-var">putWord32be</span></span><span> </span><span class="annot"><span class="annottext">Word32
+</span><span class="hs-number">0</span></span><span>
+</span><span id="line-53"></span><span>
+</span><span id="line-54"></span><span>        </span><span class="hs-keyword">let</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679048536"><span class="annot"><span class="annottext">Word32
+</span><a href="#local-6989586621679048536"><span class="hs-identifier hs-var">osec</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679048535"><span class="annot"><span class="annottext">Word32
+</span><a href="#local-6989586621679048535"><span class="hs-identifier hs-var">ofrac</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Microsecond -&gt; (Word32, Word32)
+</span><a href="Network.NTP.Client.Packet.html#realMcsToNtp"><span class="hs-identifier hs-var">realMcsToNtp</span></a></span><span> </span><span class="annot"><span class="annottext">Microsecond
+</span><a href="#local-6989586621679048539"><span class="hs-identifier hs-var">ntpOriginTime</span></a></span><span>
+</span><span id="line-55"></span><span>        </span><span class="annot"><span class="annottext">Word32 -&gt; Put
+</span><span class="hs-identifier hs-var">putWord32be</span></span><span> </span><span class="annot"><span class="annottext">Word32
+</span><a href="#local-6989586621679048536"><span class="hs-identifier hs-var">osec</span></a></span><span>
+</span><span id="line-56"></span><span>        </span><span class="annot"><span class="annottext">Word32 -&gt; Put
+</span><span class="hs-identifier hs-var">putWord32be</span></span><span> </span><span class="annot"><span class="annottext">Word32
+</span><a href="#local-6989586621679048535"><span class="hs-identifier hs-var">ofrac</span></a></span><span>
+</span><span id="line-57"></span><span>
+</span><span id="line-58"></span><span>        </span><span class="hs-keyword">let</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679048534"><span class="annot"><span class="annottext">Word32
+</span><a href="#local-6989586621679048534"><span class="hs-identifier hs-var">rsec</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679048533"><span class="annot"><span class="annottext">Word32
+</span><a href="#local-6989586621679048533"><span class="hs-identifier hs-var">rfrac</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Microsecond -&gt; (Word32, Word32)
+</span><a href="Network.NTP.Client.Packet.html#realMcsToNtp"><span class="hs-identifier hs-var">realMcsToNtp</span></a></span><span> </span><span class="annot"><span class="annottext">Microsecond
+</span><a href="#local-6989586621679048538"><span class="hs-identifier hs-var">ntpReceivedTime</span></a></span><span>
+</span><span id="line-59"></span><span>        </span><span class="annot"><span class="annottext">Word32 -&gt; Put
+</span><span class="hs-identifier hs-var">putWord32be</span></span><span> </span><span class="annot"><span class="annottext">Word32
+</span><a href="#local-6989586621679048534"><span class="hs-identifier hs-var">rsec</span></a></span><span>
+</span><span id="line-60"></span><span>        </span><span class="annot"><span class="annottext">Word32 -&gt; Put
+</span><span class="hs-identifier hs-var">putWord32be</span></span><span> </span><span class="annot"><span class="annottext">Word32
+</span><a href="#local-6989586621679048533"><span class="hs-identifier hs-var">rfrac</span></a></span><span>
+</span><span id="line-61"></span><span>
+</span><span id="line-62"></span><span>        </span><span class="hs-keyword">let</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679048532"><span class="annot"><span class="annottext">Word32
+</span><a href="#local-6989586621679048532"><span class="hs-identifier hs-var">tsec</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679048531"><span class="annot"><span class="annottext">Word32
+</span><a href="#local-6989586621679048531"><span class="hs-identifier hs-var">tfrac</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Microsecond -&gt; (Word32, Word32)
+</span><a href="Network.NTP.Client.Packet.html#realMcsToNtp"><span class="hs-identifier hs-var">realMcsToNtp</span></a></span><span> </span><span class="annot"><span class="annottext">Microsecond
+</span><a href="#local-6989586621679048537"><span class="hs-identifier hs-var">ntpTransmitTime</span></a></span><span>
+</span><span id="line-63"></span><span>        </span><span class="annot"><span class="annottext">Word32 -&gt; Put
+</span><span class="hs-identifier hs-var">putWord32be</span></span><span> </span><span class="annot"><span class="annottext">Word32
+</span><a href="#local-6989586621679048532"><span class="hs-identifier hs-var">tsec</span></a></span><span>
+</span><span id="line-64"></span><span>        </span><span class="annot"><span class="annottext">Word32 -&gt; Put
+</span><span class="hs-identifier hs-var">putWord32be</span></span><span> </span><span class="annot"><span class="annottext">Word32
+</span><a href="#local-6989586621679048531"><span class="hs-identifier hs-var">tfrac</span></a></span><span>
+</span><span id="line-65"></span><span>
+</span><span id="line-66"></span><span>    </span><span id="local-6989586621679048530"><span class="annot"><span class="annottext">get :: Get NtpPacket
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">get</span></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-67"></span><span>        </span><span id="local-6989586621679048528"><span class="annot"><span class="annottext">Word8
+</span><a href="#local-6989586621679048528"><span class="hs-identifier hs-var">ntpParams</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Get Word8
+</span><span class="hs-identifier hs-var">getWord8</span></span><span>
+</span><span id="line-68"></span><span>        </span><span class="annot"><span class="annottext">Word8
+</span><span class="hs-identifier">_</span></span><span>         </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Get Word8
+</span><span class="hs-identifier hs-var">getWord8</span></span><span>
+</span><span id="line-69"></span><span>        </span><span id="local-6989586621679048527"><span class="annot"><span class="annottext">Int8
+</span><a href="#local-6989586621679048527"><span class="hs-identifier hs-var">ntpPoll</span></a></span></span><span>   </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Get Int8
+</span><span class="hs-identifier hs-var">getInt8</span></span><span>
+</span><span id="line-70"></span><span>        </span><span class="annot"><span class="annottext">Word8
+</span><span class="hs-identifier">_</span></span><span>         </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Get Word8
+</span><span class="hs-identifier hs-var">getWord8</span></span><span>
+</span><span id="line-71"></span><span>
+</span><span id="line-72"></span><span>        </span><span class="hs-comment">-- skip 5 @'Word32'@ words</span><span>
+</span><span id="line-73"></span><span>        </span><span class="annot"><span class="annottext">Int -&gt; Get ()
+</span><span class="hs-identifier hs-var">skip</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">20</span></span><span>
+</span><span id="line-74"></span><span>
+</span><span id="line-75"></span><span>        </span><span id="local-6989586621679048526"><span class="annot"><span class="annottext">Microsecond
+</span><a href="#local-6989586621679048526"><span class="hs-identifier hs-var">ntpOriginTime</span></a></span></span><span>   </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Get Microsecond
+</span><a href="#local-6989586621679048525"><span class="hs-identifier hs-var">getTimestamp</span></a></span><span>
+</span><span id="line-76"></span><span>        </span><span id="local-6989586621679048524"><span class="annot"><span class="annottext">Microsecond
+</span><a href="#local-6989586621679048524"><span class="hs-identifier hs-var">ntpReceivedTime</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Get Microsecond
+</span><a href="#local-6989586621679048525"><span class="hs-identifier hs-var">getTimestamp</span></a></span><span>
+</span><span id="line-77"></span><span>        </span><span id="local-6989586621679048523"><span class="annot"><span class="annottext">Microsecond
+</span><a href="#local-6989586621679048523"><span class="hs-identifier hs-var">ntpTransmitTime</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Get Microsecond
+</span><a href="#local-6989586621679048525"><span class="hs-identifier hs-var">getTimestamp</span></a></span><span>
+</span><span id="line-78"></span><span>        </span><span class="annot"><span class="annottext">NtpPacket -&gt; Get NtpPacket
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">NtpPacket :: Word8
+-&gt; Int8 -&gt; Microsecond -&gt; Microsecond -&gt; Microsecond -&gt; NtpPacket
+</span><a href="Network.NTP.Client.Packet.html#NtpPacket"><span class="hs-identifier hs-type">NtpPacket</span></a></span><span class="hs-special">{</span><span class="annot"><span class="annottext">Int8
+Word8
+Microsecond
+ntpTransmitTime :: Microsecond
+ntpReceivedTime :: Microsecond
+ntpOriginTime :: Microsecond
+ntpPoll :: Int8
+ntpParams :: Word8
+ntpTransmitTime :: Microsecond
+ntpReceivedTime :: Microsecond
+ntpOriginTime :: Microsecond
+ntpPoll :: Int8
+ntpParams :: Word8
+</span><a href="#local-6989586621679048523"><span class="hs-glyph hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">..</span></a></span><span class="hs-special">}</span><span>
+</span><span id="line-79"></span><span>      </span><span class="hs-keyword">where</span><span>
+</span><span id="line-80"></span><span>        </span><span id="local-6989586621679048525"><span class="annot"><span class="annottext">getTimestamp :: Get Microsecond
+</span><a href="#local-6989586621679048525"><span class="hs-identifier hs-var hs-var">getTimestamp</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Word32 -&gt; Word32 -&gt; Microsecond
+</span><a href="Network.NTP.Client.Packet.html#ntpToRealMcs"><span class="hs-identifier hs-var">ntpToRealMcs</span></a></span><span> </span><span class="annot"><span class="annottext">(Word32 -&gt; Word32 -&gt; Microsecond)
+-&gt; Get Word32 -&gt; Get (Word32 -&gt; Microsecond)
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">Get Word32
+</span><span class="hs-identifier hs-var">getWord32be</span></span><span> </span><span class="annot"><span class="annottext">Get (Word32 -&gt; Microsecond) -&gt; Get Word32 -&gt; Get Microsecond
+forall (f :: * -&gt; *) a b. Applicative f =&gt; f (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;*&gt;</span></span><span> </span><span class="annot"><span class="annottext">Get Word32
+</span><span class="hs-identifier hs-var">getWord32be</span></span><span>
+</span><span id="line-81"></span><span>
+</span><span id="line-82"></span><span class="hs-comment">-- |</span><span>
+</span><span id="line-83"></span><span class="hs-comment">-- NTP timestamp start in 1.1.1900, i.e. 70 years before UNIX epoch.</span><span>
+</span><span id="line-84"></span><span class="hs-comment">-- references:</span><span>
+</span><span id="line-85"></span><span class="hs-comment">--  * https://tools.ietf.org/html/rfc5905#section-6</span><span>
+</span><span id="line-86"></span><span class="hs-comment">--  * https://tools.ietf.org/html/rfc5905#appendix-A.4</span><span>
+</span><span id="line-87"></span><span class="annot"><a href="Network.NTP.Client.Packet.html#ntpTimestampDelta"><span class="hs-identifier hs-type">ntpTimestampDelta</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Integer</span></span><span>
+</span><span id="line-88"></span><span id="ntpTimestampDelta"><span class="annot"><span class="annottext">ntpTimestampDelta :: Integer
+</span><a href="Network.NTP.Client.Packet.html#ntpTimestampDelta"><span class="hs-identifier hs-var hs-var">ntpTimestampDelta</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Integer
+</span><span class="hs-number">2208988800</span></span><span>
+</span><span id="line-89"></span><span>
+</span><span id="line-90"></span><span class="hs-comment">-- |</span><span>
+</span><span id="line-91"></span><span class="hs-comment">-- We only need first 48 bytes of a packet:</span><span>
+</span><span id="line-92"></span><span class="hs-comment">-- reference: https://tools.ietf.org/html/rfc5905#section-7.3</span><span>
+</span><span id="line-93"></span><span class="annot"><a href="Network.NTP.Client.Packet.html#ntpPacketSize"><span class="hs-identifier hs-type">ntpPacketSize</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span>
+</span><span id="line-94"></span><span id="ntpPacketSize"><span class="annot"><span class="annottext">ntpPacketSize :: Int
+</span><a href="Network.NTP.Client.Packet.html#ntpPacketSize"><span class="hs-identifier hs-var hs-var">ntpPacketSize</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">48</span></span><span>
+</span><span id="line-95"></span><span>
+</span><span id="line-96"></span><span class="hs-comment">-- |</span><span>
+</span><span id="line-97"></span><span class="hs-comment">-- For pairs @(x, y) :: (Word32, Word32)@ with @y \`mod\` 4294 == 0@ it is</span><span>
+</span><span id="line-98"></span><span class="hs-comment">-- be right inverse of @'realMsgToNtp'@.   In general it is not injective (for that</span><span>
+</span><span id="line-99"></span><span class="hs-comment">-- we'd need to use @'Picosecond'@ instead of @'Microsecond'@).</span><span>
+</span><span id="line-100"></span><span class="annot"><a href="Network.NTP.Client.Packet.html#ntpToRealMcs"><span class="hs-identifier hs-type">ntpToRealMcs</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Word32</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Word32</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Network.NTP.Client.Packet.html#Microsecond"><span class="hs-identifier hs-type">Microsecond</span></a></span><span>
+</span><span id="line-101"></span><span id="ntpToRealMcs"><span class="annot"><span class="annottext">ntpToRealMcs :: Word32 -&gt; Word32 -&gt; Microsecond
+</span><a href="Network.NTP.Client.Packet.html#ntpToRealMcs"><span class="hs-identifier hs-var hs-var">ntpToRealMcs</span></a></span></span><span> </span><span id="local-6989586621679048520"><span class="annot"><span class="annottext">Word32
+</span><a href="#local-6989586621679048520"><span class="hs-identifier hs-var">sec</span></a></span></span><span> </span><span id="local-6989586621679048519"><span class="annot"><span class="annottext">Word32
+</span><a href="#local-6989586621679048519"><span class="hs-identifier hs-var">frac</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-102"></span><span>    </span><span class="hs-keyword">let</span><span> </span><span class="hs-comment">-- microseconds</span><span>
+</span><span id="line-103"></span><span>        </span><span class="annot"><a href="#local-6989586621679048518"><span class="hs-identifier hs-type">secMicro</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Integer</span></span><span>
+</span><span id="line-104"></span><span>        </span><span id="local-6989586621679048518"><span class="annot"><span class="annottext">secMicro :: Integer
+</span><a href="#local-6989586621679048518"><span class="hs-identifier hs-var hs-var">secMicro</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Word32 -&gt; Integer
+forall a b. (Integral a, Num b) =&gt; a -&gt; b
+</span><span class="hs-identifier hs-var">fromIntegral</span></span><span> </span><span class="annot"><span class="annottext">Word32
+</span><a href="#local-6989586621679048520"><span class="hs-identifier hs-var">sec</span></a></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Integer -&gt; Integer
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-glyph hs-var">-</span></span><span> </span><span class="annot"><span class="annottext">Integer
+</span><a href="Network.NTP.Client.Packet.html#ntpTimestampDelta"><span class="hs-identifier hs-var">ntpTimestampDelta</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Integer -&gt; Integer
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">*</span></span><span> </span><span class="annot"><span class="annottext">Integer
+</span><span class="hs-number">1000000</span></span><span>
+</span><span id="line-105"></span><span>        </span><span class="hs-comment">-- We divide 1 second into 2 ^ 32 parts, giving 2.3283064365386963e-10</span><span>
+</span><span id="line-106"></span><span>        </span><span class="hs-comment">-- as the quantum. A picosecond is 10e-12 of a second, so this is 232</span><span>
+</span><span id="line-107"></span><span>        </span><span class="hs-comment">-- picoseconds or `1/4294` of a millisecond.</span><span>
+</span><span id="line-108"></span><span>        </span><span class="hs-comment">-- ref: https://tools.ietf.org/html/rfc5905#section-6</span><span>
+</span><span id="line-109"></span><span>        </span><span class="annot"><a href="#local-6989586621679048516"><span class="hs-identifier hs-type">fracMicro</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Integer</span></span><span>
+</span><span id="line-110"></span><span>        </span><span id="local-6989586621679048516"><span class="annot"><span class="annottext">fracMicro :: Integer
+</span><a href="#local-6989586621679048516"><span class="hs-identifier hs-var hs-var">fracMicro</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Word32 -&gt; Integer
+forall a b. (Integral a, Num b) =&gt; a -&gt; b
+</span><span class="hs-identifier hs-var">fromIntegral</span></span><span> </span><span class="annot"><span class="annottext">Word32
+</span><a href="#local-6989586621679048519"><span class="hs-identifier hs-var">frac</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Integer -&gt; Integer
+forall a. Integral a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">`div`</span></span><span> </span><span class="annot"><span class="annottext">Integer
+</span><span class="hs-number">4294</span></span><span>
+</span><span id="line-111"></span><span>    </span><span class="hs-keyword">in</span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Microsecond
+</span><a href="Network.NTP.Client.Packet.html#Microsecond"><span class="hs-identifier hs-var">Microsecond</span></a></span><span> </span><span class="annot"><span class="annottext">(Integer -&gt; Microsecond) -&gt; Integer -&gt; Microsecond
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679048518"><span class="hs-identifier hs-var">secMicro</span></a></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Integer -&gt; Integer
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679048516"><span class="hs-identifier hs-var">fracMicro</span></a></span><span>
+</span><span id="line-112"></span><span>
+</span><span id="line-113"></span><span class="hs-comment">-- |</span><span>
+</span><span id="line-114"></span><span class="hs-comment">-- It is a partial function, since @Microsecond ~ Integer@; it is well defined</span><span>
+</span><span id="line-115"></span><span class="hs-comment">-- for:</span><span>
+</span><span id="line-116"></span><span class="hs-comment">-- @</span><span>
+</span><span id="line-117"></span><span class="hs-comment">--  x &lt; 2085978496 = (maxBound @Word32 * 1000000) - ntpTimestampDelta + 1`</span><span>
+</span><span id="line-118"></span><span class="hs-comment">-- @</span><span>
+</span><span id="line-119"></span><span class="hs-comment">-- (in microseconds; this is roughly 66 years, so we're fine untill 2036).</span><span>
+</span><span id="line-120"></span><span class="annot"><a href="Network.NTP.Client.Packet.html#realMcsToNtp"><span class="hs-identifier hs-type">realMcsToNtp</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Network.NTP.Client.Packet.html#Microsecond"><span class="hs-identifier hs-type">Microsecond</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Word32</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Word32</span></span><span class="hs-special">)</span><span>
+</span><span id="line-121"></span><span id="realMcsToNtp"><span class="annot"><span class="annottext">realMcsToNtp :: Microsecond -&gt; (Word32, Word32)
+</span><a href="Network.NTP.Client.Packet.html#realMcsToNtp"><span class="hs-identifier hs-var hs-var">realMcsToNtp</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Network.NTP.Client.Packet.html#Microsecond"><span class="hs-identifier hs-type">Microsecond</span></a></span><span> </span><span id="local-6989586621679048513"><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679048513"><span class="hs-identifier hs-var">mcs</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-122"></span><span>    </span><span class="hs-keyword">let</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679048512"><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679048512"><span class="hs-identifier hs-var">sec</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679048511"><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679048511"><span class="hs-identifier hs-var">frac</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Integer -&gt; (Integer, Integer)
+forall a. Integral a =&gt; a -&gt; a -&gt; (a, a)
+</span><span class="hs-identifier hs-var">divMod</span></span><span> </span><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679048513"><span class="hs-identifier hs-var">mcs</span></a></span><span> </span><span class="annot"><span class="annottext">Integer
+</span><span class="hs-number">1000000</span></span><span>
+</span><span id="line-123"></span><span>    </span><span class="hs-keyword">in</span><span>  </span><span class="hs-special">(</span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Word32
+forall a b. (Integral a, Num b) =&gt; a -&gt; b
+</span><span class="hs-identifier hs-var">fromIntegral</span></span><span> </span><span class="annot"><span class="annottext">(Integer -&gt; Word32) -&gt; Integer -&gt; Word32
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679048512"><span class="hs-identifier hs-var">sec</span></a></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Integer -&gt; Integer
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="annottext">Integer
+</span><a href="Network.NTP.Client.Packet.html#ntpTimestampDelta"><span class="hs-identifier hs-var">ntpTimestampDelta</span></a></span><span>
+</span><span id="line-124"></span><span>        </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Word32
+forall a b. (Integral a, Num b) =&gt; a -&gt; b
+</span><span class="hs-identifier hs-var">fromIntegral</span></span><span> </span><span class="annot"><span class="annottext">(Integer -&gt; Word32) -&gt; Integer -&gt; Word32
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679048511"><span class="hs-identifier hs-var">frac</span></a></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Integer -&gt; Integer
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">*</span></span><span> </span><span class="annot"><span class="annottext">Integer
+</span><span class="hs-number">4294</span></span><span class="hs-special">)</span><span>
+</span><span id="line-125"></span><span>
+</span><span id="line-126"></span><span class="hs-comment">-- |</span><span>
+</span><span id="line-127"></span><span class="hs-comment">-- Smart constructor for @'NtpPacket'@.</span><span>
+</span><span id="line-128"></span><span class="annot"><a href="Network.NTP.Client.Packet.html#mkNtpPacket"><span class="hs-identifier hs-type">mkNtpPacket</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">IO</span></span><span> </span><span class="annot"><a href="Network.NTP.Client.Packet.html#NtpPacket"><span class="hs-identifier hs-type">NtpPacket</span></a></span><span>
+</span><span id="line-129"></span><span id="mkNtpPacket"><span class="annot"><span class="annottext">mkNtpPacket :: IO NtpPacket
+</span><a href="Network.NTP.Client.Packet.html#mkNtpPacket"><span class="hs-identifier hs-var hs-var">mkNtpPacket</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-130"></span><span>    </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679048509"><span class="annot"><span class="annottext">ntpParams :: Word8
+</span><a href="#local-6989586621679048509"><span class="hs-identifier hs-var hs-var">ntpParams</span></a></span></span><span>       </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Word8
+</span><span class="hs-number">0x1b</span></span><span>
+</span><span id="line-131"></span><span>        </span><span id="local-6989586621679048508"><span class="annot"><span class="annottext">ntpPoll :: Int8
+</span><a href="#local-6989586621679048508"><span class="hs-identifier hs-var hs-var">ntpPoll</span></a></span></span><span>         </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int8
+</span><span class="hs-number">0</span></span><span>
+</span><span id="line-132"></span><span>        </span><span id="local-6989586621679048507"><span class="annot"><span class="annottext">ntpOriginTime :: Microsecond
+</span><a href="#local-6989586621679048507"><span class="hs-identifier hs-var hs-var">ntpOriginTime</span></a></span></span><span>   </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Microsecond
+</span><span class="hs-number">0</span></span><span>
+</span><span id="line-133"></span><span>        </span><span id="local-6989586621679048506"><span class="annot"><span class="annottext">ntpReceivedTime :: Microsecond
+</span><a href="#local-6989586621679048506"><span class="hs-identifier hs-var hs-var">ntpReceivedTime</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Microsecond
+</span><span class="hs-number">0</span></span><span>
+</span><span id="line-134"></span><span>    </span><span id="local-6989586621679048505"><span class="annot"><span class="annottext">Microsecond
+</span><a href="#local-6989586621679048505"><span class="hs-identifier hs-var">ntpTransmitTime</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">IO Microsecond
+</span><a href="Network.NTP.Client.Packet.html#getCurrentTime"><span class="hs-identifier hs-var">getCurrentTime</span></a></span><span>
+</span><span id="line-135"></span><span>    </span><span class="annot"><span class="annottext">NtpPacket -&gt; IO NtpPacket
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">NtpPacket :: Word8
+-&gt; Int8 -&gt; Microsecond -&gt; Microsecond -&gt; Microsecond -&gt; NtpPacket
+</span><a href="Network.NTP.Client.Packet.html#NtpPacket"><span class="hs-identifier hs-type">NtpPacket</span></a></span><span class="hs-special">{</span><span class="annot"><span class="annottext">Int8
+Word8
+Microsecond
+ntpTransmitTime :: Microsecond
+ntpReceivedTime :: Microsecond
+ntpOriginTime :: Microsecond
+ntpPoll :: Int8
+ntpParams :: Word8
+ntpTransmitTime :: Microsecond
+ntpReceivedTime :: Microsecond
+ntpOriginTime :: Microsecond
+ntpPoll :: Int8
+ntpParams :: Word8
+</span><a href="#local-6989586621679048505"><span class="hs-glyph hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">..</span></a></span><span class="hs-special">}</span><span>
+</span><span id="line-136"></span><span>
+</span><span id="line-137"></span><span class="hs-comment">-- |</span><span>
+</span><span id="line-138"></span><span class="hs-comment">-- @'NtpOffset'@ is the difference between NTP time and local time.</span><span>
+</span><span id="line-139"></span><span class="hs-keyword">newtype</span><span> </span><span id="NtpOffset"><span class="annot"><a href="Network.NTP.Client.Packet.html#NtpOffset"><span class="hs-identifier hs-var">NtpOffset</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="NtpOffset"><span class="annot"><a href="Network.NTP.Client.Packet.html#NtpOffset"><span class="hs-identifier hs-var">NtpOffset</span></a></span></span><span> </span><span class="hs-special">{</span><span> </span><span id="getNtpOffset"><span class="annot"><span class="annottext">NtpOffset -&gt; Microsecond
+</span><a href="Network.NTP.Client.Packet.html#getNtpOffset"><span class="hs-identifier hs-var hs-var">getNtpOffset</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Network.NTP.Client.Packet.html#Microsecond"><span class="hs-identifier hs-type">Microsecond</span></a></span><span> </span><span class="hs-special">}</span><span>
+</span><span id="line-140"></span><span>    </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679048487"><span id="local-6989586621679048489"><span id="local-6989586621679048491"><span id="local-6989586621679048493"><span id="local-6989586621679048495"><span id="local-6989586621679048497"><span id="local-6989586621679048499"><span id="local-6989586621679048501"><span class="annot"><span class="annottext">Int -&gt; NtpOffset
+NtpOffset -&gt; Int
+NtpOffset -&gt; [NtpOffset]
+NtpOffset -&gt; NtpOffset
+NtpOffset -&gt; NtpOffset -&gt; [NtpOffset]
+NtpOffset -&gt; NtpOffset -&gt; NtpOffset -&gt; [NtpOffset]
+(NtpOffset -&gt; NtpOffset)
+-&gt; (NtpOffset -&gt; NtpOffset)
+-&gt; (Int -&gt; NtpOffset)
+-&gt; (NtpOffset -&gt; Int)
+-&gt; (NtpOffset -&gt; [NtpOffset])
+-&gt; (NtpOffset -&gt; NtpOffset -&gt; [NtpOffset])
+-&gt; (NtpOffset -&gt; NtpOffset -&gt; [NtpOffset])
+-&gt; (NtpOffset -&gt; NtpOffset -&gt; NtpOffset -&gt; [NtpOffset])
+-&gt; Enum NtpOffset
+forall a.
+(a -&gt; a)
+-&gt; (a -&gt; a)
+-&gt; (Int -&gt; a)
+-&gt; (a -&gt; Int)
+-&gt; (a -&gt; [a])
+-&gt; (a -&gt; a -&gt; [a])
+-&gt; (a -&gt; a -&gt; [a])
+-&gt; (a -&gt; a -&gt; a -&gt; [a])
+-&gt; Enum a
+enumFromThenTo :: NtpOffset -&gt; NtpOffset -&gt; NtpOffset -&gt; [NtpOffset]
+$cenumFromThenTo :: NtpOffset -&gt; NtpOffset -&gt; NtpOffset -&gt; [NtpOffset]
+enumFromTo :: NtpOffset -&gt; NtpOffset -&gt; [NtpOffset]
+$cenumFromTo :: NtpOffset -&gt; NtpOffset -&gt; [NtpOffset]
+enumFromThen :: NtpOffset -&gt; NtpOffset -&gt; [NtpOffset]
+$cenumFromThen :: NtpOffset -&gt; NtpOffset -&gt; [NtpOffset]
+enumFrom :: NtpOffset -&gt; [NtpOffset]
+$cenumFrom :: NtpOffset -&gt; [NtpOffset]
+fromEnum :: NtpOffset -&gt; Int
+$cfromEnum :: NtpOffset -&gt; Int
+toEnum :: Int -&gt; NtpOffset
+$ctoEnum :: Int -&gt; NtpOffset
+pred :: NtpOffset -&gt; NtpOffset
+$cpred :: NtpOffset -&gt; NtpOffset
+succ :: NtpOffset -&gt; NtpOffset
+$csucc :: NtpOffset -&gt; NtpOffset
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Enum</span></span></span></span></span></span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679048483"><span id="local-6989586621679048485"><span class="annot"><span class="annottext">NtpOffset -&gt; NtpOffset -&gt; Bool
+(NtpOffset -&gt; NtpOffset -&gt; Bool)
+-&gt; (NtpOffset -&gt; NtpOffset -&gt; Bool) -&gt; Eq NtpOffset
+forall a. (a -&gt; a -&gt; Bool) -&gt; (a -&gt; a -&gt; Bool) -&gt; Eq a
+/= :: NtpOffset -&gt; NtpOffset -&gt; Bool
+$c/= :: NtpOffset -&gt; NtpOffset -&gt; Bool
+== :: NtpOffset -&gt; NtpOffset -&gt; Bool
+$c== :: NtpOffset -&gt; NtpOffset -&gt; Bool
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679048467"><span id="local-6989586621679048469"><span id="local-6989586621679048471"><span id="local-6989586621679048473"><span id="local-6989586621679048475"><span id="local-6989586621679048477"><span id="local-6989586621679048479"><span class="annot"><span class="annottext">Enum NtpOffset
+Real NtpOffset
+Real NtpOffset
+-&gt; Enum NtpOffset
+-&gt; (NtpOffset -&gt; NtpOffset -&gt; NtpOffset)
+-&gt; (NtpOffset -&gt; NtpOffset -&gt; NtpOffset)
+-&gt; (NtpOffset -&gt; NtpOffset -&gt; NtpOffset)
+-&gt; (NtpOffset -&gt; NtpOffset -&gt; NtpOffset)
+-&gt; (NtpOffset -&gt; NtpOffset -&gt; (NtpOffset, NtpOffset))
+-&gt; (NtpOffset -&gt; NtpOffset -&gt; (NtpOffset, NtpOffset))
+-&gt; (NtpOffset -&gt; Integer)
+-&gt; Integral NtpOffset
+NtpOffset -&gt; Integer
+NtpOffset -&gt; NtpOffset -&gt; (NtpOffset, NtpOffset)
+NtpOffset -&gt; NtpOffset -&gt; NtpOffset
+forall a.
+Real a
+-&gt; Enum a
+-&gt; (a -&gt; a -&gt; a)
+-&gt; (a -&gt; a -&gt; a)
+-&gt; (a -&gt; a -&gt; a)
+-&gt; (a -&gt; a -&gt; a)
+-&gt; (a -&gt; a -&gt; (a, a))
+-&gt; (a -&gt; a -&gt; (a, a))
+-&gt; (a -&gt; Integer)
+-&gt; Integral a
+toInteger :: NtpOffset -&gt; Integer
+$ctoInteger :: NtpOffset -&gt; Integer
+divMod :: NtpOffset -&gt; NtpOffset -&gt; (NtpOffset, NtpOffset)
+$cdivMod :: NtpOffset -&gt; NtpOffset -&gt; (NtpOffset, NtpOffset)
+quotRem :: NtpOffset -&gt; NtpOffset -&gt; (NtpOffset, NtpOffset)
+$cquotRem :: NtpOffset -&gt; NtpOffset -&gt; (NtpOffset, NtpOffset)
+mod :: NtpOffset -&gt; NtpOffset -&gt; NtpOffset
+$cmod :: NtpOffset -&gt; NtpOffset -&gt; NtpOffset
+div :: NtpOffset -&gt; NtpOffset -&gt; NtpOffset
+$cdiv :: NtpOffset -&gt; NtpOffset -&gt; NtpOffset
+rem :: NtpOffset -&gt; NtpOffset -&gt; NtpOffset
+$crem :: NtpOffset -&gt; NtpOffset -&gt; NtpOffset
+quot :: NtpOffset -&gt; NtpOffset -&gt; NtpOffset
+$cquot :: NtpOffset -&gt; NtpOffset -&gt; NtpOffset
+$cp2Integral :: Enum NtpOffset
+$cp1Integral :: Real NtpOffset
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Integral</span></span></span></span></span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679048453"><span id="local-6989586621679048455"><span id="local-6989586621679048457"><span id="local-6989586621679048459"><span id="local-6989586621679048461"><span id="local-6989586621679048463"><span id="local-6989586621679048465"><span class="annot"><span class="annottext">Integer -&gt; NtpOffset
+NtpOffset -&gt; NtpOffset
+NtpOffset -&gt; NtpOffset -&gt; NtpOffset
+(NtpOffset -&gt; NtpOffset -&gt; NtpOffset)
+-&gt; (NtpOffset -&gt; NtpOffset -&gt; NtpOffset)
+-&gt; (NtpOffset -&gt; NtpOffset -&gt; NtpOffset)
+-&gt; (NtpOffset -&gt; NtpOffset)
+-&gt; (NtpOffset -&gt; NtpOffset)
+-&gt; (NtpOffset -&gt; NtpOffset)
+-&gt; (Integer -&gt; NtpOffset)
+-&gt; Num NtpOffset
+forall a.
+(a -&gt; a -&gt; a)
+-&gt; (a -&gt; a -&gt; a)
+-&gt; (a -&gt; a -&gt; a)
+-&gt; (a -&gt; a)
+-&gt; (a -&gt; a)
+-&gt; (a -&gt; a)
+-&gt; (Integer -&gt; a)
+-&gt; Num a
+fromInteger :: Integer -&gt; NtpOffset
+$cfromInteger :: Integer -&gt; NtpOffset
+signum :: NtpOffset -&gt; NtpOffset
+$csignum :: NtpOffset -&gt; NtpOffset
+abs :: NtpOffset -&gt; NtpOffset
+$cabs :: NtpOffset -&gt; NtpOffset
+negate :: NtpOffset -&gt; NtpOffset
+$cnegate :: NtpOffset -&gt; NtpOffset
+* :: NtpOffset -&gt; NtpOffset -&gt; NtpOffset
+$c* :: NtpOffset -&gt; NtpOffset -&gt; NtpOffset
+- :: NtpOffset -&gt; NtpOffset -&gt; NtpOffset
+$c- :: NtpOffset -&gt; NtpOffset -&gt; NtpOffset
++ :: NtpOffset -&gt; NtpOffset -&gt; NtpOffset
+$c+ :: NtpOffset -&gt; NtpOffset -&gt; NtpOffset
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Num</span></span></span></span></span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679048438"><span id="local-6989586621679048440"><span id="local-6989586621679048442"><span id="local-6989586621679048444"><span id="local-6989586621679048446"><span id="local-6989586621679048448"><span id="local-6989586621679048450"><span class="annot"><span class="annottext">Eq NtpOffset
+Eq NtpOffset
+-&gt; (NtpOffset -&gt; NtpOffset -&gt; Ordering)
+-&gt; (NtpOffset -&gt; NtpOffset -&gt; Bool)
+-&gt; (NtpOffset -&gt; NtpOffset -&gt; Bool)
+-&gt; (NtpOffset -&gt; NtpOffset -&gt; Bool)
+-&gt; (NtpOffset -&gt; NtpOffset -&gt; Bool)
+-&gt; (NtpOffset -&gt; NtpOffset -&gt; NtpOffset)
+-&gt; (NtpOffset -&gt; NtpOffset -&gt; NtpOffset)
+-&gt; Ord NtpOffset
+NtpOffset -&gt; NtpOffset -&gt; Bool
+NtpOffset -&gt; NtpOffset -&gt; Ordering
+NtpOffset -&gt; NtpOffset -&gt; NtpOffset
+forall a.
+Eq a
+-&gt; (a -&gt; a -&gt; Ordering)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; a)
+-&gt; (a -&gt; a -&gt; a)
+-&gt; Ord a
+min :: NtpOffset -&gt; NtpOffset -&gt; NtpOffset
+$cmin :: NtpOffset -&gt; NtpOffset -&gt; NtpOffset
+max :: NtpOffset -&gt; NtpOffset -&gt; NtpOffset
+$cmax :: NtpOffset -&gt; NtpOffset -&gt; NtpOffset
+&gt;= :: NtpOffset -&gt; NtpOffset -&gt; Bool
+$c&gt;= :: NtpOffset -&gt; NtpOffset -&gt; Bool
+&gt; :: NtpOffset -&gt; NtpOffset -&gt; Bool
+$c&gt; :: NtpOffset -&gt; NtpOffset -&gt; Bool
+&lt;= :: NtpOffset -&gt; NtpOffset -&gt; Bool
+$c&lt;= :: NtpOffset -&gt; NtpOffset -&gt; Bool
+&lt; :: NtpOffset -&gt; NtpOffset -&gt; Bool
+$c&lt; :: NtpOffset -&gt; NtpOffset -&gt; Bool
+compare :: NtpOffset -&gt; NtpOffset -&gt; Ordering
+$ccompare :: NtpOffset -&gt; NtpOffset -&gt; Ordering
+$cp1Ord :: Eq NtpOffset
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Ord</span></span></span></span></span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679048434"><span class="annot"><span class="annottext">Num NtpOffset
+Ord NtpOffset
+Num NtpOffset
+-&gt; Ord NtpOffset -&gt; (NtpOffset -&gt; Rational) -&gt; Real NtpOffset
+NtpOffset -&gt; Rational
+forall a. Num a -&gt; Ord a -&gt; (a -&gt; Rational) -&gt; Real a
+toRational :: NtpOffset -&gt; Rational
+$ctoRational :: NtpOffset -&gt; Rational
+$cp2Real :: Ord NtpOffset
+$cp1Real :: Num NtpOffset
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Real</span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679048428"><span id="local-6989586621679048430"><span id="local-6989586621679048432"><span class="annot"><span class="annottext">Int -&gt; NtpOffset -&gt; ShowS
+[NtpOffset] -&gt; ShowS
+NtpOffset -&gt; String
+(Int -&gt; NtpOffset -&gt; ShowS)
+-&gt; (NtpOffset -&gt; String)
+-&gt; ([NtpOffset] -&gt; ShowS)
+-&gt; Show NtpOffset
+forall a.
+(Int -&gt; a -&gt; ShowS) -&gt; (a -&gt; String) -&gt; ([a] -&gt; ShowS) -&gt; Show a
+showList :: [NtpOffset] -&gt; ShowS
+$cshowList :: [NtpOffset] -&gt; ShowS
+show :: NtpOffset -&gt; String
+$cshow :: NtpOffset -&gt; String
+showsPrec :: Int -&gt; NtpOffset -&gt; ShowS
+$cshowsPrec :: Int -&gt; NtpOffset -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">)</span><span>
+</span><span id="line-141"></span><span>
+</span><span id="line-142"></span><span class="annot"><a href="Network.NTP.Client.Packet.html#clockOffsetPure"><span class="hs-identifier hs-type">clockOffsetPure</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Network.NTP.Client.Packet.html#NtpPacket"><span class="hs-identifier hs-type">NtpPacket</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Network.NTP.Client.Packet.html#Microsecond"><span class="hs-identifier hs-type">Microsecond</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Network.NTP.Client.Packet.html#NtpOffset"><span class="hs-identifier hs-type">NtpOffset</span></a></span><span>
+</span><span id="line-143"></span><span id="clockOffsetPure"><span class="annot"><span class="annottext">clockOffsetPure :: NtpPacket -&gt; Microsecond -&gt; NtpOffset
+</span><a href="Network.NTP.Client.Packet.html#clockOffsetPure"><span class="hs-identifier hs-var hs-var">clockOffsetPure</span></a></span></span><span> </span><span class="annot"><a href="Network.NTP.Client.Packet.html#NtpPacket"><span class="hs-identifier hs-type">NtpPacket</span></a></span><span class="hs-special">{</span><span id="local-6989586621679048423"><span id="local-6989586621679048424"><span id="local-6989586621679048425"><span id="local-6989586621679048426"><span id="local-6989586621679048427"><span class="annot"><span class="annottext">Int8
+Word8
+Microsecond
+ntpTransmitTime :: Microsecond
+ntpReceivedTime :: Microsecond
+ntpOriginTime :: Microsecond
+ntpPoll :: Int8
+ntpParams :: Word8
+ntpTransmitTime :: NtpPacket -&gt; Microsecond
+ntpReceivedTime :: NtpPacket -&gt; Microsecond
+ntpOriginTime :: NtpPacket -&gt; Microsecond
+ntpPoll :: NtpPacket -&gt; Int8
+ntpParams :: NtpPacket -&gt; Word8
+</span><a href="#local-6989586621679048423"><span class="hs-glyph hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">..</span></a></span></span></span></span></span></span><span class="hs-special">}</span><span> </span><span id="local-6989586621679048422"><span class="annot"><span class="annottext">Microsecond
+</span><a href="#local-6989586621679048422"><span class="hs-identifier hs-var">localTime</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Microsecond -&gt; NtpOffset
+</span><a href="Network.NTP.Client.Packet.html#NtpOffset"><span class="hs-identifier hs-var">NtpOffset</span></a></span><span>
+</span><span id="line-144"></span><span>    </span><span class="annot"><span class="annottext">(Microsecond -&gt; NtpOffset) -&gt; Microsecond -&gt; NtpOffset
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Microsecond
+</span><a href="#local-6989586621679048424"><span class="hs-identifier hs-var">ntpReceivedTime</span></a></span><span> </span><span class="annot"><span class="annottext">Microsecond -&gt; Microsecond -&gt; Microsecond
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-glyph hs-var">-</span></span><span> </span><span class="annot"><span class="annottext">Microsecond
+</span><a href="#local-6989586621679048425"><span class="hs-identifier hs-var">ntpOriginTime</span></a></span><span> </span><span class="annot"><span class="annottext">Microsecond -&gt; Microsecond -&gt; Microsecond
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="annottext">Microsecond
+</span><a href="#local-6989586621679048423"><span class="hs-identifier hs-var">ntpTransmitTime</span></a></span><span> </span><span class="annot"><span class="annottext">Microsecond -&gt; Microsecond -&gt; Microsecond
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-glyph hs-var">-</span></span><span> </span><span class="annot"><span class="annottext">Microsecond
+</span><a href="#local-6989586621679048422"><span class="hs-identifier hs-var">localTime</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-145"></span><span>      </span><span class="annot"><span class="annottext">Microsecond -&gt; Microsecond -&gt; Microsecond
+forall a. Integral a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">`div`</span></span><span> </span><span class="annot"><span class="annottext">Microsecond
+</span><span class="hs-number">2</span></span><span>
+</span><span id="line-146"></span><span>
+</span><span id="line-147"></span><span class="hs-comment">-- |</span><span>
+</span><span id="line-148"></span><span class="hs-comment">-- Compute clock offset unless the NTP packet was requested more than the given</span><span>
+</span><span id="line-149"></span><span class="hs-comment">-- timeout.</span><span>
+</span><span id="line-150"></span><span class="annot"><a href="Network.NTP.Client.Packet.html#clockOffset"><span class="hs-identifier hs-type">clockOffset</span></a></span><span>
+</span><span id="line-151"></span><span>    </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Network.NTP.Client.Packet.html#Microsecond"><span class="hs-identifier hs-type">Microsecond</span></a></span><span>
+</span><span id="line-152"></span><span>    </span><span class="hs-comment">-- ^ @'ntpResponseTimeout'@, ignore responses which come after it passed.</span><span>
+</span><span id="line-153"></span><span>    </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Network.NTP.Client.Packet.html#NtpPacket"><span class="hs-identifier hs-type">NtpPacket</span></a></span><span>
+</span><span id="line-154"></span><span>    </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">IO</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><a href="Network.NTP.Client.Packet.html#NtpOffset"><span class="hs-identifier hs-type">NtpOffset</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-155"></span><span id="clockOffset"><span class="annot"><span class="annottext">clockOffset :: Microsecond -&gt; NtpPacket -&gt; IO (Maybe NtpOffset)
+</span><a href="Network.NTP.Client.Packet.html#clockOffset"><span class="hs-identifier hs-var hs-var">clockOffset</span></a></span></span><span> </span><span id="local-6989586621679048421"><span class="annot"><span class="annottext">Microsecond
+</span><a href="#local-6989586621679048421"><span class="hs-identifier hs-var">respTimeout</span></a></span></span><span> </span><span id="local-6989586621679048420"><span class="annot"><span class="annottext">NtpPacket
+</span><a href="#local-6989586621679048420"><span class="hs-identifier hs-var">packet</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-156"></span><span>    </span><span id="local-6989586621679048419"><span class="annot"><span class="annottext">Microsecond
+</span><a href="#local-6989586621679048419"><span class="hs-identifier hs-var">time</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">IO Microsecond
+</span><a href="Network.NTP.Client.Packet.html#getCurrentTime"><span class="hs-identifier hs-var">getCurrentTime</span></a></span><span>
+</span><span id="line-157"></span><span>    </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679048418"><span class="annot"><span class="annottext">isLate :: Bool
+</span><a href="#local-6989586621679048418"><span class="hs-identifier hs-var hs-var">isLate</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Microsecond
+</span><a href="#local-6989586621679048419"><span class="hs-identifier hs-var">time</span></a></span><span> </span><span class="annot"><span class="annottext">Microsecond -&gt; Microsecond -&gt; Microsecond
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-glyph hs-var">-</span></span><span> </span><span class="annot"><span class="annottext">NtpPacket -&gt; Microsecond
+</span><a href="Network.NTP.Client.Packet.html#ntpOriginTime"><span class="hs-identifier hs-var hs-var">ntpOriginTime</span></a></span><span> </span><span class="annot"><span class="annottext">NtpPacket
+</span><a href="#local-6989586621679048420"><span class="hs-identifier hs-var">packet</span></a></span><span> </span><span class="annot"><span class="annottext">Microsecond -&gt; Microsecond -&gt; Bool
+forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">&gt;=</span></span><span> </span><span class="annot"><span class="annottext">Microsecond
+</span><a href="#local-6989586621679048421"><span class="hs-identifier hs-var">respTimeout</span></a></span><span>
+</span><span id="line-158"></span><span>    </span><span class="hs-keyword">if</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><a href="#local-6989586621679048418"><span class="hs-identifier hs-var">isLate</span></a></span><span>
+</span><span id="line-159"></span><span>        </span><span class="hs-keyword">then</span><span> </span><span class="annot"><span class="annottext">Maybe NtpOffset -&gt; IO (Maybe NtpOffset)
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">Maybe NtpOffset
+forall a. Maybe a
+</span><span class="hs-identifier hs-var">Nothing</span></span><span>
+</span><span id="line-160"></span><span>        </span><span class="hs-keyword">else</span><span> </span><span class="annot"><span class="annottext">Maybe NtpOffset -&gt; IO (Maybe NtpOffset)
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">(Maybe NtpOffset -&gt; IO (Maybe NtpOffset))
+-&gt; Maybe NtpOffset -&gt; IO (Maybe NtpOffset)
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">NtpOffset -&gt; Maybe NtpOffset
+forall a. a -&gt; Maybe a
+</span><span class="hs-identifier hs-var">Just</span></span><span> </span><span class="annot"><span class="annottext">(NtpOffset -&gt; Maybe NtpOffset) -&gt; NtpOffset -&gt; Maybe NtpOffset
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">NtpPacket -&gt; Microsecond -&gt; NtpOffset
+</span><a href="Network.NTP.Client.Packet.html#clockOffsetPure"><span class="hs-identifier hs-var">clockOffsetPure</span></a></span><span> </span><span class="annot"><span class="annottext">NtpPacket
+</span><a href="#local-6989586621679048420"><span class="hs-identifier hs-var">packet</span></a></span><span> </span><span class="annot"><span class="annottext">Microsecond
+</span><a href="#local-6989586621679048419"><span class="hs-identifier hs-var">time</span></a></span><span>
+</span><span id="line-161"></span><span>
+</span><span id="line-162"></span><span class="hs-comment">-- |</span><span>
+</span><span id="line-163"></span><span class="hs-comment">-- Helper function to get current time in @Microsecond@.</span><span>
+</span><span id="line-164"></span><span class="annot"><a href="Network.NTP.Client.Packet.html#getCurrentTime"><span class="hs-identifier hs-type">getCurrentTime</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">IO</span></span><span> </span><span class="annot"><a href="Network.NTP.Client.Packet.html#Microsecond"><span class="hs-identifier hs-type">Microsecond</span></a></span><span>
+</span><span id="line-165"></span><span id="getCurrentTime"><span class="annot"><span class="annottext">getCurrentTime :: IO Microsecond
+</span><a href="Network.NTP.Client.Packet.html#getCurrentTime"><span class="hs-identifier hs-var hs-var">getCurrentTime</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Microsecond
+</span><a href="Network.NTP.Client.Packet.html#Microsecond"><span class="hs-identifier hs-var">Microsecond</span></a></span><span> </span><span class="annot"><span class="annottext">(Integer -&gt; Microsecond)
+-&gt; (POSIXTime -&gt; Integer) -&gt; POSIXTime -&gt; Microsecond
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">POSIXTime -&gt; Integer
+forall a b. (RealFrac a, Integral b) =&gt; a -&gt; b
+</span><span class="hs-identifier hs-var">round</span></span><span> </span><span class="annot"><span class="annottext">(POSIXTime -&gt; Integer)
+-&gt; (POSIXTime -&gt; POSIXTime) -&gt; POSIXTime -&gt; Integer
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="hs-special">(</span><span> </span><span class="annot"><span class="annottext">POSIXTime -&gt; POSIXTime -&gt; POSIXTime
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">*</span></span><span> </span><span class="annot"><span class="annottext">POSIXTime
+</span><span class="hs-number">1000000</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(POSIXTime -&gt; Microsecond) -&gt; IO POSIXTime -&gt; IO Microsecond
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">IO POSIXTime
+</span><span class="hs-identifier hs-var">getPOSIXTime</span></span><span>
+</span><span id="line-166"></span></pre></body></html>

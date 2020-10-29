@@ -1,185 +1,715 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-comment">-- |</span><span>
-</span><a name="line-2"></a><span class="hs-comment">-- Module      : Crypto.PubKey.Ed25519</span><span>
-</span><a name="line-3"></a><span class="hs-comment">-- License     : BSD-style</span><span>
-</span><a name="line-4"></a><span class="hs-comment">-- Maintainer  : Vincent Hanquez &lt;vincent@snarc.org&gt;</span><span>
-</span><a name="line-5"></a><span class="hs-comment">-- Stability   : experimental</span><span>
-</span><a name="line-6"></a><span class="hs-comment">-- Portability : unknown</span><span>
-</span><a name="line-7"></a><span class="hs-comment">--</span><span>
-</span><a name="line-8"></a><span class="hs-comment">-- Ed25519 support</span><span>
-</span><a name="line-9"></a><span class="hs-comment">--</span><span>
-</span><a name="line-10"></a><span class="hs-pragma">{-# LANGUAGE GeneralizedNewtypeDeriving #-}</span><span>
-</span><a name="line-11"></a><span class="hs-pragma">{-# LANGUAGE BangPatterns #-}</span><span>
-</span><a name="line-12"></a><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Crypto.ECC.Ed25519Donna</span><span>
-</span><a name="line-13"></a><span>    </span><span class="hs-special">(</span><span> </span><a href="Crypto.ECC.Ed25519Donna.html#SecretKey"><span class="hs-identifier hs-type">SecretKey</span></a><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
-</span><a name="line-14"></a><span>    </span><span class="hs-special">,</span><span> </span><a href="Crypto.ECC.Ed25519Donna.html#PublicKey"><span class="hs-identifier hs-type">PublicKey</span></a><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
-</span><a name="line-15"></a><span>    </span><span class="hs-special">,</span><span> </span><a href="Crypto.ECC.Ed25519Donna.html#Signature"><span class="hs-identifier hs-type">Signature</span></a><span>
-</span><a name="line-16"></a><span>    </span><span class="hs-comment">-- * Smart constructors</span><span>
-</span><a name="line-17"></a><span>    </span><span class="hs-special">,</span><span> </span><span class="hs-keyword">signature</span><span>
-</span><a name="line-18"></a><span>    </span><span class="hs-special">,</span><span> </span><a href="Crypto.ECC.Ed25519Donna.html#publicKey"><span class="hs-identifier hs-var">publicKey</span></a><span>
-</span><a name="line-19"></a><span>    </span><span class="hs-special">,</span><span> </span><a href="Crypto.ECC.Ed25519Donna.html#secretKey"><span class="hs-identifier hs-var">secretKey</span></a><span>
-</span><a name="line-20"></a><span>    </span><span class="hs-comment">-- * methods</span><span>
-</span><a name="line-21"></a><span>    </span><span class="hs-special">,</span><span> </span><a href="Crypto.ECC.Ed25519Donna.html#toPublic"><span class="hs-identifier hs-var">toPublic</span></a><span>
-</span><a name="line-22"></a><span>    </span><span class="hs-special">,</span><span> </span><a href="Crypto.ECC.Ed25519Donna.html#sign"><span class="hs-identifier hs-var">sign</span></a><span>
-</span><a name="line-23"></a><span>    </span><span class="hs-special">,</span><span> </span><a href="Crypto.ECC.Ed25519Donna.html#verify"><span class="hs-identifier hs-var">verify</span></a><span>
-</span><a name="line-24"></a><span>    </span><span class="hs-special">,</span><span> </span><a href="Crypto.ECC.Ed25519Donna.html#publicAdd"><span class="hs-identifier hs-var">publicAdd</span></a><span>
-</span><a name="line-25"></a><span>    </span><span class="hs-special">,</span><span> </span><a href="Crypto.ECC.Ed25519Donna.html#secretAdd"><span class="hs-identifier hs-var">secretAdd</span></a><span>
-</span><a name="line-26"></a><span>    </span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
-</span><a name="line-27"></a><span>
-</span><a name="line-28"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Control.DeepSeq</span><span>
-</span><a name="line-29"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data.Word</span><span>
-</span><a name="line-30"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Foreign.Ptr</span><span>
-</span><a name="line-31"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Foreign.C.Types</span><span>
-</span><a name="line-32"></a><span>
-</span><a name="line-33"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data.ByteArray</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">ByteArrayAccess</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-var">withByteArray</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">ScrubbedBytes</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Bytes</span><span class="hs-special">)</span><span>
-</span><a name="line-34"></a><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-identifier">Data.ByteArray</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">B</span><span>
-</span><a name="line-35"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Crypto.Error</span><span>
-</span><a name="line-36"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Foreign.Storable</span><span>
-</span><a name="line-37"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">System.IO.Unsafe</span><span>
-</span><a name="line-38"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Crypto.Hash</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-var">hashWith</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">SHA512</span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
-</span><a name="line-39"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data.ByteArray</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-var">alloc</span><span class="hs-special">)</span><span>
-</span><a name="line-40"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data.Bits</span><span>
-</span><a name="line-41"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Control.Monad</span><span>
-</span><a name="line-42"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">System.IO.Unsafe</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-var">unsafePerformIO</span><span class="hs-special">)</span><span>
-</span><a name="line-43"></a><span>
-</span><a name="line-44"></a><span class="hs-identifier">unsafeDoIO</span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">IO</span><span> </span><a href="#local-6989586621679065806"><span class="hs-identifier hs-type">a</span></a><span> </span><span class="hs-glyph">-&gt;</span><span> </span><a href="#local-6989586621679065806"><span class="hs-identifier hs-type">a</span></a><span>
-</span><a name="line-45"></a><a name="unsafeDoIO"><a href="Crypto.ECC.Ed25519Donna.html#unsafeDoIO"><span class="hs-identifier">unsafeDoIO</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-identifier hs-var">unsafeDupablePerformIO</span><span>
-</span><a name="line-46"></a><span class="hs-pragma">{-# NOINLINE</span><span> </span><span class="hs-pragma">unsafeDoIO</span><span> </span><span class="hs-pragma">#-}</span><span>
-</span><a name="line-47"></a><span>
-</span><a name="line-48"></a><span class="hs-comment">-- | An Ed25519 Secret key</span><span>
-</span><a name="line-49"></a><span class="hs-keyword">newtype</span><span> </span><a name="SecretKey"><a href="Crypto.ECC.Ed25519Donna.html#SecretKey"><span class="hs-identifier">SecretKey</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><a name="SecretKey"><a href="Crypto.ECC.Ed25519Donna.html#SecretKey"><span class="hs-identifier">SecretKey</span></a></a><span> </span><span class="hs-identifier hs-type">ScrubbedBytes</span><span>
-</span><a name="line-50"></a><span>    </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Eq</span><span class="hs-special">,</span><span class="hs-identifier hs-type">ByteArrayAccess</span><span class="hs-special">,</span><span class="hs-identifier hs-type">NFData</span><span class="hs-special">)</span><span>
-</span><a name="line-51"></a><span>
-</span><a name="line-52"></a><span class="hs-comment">-- | An Ed25519 public key</span><span>
-</span><a name="line-53"></a><span class="hs-keyword">newtype</span><span> </span><a name="PublicKey"><a href="Crypto.ECC.Ed25519Donna.html#PublicKey"><span class="hs-identifier">PublicKey</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><a name="PublicKey"><a href="Crypto.ECC.Ed25519Donna.html#PublicKey"><span class="hs-identifier">PublicKey</span></a></a><span> </span><span class="hs-identifier hs-type">Bytes</span><span>
-</span><a name="line-54"></a><span>    </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Show</span><span class="hs-special">,</span><span class="hs-identifier hs-type">Eq</span><span class="hs-special">,</span><span class="hs-identifier hs-type">ByteArrayAccess</span><span class="hs-special">,</span><span class="hs-identifier hs-type">NFData</span><span class="hs-special">)</span><span>
-</span><a name="line-55"></a><span>
-</span><a name="line-56"></a><span class="hs-comment">-- | An Ed25519 signature</span><span>
-</span><a name="line-57"></a><span class="hs-keyword">newtype</span><span> </span><a name="Signature"><a href="Crypto.ECC.Ed25519Donna.html#Signature"><span class="hs-identifier">Signature</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><a name="Signature"><a href="Crypto.ECC.Ed25519Donna.html#Signature"><span class="hs-identifier">Signature</span></a></a><span> </span><span class="hs-identifier hs-type">Bytes</span><span>
-</span><a name="line-58"></a><span>    </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Show</span><span class="hs-special">,</span><span class="hs-identifier hs-type">Eq</span><span class="hs-special">,</span><span class="hs-identifier hs-type">ByteArrayAccess</span><span class="hs-special">,</span><span class="hs-identifier hs-type">NFData</span><span class="hs-special">)</span><span>
-</span><a name="line-59"></a><span>
-</span><a name="line-60"></a><span class="hs-comment">-- | Try to build a public key from a bytearray</span><span>
-</span><a name="line-61"></a><span class="hs-identifier">publicKey</span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">ByteArrayAccess</span><span> </span><a href="#local-6989586621679065805"><span class="hs-identifier hs-type">ba</span></a><span> </span><span class="hs-glyph">=&gt;</span><span> </span><a href="#local-6989586621679065805"><span class="hs-identifier hs-type">ba</span></a><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">CryptoFailable</span><span> </span><a href="Crypto.ECC.Ed25519Donna.html#PublicKey"><span class="hs-identifier hs-type">PublicKey</span></a><span>
-</span><a name="line-62"></a><a name="publicKey"><a href="Crypto.ECC.Ed25519Donna.html#publicKey"><span class="hs-identifier">publicKey</span></a></a><span> </span><a name="local-6989586621679065807"><a href="#local-6989586621679065807"><span class="hs-identifier">bs</span></a></a><span>
-</span><a name="line-63"></a><span>    </span><span class="hs-glyph">|</span><span> </span><span class="hs-identifier hs-var">B.length</span><span> </span><a href="#local-6989586621679065807"><span class="hs-identifier hs-var">bs</span></a><span> </span><span class="hs-operator hs-var">==</span><span> </span><a href="Crypto.ECC.Ed25519Donna.html#publicKeySize"><span class="hs-identifier hs-var">publicKeySize</span></a><span> </span><span class="hs-glyph">=</span><span>
-</span><a name="line-64"></a><span>        </span><span class="hs-identifier hs-var">CryptoPassed</span><span> </span><span class="hs-operator hs-var">$</span><span> </span><a href="Crypto.ECC.Ed25519Donna.html#PublicKey"><span class="hs-identifier hs-var">PublicKey</span></a><span> </span><span class="hs-operator hs-var">$</span><span> </span><span class="hs-identifier hs-var">B.copyAndFreeze</span><span> </span><a href="#local-6989586621679065807"><span class="hs-identifier hs-var">bs</span></a><span> </span><span class="hs-special">(</span><span class="hs-glyph">\</span><span class="hs-identifier">_</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-var">return</span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
-</span><a name="line-65"></a><span>    </span><span class="hs-glyph">|</span><span> </span><span class="hs-identifier hs-var">otherwise</span><span> </span><span class="hs-glyph">=</span><span>
-</span><a name="line-66"></a><span>        </span><span class="hs-identifier hs-var">CryptoFailed</span><span> </span><span class="hs-operator hs-var">$</span><span> </span><span class="hs-identifier hs-var">CryptoError_PublicKeySizeInvalid</span><span>
-</span><a name="line-67"></a><span>
-</span><a name="line-68"></a><span class="hs-comment">-- | Try to build a secret key from a bytearray</span><span>
-</span><a name="line-69"></a><span class="hs-identifier">secretKey</span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">ByteArrayAccess</span><span> </span><a href="#local-6989586621679065804"><span class="hs-identifier hs-type">ba</span></a><span> </span><span class="hs-glyph">=&gt;</span><span> </span><a href="#local-6989586621679065804"><span class="hs-identifier hs-type">ba</span></a><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">CryptoFailable</span><span> </span><a href="Crypto.ECC.Ed25519Donna.html#SecretKey"><span class="hs-identifier hs-type">SecretKey</span></a><span>
-</span><a name="line-70"></a><a name="secretKey"><a href="Crypto.ECC.Ed25519Donna.html#secretKey"><span class="hs-identifier">secretKey</span></a></a><span> </span><a name="local-6989586621679065808"><a href="#local-6989586621679065808"><span class="hs-identifier">bs</span></a></a><span>
-</span><a name="line-71"></a><span>    </span><span class="hs-glyph">|</span><span> </span><span class="hs-identifier hs-var">B.length</span><span> </span><a href="#local-6989586621679065808"><span class="hs-identifier hs-var">bs</span></a><span> </span><span class="hs-operator hs-var">==</span><span> </span><span class="hs-number">32</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-identifier hs-var">unsafePerformIO</span><span> </span><a href="#local-6989586621679065810"><span class="hs-identifier hs-var">verifyAndTweak</span></a><span>
-</span><a name="line-72"></a><span>    </span><span class="hs-glyph">|</span><span> </span><span class="hs-identifier hs-var">otherwise</span><span>         </span><span class="hs-glyph">=</span><span> </span><span class="hs-identifier hs-var">CryptoFailed</span><span> </span><span class="hs-identifier hs-var">CryptoError_SecretKeySizeInvalid</span><span>
-</span><a name="line-73"></a><span>  </span><span class="hs-keyword">where</span><span>
-</span><a name="line-74"></a><span>    </span><a name="local-6989586621679065809"><a href="#local-6989586621679065809"><span class="hs-identifier">k</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-identifier hs-var">hashWith</span><span> </span><span class="hs-identifier hs-var">SHA512</span><span> </span><a href="#local-6989586621679065808"><span class="hs-identifier hs-var">bs</span></a><span>
-</span><a name="line-75"></a><span>    </span><span class="hs-identifier">verifyAndTweak</span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">IO</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">CryptoFailable</span><span> </span><a href="Crypto.ECC.Ed25519Donna.html#SecretKey"><span class="hs-identifier hs-type">SecretKey</span></a><span class="hs-special">)</span><span>
-</span><a name="line-76"></a><span>    </span><a name="local-6989586621679065810"><a href="#local-6989586621679065810"><span class="hs-identifier">verifyAndTweak</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-identifier hs-var">withByteArray</span><span> </span><a href="#local-6989586621679065809"><span class="hs-identifier hs-var">k</span></a><span> </span><span class="hs-operator hs-var">$</span><span> </span><span class="hs-glyph">\</span><a name="local-6989586621679065811"><a href="#local-6989586621679065811"><span class="hs-identifier">inp</span></a></a><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">do</span><span>
-</span><a name="line-77"></a><span>        </span><a name="local-6989586621679065812"><a href="#local-6989586621679065812"><span class="hs-identifier">b0</span></a></a><span>  </span><span class="hs-glyph">&lt;-</span><span> </span><span class="hs-identifier hs-var">peekElemOff</span><span> </span><a href="#local-6989586621679065811"><span class="hs-identifier hs-var">inp</span></a><span> </span><span class="hs-number">0</span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">IO</span><span> </span><span class="hs-identifier hs-type">Word8</span><span>
-</span><a name="line-78"></a><span>        </span><a name="local-6989586621679065813"><a href="#local-6989586621679065813"><span class="hs-identifier">b31</span></a></a><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="hs-identifier hs-var">peekElemOff</span><span> </span><a href="#local-6989586621679065811"><span class="hs-identifier hs-var">inp</span></a><span> </span><span class="hs-number">31</span><span>
-</span><a name="line-79"></a><span>        </span><span class="hs-keyword">if</span><span> </span><span class="hs-identifier hs-var">testBit</span><span> </span><a href="#local-6989586621679065813"><span class="hs-identifier hs-var">b31</span></a><span> </span><span class="hs-number">5</span><span>
-</span><a name="line-80"></a><span>            </span><span class="hs-keyword">then</span><span> </span><span class="hs-identifier hs-var">return</span><span> </span><span class="hs-operator hs-var">$</span><span> </span><span class="hs-identifier hs-var">CryptoFailed</span><span> </span><span class="hs-identifier hs-var">CryptoError_SecretKeyStructureInvalid</span><span>
-</span><a name="line-81"></a><span>            </span><span class="hs-keyword">else</span><span> </span><span class="hs-identifier hs-var">CryptoPassed</span><span> </span><span class="hs-operator hs-var">.</span><span> </span><a href="Crypto.ECC.Ed25519Donna.html#SecretKey"><span class="hs-identifier hs-var">SecretKey</span></a><span> </span><span class="hs-operator hs-var">&lt;$&gt;</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-var">alloc</span><span> </span><span class="hs-number">64</span><span> </span><span class="hs-operator hs-var">$</span><span> </span><span class="hs-glyph">\</span><a name="local-6989586621679065814"><a href="#local-6989586621679065814"><span class="hs-identifier">outp</span></a></a><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">do</span><span>
-</span><a name="line-82"></a><span>                    </span><span class="hs-identifier hs-var">pokeElemOff</span><span> </span><a href="#local-6989586621679065814"><span class="hs-identifier hs-var">outp</span></a><span> </span><span class="hs-number">0</span><span> </span><span class="hs-special">(</span><a href="#local-6989586621679065812"><span class="hs-identifier hs-var">b0</span></a><span> </span><span class="hs-operator hs-var">.&amp;.</span><span> </span><span class="hs-number">0xf8</span><span class="hs-special">)</span><span> </span><span class="hs-comment">-- clear lowest 3 bits</span><span>
-</span><a name="line-83"></a><span>                    </span><span class="hs-identifier hs-var">forM_</span><span> </span><span class="hs-special">[</span><span class="hs-number">1</span><span class="hs-glyph">..</span><span class="hs-number">30</span><span class="hs-special">]</span><span> </span><span class="hs-operator hs-var">$</span><span> </span><span class="hs-glyph">\</span><a name="local-6989586621679066940"><a href="#local-6989586621679066940"><span class="hs-identifier">i</span></a></a><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-var">peekElemOff</span><span> </span><a href="#local-6989586621679065811"><span class="hs-identifier hs-var">inp</span></a><span> </span><a href="#local-6989586621679066940"><span class="hs-identifier hs-var">i</span></a><span> </span><span class="hs-operator hs-var">&gt;&gt;=</span><span> </span><span class="hs-identifier hs-var">pokeElemOff</span><span> </span><a href="#local-6989586621679065814"><span class="hs-identifier hs-var">outp</span></a><span> </span><a href="#local-6989586621679066940"><span class="hs-identifier hs-var">i</span></a><span>
-</span><a name="line-84"></a><span>                    </span><span class="hs-identifier hs-var">pokeElemOff</span><span> </span><a href="#local-6989586621679065814"><span class="hs-identifier hs-var">outp</span></a><span> </span><span class="hs-number">31</span><span> </span><span class="hs-special">(</span><span class="hs-special">(</span><a href="#local-6989586621679065813"><span class="hs-identifier hs-var">b31</span></a><span> </span><span class="hs-operator hs-var">.&amp;.</span><span> </span><span class="hs-number">0x1f</span><span class="hs-special">)</span><span> </span><span class="hs-operator hs-var">.|.</span><span> </span><span class="hs-number">0x40</span><span class="hs-special">)</span><span> </span><span class="hs-comment">-- clear highest bit and 3rd bit, and set 2nd highest.</span><span>
-</span><a name="line-85"></a><span>                    </span><span class="hs-identifier hs-var">forM_</span><span> </span><span class="hs-special">[</span><span class="hs-number">32</span><span class="hs-glyph">..</span><span class="hs-number">63</span><span class="hs-special">]</span><span> </span><span class="hs-operator hs-var">$</span><span> </span><span class="hs-glyph">\</span><a name="local-6989586621679066941"><a href="#local-6989586621679066941"><span class="hs-identifier">i</span></a></a><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-var">peekElemOff</span><span> </span><a href="#local-6989586621679065811"><span class="hs-identifier hs-var">inp</span></a><span> </span><a href="#local-6989586621679066941"><span class="hs-identifier hs-var">i</span></a><span> </span><span class="hs-operator hs-var">&gt;&gt;=</span><span> </span><span class="hs-identifier hs-var">pokeElemOff</span><span> </span><a href="#local-6989586621679065814"><span class="hs-identifier hs-var">outp</span></a><span> </span><a href="#local-6989586621679066941"><span class="hs-identifier hs-var">i</span></a><span>
-</span><a name="line-86"></a><span>                    </span><span class="hs-special">)</span><span>
-</span><a name="line-87"></a><span>
-</span><a name="line-88"></a><span class="hs-comment">-- | Try to build a signature from a bytearray</span><span>
-</span><a name="line-89"></a><span class="hs-keyword">signature</span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">ByteArrayAccess</span><span> </span><a href="#local-6989586621679065803"><span class="hs-identifier hs-type">ba</span></a><span> </span><span class="hs-glyph">=&gt;</span><span> </span><a href="#local-6989586621679065803"><span class="hs-identifier hs-type">ba</span></a><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">CryptoFailable</span><span> </span><a href="Crypto.ECC.Ed25519Donna.html#Signature"><span class="hs-identifier hs-type">Signature</span></a><span>
-</span><a name="line-90"></a><span class="hs-keyword">signature</span><span> </span><a name="local-6989586621679066956"><a href="#local-6989586621679066956"><span class="hs-identifier">bs</span></a></a><span>
-</span><a name="line-91"></a><span>    </span><span class="hs-glyph">|</span><span> </span><span class="hs-identifier hs-var">B.length</span><span> </span><a href="#local-6989586621679066956"><span class="hs-identifier hs-var">bs</span></a><span> </span><span class="hs-operator hs-var">==</span><span> </span><a href="Crypto.ECC.Ed25519Donna.html#signatureSize"><span class="hs-identifier hs-var">signatureSize</span></a><span> </span><span class="hs-glyph">=</span><span>
-</span><a name="line-92"></a><span>        </span><span class="hs-identifier hs-var">CryptoPassed</span><span> </span><span class="hs-operator hs-var">$</span><span> </span><a href="Crypto.ECC.Ed25519Donna.html#Signature"><span class="hs-identifier hs-var">Signature</span></a><span> </span><span class="hs-operator hs-var">$</span><span> </span><span class="hs-identifier hs-var">B.copyAndFreeze</span><span> </span><a href="#local-6989586621679066956"><span class="hs-identifier hs-var">bs</span></a><span> </span><span class="hs-special">(</span><span class="hs-glyph">\</span><span class="hs-identifier">_</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-var">return</span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
-</span><a name="line-93"></a><span>    </span><span class="hs-glyph">|</span><span> </span><span class="hs-identifier hs-var">otherwise</span><span> </span><span class="hs-glyph">=</span><span>
-</span><a name="line-94"></a><span>        </span><span class="hs-comment">-- missing a SignatureSizeInvalid error, so use another one</span><span>
-</span><a name="line-95"></a><span>        </span><span class="hs-identifier hs-var">CryptoFailed</span><span> </span><span class="hs-operator hs-var">$</span><span> </span><span class="hs-identifier hs-var">CryptoError_SecretKeySizeInvalid</span><span>
-</span><a name="line-96"></a><span>
-</span><a name="line-97"></a><span class="hs-comment">-- | Create a public key from a secret key</span><span>
-</span><a name="line-98"></a><span class="hs-identifier">toPublic</span><span> </span><span class="hs-glyph">::</span><span> </span><a href="Crypto.ECC.Ed25519Donna.html#SecretKey"><span class="hs-identifier hs-type">SecretKey</span></a><span> </span><span class="hs-glyph">-&gt;</span><span> </span><a href="Crypto.ECC.Ed25519Donna.html#PublicKey"><span class="hs-identifier hs-type">PublicKey</span></a><span>
-</span><a name="line-99"></a><a name="toPublic"><a href="Crypto.ECC.Ed25519Donna.html#toPublic"><span class="hs-identifier">toPublic</span></a></a><span> </span><span class="hs-special">(</span><a href="Crypto.ECC.Ed25519Donna.html#SecretKey"><span class="hs-identifier hs-var">SecretKey</span></a><span> </span><a name="local-6989586621679066957"><a href="#local-6989586621679066957"><span class="hs-identifier">sec</span></a></a><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><a href="Crypto.ECC.Ed25519Donna.html#PublicKey"><span class="hs-identifier hs-var">PublicKey</span></a><span> </span><span class="hs-operator hs-var">$</span><span>
-</span><a name="line-100"></a><span>    </span><span class="hs-identifier hs-var">B.allocAndFreeze</span><span> </span><a href="Crypto.ECC.Ed25519Donna.html#publicKeySize"><span class="hs-identifier hs-var">publicKeySize</span></a><span> </span><span class="hs-operator hs-var">$</span><span> </span><span class="hs-glyph">\</span><a name="local-6989586621679066958"><a href="#local-6989586621679066958"><span class="hs-identifier">result</span></a></a><span> </span><span class="hs-glyph">-&gt;</span><span>
-</span><a name="line-101"></a><span>    </span><span class="hs-identifier hs-var">withByteArray</span><span> </span><a href="#local-6989586621679066957"><span class="hs-identifier hs-var">sec</span></a><span>              </span><span class="hs-operator hs-var">$</span><span> </span><span class="hs-glyph">\</span><a name="local-6989586621679066959"><a href="#local-6989586621679066959"><span class="hs-identifier">psec</span></a></a><span>   </span><span class="hs-glyph">-&gt;</span><span>
-</span><a name="line-102"></a><span>        </span><a href="Crypto.ECC.Ed25519Donna.html#ccryptonite_ed25519_publickey"><span class="hs-identifier hs-var">ccryptonite_ed25519_publickey</span></a><span> </span><a href="#local-6989586621679066959"><span class="hs-identifier hs-var">psec</span></a><span> </span><a href="#local-6989586621679066958"><span class="hs-identifier hs-var">result</span></a><span>
-</span><a name="line-103"></a><span class="hs-pragma">{-# NOINLINE</span><span> </span><span class="hs-pragma">toPublic</span><span> </span><span class="hs-pragma">#-}</span><span>
-</span><a name="line-104"></a><span>
-</span><a name="line-105"></a><span class="hs-identifier">publicAdd</span><span> </span><span class="hs-glyph">::</span><span> </span><a href="Crypto.ECC.Ed25519Donna.html#PublicKey"><span class="hs-identifier hs-type">PublicKey</span></a><span> </span><span class="hs-glyph">-&gt;</span><span> </span><a href="Crypto.ECC.Ed25519Donna.html#PublicKey"><span class="hs-identifier hs-type">PublicKey</span></a><span> </span><span class="hs-glyph">-&gt;</span><span> </span><a href="Crypto.ECC.Ed25519Donna.html#PublicKey"><span class="hs-identifier hs-type">PublicKey</span></a><span>
-</span><a name="line-106"></a><a name="publicAdd"><a href="Crypto.ECC.Ed25519Donna.html#publicAdd"><span class="hs-identifier">publicAdd</span></a></a><span> </span><a name="local-6989586621679066960"><a href="#local-6989586621679066960"><span class="hs-identifier">p1</span></a></a><span> </span><a name="local-6989586621679066961"><a href="#local-6989586621679066961"><span class="hs-identifier">p2</span></a></a><span> </span><span class="hs-glyph">=</span><span>
-</span><a name="line-107"></a><span>    </span><a href="Crypto.ECC.Ed25519Donna.html#PublicKey"><span class="hs-identifier hs-var">PublicKey</span></a><span> </span><span class="hs-operator hs-var">$</span><span> </span><span class="hs-identifier hs-var">B.allocAndFreeze</span><span> </span><a href="Crypto.ECC.Ed25519Donna.html#publicKeySize"><span class="hs-identifier hs-var">publicKeySize</span></a><span> </span><span class="hs-operator hs-var">$</span><span> </span><span class="hs-glyph">\</span><a name="local-6989586621679066962"><a href="#local-6989586621679066962"><span class="hs-identifier">result</span></a></a><span> </span><span class="hs-glyph">-&gt;</span><span>
-</span><a name="line-108"></a><span>        </span><span class="hs-identifier hs-var">withByteArray</span><span> </span><a href="#local-6989586621679066960"><span class="hs-identifier hs-var">p1</span></a><span> </span><span class="hs-operator hs-var">$</span><span> </span><span class="hs-glyph">\</span><a name="local-6989586621679066963"><a href="#local-6989586621679066963"><span class="hs-identifier">v1</span></a></a><span> </span><span class="hs-glyph">-&gt;</span><span>
-</span><a name="line-109"></a><span>        </span><span class="hs-identifier hs-var">withByteArray</span><span> </span><a href="#local-6989586621679066961"><span class="hs-identifier hs-var">p2</span></a><span> </span><span class="hs-operator hs-var">$</span><span> </span><span class="hs-glyph">\</span><a name="local-6989586621679066964"><a href="#local-6989586621679066964"><span class="hs-identifier">v2</span></a></a><span> </span><span class="hs-glyph">-&gt;</span><span>
-</span><a name="line-110"></a><span>            </span><a href="Crypto.ECC.Ed25519Donna.html#ccryptonite_ed25519_point_add"><span class="hs-identifier hs-var">ccryptonite_ed25519_point_add</span></a><span> </span><a href="#local-6989586621679066963"><span class="hs-identifier hs-var">v1</span></a><span> </span><a href="#local-6989586621679066964"><span class="hs-identifier hs-var">v2</span></a><span> </span><a href="#local-6989586621679066962"><span class="hs-identifier hs-var">result</span></a><span>
-</span><a name="line-111"></a><span>
-</span><a name="line-112"></a><span class="hs-identifier">secretAdd</span><span> </span><span class="hs-glyph">::</span><span> </span><a href="Crypto.ECC.Ed25519Donna.html#SecretKey"><span class="hs-identifier hs-type">SecretKey</span></a><span> </span><span class="hs-glyph">-&gt;</span><span> </span><a href="Crypto.ECC.Ed25519Donna.html#SecretKey"><span class="hs-identifier hs-type">SecretKey</span></a><span> </span><span class="hs-glyph">-&gt;</span><span> </span><a href="Crypto.ECC.Ed25519Donna.html#SecretKey"><span class="hs-identifier hs-type">SecretKey</span></a><span>
-</span><a name="line-113"></a><a name="secretAdd"><a href="Crypto.ECC.Ed25519Donna.html#secretAdd"><span class="hs-identifier">secretAdd</span></a></a><span> </span><a name="local-6989586621679066965"><a href="#local-6989586621679066965"><span class="hs-identifier">p1</span></a></a><span> </span><a name="local-6989586621679066966"><a href="#local-6989586621679066966"><span class="hs-identifier">p2</span></a></a><span> </span><span class="hs-glyph">=</span><span>
-</span><a name="line-114"></a><span>    </span><a href="Crypto.ECC.Ed25519Donna.html#SecretKey"><span class="hs-identifier hs-var">SecretKey</span></a><span> </span><span class="hs-operator hs-var">$</span><span> </span><span class="hs-identifier hs-var">B.allocAndFreeze</span><span> </span><a href="Crypto.ECC.Ed25519Donna.html#secretKeySize"><span class="hs-identifier hs-var">secretKeySize</span></a><span> </span><span class="hs-operator hs-var">$</span><span> </span><span class="hs-glyph">\</span><a name="local-6989586621679066967"><a href="#local-6989586621679066967"><span class="hs-identifier">result</span></a></a><span> </span><span class="hs-glyph">-&gt;</span><span>
-</span><a name="line-115"></a><span>        </span><span class="hs-identifier hs-var">withByteArray</span><span> </span><a href="#local-6989586621679066965"><span class="hs-identifier hs-var">p1</span></a><span> </span><span class="hs-operator hs-var">$</span><span> </span><span class="hs-glyph">\</span><a name="local-6989586621679066968"><a href="#local-6989586621679066968"><span class="hs-identifier">v1</span></a></a><span> </span><span class="hs-glyph">-&gt;</span><span>
-</span><a name="line-116"></a><span>        </span><span class="hs-identifier hs-var">withByteArray</span><span> </span><a href="#local-6989586621679066966"><span class="hs-identifier hs-var">p2</span></a><span> </span><span class="hs-operator hs-var">$</span><span> </span><span class="hs-glyph">\</span><a name="local-6989586621679066969"><a href="#local-6989586621679066969"><span class="hs-identifier">v2</span></a></a><span> </span><span class="hs-glyph">-&gt;</span><span>
-</span><a name="line-117"></a><span>            </span><a href="Crypto.ECC.Ed25519Donna.html#ccryptonite_ed25519_scalar_add"><span class="hs-identifier hs-var">ccryptonite_ed25519_scalar_add</span></a><span> </span><a href="#local-6989586621679066968"><span class="hs-identifier hs-var">v1</span></a><span> </span><a href="#local-6989586621679066969"><span class="hs-identifier hs-var">v2</span></a><span> </span><a href="#local-6989586621679066967"><span class="hs-identifier hs-var">result</span></a><span>
-</span><a name="line-118"></a><span>
-</span><a name="line-119"></a><span class="hs-comment">-- | Sign a message using the key pair</span><span>
-</span><a name="line-120"></a><span class="hs-identifier">sign</span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">ByteArrayAccess</span><span> </span><a href="#local-6989586621679065801"><span class="hs-identifier hs-type">msg</span></a><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">ByteArrayAccess</span><span> </span><a href="#local-6989586621679065802"><span class="hs-identifier hs-type">salt</span></a><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><a href="Crypto.ECC.Ed25519Donna.html#SecretKey"><span class="hs-identifier hs-type">SecretKey</span></a><span> </span><span class="hs-glyph">-&gt;</span><span> </span><a href="#local-6989586621679065802"><span class="hs-identifier hs-type">salt</span></a><span> </span><span class="hs-glyph">-&gt;</span><span> </span><a href="Crypto.ECC.Ed25519Donna.html#PublicKey"><span class="hs-identifier hs-type">PublicKey</span></a><span> </span><span class="hs-glyph">-&gt;</span><span> </span><a href="#local-6989586621679065801"><span class="hs-identifier hs-type">msg</span></a><span> </span><span class="hs-glyph">-&gt;</span><span> </span><a href="Crypto.ECC.Ed25519Donna.html#Signature"><span class="hs-identifier hs-type">Signature</span></a><span>
-</span><a name="line-121"></a><a name="sign"><a href="Crypto.ECC.Ed25519Donna.html#sign"><span class="hs-identifier">sign</span></a></a><span> </span><a name="local-6989586621679066970"><a href="#local-6989586621679066970"><span class="hs-identifier">secret</span></a></a><span> </span><a name="local-6989586621679066971"><a href="#local-6989586621679066971"><span class="hs-identifier">salt</span></a></a><span> </span><a name="local-6989586621679066972"><a href="#local-6989586621679066972"><span class="hs-identifier">public</span></a></a><span> </span><a name="local-6989586621679066973"><a href="#local-6989586621679066973"><span class="hs-identifier">message</span></a></a><span> </span><span class="hs-glyph">=</span><span>
-</span><a name="line-122"></a><span>    </span><a href="Crypto.ECC.Ed25519Donna.html#Signature"><span class="hs-identifier hs-var">Signature</span></a><span> </span><span class="hs-operator hs-var">$</span><span> </span><span class="hs-identifier hs-var">B.allocAndFreeze</span><span> </span><a href="Crypto.ECC.Ed25519Donna.html#signatureSize"><span class="hs-identifier hs-var">signatureSize</span></a><span> </span><span class="hs-operator hs-var">$</span><span> </span><span class="hs-glyph">\</span><a name="local-6989586621679066976"><a href="#local-6989586621679066976"><span class="hs-identifier">sig</span></a></a><span> </span><span class="hs-glyph">-&gt;</span><span>
-</span><a name="line-123"></a><span>        </span><span class="hs-identifier hs-var">withByteArray</span><span> </span><a href="#local-6989586621679066970"><span class="hs-identifier hs-var">secret</span></a><span>  </span><span class="hs-operator hs-var">$</span><span> </span><span class="hs-glyph">\</span><a name="local-6989586621679066977"><a href="#local-6989586621679066977"><span class="hs-identifier">sec</span></a></a><span>   </span><span class="hs-glyph">-&gt;</span><span>
-</span><a name="line-124"></a><span>        </span><span class="hs-identifier hs-var">withByteArray</span><span> </span><a href="#local-6989586621679066972"><span class="hs-identifier hs-var">public</span></a><span>  </span><span class="hs-operator hs-var">$</span><span> </span><span class="hs-glyph">\</span><a name="local-6989586621679066978"><a href="#local-6989586621679066978"><span class="hs-identifier">pub</span></a></a><span>   </span><span class="hs-glyph">-&gt;</span><span>
-</span><a name="line-125"></a><span>        </span><span class="hs-identifier hs-var">withByteArray</span><span> </span><a href="#local-6989586621679066971"><span class="hs-identifier hs-var">salt</span></a><span>    </span><span class="hs-operator hs-var">$</span><span> </span><span class="hs-glyph">\</span><a name="local-6989586621679066979"><a href="#local-6989586621679066979"><span class="hs-identifier">saltP</span></a></a><span> </span><span class="hs-glyph">-&gt;</span><span>
-</span><a name="line-126"></a><span>        </span><span class="hs-identifier hs-var">withByteArray</span><span> </span><a href="#local-6989586621679066973"><span class="hs-identifier hs-var">message</span></a><span> </span><span class="hs-operator hs-var">$</span><span> </span><span class="hs-glyph">\</span><a name="local-6989586621679066980"><a href="#local-6989586621679066980"><span class="hs-identifier">msg</span></a></a><span>   </span><span class="hs-glyph">-&gt;</span><span>
-</span><a name="line-127"></a><span>             </span><a href="Crypto.ECC.Ed25519Donna.html#ccryptonite_ed25519_sign"><span class="hs-identifier hs-var">ccryptonite_ed25519_sign</span></a><span> </span><a href="#local-6989586621679066980"><span class="hs-identifier hs-var">msg</span></a><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-var">fromIntegral</span><span> </span><a href="#local-6989586621679066974"><span class="hs-identifier hs-var">msgLen</span></a><span class="hs-special">)</span><span> </span><a href="#local-6989586621679066979"><span class="hs-identifier hs-var">saltP</span></a><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-var">fromIntegral</span><span> </span><a href="#local-6989586621679066975"><span class="hs-identifier hs-var">saltLen</span></a><span class="hs-special">)</span><span> </span><a href="#local-6989586621679066977"><span class="hs-identifier hs-var">sec</span></a><span> </span><a href="#local-6989586621679066978"><span class="hs-identifier hs-var">pub</span></a><span> </span><a href="#local-6989586621679066976"><span class="hs-identifier hs-var">sig</span></a><span>
-</span><a name="line-128"></a><span>  </span><span class="hs-keyword">where</span><span>
-</span><a name="line-129"></a><span>    </span><span class="hs-glyph">!</span><a name="local-6989586621679066974"><a href="#local-6989586621679066974"><span class="hs-identifier">msgLen</span></a></a><span>  </span><span class="hs-glyph">=</span><span> </span><span class="hs-identifier hs-var">B.length</span><span> </span><a href="#local-6989586621679066973"><span class="hs-identifier hs-var">message</span></a><span>
-</span><a name="line-130"></a><span>    </span><span class="hs-glyph">!</span><a name="local-6989586621679066975"><a href="#local-6989586621679066975"><span class="hs-identifier">saltLen</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-identifier hs-var">B.length</span><span> </span><a href="#local-6989586621679066971"><span class="hs-identifier hs-var">salt</span></a><span>
-</span><a name="line-131"></a><span>
-</span><a name="line-132"></a><span class="hs-comment">-- | Verify a message</span><span>
-</span><a name="line-133"></a><span class="hs-identifier">verify</span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">ByteArrayAccess</span><span> </span><a href="#local-6989586621679065800"><span class="hs-identifier hs-type">ba</span></a><span> </span><span class="hs-glyph">=&gt;</span><span> </span><a href="Crypto.ECC.Ed25519Donna.html#PublicKey"><span class="hs-identifier hs-type">PublicKey</span></a><span> </span><span class="hs-glyph">-&gt;</span><span> </span><a href="#local-6989586621679065800"><span class="hs-identifier hs-type">ba</span></a><span> </span><span class="hs-glyph">-&gt;</span><span> </span><a href="Crypto.ECC.Ed25519Donna.html#Signature"><span class="hs-identifier hs-type">Signature</span></a><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">Bool</span><span>
-</span><a name="line-134"></a><a name="verify"><a href="Crypto.ECC.Ed25519Donna.html#verify"><span class="hs-identifier">verify</span></a></a><span> </span><a name="local-6989586621679066981"><a href="#local-6989586621679066981"><span class="hs-identifier">public</span></a></a><span> </span><a name="local-6989586621679066982"><a href="#local-6989586621679066982"><span class="hs-identifier">message</span></a></a><span> </span><a name="local-6989586621679066983"><a href="#local-6989586621679066983"><span class="hs-identifier">signatureVal</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><a href="Crypto.ECC.Ed25519Donna.html#unsafeDoIO"><span class="hs-identifier hs-var">unsafeDoIO</span></a><span> </span><span class="hs-operator hs-var">$</span><span>
-</span><a name="line-135"></a><span>    </span><span class="hs-identifier hs-var">withByteArray</span><span> </span><a href="#local-6989586621679066983"><span class="hs-identifier hs-var">signatureVal</span></a><span> </span><span class="hs-operator hs-var">$</span><span> </span><span class="hs-glyph">\</span><a name="local-6989586621679066985"><a href="#local-6989586621679066985"><span class="hs-identifier">sig</span></a></a><span> </span><span class="hs-glyph">-&gt;</span><span>
-</span><a name="line-136"></a><span>    </span><span class="hs-identifier hs-var">withByteArray</span><span> </span><a href="#local-6989586621679066981"><span class="hs-identifier hs-var">public</span></a><span>       </span><span class="hs-operator hs-var">$</span><span> </span><span class="hs-glyph">\</span><a name="local-6989586621679066986"><a href="#local-6989586621679066986"><span class="hs-identifier">pub</span></a></a><span> </span><span class="hs-glyph">-&gt;</span><span>
-</span><a name="line-137"></a><span>    </span><span class="hs-identifier hs-var">withByteArray</span><span> </span><a href="#local-6989586621679066982"><span class="hs-identifier hs-var">message</span></a><span>      </span><span class="hs-operator hs-var">$</span><span> </span><span class="hs-glyph">\</span><a name="local-6989586621679066987"><a href="#local-6989586621679066987"><span class="hs-identifier">msg</span></a></a><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">do</span><span>
-</span><a name="line-138"></a><span>      </span><a name="local-6989586621679066988"><a href="#local-6989586621679066988"><span class="hs-identifier">r</span></a></a><span> </span><span class="hs-glyph">&lt;-</span><span> </span><a href="Crypto.ECC.Ed25519Donna.html#ccryptonite_ed25519_sign_open"><span class="hs-identifier hs-var">ccryptonite_ed25519_sign_open</span></a><span> </span><a href="#local-6989586621679066987"><span class="hs-identifier hs-var">msg</span></a><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-var">fromIntegral</span><span> </span><a href="#local-6989586621679066984"><span class="hs-identifier hs-var">msgLen</span></a><span class="hs-special">)</span><span> </span><a href="#local-6989586621679066986"><span class="hs-identifier hs-var">pub</span></a><span> </span><a href="#local-6989586621679066985"><span class="hs-identifier hs-var">sig</span></a><span>
-</span><a name="line-139"></a><span>      </span><span class="hs-identifier hs-var">return</span><span> </span><span class="hs-special">(</span><a href="#local-6989586621679066988"><span class="hs-identifier hs-var">r</span></a><span> </span><span class="hs-operator hs-var">==</span><span> </span><span class="hs-number">0</span><span class="hs-special">)</span><span>
-</span><a name="line-140"></a><span>  </span><span class="hs-keyword">where</span><span>
-</span><a name="line-141"></a><span>    </span><span class="hs-glyph">!</span><a name="local-6989586621679066984"><a href="#local-6989586621679066984"><span class="hs-identifier">msgLen</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-identifier hs-var">B.length</span><span> </span><a href="#local-6989586621679066982"><span class="hs-identifier hs-var">message</span></a><span>
-</span><a name="line-142"></a><span>
-</span><a name="line-143"></a><span class="hs-identifier">publicKeySize</span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">Int</span><span>
-</span><a name="line-144"></a><a name="publicKeySize"><a href="Crypto.ECC.Ed25519Donna.html#publicKeySize"><span class="hs-identifier">publicKeySize</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-number">32</span><span>
-</span><a name="line-145"></a><span>
-</span><a name="line-146"></a><span class="hs-identifier">secretKeySize</span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">Int</span><span>
-</span><a name="line-147"></a><a name="secretKeySize"><a href="Crypto.ECC.Ed25519Donna.html#secretKeySize"><span class="hs-identifier">secretKeySize</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-number">64</span><span>
-</span><a name="line-148"></a><span>
-</span><a name="line-149"></a><span class="hs-identifier">signatureSize</span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">Int</span><span>
-</span><a name="line-150"></a><a name="signatureSize"><a href="Crypto.ECC.Ed25519Donna.html#signatureSize"><span class="hs-identifier">signatureSize</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-number">64</span><span>
-</span><a name="line-151"></a><span>
-</span><a name="line-152"></a><span class="hs-keyword">foreign</span><span> </span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">ccall</span><span> </span><span class="hs-string">&quot;cardano_crypto_ed25519_publickey&quot;</span><span>
-</span><a name="line-153"></a><span>    </span><span class="hs-identifier">ccryptonite_ed25519_publickey</span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">Ptr</span><span> </span><a href="Crypto.ECC.Ed25519Donna.html#SecretKey"><span class="hs-identifier hs-type">SecretKey</span></a><span> </span><span class="hs-comment">-- secret key</span><span>
-</span><a name="line-154"></a><span>                                  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">Ptr</span><span> </span><a href="Crypto.ECC.Ed25519Donna.html#PublicKey"><span class="hs-identifier hs-type">PublicKey</span></a><span> </span><span class="hs-comment">-- public key</span><span>
-</span><a name="line-155"></a><span>                                  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">IO</span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
-</span><a name="line-156"></a><span>
-</span><a name="line-157"></a><span class="hs-keyword">foreign</span><span> </span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">ccall</span><span> </span><span class="hs-string">&quot;cardano_crypto_ed25519_sign_open&quot;</span><span>
-</span><a name="line-158"></a><span>    </span><span class="hs-identifier">ccryptonite_ed25519_sign_open</span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">Ptr</span><span> </span><span class="hs-identifier hs-type">Word8</span><span>     </span><span class="hs-comment">-- message</span><span>
-</span><a name="line-159"></a><span>                                  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">CSize</span><span>         </span><span class="hs-comment">-- message len</span><span>
-</span><a name="line-160"></a><span>                                  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">Ptr</span><span> </span><a href="Crypto.ECC.Ed25519Donna.html#PublicKey"><span class="hs-identifier hs-type">PublicKey</span></a><span> </span><span class="hs-comment">-- public</span><span>
-</span><a name="line-161"></a><span>                                  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">Ptr</span><span> </span><a href="Crypto.ECC.Ed25519Donna.html#Signature"><span class="hs-identifier hs-type">Signature</span></a><span> </span><span class="hs-comment">-- signature</span><span>
-</span><a name="line-162"></a><span>                                  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">IO</span><span> </span><span class="hs-identifier hs-type">CInt</span><span>
-</span><a name="line-163"></a><span>
-</span><a name="line-164"></a><span class="hs-keyword">foreign</span><span> </span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">ccall</span><span> </span><span class="hs-string">&quot;cardano_crypto_ed25519_sign&quot;</span><span>
-</span><a name="line-165"></a><span>    </span><span class="hs-identifier">ccryptonite_ed25519_sign</span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">Ptr</span><span> </span><span class="hs-identifier hs-type">Word8</span><span>     </span><span class="hs-comment">-- message</span><span>
-</span><a name="line-166"></a><span>                             </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">CSize</span><span>         </span><span class="hs-comment">-- message len</span><span>
-</span><a name="line-167"></a><span>                             </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">Ptr</span><span> </span><span class="hs-identifier hs-type">Word8</span><span>     </span><span class="hs-comment">-- salt</span><span>
-</span><a name="line-168"></a><span>                             </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">CSize</span><span>         </span><span class="hs-comment">-- salt len</span><span>
-</span><a name="line-169"></a><span>                             </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">Ptr</span><span> </span><a href="Crypto.ECC.Ed25519Donna.html#SecretKey"><span class="hs-identifier hs-type">SecretKey</span></a><span> </span><span class="hs-comment">-- secret</span><span>
-</span><a name="line-170"></a><span>                             </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">Ptr</span><span> </span><a href="Crypto.ECC.Ed25519Donna.html#PublicKey"><span class="hs-identifier hs-type">PublicKey</span></a><span> </span><span class="hs-comment">-- public</span><span>
-</span><a name="line-171"></a><span>                             </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">Ptr</span><span> </span><a href="Crypto.ECC.Ed25519Donna.html#Signature"><span class="hs-identifier hs-type">Signature</span></a><span> </span><span class="hs-comment">-- signature</span><span>
-</span><a name="line-172"></a><span>                             </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">IO</span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
-</span><a name="line-173"></a><span>
-</span><a name="line-174"></a><span class="hs-keyword">foreign</span><span> </span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">ccall</span><span> </span><span class="hs-string">&quot;cardano_crypto_ed25519_point_add&quot;</span><span>
-</span><a name="line-175"></a><span>    </span><span class="hs-identifier">ccryptonite_ed25519_point_add</span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">Ptr</span><span> </span><a href="Crypto.ECC.Ed25519Donna.html#PublicKey"><span class="hs-identifier hs-type">PublicKey</span></a><span> </span><span class="hs-comment">-- p1</span><span>
-</span><a name="line-176"></a><span>                                  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">Ptr</span><span> </span><a href="Crypto.ECC.Ed25519Donna.html#PublicKey"><span class="hs-identifier hs-type">PublicKey</span></a><span> </span><span class="hs-comment">-- p2</span><span>
-</span><a name="line-177"></a><span>                                  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">Ptr</span><span> </span><a href="Crypto.ECC.Ed25519Donna.html#PublicKey"><span class="hs-identifier hs-type">PublicKey</span></a><span> </span><span class="hs-comment">-- p1 + p2</span><span>
-</span><a name="line-178"></a><span>                                  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">IO</span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
-</span><a name="line-179"></a><span>
-</span><a name="line-180"></a><span class="hs-keyword">foreign</span><span> </span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">ccall</span><span> </span><span class="hs-string">&quot;cardano_crypto_ed25519_scalar_add&quot;</span><span>
-</span><a name="line-181"></a><span>    </span><span class="hs-identifier">ccryptonite_ed25519_scalar_add</span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">Ptr</span><span> </span><a href="Crypto.ECC.Ed25519Donna.html#SecretKey"><span class="hs-identifier hs-type">SecretKey</span></a><span> </span><span class="hs-comment">-- s1</span><span>
-</span><a name="line-182"></a><span>                                   </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">Ptr</span><span> </span><a href="Crypto.ECC.Ed25519Donna.html#SecretKey"><span class="hs-identifier hs-type">SecretKey</span></a><span> </span><span class="hs-comment">-- s2</span><span>
-</span><a name="line-183"></a><span>                                   </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">Ptr</span><span> </span><a href="Crypto.ECC.Ed25519Donna.html#SecretKey"><span class="hs-identifier hs-type">SecretKey</span></a><span> </span><span class="hs-comment">-- s1 + s2</span><span>
-</span><a name="line-184"></a><span>                                   </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">IO</span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
-</span><a name="line-185"></a></pre></body></html>
+</span><span id="line-2"></span><span class="hs-comment">-- Module      : Crypto.PubKey.Ed25519</span><span>
+</span><span id="line-3"></span><span class="hs-comment">-- License     : BSD-style</span><span>
+</span><span id="line-4"></span><span class="hs-comment">-- Maintainer  : Vincent Hanquez &lt;vincent@snarc.org&gt;</span><span>
+</span><span id="line-5"></span><span class="hs-comment">-- Stability   : experimental</span><span>
+</span><span id="line-6"></span><span class="hs-comment">-- Portability : unknown</span><span>
+</span><span id="line-7"></span><span class="hs-comment">--</span><span>
+</span><span id="line-8"></span><span class="hs-comment">-- Ed25519 support</span><span>
+</span><span id="line-9"></span><span class="hs-comment">--</span><span>
+</span><span id="line-10"></span><span class="hs-pragma">{-# LANGUAGE GeneralizedNewtypeDeriving #-}</span><span>
+</span><span id="line-11"></span><span class="hs-pragma">{-# LANGUAGE BangPatterns #-}</span><span>
+</span><span id="line-12"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Crypto.ECC.Ed25519Donna</span><span>
+</span><span id="line-13"></span><span>    </span><span class="hs-special">(</span><span> </span><span class="annot"><a href="Crypto.ECC.Ed25519Donna.html#SecretKey"><span class="hs-identifier">SecretKey</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
+</span><span id="line-14"></span><span>    </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Crypto.ECC.Ed25519Donna.html#PublicKey"><span class="hs-identifier">PublicKey</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
+</span><span id="line-15"></span><span>    </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Crypto.ECC.Ed25519Donna.html#Signature"><span class="hs-identifier">Signature</span></a></span><span>
+</span><span id="line-16"></span><span>    </span><span class="annot"><span class="hs-comment">-- * Smart constructors</span></span><span>
+</span><span id="line-17"></span><span>    </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Crypto.ECC.Ed25519Donna.html#signature"><span class="hs-keyword">signature</span></a></span><span>
+</span><span id="line-18"></span><span>    </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Crypto.ECC.Ed25519Donna.html#publicKey"><span class="hs-identifier">publicKey</span></a></span><span>
+</span><span id="line-19"></span><span>    </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Crypto.ECC.Ed25519Donna.html#secretKey"><span class="hs-identifier">secretKey</span></a></span><span>
+</span><span id="line-20"></span><span>    </span><span class="annot"><span class="hs-comment">-- * methods</span></span><span>
+</span><span id="line-21"></span><span>    </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Crypto.ECC.Ed25519Donna.html#toPublic"><span class="hs-identifier">toPublic</span></a></span><span>
+</span><span id="line-22"></span><span>    </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Crypto.ECC.Ed25519Donna.html#sign"><span class="hs-identifier">sign</span></a></span><span>
+</span><span id="line-23"></span><span>    </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Crypto.ECC.Ed25519Donna.html#verify"><span class="hs-identifier">verify</span></a></span><span>
+</span><span id="line-24"></span><span>    </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Crypto.ECC.Ed25519Donna.html#publicAdd"><span class="hs-identifier">publicAdd</span></a></span><span>
+</span><span id="line-25"></span><span>    </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Crypto.ECC.Ed25519Donna.html#secretAdd"><span class="hs-identifier">secretAdd</span></a></span><span>
+</span><span id="line-26"></span><span>    </span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-27"></span><span>
+</span><span id="line-28"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><span class="hs-identifier">Control.DeepSeq</span></span><span>
+</span><span id="line-29"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><span class="hs-identifier">Data.Word</span></span><span>
+</span><span id="line-30"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><span class="hs-identifier">Foreign.Ptr</span></span><span>
+</span><span id="line-31"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><span class="hs-identifier">Foreign.C.Types</span></span><span>
+</span><span id="line-32"></span><span>
+</span><span id="line-33"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><span class="hs-identifier">Data.ByteArray</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">ByteArrayAccess</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">withByteArray</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">ScrubbedBytes</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">Bytes</span></span><span class="hs-special">)</span><span>
+</span><span id="line-34"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Data.ByteArray</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">B</span></span><span>
+</span><span id="line-35"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><span class="hs-identifier">Crypto.Error</span></span><span>
+</span><span id="line-36"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><span class="hs-identifier">Foreign.Storable</span></span><span>
+</span><span id="line-37"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><span class="hs-identifier">System.IO.Unsafe</span></span><span>
+</span><span id="line-38"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><span class="hs-identifier">Crypto.Hash</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">hashWith</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">SHA512</span></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-39"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><span class="hs-identifier">Data.ByteArray</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">alloc</span></span><span class="hs-special">)</span><span>
+</span><span id="line-40"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><span class="hs-identifier">Data.Bits</span></span><span>
+</span><span id="line-41"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><span class="hs-identifier">Control.Monad</span></span><span>
+</span><span id="line-42"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><span class="hs-identifier">System.IO.Unsafe</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">unsafePerformIO</span></span><span class="hs-special">)</span><span>
+</span><span id="line-43"></span><span>
+</span><span id="line-44"></span><span id="local-6989586621679084582"><span class="annot"><a href="Crypto.ECC.Ed25519Donna.html#unsafeDoIO"><span class="hs-identifier hs-type">unsafeDoIO</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">IO</span></span><span> </span><span class="annot"><a href="#local-6989586621679084582"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679084582"><span class="hs-identifier hs-type">a</span></a></span></span><span>
+</span><span id="line-45"></span><span id="unsafeDoIO"><span class="annot"><span class="annottext">unsafeDoIO :: IO a -&gt; a
+</span><a href="Crypto.ECC.Ed25519Donna.html#unsafeDoIO"><span class="hs-identifier hs-var hs-var">unsafeDoIO</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">IO a -&gt; a
+forall a. IO a -&gt; a
+</span><span class="hs-identifier hs-var">unsafeDupablePerformIO</span></span><span>
+</span><span id="line-46"></span><span class="hs-pragma">{-# NOINLINE</span><span> </span><span class="annot"><a href="Crypto.ECC.Ed25519Donna.html#unsafeDoIO"><span class="hs-pragma hs-type">unsafeDoIO</span></a></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-47"></span><span>
+</span><span id="line-48"></span><span class="hs-comment">-- | An Ed25519 Secret key</span><span>
+</span><span id="line-49"></span><span class="hs-keyword">newtype</span><span> </span><span id="SecretKey"><span class="annot"><a href="Crypto.ECC.Ed25519Donna.html#SecretKey"><span class="hs-identifier hs-var">SecretKey</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="SecretKey"><span class="annot"><a href="Crypto.ECC.Ed25519Donna.html#SecretKey"><span class="hs-identifier hs-var">SecretKey</span></a></span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">ScrubbedBytes</span></span><span>
+</span><span id="line-50"></span><span>    </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679084575"><span id="local-6989586621679084577"><span class="annot"><span class="annottext">SecretKey -&gt; SecretKey -&gt; Bool
+(SecretKey -&gt; SecretKey -&gt; Bool)
+-&gt; (SecretKey -&gt; SecretKey -&gt; Bool) -&gt; Eq SecretKey
+forall a. (a -&gt; a -&gt; Bool) -&gt; (a -&gt; a -&gt; Bool) -&gt; Eq a
+/= :: SecretKey -&gt; SecretKey -&gt; Bool
+$c/= :: SecretKey -&gt; SecretKey -&gt; Bool
+== :: SecretKey -&gt; SecretKey -&gt; Bool
+$c== :: SecretKey -&gt; SecretKey -&gt; Bool
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">,</span><span id="local-6989586621679084568"><span id="local-6989586621679084570"><span id="local-6989586621679084572"><span class="annot"><span class="annottext">SecretKey -&gt; Int
+SecretKey -&gt; Ptr p -&gt; IO ()
+SecretKey -&gt; (Ptr p -&gt; IO a) -&gt; IO a
+(SecretKey -&gt; Int)
+-&gt; (forall p a. SecretKey -&gt; (Ptr p -&gt; IO a) -&gt; IO a)
+-&gt; (forall p. SecretKey -&gt; Ptr p -&gt; IO ())
+-&gt; ByteArrayAccess SecretKey
+forall p. SecretKey -&gt; Ptr p -&gt; IO ()
+forall ba.
+(ba -&gt; Int)
+-&gt; (forall p a. ba -&gt; (Ptr p -&gt; IO a) -&gt; IO a)
+-&gt; (forall p. ba -&gt; Ptr p -&gt; IO ())
+-&gt; ByteArrayAccess ba
+forall p a. SecretKey -&gt; (Ptr p -&gt; IO a) -&gt; IO a
+copyByteArrayToPtr :: SecretKey -&gt; Ptr p -&gt; IO ()
+$ccopyByteArrayToPtr :: forall p. SecretKey -&gt; Ptr p -&gt; IO ()
+withByteArray :: SecretKey -&gt; (Ptr p -&gt; IO a) -&gt; IO a
+$cwithByteArray :: forall p a. SecretKey -&gt; (Ptr p -&gt; IO a) -&gt; IO a
+length :: SecretKey -&gt; Int
+$clength :: SecretKey -&gt; Int
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">ByteArrayAccess</span></span></span></span></span><span class="hs-special">,</span><span id="local-6989586621679084565"><span class="annot"><span class="annottext">SecretKey -&gt; ()
+(SecretKey -&gt; ()) -&gt; NFData SecretKey
+forall a. (a -&gt; ()) -&gt; NFData a
+rnf :: SecretKey -&gt; ()
+$crnf :: SecretKey -&gt; ()
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">NFData</span></span></span><span class="hs-special">)</span><span>
+</span><span id="line-51"></span><span>
+</span><span id="line-52"></span><span class="hs-comment">-- | An Ed25519 public key</span><span>
+</span><span id="line-53"></span><span class="hs-keyword">newtype</span><span> </span><span id="PublicKey"><span class="annot"><a href="Crypto.ECC.Ed25519Donna.html#PublicKey"><span class="hs-identifier hs-var">PublicKey</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="PublicKey"><span class="annot"><a href="Crypto.ECC.Ed25519Donna.html#PublicKey"><span class="hs-identifier hs-var">PublicKey</span></a></span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bytes</span></span><span>
+</span><span id="line-54"></span><span>    </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679084557"><span id="local-6989586621679084559"><span id="local-6989586621679084561"><span class="annot"><span class="annottext">Int -&gt; PublicKey -&gt; ShowS
+[PublicKey] -&gt; ShowS
+PublicKey -&gt; String
+(Int -&gt; PublicKey -&gt; ShowS)
+-&gt; (PublicKey -&gt; String)
+-&gt; ([PublicKey] -&gt; ShowS)
+-&gt; Show PublicKey
+forall a.
+(Int -&gt; a -&gt; ShowS) -&gt; (a -&gt; String) -&gt; ([a] -&gt; ShowS) -&gt; Show a
+showList :: [PublicKey] -&gt; ShowS
+$cshowList :: [PublicKey] -&gt; ShowS
+show :: PublicKey -&gt; String
+$cshow :: PublicKey -&gt; String
+showsPrec :: Int -&gt; PublicKey -&gt; ShowS
+$cshowsPrec :: Int -&gt; PublicKey -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">,</span><span id="local-6989586621679084552"><span id="local-6989586621679084554"><span class="annot"><span class="annottext">PublicKey -&gt; PublicKey -&gt; Bool
+(PublicKey -&gt; PublicKey -&gt; Bool)
+-&gt; (PublicKey -&gt; PublicKey -&gt; Bool) -&gt; Eq PublicKey
+forall a. (a -&gt; a -&gt; Bool) -&gt; (a -&gt; a -&gt; Bool) -&gt; Eq a
+/= :: PublicKey -&gt; PublicKey -&gt; Bool
+$c/= :: PublicKey -&gt; PublicKey -&gt; Bool
+== :: PublicKey -&gt; PublicKey -&gt; Bool
+$c== :: PublicKey -&gt; PublicKey -&gt; Bool
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">,</span><span id="local-6989586621679084546"><span id="local-6989586621679084548"><span id="local-6989586621679084550"><span class="annot"><span class="annottext">PublicKey -&gt; Int
+PublicKey -&gt; Ptr p -&gt; IO ()
+PublicKey -&gt; (Ptr p -&gt; IO a) -&gt; IO a
+(PublicKey -&gt; Int)
+-&gt; (forall p a. PublicKey -&gt; (Ptr p -&gt; IO a) -&gt; IO a)
+-&gt; (forall p. PublicKey -&gt; Ptr p -&gt; IO ())
+-&gt; ByteArrayAccess PublicKey
+forall p. PublicKey -&gt; Ptr p -&gt; IO ()
+forall ba.
+(ba -&gt; Int)
+-&gt; (forall p a. ba -&gt; (Ptr p -&gt; IO a) -&gt; IO a)
+-&gt; (forall p. ba -&gt; Ptr p -&gt; IO ())
+-&gt; ByteArrayAccess ba
+forall p a. PublicKey -&gt; (Ptr p -&gt; IO a) -&gt; IO a
+copyByteArrayToPtr :: PublicKey -&gt; Ptr p -&gt; IO ()
+$ccopyByteArrayToPtr :: forall p. PublicKey -&gt; Ptr p -&gt; IO ()
+withByteArray :: PublicKey -&gt; (Ptr p -&gt; IO a) -&gt; IO a
+$cwithByteArray :: forall p a. PublicKey -&gt; (Ptr p -&gt; IO a) -&gt; IO a
+length :: PublicKey -&gt; Int
+$clength :: PublicKey -&gt; Int
+</span><a href="#local-6989586621679084546"><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">ByteArrayAccess</span></a></span></span></span></span><span class="hs-special">,</span><span id="local-6989586621679084544"><span class="annot"><span class="annottext">PublicKey -&gt; ()
+(PublicKey -&gt; ()) -&gt; NFData PublicKey
+forall a. (a -&gt; ()) -&gt; NFData a
+rnf :: PublicKey -&gt; ()
+$crnf :: PublicKey -&gt; ()
+</span><a href="#local-6989586621679084544"><span class="hs-identifier hs-var hs-var hs-var hs-var">NFData</span></a></span></span><span class="hs-special">)</span><span>
+</span><span id="line-55"></span><span>
+</span><span id="line-56"></span><span class="hs-comment">-- | An Ed25519 signature</span><span>
+</span><span id="line-57"></span><span class="hs-keyword">newtype</span><span> </span><span id="Signature"><span class="annot"><a href="Crypto.ECC.Ed25519Donna.html#Signature"><span class="hs-identifier hs-var">Signature</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="Signature"><span class="annot"><a href="Crypto.ECC.Ed25519Donna.html#Signature"><span class="hs-identifier hs-var">Signature</span></a></span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bytes</span></span><span>
+</span><span id="line-58"></span><span>    </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679084537"><span id="local-6989586621679084539"><span id="local-6989586621679084541"><span class="annot"><span class="annottext">Int -&gt; Signature -&gt; ShowS
+[Signature] -&gt; ShowS
+Signature -&gt; String
+(Int -&gt; Signature -&gt; ShowS)
+-&gt; (Signature -&gt; String)
+-&gt; ([Signature] -&gt; ShowS)
+-&gt; Show Signature
+forall a.
+(Int -&gt; a -&gt; ShowS) -&gt; (a -&gt; String) -&gt; ([a] -&gt; ShowS) -&gt; Show a
+showList :: [Signature] -&gt; ShowS
+$cshowList :: [Signature] -&gt; ShowS
+show :: Signature -&gt; String
+$cshow :: Signature -&gt; String
+showsPrec :: Int -&gt; Signature -&gt; ShowS
+$cshowsPrec :: Int -&gt; Signature -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">,</span><span id="local-6989586621679084533"><span id="local-6989586621679084535"><span class="annot"><span class="annottext">Signature -&gt; Signature -&gt; Bool
+(Signature -&gt; Signature -&gt; Bool)
+-&gt; (Signature -&gt; Signature -&gt; Bool) -&gt; Eq Signature
+forall a. (a -&gt; a -&gt; Bool) -&gt; (a -&gt; a -&gt; Bool) -&gt; Eq a
+/= :: Signature -&gt; Signature -&gt; Bool
+$c/= :: Signature -&gt; Signature -&gt; Bool
+== :: Signature -&gt; Signature -&gt; Bool
+$c== :: Signature -&gt; Signature -&gt; Bool
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">,</span><span id="local-6989586621679084527"><span id="local-6989586621679084529"><span id="local-6989586621679084531"><span class="annot"><span class="annottext">Signature -&gt; Int
+Signature -&gt; Ptr p -&gt; IO ()
+Signature -&gt; (Ptr p -&gt; IO a) -&gt; IO a
+(Signature -&gt; Int)
+-&gt; (forall p a. Signature -&gt; (Ptr p -&gt; IO a) -&gt; IO a)
+-&gt; (forall p. Signature -&gt; Ptr p -&gt; IO ())
+-&gt; ByteArrayAccess Signature
+forall p. Signature -&gt; Ptr p -&gt; IO ()
+forall ba.
+(ba -&gt; Int)
+-&gt; (forall p a. ba -&gt; (Ptr p -&gt; IO a) -&gt; IO a)
+-&gt; (forall p. ba -&gt; Ptr p -&gt; IO ())
+-&gt; ByteArrayAccess ba
+forall p a. Signature -&gt; (Ptr p -&gt; IO a) -&gt; IO a
+copyByteArrayToPtr :: Signature -&gt; Ptr p -&gt; IO ()
+$ccopyByteArrayToPtr :: forall p. Signature -&gt; Ptr p -&gt; IO ()
+withByteArray :: Signature -&gt; (Ptr p -&gt; IO a) -&gt; IO a
+$cwithByteArray :: forall p a. Signature -&gt; (Ptr p -&gt; IO a) -&gt; IO a
+length :: Signature -&gt; Int
+$clength :: Signature -&gt; Int
+</span><a href="#local-6989586621679084527"><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">ByteArrayAccess</span></a></span></span></span></span><span class="hs-special">,</span><span id="local-6989586621679084525"><span class="annot"><span class="annottext">Signature -&gt; ()
+(Signature -&gt; ()) -&gt; NFData Signature
+forall a. (a -&gt; ()) -&gt; NFData a
+rnf :: Signature -&gt; ()
+$crnf :: Signature -&gt; ()
+</span><a href="#local-6989586621679084525"><span class="hs-identifier hs-var hs-var hs-var hs-var">NFData</span></a></span></span><span class="hs-special">)</span><span>
+</span><span id="line-59"></span><span>
+</span><span id="line-60"></span><span class="hs-comment">-- | Try to build a public key from a bytearray</span><span>
+</span><span id="line-61"></span><span id="local-6989586621679084524"><span class="annot"><a href="Crypto.ECC.Ed25519Donna.html#publicKey"><span class="hs-identifier hs-type">publicKey</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">ByteArrayAccess</span></span><span> </span><span class="annot"><a href="#local-6989586621679084524"><span class="hs-identifier hs-type">ba</span></a></span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679084524"><span class="hs-identifier hs-type">ba</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">CryptoFailable</span></span><span> </span><span class="annot"><a href="Crypto.ECC.Ed25519Donna.html#PublicKey"><span class="hs-identifier hs-type">PublicKey</span></a></span></span><span>
+</span><span id="line-62"></span><span id="publicKey"><span class="annot"><span class="annottext">publicKey :: ba -&gt; CryptoFailable PublicKey
+</span><a href="Crypto.ECC.Ed25519Donna.html#publicKey"><span class="hs-identifier hs-var hs-var">publicKey</span></a></span></span><span> </span><span id="local-6989586621679084523"><span class="annot"><span class="annottext">ba
+</span><a href="#local-6989586621679084523"><span class="hs-identifier hs-var">bs</span></a></span></span><span>
+</span><span id="line-63"></span><span>    </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">ba -&gt; Int
+forall ba. ByteArrayAccess ba =&gt; ba -&gt; Int
+</span><span class="hs-identifier hs-var">B.length</span></span><span> </span><span class="annot"><span class="annottext">ba
+</span><a href="#local-6989586621679084523"><span class="hs-identifier hs-var">bs</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+forall a. Eq a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">==</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="Crypto.ECC.Ed25519Donna.html#publicKeySize"><span class="hs-identifier hs-var">publicKeySize</span></a></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-64"></span><span>        </span><span class="annot"><span class="annottext">PublicKey -&gt; CryptoFailable PublicKey
+forall a. a -&gt; CryptoFailable a
+</span><span class="hs-identifier hs-var">CryptoPassed</span></span><span> </span><span class="annot"><span class="annottext">(PublicKey -&gt; CryptoFailable PublicKey)
+-&gt; PublicKey -&gt; CryptoFailable PublicKey
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Bytes -&gt; PublicKey
+</span><a href="Crypto.ECC.Ed25519Donna.html#PublicKey"><span class="hs-identifier hs-var">PublicKey</span></a></span><span> </span><span class="annot"><span class="annottext">(Bytes -&gt; PublicKey) -&gt; Bytes -&gt; PublicKey
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">ba -&gt; (Ptr Any -&gt; IO ()) -&gt; Bytes
+forall bs1 bs2 p.
+(ByteArrayAccess bs1, ByteArray bs2) =&gt;
+bs1 -&gt; (Ptr p -&gt; IO ()) -&gt; bs2
+</span><span class="hs-identifier hs-var">B.copyAndFreeze</span></span><span> </span><span class="annot"><span class="annottext">ba
+</span><a href="#local-6989586621679084523"><span class="hs-identifier hs-var">bs</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">\</span><span class="annot"><span class="annottext">Ptr Any
+</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">() -&gt; IO ()
+forall (m :: Type -&gt; Type) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-65"></span><span>    </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">otherwise</span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-66"></span><span>        </span><span class="annot"><span class="annottext">CryptoError -&gt; CryptoFailable PublicKey
+forall a. CryptoError -&gt; CryptoFailable a
+</span><span class="hs-identifier hs-var">CryptoFailed</span></span><span> </span><span class="annot"><span class="annottext">(CryptoError -&gt; CryptoFailable PublicKey)
+-&gt; CryptoError -&gt; CryptoFailable PublicKey
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">CryptoError
+</span><span class="hs-identifier hs-var">CryptoError_PublicKeySizeInvalid</span></span><span>
+</span><span id="line-67"></span><span>
+</span><span id="line-68"></span><span class="hs-comment">-- | Try to build a secret key from a bytearray</span><span>
+</span><span id="line-69"></span><span id="local-6989586621679084516"><span class="annot"><a href="Crypto.ECC.Ed25519Donna.html#secretKey"><span class="hs-identifier hs-type">secretKey</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">ByteArrayAccess</span></span><span> </span><span class="annot"><a href="#local-6989586621679084516"><span class="hs-identifier hs-type">ba</span></a></span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679084516"><span class="hs-identifier hs-type">ba</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">CryptoFailable</span></span><span> </span><span class="annot"><a href="Crypto.ECC.Ed25519Donna.html#SecretKey"><span class="hs-identifier hs-type">SecretKey</span></a></span></span><span>
+</span><span id="line-70"></span><span id="secretKey"><span class="annot"><span class="annottext">secretKey :: ba -&gt; CryptoFailable SecretKey
+</span><a href="Crypto.ECC.Ed25519Donna.html#secretKey"><span class="hs-identifier hs-var hs-var">secretKey</span></a></span></span><span> </span><span id="local-6989586621679084515"><span class="annot"><span class="annottext">ba
+</span><a href="#local-6989586621679084515"><span class="hs-identifier hs-var">bs</span></a></span></span><span>
+</span><span id="line-71"></span><span>    </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">ba -&gt; Int
+forall ba. ByteArrayAccess ba =&gt; ba -&gt; Int
+</span><span class="hs-identifier hs-var">B.length</span></span><span> </span><span class="annot"><span class="annottext">ba
+</span><a href="#local-6989586621679084515"><span class="hs-identifier hs-var">bs</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+forall a. Eq a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">==</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">32</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">IO (CryptoFailable SecretKey) -&gt; CryptoFailable SecretKey
+forall a. IO a -&gt; a
+</span><span class="hs-identifier hs-var">unsafePerformIO</span></span><span> </span><span class="annot"><span class="annottext">IO (CryptoFailable SecretKey)
+</span><a href="#local-6989586621679084514"><span class="hs-identifier hs-var">verifyAndTweak</span></a></span><span>
+</span><span id="line-72"></span><span>    </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">otherwise</span></span><span>         </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">CryptoError -&gt; CryptoFailable SecretKey
+forall a. CryptoError -&gt; CryptoFailable a
+</span><span class="hs-identifier hs-var">CryptoFailed</span></span><span> </span><span class="annot"><span class="annottext">CryptoError
+</span><span class="hs-identifier hs-var">CryptoError_SecretKeySizeInvalid</span></span><span>
+</span><span id="line-73"></span><span>  </span><span class="hs-keyword">where</span><span>
+</span><span id="line-74"></span><span>    </span><span id="local-6989586621679084512"><span class="annot"><span class="annottext">k :: Digest SHA512
+</span><a href="#local-6989586621679084512"><span class="hs-identifier hs-var hs-var">k</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">SHA512 -&gt; ba -&gt; Digest SHA512
+forall ba alg.
+(ByteArrayAccess ba, HashAlgorithm alg) =&gt;
+alg -&gt; ba -&gt; Digest alg
+</span><span class="hs-identifier hs-var">hashWith</span></span><span> </span><span class="annot"><span class="annottext">SHA512
+</span><span class="hs-identifier hs-var">SHA512</span></span><span> </span><span class="annot"><span class="annottext">ba
+</span><a href="#local-6989586621679084515"><span class="hs-identifier hs-var">bs</span></a></span><span>
+</span><span id="line-75"></span><span>    </span><span class="annot"><a href="#local-6989586621679084514"><span class="hs-identifier hs-type">verifyAndTweak</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">IO</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">CryptoFailable</span></span><span> </span><span class="annot"><a href="Crypto.ECC.Ed25519Donna.html#SecretKey"><span class="hs-identifier hs-type">SecretKey</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-76"></span><span>    </span><span id="local-6989586621679084514"><span class="annot"><span class="annottext">verifyAndTweak :: IO (CryptoFailable SecretKey)
+</span><a href="#local-6989586621679084514"><span class="hs-identifier hs-var hs-var">verifyAndTweak</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Digest SHA512
+-&gt; (Ptr Word8 -&gt; IO (CryptoFailable SecretKey))
+-&gt; IO (CryptoFailable SecretKey)
+forall ba p a. ByteArrayAccess ba =&gt; ba -&gt; (Ptr p -&gt; IO a) -&gt; IO a
+</span><span class="hs-identifier hs-var">withByteArray</span></span><span> </span><span class="annot"><span class="annottext">Digest SHA512
+</span><a href="#local-6989586621679084512"><span class="hs-identifier hs-var">k</span></a></span><span> </span><span class="annot"><span class="annottext">((Ptr Word8 -&gt; IO (CryptoFailable SecretKey))
+ -&gt; IO (CryptoFailable SecretKey))
+-&gt; (Ptr Word8 -&gt; IO (CryptoFailable SecretKey))
+-&gt; IO (CryptoFailable SecretKey)
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679084510"><span class="annot"><span class="annottext">Ptr Word8
+</span><a href="#local-6989586621679084510"><span class="hs-identifier hs-var">inp</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-77"></span><span>        </span><span id="local-6989586621679084509"><span class="annot"><span class="annottext">Word8
+</span><a href="#local-6989586621679084509"><span class="hs-identifier hs-var">b0</span></a></span></span><span>  </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Ptr Word8 -&gt; Int -&gt; IO Word8
+forall a. Storable a =&gt; Ptr a -&gt; Int -&gt; IO a
+</span><span class="hs-identifier hs-var">peekElemOff</span></span><span> </span><span class="annot"><span class="annottext">Ptr Word8
+</span><a href="#local-6989586621679084510"><span class="hs-identifier hs-var">inp</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">IO</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Word8</span></span><span>
+</span><span id="line-78"></span><span>        </span><span id="local-6989586621679084507"><span class="annot"><span class="annottext">Word8
+</span><a href="#local-6989586621679084507"><span class="hs-identifier hs-var">b31</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Ptr Word8 -&gt; Int -&gt; IO Word8
+forall a. Storable a =&gt; Ptr a -&gt; Int -&gt; IO a
+</span><span class="hs-identifier hs-var">peekElemOff</span></span><span> </span><span class="annot"><span class="annottext">Ptr Word8
+</span><a href="#local-6989586621679084510"><span class="hs-identifier hs-var">inp</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">31</span></span><span>
+</span><span id="line-79"></span><span>        </span><span class="hs-keyword">if</span><span> </span><span class="annot"><span class="annottext">Word8 -&gt; Int -&gt; Bool
+forall a. Bits a =&gt; a -&gt; Int -&gt; Bool
+</span><span class="hs-identifier hs-var">testBit</span></span><span> </span><span class="annot"><span class="annottext">Word8
+</span><a href="#local-6989586621679084507"><span class="hs-identifier hs-var">b31</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">5</span></span><span>
+</span><span id="line-80"></span><span>            </span><span class="hs-keyword">then</span><span> </span><span class="annot"><span class="annottext">CryptoFailable SecretKey -&gt; IO (CryptoFailable SecretKey)
+forall (m :: Type -&gt; Type) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">(CryptoFailable SecretKey -&gt; IO (CryptoFailable SecretKey))
+-&gt; CryptoFailable SecretKey -&gt; IO (CryptoFailable SecretKey)
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">CryptoError -&gt; CryptoFailable SecretKey
+forall a. CryptoError -&gt; CryptoFailable a
+</span><span class="hs-identifier hs-var">CryptoFailed</span></span><span> </span><span class="annot"><span class="annottext">CryptoError
+</span><span class="hs-identifier hs-var">CryptoError_SecretKeyStructureInvalid</span></span><span>
+</span><span id="line-81"></span><span>            </span><span class="hs-keyword">else</span><span> </span><span class="annot"><span class="annottext">SecretKey -&gt; CryptoFailable SecretKey
+forall a. a -&gt; CryptoFailable a
+</span><span class="hs-identifier hs-var">CryptoPassed</span></span><span> </span><span class="annot"><span class="annottext">(SecretKey -&gt; CryptoFailable SecretKey)
+-&gt; (ScrubbedBytes -&gt; SecretKey)
+-&gt; ScrubbedBytes
+-&gt; CryptoFailable SecretKey
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">ScrubbedBytes -&gt; SecretKey
+</span><a href="Crypto.ECC.Ed25519Donna.html#SecretKey"><span class="hs-identifier hs-var">SecretKey</span></a></span><span> </span><span class="annot"><span class="annottext">(ScrubbedBytes -&gt; CryptoFailable SecretKey)
+-&gt; IO ScrubbedBytes -&gt; IO (CryptoFailable SecretKey)
+forall (f :: Type -&gt; Type) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; (Ptr Word8 -&gt; IO ()) -&gt; IO ScrubbedBytes
+forall ba p. ByteArray ba =&gt; Int -&gt; (Ptr p -&gt; IO ()) -&gt; IO ba
+</span><span class="hs-identifier hs-var">alloc</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">64</span></span><span> </span><span class="annot"><span class="annottext">((Ptr Word8 -&gt; IO ()) -&gt; IO ScrubbedBytes)
+-&gt; (Ptr Word8 -&gt; IO ()) -&gt; IO ScrubbedBytes
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679084502"><span class="annot"><span class="annottext">Ptr Word8
+</span><a href="#local-6989586621679084502"><span class="hs-identifier hs-var">outp</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-82"></span><span>                    </span><span class="annot"><span class="annottext">Ptr Word8 -&gt; Int -&gt; Word8 -&gt; IO ()
+forall a. Storable a =&gt; Ptr a -&gt; Int -&gt; a -&gt; IO ()
+</span><span class="hs-identifier hs-var">pokeElemOff</span></span><span> </span><span class="annot"><span class="annottext">Ptr Word8
+</span><a href="#local-6989586621679084502"><span class="hs-identifier hs-var">outp</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Word8
+</span><a href="#local-6989586621679084509"><span class="hs-identifier hs-var">b0</span></a></span><span> </span><span class="annot"><span class="annottext">Word8 -&gt; Word8 -&gt; Word8
+forall a. Bits a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">.&amp;.</span></span><span> </span><span class="annot"><span class="annottext">Word8
+</span><span class="hs-number">0xf8</span></span><span class="hs-special">)</span><span> </span><span class="hs-comment">-- clear lowest 3 bits</span><span>
+</span><span id="line-83"></span><span>                    </span><span class="annot"><span class="annottext">[Int] -&gt; (Int -&gt; IO ()) -&gt; IO ()
+forall (t :: Type -&gt; Type) (m :: Type -&gt; Type) a b.
+(Foldable t, Monad m) =&gt;
+t a -&gt; (a -&gt; m b) -&gt; m ()
+</span><span class="hs-identifier hs-var">forM_</span></span><span> </span><span class="hs-special">[</span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">1</span></span><span class="hs-glyph">..</span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">30</span></span><span class="hs-special">]</span><span> </span><span class="annot"><span class="annottext">((Int -&gt; IO ()) -&gt; IO ()) -&gt; (Int -&gt; IO ()) -&gt; IO ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679084498"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679084498"><span class="hs-identifier hs-var">i</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Ptr Word8 -&gt; Int -&gt; IO Word8
+forall a. Storable a =&gt; Ptr a -&gt; Int -&gt; IO a
+</span><span class="hs-identifier hs-var">peekElemOff</span></span><span> </span><span class="annot"><span class="annottext">Ptr Word8
+</span><a href="#local-6989586621679084510"><span class="hs-identifier hs-var">inp</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679084498"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="annot"><span class="annottext">IO Word8 -&gt; (Word8 -&gt; IO ()) -&gt; IO ()
+forall (m :: Type -&gt; Type) a b. Monad m =&gt; m a -&gt; (a -&gt; m b) -&gt; m b
+</span><span class="hs-operator hs-var">&gt;&gt;=</span></span><span> </span><span class="annot"><span class="annottext">Ptr Word8 -&gt; Int -&gt; Word8 -&gt; IO ()
+forall a. Storable a =&gt; Ptr a -&gt; Int -&gt; a -&gt; IO ()
+</span><span class="hs-identifier hs-var">pokeElemOff</span></span><span> </span><span class="annot"><span class="annottext">Ptr Word8
+</span><a href="#local-6989586621679084502"><span class="hs-identifier hs-var">outp</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679084498"><span class="hs-identifier hs-var">i</span></a></span><span>
+</span><span id="line-84"></span><span>                    </span><span class="annot"><span class="annottext">Ptr Word8 -&gt; Int -&gt; Word8 -&gt; IO ()
+forall a. Storable a =&gt; Ptr a -&gt; Int -&gt; a -&gt; IO ()
+</span><span class="hs-identifier hs-var">pokeElemOff</span></span><span> </span><span class="annot"><span class="annottext">Ptr Word8
+</span><a href="#local-6989586621679084502"><span class="hs-identifier hs-var">outp</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">31</span></span><span> </span><span class="hs-special">(</span><span class="hs-special">(</span><span class="annot"><span class="annottext">Word8
+</span><a href="#local-6989586621679084507"><span class="hs-identifier hs-var">b31</span></a></span><span> </span><span class="annot"><span class="annottext">Word8 -&gt; Word8 -&gt; Word8
+forall a. Bits a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">.&amp;.</span></span><span> </span><span class="annot"><span class="annottext">Word8
+</span><span class="hs-number">0x1f</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Word8 -&gt; Word8 -&gt; Word8
+forall a. Bits a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">.|.</span></span><span> </span><span class="annot"><span class="annottext">Word8
+</span><span class="hs-number">0x40</span></span><span class="hs-special">)</span><span> </span><span class="hs-comment">-- clear highest bit and 3rd bit, and set 2nd highest.</span><span>
+</span><span id="line-85"></span><span>                    </span><span class="annot"><span class="annottext">[Int] -&gt; (Int -&gt; IO ()) -&gt; IO ()
+forall (t :: Type -&gt; Type) (m :: Type -&gt; Type) a b.
+(Foldable t, Monad m) =&gt;
+t a -&gt; (a -&gt; m b) -&gt; m ()
+</span><span class="hs-identifier hs-var">forM_</span></span><span> </span><span class="hs-special">[</span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">32</span></span><span class="hs-glyph">..</span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">63</span></span><span class="hs-special">]</span><span> </span><span class="annot"><span class="annottext">((Int -&gt; IO ()) -&gt; IO ()) -&gt; (Int -&gt; IO ()) -&gt; IO ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679084496"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679084496"><span class="hs-identifier hs-var">i</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Ptr Word8 -&gt; Int -&gt; IO Word8
+forall a. Storable a =&gt; Ptr a -&gt; Int -&gt; IO a
+</span><span class="hs-identifier hs-var">peekElemOff</span></span><span> </span><span class="annot"><span class="annottext">Ptr Word8
+</span><a href="#local-6989586621679084510"><span class="hs-identifier hs-var">inp</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679084496"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="annot"><span class="annottext">IO Word8 -&gt; (Word8 -&gt; IO ()) -&gt; IO ()
+forall (m :: Type -&gt; Type) a b. Monad m =&gt; m a -&gt; (a -&gt; m b) -&gt; m b
+</span><span class="hs-operator hs-var">&gt;&gt;=</span></span><span> </span><span class="annot"><span class="annottext">Ptr Word8 -&gt; Int -&gt; Word8 -&gt; IO ()
+forall a. Storable a =&gt; Ptr a -&gt; Int -&gt; a -&gt; IO ()
+</span><span class="hs-identifier hs-var">pokeElemOff</span></span><span> </span><span class="annot"><span class="annottext">Ptr Word8
+</span><a href="#local-6989586621679084502"><span class="hs-identifier hs-var">outp</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679084496"><span class="hs-identifier hs-var">i</span></a></span><span>
+</span><span id="line-86"></span><span>                    </span><span class="hs-special">)</span><span>
+</span><span id="line-87"></span><span>
+</span><span id="line-88"></span><span class="hs-comment">-- | Try to build a signature from a bytearray</span><span>
+</span><span id="line-89"></span><span id="local-6989586621679084495"><span class="annot"><a href="Crypto.ECC.Ed25519Donna.html#signature"><span class="hs-keyword hs-type">signature</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">ByteArrayAccess</span></span><span> </span><span class="annot"><a href="#local-6989586621679084495"><span class="hs-identifier hs-type">ba</span></a></span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679084495"><span class="hs-identifier hs-type">ba</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">CryptoFailable</span></span><span> </span><span class="annot"><a href="Crypto.ECC.Ed25519Donna.html#Signature"><span class="hs-identifier hs-type">Signature</span></a></span></span><span>
+</span><span id="line-90"></span><span id="signature"><span class="annot"><span class="annottext">signature :: ba -&gt; CryptoFailable Signature
+</span><a href="Crypto.ECC.Ed25519Donna.html#signature"><span class="hs-keyword hs-var hs-var">signature</span></a></span></span><span> </span><span id="local-6989586621679084494"><span class="annot"><span class="annottext">ba
+</span><a href="#local-6989586621679084494"><span class="hs-identifier hs-var">bs</span></a></span></span><span>
+</span><span id="line-91"></span><span>    </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">ba -&gt; Int
+forall ba. ByteArrayAccess ba =&gt; ba -&gt; Int
+</span><span class="hs-identifier hs-var">B.length</span></span><span> </span><span class="annot"><span class="annottext">ba
+</span><a href="#local-6989586621679084494"><span class="hs-identifier hs-var">bs</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+forall a. Eq a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">==</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="Crypto.ECC.Ed25519Donna.html#signatureSize"><span class="hs-identifier hs-var">signatureSize</span></a></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-92"></span><span>        </span><span class="annot"><span class="annottext">Signature -&gt; CryptoFailable Signature
+forall a. a -&gt; CryptoFailable a
+</span><span class="hs-identifier hs-var">CryptoPassed</span></span><span> </span><span class="annot"><span class="annottext">(Signature -&gt; CryptoFailable Signature)
+-&gt; Signature -&gt; CryptoFailable Signature
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Bytes -&gt; Signature
+</span><a href="Crypto.ECC.Ed25519Donna.html#Signature"><span class="hs-identifier hs-var">Signature</span></a></span><span> </span><span class="annot"><span class="annottext">(Bytes -&gt; Signature) -&gt; Bytes -&gt; Signature
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">ba -&gt; (Ptr Any -&gt; IO ()) -&gt; Bytes
+forall bs1 bs2 p.
+(ByteArrayAccess bs1, ByteArray bs2) =&gt;
+bs1 -&gt; (Ptr p -&gt; IO ()) -&gt; bs2
+</span><span class="hs-identifier hs-var">B.copyAndFreeze</span></span><span> </span><span class="annot"><span class="annottext">ba
+</span><a href="#local-6989586621679084494"><span class="hs-identifier hs-var">bs</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">\</span><span class="annot"><span class="annottext">Ptr Any
+</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">() -&gt; IO ()
+forall (m :: Type -&gt; Type) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-93"></span><span>    </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">otherwise</span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-94"></span><span>        </span><span class="hs-comment">-- missing a SignatureSizeInvalid error, so use another one</span><span>
+</span><span id="line-95"></span><span>        </span><span class="annot"><span class="annottext">CryptoError -&gt; CryptoFailable Signature
+forall a. CryptoError -&gt; CryptoFailable a
+</span><span class="hs-identifier hs-var">CryptoFailed</span></span><span> </span><span class="annot"><span class="annottext">(CryptoError -&gt; CryptoFailable Signature)
+-&gt; CryptoError -&gt; CryptoFailable Signature
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">CryptoError
+</span><span class="hs-identifier hs-var">CryptoError_SecretKeySizeInvalid</span></span><span>
+</span><span id="line-96"></span><span>
+</span><span id="line-97"></span><span class="hs-comment">-- | Create a public key from a secret key</span><span>
+</span><span id="line-98"></span><span class="annot"><a href="Crypto.ECC.Ed25519Donna.html#toPublic"><span class="hs-identifier hs-type">toPublic</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Crypto.ECC.Ed25519Donna.html#SecretKey"><span class="hs-identifier hs-type">SecretKey</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Crypto.ECC.Ed25519Donna.html#PublicKey"><span class="hs-identifier hs-type">PublicKey</span></a></span><span>
+</span><span id="line-99"></span><span id="toPublic"><span class="annot"><span class="annottext">toPublic :: SecretKey -&gt; PublicKey
+</span><a href="Crypto.ECC.Ed25519Donna.html#toPublic"><span class="hs-identifier hs-var hs-var">toPublic</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Crypto.ECC.Ed25519Donna.html#SecretKey"><span class="hs-identifier hs-type">SecretKey</span></a></span><span> </span><span id="local-6989586621679084492"><span class="annot"><span class="annottext">ScrubbedBytes
+</span><a href="#local-6989586621679084492"><span class="hs-identifier hs-var">sec</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Bytes -&gt; PublicKey
+</span><a href="Crypto.ECC.Ed25519Donna.html#PublicKey"><span class="hs-identifier hs-var">PublicKey</span></a></span><span> </span><span class="annot"><span class="annottext">(Bytes -&gt; PublicKey) -&gt; Bytes -&gt; PublicKey
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span>
+</span><span id="line-100"></span><span>    </span><span class="annot"><span class="annottext">Int -&gt; (Ptr PublicKey -&gt; IO ()) -&gt; Bytes
+forall a p. ByteArray a =&gt; Int -&gt; (Ptr p -&gt; IO ()) -&gt; a
+</span><span class="hs-identifier hs-var">B.allocAndFreeze</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="Crypto.ECC.Ed25519Donna.html#publicKeySize"><span class="hs-identifier hs-var">publicKeySize</span></a></span><span> </span><span class="annot"><span class="annottext">((Ptr PublicKey -&gt; IO ()) -&gt; Bytes)
+-&gt; (Ptr PublicKey -&gt; IO ()) -&gt; Bytes
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679084490"><span class="annot"><span class="annottext">Ptr PublicKey
+</span><a href="#local-6989586621679084490"><span class="hs-identifier hs-var">result</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-101"></span><span>    </span><span class="annot"><span class="annottext">ScrubbedBytes -&gt; (Ptr SecretKey -&gt; IO ()) -&gt; IO ()
+forall ba p a. ByteArrayAccess ba =&gt; ba -&gt; (Ptr p -&gt; IO a) -&gt; IO a
+</span><span class="hs-identifier hs-var">withByteArray</span></span><span> </span><span class="annot"><span class="annottext">ScrubbedBytes
+</span><a href="#local-6989586621679084492"><span class="hs-identifier hs-var">sec</span></a></span><span>              </span><span class="annot"><span class="annottext">((Ptr SecretKey -&gt; IO ()) -&gt; IO ())
+-&gt; (Ptr SecretKey -&gt; IO ()) -&gt; IO ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679084489"><span class="annot"><span class="annottext">Ptr SecretKey
+</span><a href="#local-6989586621679084489"><span class="hs-identifier hs-var">psec</span></a></span></span><span>   </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-102"></span><span>        </span><span class="annot"><span class="annottext">Ptr SecretKey -&gt; Ptr PublicKey -&gt; IO ()
+</span><a href="Crypto.ECC.Ed25519Donna.html#ccryptonite_ed25519_publickey"><span class="hs-identifier hs-var">ccryptonite_ed25519_publickey</span></a></span><span> </span><span class="annot"><span class="annottext">Ptr SecretKey
+</span><a href="#local-6989586621679084489"><span class="hs-identifier hs-var">psec</span></a></span><span> </span><span class="annot"><span class="annottext">Ptr PublicKey
+</span><a href="#local-6989586621679084490"><span class="hs-identifier hs-var">result</span></a></span><span>
+</span><span id="line-103"></span><span class="hs-pragma">{-# NOINLINE</span><span> </span><span class="annot"><a href="Crypto.ECC.Ed25519Donna.html#toPublic"><span class="hs-pragma hs-type">toPublic</span></a></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-104"></span><span>
+</span><span id="line-105"></span><span class="annot"><a href="Crypto.ECC.Ed25519Donna.html#publicAdd"><span class="hs-identifier hs-type">publicAdd</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Crypto.ECC.Ed25519Donna.html#PublicKey"><span class="hs-identifier hs-type">PublicKey</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Crypto.ECC.Ed25519Donna.html#PublicKey"><span class="hs-identifier hs-type">PublicKey</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Crypto.ECC.Ed25519Donna.html#PublicKey"><span class="hs-identifier hs-type">PublicKey</span></a></span><span>
+</span><span id="line-106"></span><span id="publicAdd"><span class="annot"><span class="annottext">publicAdd :: PublicKey -&gt; PublicKey -&gt; PublicKey
+</span><a href="Crypto.ECC.Ed25519Donna.html#publicAdd"><span class="hs-identifier hs-var hs-var">publicAdd</span></a></span></span><span> </span><span id="local-6989586621679084487"><span class="annot"><span class="annottext">PublicKey
+</span><a href="#local-6989586621679084487"><span class="hs-identifier hs-var">p1</span></a></span></span><span> </span><span id="local-6989586621679084486"><span class="annot"><span class="annottext">PublicKey
+</span><a href="#local-6989586621679084486"><span class="hs-identifier hs-var">p2</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-107"></span><span>    </span><span class="annot"><span class="annottext">Bytes -&gt; PublicKey
+</span><a href="Crypto.ECC.Ed25519Donna.html#PublicKey"><span class="hs-identifier hs-var">PublicKey</span></a></span><span> </span><span class="annot"><span class="annottext">(Bytes -&gt; PublicKey) -&gt; Bytes -&gt; PublicKey
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; (Ptr PublicKey -&gt; IO ()) -&gt; Bytes
+forall a p. ByteArray a =&gt; Int -&gt; (Ptr p -&gt; IO ()) -&gt; a
+</span><span class="hs-identifier hs-var">B.allocAndFreeze</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="Crypto.ECC.Ed25519Donna.html#publicKeySize"><span class="hs-identifier hs-var">publicKeySize</span></a></span><span> </span><span class="annot"><span class="annottext">((Ptr PublicKey -&gt; IO ()) -&gt; Bytes)
+-&gt; (Ptr PublicKey -&gt; IO ()) -&gt; Bytes
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679084485"><span class="annot"><span class="annottext">Ptr PublicKey
+</span><a href="#local-6989586621679084485"><span class="hs-identifier hs-var">result</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-108"></span><span>        </span><span class="annot"><span class="annottext">PublicKey -&gt; (Ptr PublicKey -&gt; IO ()) -&gt; IO ()
+forall ba p a. ByteArrayAccess ba =&gt; ba -&gt; (Ptr p -&gt; IO a) -&gt; IO a
+</span><span class="hs-identifier hs-var">withByteArray</span></span><span> </span><span class="annot"><span class="annottext">PublicKey
+</span><a href="#local-6989586621679084487"><span class="hs-identifier hs-var">p1</span></a></span><span> </span><span class="annot"><span class="annottext">((Ptr PublicKey -&gt; IO ()) -&gt; IO ())
+-&gt; (Ptr PublicKey -&gt; IO ()) -&gt; IO ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679084484"><span class="annot"><span class="annottext">Ptr PublicKey
+</span><a href="#local-6989586621679084484"><span class="hs-identifier hs-var">v1</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-109"></span><span>        </span><span class="annot"><span class="annottext">PublicKey -&gt; (Ptr PublicKey -&gt; IO ()) -&gt; IO ()
+forall ba p a. ByteArrayAccess ba =&gt; ba -&gt; (Ptr p -&gt; IO a) -&gt; IO a
+</span><span class="hs-identifier hs-var">withByteArray</span></span><span> </span><span class="annot"><span class="annottext">PublicKey
+</span><a href="#local-6989586621679084486"><span class="hs-identifier hs-var">p2</span></a></span><span> </span><span class="annot"><span class="annottext">((Ptr PublicKey -&gt; IO ()) -&gt; IO ())
+-&gt; (Ptr PublicKey -&gt; IO ()) -&gt; IO ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679084483"><span class="annot"><span class="annottext">Ptr PublicKey
+</span><a href="#local-6989586621679084483"><span class="hs-identifier hs-var">v2</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-110"></span><span>            </span><span class="annot"><span class="annottext">Ptr PublicKey -&gt; Ptr PublicKey -&gt; Ptr PublicKey -&gt; IO ()
+</span><a href="Crypto.ECC.Ed25519Donna.html#ccryptonite_ed25519_point_add"><span class="hs-identifier hs-var">ccryptonite_ed25519_point_add</span></a></span><span> </span><span class="annot"><span class="annottext">Ptr PublicKey
+</span><a href="#local-6989586621679084484"><span class="hs-identifier hs-var">v1</span></a></span><span> </span><span class="annot"><span class="annottext">Ptr PublicKey
+</span><a href="#local-6989586621679084483"><span class="hs-identifier hs-var">v2</span></a></span><span> </span><span class="annot"><span class="annottext">Ptr PublicKey
+</span><a href="#local-6989586621679084485"><span class="hs-identifier hs-var">result</span></a></span><span>
+</span><span id="line-111"></span><span>
+</span><span id="line-112"></span><span class="annot"><a href="Crypto.ECC.Ed25519Donna.html#secretAdd"><span class="hs-identifier hs-type">secretAdd</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Crypto.ECC.Ed25519Donna.html#SecretKey"><span class="hs-identifier hs-type">SecretKey</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Crypto.ECC.Ed25519Donna.html#SecretKey"><span class="hs-identifier hs-type">SecretKey</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Crypto.ECC.Ed25519Donna.html#SecretKey"><span class="hs-identifier hs-type">SecretKey</span></a></span><span>
+</span><span id="line-113"></span><span id="secretAdd"><span class="annot"><span class="annottext">secretAdd :: SecretKey -&gt; SecretKey -&gt; SecretKey
+</span><a href="Crypto.ECC.Ed25519Donna.html#secretAdd"><span class="hs-identifier hs-var hs-var">secretAdd</span></a></span></span><span> </span><span id="local-6989586621679084481"><span class="annot"><span class="annottext">SecretKey
+</span><a href="#local-6989586621679084481"><span class="hs-identifier hs-var">p1</span></a></span></span><span> </span><span id="local-6989586621679084480"><span class="annot"><span class="annottext">SecretKey
+</span><a href="#local-6989586621679084480"><span class="hs-identifier hs-var">p2</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-114"></span><span>    </span><span class="annot"><span class="annottext">ScrubbedBytes -&gt; SecretKey
+</span><a href="Crypto.ECC.Ed25519Donna.html#SecretKey"><span class="hs-identifier hs-var">SecretKey</span></a></span><span> </span><span class="annot"><span class="annottext">(ScrubbedBytes -&gt; SecretKey) -&gt; ScrubbedBytes -&gt; SecretKey
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; (Ptr SecretKey -&gt; IO ()) -&gt; ScrubbedBytes
+forall a p. ByteArray a =&gt; Int -&gt; (Ptr p -&gt; IO ()) -&gt; a
+</span><span class="hs-identifier hs-var">B.allocAndFreeze</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="Crypto.ECC.Ed25519Donna.html#secretKeySize"><span class="hs-identifier hs-var">secretKeySize</span></a></span><span> </span><span class="annot"><span class="annottext">((Ptr SecretKey -&gt; IO ()) -&gt; ScrubbedBytes)
+-&gt; (Ptr SecretKey -&gt; IO ()) -&gt; ScrubbedBytes
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679084478"><span class="annot"><span class="annottext">Ptr SecretKey
+</span><a href="#local-6989586621679084478"><span class="hs-identifier hs-var">result</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-115"></span><span>        </span><span class="annot"><span class="annottext">SecretKey -&gt; (Ptr SecretKey -&gt; IO ()) -&gt; IO ()
+forall ba p a. ByteArrayAccess ba =&gt; ba -&gt; (Ptr p -&gt; IO a) -&gt; IO a
+</span><span class="hs-identifier hs-var">withByteArray</span></span><span> </span><span class="annot"><span class="annottext">SecretKey
+</span><a href="#local-6989586621679084481"><span class="hs-identifier hs-var">p1</span></a></span><span> </span><span class="annot"><span class="annottext">((Ptr SecretKey -&gt; IO ()) -&gt; IO ())
+-&gt; (Ptr SecretKey -&gt; IO ()) -&gt; IO ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679084477"><span class="annot"><span class="annottext">Ptr SecretKey
+</span><a href="#local-6989586621679084477"><span class="hs-identifier hs-var">v1</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-116"></span><span>        </span><span class="annot"><span class="annottext">SecretKey -&gt; (Ptr SecretKey -&gt; IO ()) -&gt; IO ()
+forall ba p a. ByteArrayAccess ba =&gt; ba -&gt; (Ptr p -&gt; IO a) -&gt; IO a
+</span><span class="hs-identifier hs-var">withByteArray</span></span><span> </span><span class="annot"><span class="annottext">SecretKey
+</span><a href="#local-6989586621679084480"><span class="hs-identifier hs-var">p2</span></a></span><span> </span><span class="annot"><span class="annottext">((Ptr SecretKey -&gt; IO ()) -&gt; IO ())
+-&gt; (Ptr SecretKey -&gt; IO ()) -&gt; IO ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679084476"><span class="annot"><span class="annottext">Ptr SecretKey
+</span><a href="#local-6989586621679084476"><span class="hs-identifier hs-var">v2</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-117"></span><span>            </span><span class="annot"><span class="annottext">Ptr SecretKey -&gt; Ptr SecretKey -&gt; Ptr SecretKey -&gt; IO ()
+</span><a href="Crypto.ECC.Ed25519Donna.html#ccryptonite_ed25519_scalar_add"><span class="hs-identifier hs-var">ccryptonite_ed25519_scalar_add</span></a></span><span> </span><span class="annot"><span class="annottext">Ptr SecretKey
+</span><a href="#local-6989586621679084477"><span class="hs-identifier hs-var">v1</span></a></span><span> </span><span class="annot"><span class="annottext">Ptr SecretKey
+</span><a href="#local-6989586621679084476"><span class="hs-identifier hs-var">v2</span></a></span><span> </span><span class="annot"><span class="annottext">Ptr SecretKey
+</span><a href="#local-6989586621679084478"><span class="hs-identifier hs-var">result</span></a></span><span>
+</span><span id="line-118"></span><span>
+</span><span id="line-119"></span><span class="hs-comment">-- | Sign a message using the key pair</span><span>
+</span><span id="line-120"></span><span id="local-6989586621679084473"><span id="local-6989586621679084474"><span class="annot"><a href="Crypto.ECC.Ed25519Donna.html#sign"><span class="hs-identifier hs-type">sign</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">ByteArrayAccess</span></span><span> </span><span class="annot"><a href="#local-6989586621679084474"><span class="hs-identifier hs-type">msg</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">ByteArrayAccess</span></span><span> </span><span class="annot"><a href="#local-6989586621679084473"><span class="hs-identifier hs-type">salt</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Crypto.ECC.Ed25519Donna.html#SecretKey"><span class="hs-identifier hs-type">SecretKey</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679084473"><span class="hs-identifier hs-type">salt</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Crypto.ECC.Ed25519Donna.html#PublicKey"><span class="hs-identifier hs-type">PublicKey</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679084474"><span class="hs-identifier hs-type">msg</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Crypto.ECC.Ed25519Donna.html#Signature"><span class="hs-identifier hs-type">Signature</span></a></span></span></span><span>
+</span><span id="line-121"></span><span id="sign"><span class="annot"><span class="annottext">sign :: SecretKey -&gt; salt -&gt; PublicKey -&gt; msg -&gt; Signature
+</span><a href="Crypto.ECC.Ed25519Donna.html#sign"><span class="hs-identifier hs-var hs-var">sign</span></a></span></span><span> </span><span id="local-6989586621679084472"><span class="annot"><span class="annottext">SecretKey
+</span><a href="#local-6989586621679084472"><span class="hs-identifier hs-var">secret</span></a></span></span><span> </span><span id="local-6989586621679084471"><span class="annot"><span class="annottext">salt
+</span><a href="#local-6989586621679084471"><span class="hs-identifier hs-var">salt</span></a></span></span><span> </span><span id="local-6989586621679084470"><span class="annot"><span class="annottext">PublicKey
+</span><a href="#local-6989586621679084470"><span class="hs-identifier hs-var">public</span></a></span></span><span> </span><span id="local-6989586621679084469"><span class="annot"><span class="annottext">msg
+</span><a href="#local-6989586621679084469"><span class="hs-identifier hs-var">message</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-122"></span><span>    </span><span class="annot"><span class="annottext">Bytes -&gt; Signature
+</span><a href="Crypto.ECC.Ed25519Donna.html#Signature"><span class="hs-identifier hs-var">Signature</span></a></span><span> </span><span class="annot"><span class="annottext">(Bytes -&gt; Signature) -&gt; Bytes -&gt; Signature
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; (Ptr Signature -&gt; IO ()) -&gt; Bytes
+forall a p. ByteArray a =&gt; Int -&gt; (Ptr p -&gt; IO ()) -&gt; a
+</span><span class="hs-identifier hs-var">B.allocAndFreeze</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="Crypto.ECC.Ed25519Donna.html#signatureSize"><span class="hs-identifier hs-var">signatureSize</span></a></span><span> </span><span class="annot"><span class="annottext">((Ptr Signature -&gt; IO ()) -&gt; Bytes)
+-&gt; (Ptr Signature -&gt; IO ()) -&gt; Bytes
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679084468"><span class="annot"><span class="annottext">Ptr Signature
+</span><a href="#local-6989586621679084468"><span class="hs-identifier hs-var">sig</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-123"></span><span>        </span><span class="annot"><span class="annottext">SecretKey -&gt; (Ptr SecretKey -&gt; IO ()) -&gt; IO ()
+forall ba p a. ByteArrayAccess ba =&gt; ba -&gt; (Ptr p -&gt; IO a) -&gt; IO a
+</span><span class="hs-identifier hs-var">withByteArray</span></span><span> </span><span class="annot"><span class="annottext">SecretKey
+</span><a href="#local-6989586621679084472"><span class="hs-identifier hs-var">secret</span></a></span><span>  </span><span class="annot"><span class="annottext">((Ptr SecretKey -&gt; IO ()) -&gt; IO ())
+-&gt; (Ptr SecretKey -&gt; IO ()) -&gt; IO ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679084467"><span class="annot"><span class="annottext">Ptr SecretKey
+</span><a href="#local-6989586621679084467"><span class="hs-identifier hs-var">sec</span></a></span></span><span>   </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-124"></span><span>        </span><span class="annot"><span class="annottext">PublicKey -&gt; (Ptr PublicKey -&gt; IO ()) -&gt; IO ()
+forall ba p a. ByteArrayAccess ba =&gt; ba -&gt; (Ptr p -&gt; IO a) -&gt; IO a
+</span><span class="hs-identifier hs-var">withByteArray</span></span><span> </span><span class="annot"><span class="annottext">PublicKey
+</span><a href="#local-6989586621679084470"><span class="hs-identifier hs-var">public</span></a></span><span>  </span><span class="annot"><span class="annottext">((Ptr PublicKey -&gt; IO ()) -&gt; IO ())
+-&gt; (Ptr PublicKey -&gt; IO ()) -&gt; IO ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679084466"><span class="annot"><span class="annottext">Ptr PublicKey
+</span><a href="#local-6989586621679084466"><span class="hs-identifier hs-var">pub</span></a></span></span><span>   </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-125"></span><span>        </span><span class="annot"><span class="annottext">salt -&gt; (Ptr Word8 -&gt; IO ()) -&gt; IO ()
+forall ba p a. ByteArrayAccess ba =&gt; ba -&gt; (Ptr p -&gt; IO a) -&gt; IO a
+</span><span class="hs-identifier hs-var">withByteArray</span></span><span> </span><span class="annot"><span class="annottext">salt
+</span><a href="#local-6989586621679084471"><span class="hs-identifier hs-var">salt</span></a></span><span>    </span><span class="annot"><span class="annottext">((Ptr Word8 -&gt; IO ()) -&gt; IO ()) -&gt; (Ptr Word8 -&gt; IO ()) -&gt; IO ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679084465"><span class="annot"><span class="annottext">Ptr Word8
+</span><a href="#local-6989586621679084465"><span class="hs-identifier hs-var">saltP</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-126"></span><span>        </span><span class="annot"><span class="annottext">msg -&gt; (Ptr Word8 -&gt; IO ()) -&gt; IO ()
+forall ba p a. ByteArrayAccess ba =&gt; ba -&gt; (Ptr p -&gt; IO a) -&gt; IO a
+</span><span class="hs-identifier hs-var">withByteArray</span></span><span> </span><span class="annot"><span class="annottext">msg
+</span><a href="#local-6989586621679084469"><span class="hs-identifier hs-var">message</span></a></span><span> </span><span class="annot"><span class="annottext">((Ptr Word8 -&gt; IO ()) -&gt; IO ()) -&gt; (Ptr Word8 -&gt; IO ()) -&gt; IO ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679084464"><span class="annot"><span class="annottext">Ptr Word8
+</span><a href="#local-6989586621679084464"><span class="hs-identifier hs-var">msg</span></a></span></span><span>   </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-127"></span><span>             </span><span class="annot"><span class="annottext">Ptr Word8
+-&gt; CSize
+-&gt; Ptr Word8
+-&gt; CSize
+-&gt; Ptr SecretKey
+-&gt; Ptr PublicKey
+-&gt; Ptr Signature
+-&gt; IO ()
+</span><a href="Crypto.ECC.Ed25519Donna.html#ccryptonite_ed25519_sign"><span class="hs-identifier hs-var">ccryptonite_ed25519_sign</span></a></span><span> </span><span class="annot"><span class="annottext">Ptr Word8
+</span><a href="#local-6989586621679084464"><span class="hs-identifier hs-var">msg</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; CSize
+forall a b. (Integral a, Num b) =&gt; a -&gt; b
+</span><span class="hs-identifier hs-var">fromIntegral</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679084462"><span class="hs-identifier hs-var">msgLen</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Ptr Word8
+</span><a href="#local-6989586621679084465"><span class="hs-identifier hs-var">saltP</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; CSize
+forall a b. (Integral a, Num b) =&gt; a -&gt; b
+</span><span class="hs-identifier hs-var">fromIntegral</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679084461"><span class="hs-identifier hs-var">saltLen</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Ptr SecretKey
+</span><a href="#local-6989586621679084467"><span class="hs-identifier hs-var">sec</span></a></span><span> </span><span class="annot"><span class="annottext">Ptr PublicKey
+</span><a href="#local-6989586621679084466"><span class="hs-identifier hs-var">pub</span></a></span><span> </span><span class="annot"><span class="annottext">Ptr Signature
+</span><a href="#local-6989586621679084468"><span class="hs-identifier hs-var">sig</span></a></span><span>
+</span><span id="line-128"></span><span>  </span><span class="hs-keyword">where</span><span>
+</span><span id="line-129"></span><span>    </span><span class="hs-glyph">!</span><span id="local-6989586621679084462"><span class="annot"><span class="annottext">msgLen :: Int
+</span><a href="#local-6989586621679084462"><span class="hs-identifier hs-var hs-var">msgLen</span></a></span></span><span>  </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">msg -&gt; Int
+forall ba. ByteArrayAccess ba =&gt; ba -&gt; Int
+</span><span class="hs-identifier hs-var">B.length</span></span><span> </span><span class="annot"><span class="annottext">msg
+</span><a href="#local-6989586621679084469"><span class="hs-identifier hs-var">message</span></a></span><span>
+</span><span id="line-130"></span><span>    </span><span class="hs-glyph">!</span><span id="local-6989586621679084461"><span class="annot"><span class="annottext">saltLen :: Int
+</span><a href="#local-6989586621679084461"><span class="hs-identifier hs-var hs-var">saltLen</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">salt -&gt; Int
+forall ba. ByteArrayAccess ba =&gt; ba -&gt; Int
+</span><span class="hs-identifier hs-var">B.length</span></span><span> </span><span class="annot"><span class="annottext">salt
+</span><a href="#local-6989586621679084471"><span class="hs-identifier hs-var">salt</span></a></span><span>
+</span><span id="line-131"></span><span>
+</span><span id="line-132"></span><span class="hs-comment">-- | Verify a message</span><span>
+</span><span id="line-133"></span><span id="local-6989586621679084460"><span class="annot"><a href="Crypto.ECC.Ed25519Donna.html#verify"><span class="hs-identifier hs-type">verify</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">ByteArrayAccess</span></span><span> </span><span class="annot"><a href="#local-6989586621679084460"><span class="hs-identifier hs-type">ba</span></a></span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Crypto.ECC.Ed25519Donna.html#PublicKey"><span class="hs-identifier hs-type">PublicKey</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679084460"><span class="hs-identifier hs-type">ba</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Crypto.ECC.Ed25519Donna.html#Signature"><span class="hs-identifier hs-type">Signature</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span></span><span>
+</span><span id="line-134"></span><span id="verify"><span class="annot"><span class="annottext">verify :: PublicKey -&gt; ba -&gt; Signature -&gt; Bool
+</span><a href="Crypto.ECC.Ed25519Donna.html#verify"><span class="hs-identifier hs-var hs-var">verify</span></a></span></span><span> </span><span id="local-6989586621679084459"><span class="annot"><span class="annottext">PublicKey
+</span><a href="#local-6989586621679084459"><span class="hs-identifier hs-var">public</span></a></span></span><span> </span><span id="local-6989586621679084458"><span class="annot"><span class="annottext">ba
+</span><a href="#local-6989586621679084458"><span class="hs-identifier hs-var">message</span></a></span></span><span> </span><span id="local-6989586621679084457"><span class="annot"><span class="annottext">Signature
+</span><a href="#local-6989586621679084457"><span class="hs-identifier hs-var">signatureVal</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">IO Bool -&gt; Bool
+forall a. IO a -&gt; a
+</span><a href="Crypto.ECC.Ed25519Donna.html#unsafeDoIO"><span class="hs-identifier hs-var">unsafeDoIO</span></a></span><span> </span><span class="annot"><span class="annottext">(IO Bool -&gt; Bool) -&gt; IO Bool -&gt; Bool
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span>
+</span><span id="line-135"></span><span>    </span><span class="annot"><span class="annottext">Signature -&gt; (Ptr Signature -&gt; IO Bool) -&gt; IO Bool
+forall ba p a. ByteArrayAccess ba =&gt; ba -&gt; (Ptr p -&gt; IO a) -&gt; IO a
+</span><span class="hs-identifier hs-var">withByteArray</span></span><span> </span><span class="annot"><span class="annottext">Signature
+</span><a href="#local-6989586621679084457"><span class="hs-identifier hs-var">signatureVal</span></a></span><span> </span><span class="annot"><span class="annottext">((Ptr Signature -&gt; IO Bool) -&gt; IO Bool)
+-&gt; (Ptr Signature -&gt; IO Bool) -&gt; IO Bool
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679084456"><span class="annot"><span class="annottext">Ptr Signature
+</span><a href="#local-6989586621679084456"><span class="hs-identifier hs-var">sig</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-136"></span><span>    </span><span class="annot"><span class="annottext">PublicKey -&gt; (Ptr PublicKey -&gt; IO Bool) -&gt; IO Bool
+forall ba p a. ByteArrayAccess ba =&gt; ba -&gt; (Ptr p -&gt; IO a) -&gt; IO a
+</span><span class="hs-identifier hs-var">withByteArray</span></span><span> </span><span class="annot"><span class="annottext">PublicKey
+</span><a href="#local-6989586621679084459"><span class="hs-identifier hs-var">public</span></a></span><span>       </span><span class="annot"><span class="annottext">((Ptr PublicKey -&gt; IO Bool) -&gt; IO Bool)
+-&gt; (Ptr PublicKey -&gt; IO Bool) -&gt; IO Bool
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679084455"><span class="annot"><span class="annottext">Ptr PublicKey
+</span><a href="#local-6989586621679084455"><span class="hs-identifier hs-var">pub</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-137"></span><span>    </span><span class="annot"><span class="annottext">ba -&gt; (Ptr Word8 -&gt; IO Bool) -&gt; IO Bool
+forall ba p a. ByteArrayAccess ba =&gt; ba -&gt; (Ptr p -&gt; IO a) -&gt; IO a
+</span><span class="hs-identifier hs-var">withByteArray</span></span><span> </span><span class="annot"><span class="annottext">ba
+</span><a href="#local-6989586621679084458"><span class="hs-identifier hs-var">message</span></a></span><span>      </span><span class="annot"><span class="annottext">((Ptr Word8 -&gt; IO Bool) -&gt; IO Bool)
+-&gt; (Ptr Word8 -&gt; IO Bool) -&gt; IO Bool
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679084454"><span class="annot"><span class="annottext">Ptr Word8
+</span><a href="#local-6989586621679084454"><span class="hs-identifier hs-var">msg</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-138"></span><span>      </span><span id="local-6989586621679084453"><span class="annot"><span class="annottext">CInt
+</span><a href="#local-6989586621679084453"><span class="hs-identifier hs-var">r</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Ptr Word8 -&gt; CSize -&gt; Ptr PublicKey -&gt; Ptr Signature -&gt; IO CInt
+</span><a href="Crypto.ECC.Ed25519Donna.html#ccryptonite_ed25519_sign_open"><span class="hs-identifier hs-var">ccryptonite_ed25519_sign_open</span></a></span><span> </span><span class="annot"><span class="annottext">Ptr Word8
+</span><a href="#local-6989586621679084454"><span class="hs-identifier hs-var">msg</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; CSize
+forall a b. (Integral a, Num b) =&gt; a -&gt; b
+</span><span class="hs-identifier hs-var">fromIntegral</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679084451"><span class="hs-identifier hs-var">msgLen</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Ptr PublicKey
+</span><a href="#local-6989586621679084455"><span class="hs-identifier hs-var">pub</span></a></span><span> </span><span class="annot"><span class="annottext">Ptr Signature
+</span><a href="#local-6989586621679084456"><span class="hs-identifier hs-var">sig</span></a></span><span>
+</span><span id="line-139"></span><span>      </span><span class="annot"><span class="annottext">Bool -&gt; IO Bool
+forall (m :: Type -&gt; Type) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">CInt
+</span><a href="#local-6989586621679084453"><span class="hs-identifier hs-var">r</span></a></span><span> </span><span class="annot"><span class="annottext">CInt -&gt; CInt -&gt; Bool
+forall a. Eq a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">==</span></span><span> </span><span class="annot"><span class="annottext">CInt
+</span><span class="hs-number">0</span></span><span class="hs-special">)</span><span>
+</span><span id="line-140"></span><span>  </span><span class="hs-keyword">where</span><span>
+</span><span id="line-141"></span><span>    </span><span class="hs-glyph">!</span><span id="local-6989586621679084451"><span class="annot"><span class="annottext">msgLen :: Int
+</span><a href="#local-6989586621679084451"><span class="hs-identifier hs-var hs-var">msgLen</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">ba -&gt; Int
+forall ba. ByteArrayAccess ba =&gt; ba -&gt; Int
+</span><span class="hs-identifier hs-var">B.length</span></span><span> </span><span class="annot"><span class="annottext">ba
+</span><a href="#local-6989586621679084458"><span class="hs-identifier hs-var">message</span></a></span><span>
+</span><span id="line-142"></span><span>
+</span><span id="line-143"></span><span class="annot"><a href="Crypto.ECC.Ed25519Donna.html#publicKeySize"><span class="hs-identifier hs-type">publicKeySize</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span>
+</span><span id="line-144"></span><span id="publicKeySize"><span class="annot"><span class="annottext">publicKeySize :: Int
+</span><a href="Crypto.ECC.Ed25519Donna.html#publicKeySize"><span class="hs-identifier hs-var hs-var">publicKeySize</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">32</span></span><span>
+</span><span id="line-145"></span><span>
+</span><span id="line-146"></span><span class="annot"><a href="Crypto.ECC.Ed25519Donna.html#secretKeySize"><span class="hs-identifier hs-type">secretKeySize</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span>
+</span><span id="line-147"></span><span id="secretKeySize"><span class="annot"><span class="annottext">secretKeySize :: Int
+</span><a href="Crypto.ECC.Ed25519Donna.html#secretKeySize"><span class="hs-identifier hs-var hs-var">secretKeySize</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">64</span></span><span>
+</span><span id="line-148"></span><span>
+</span><span id="line-149"></span><span class="annot"><a href="Crypto.ECC.Ed25519Donna.html#signatureSize"><span class="hs-identifier hs-type">signatureSize</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span>
+</span><span id="line-150"></span><span id="signatureSize"><span class="annot"><span class="annottext">signatureSize :: Int
+</span><a href="Crypto.ECC.Ed25519Donna.html#signatureSize"><span class="hs-identifier hs-var hs-var">signatureSize</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">64</span></span><span>
+</span><span id="line-151"></span><span>
+</span><span id="line-152"></span><span class="hs-keyword">foreign</span><span> </span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-keyword">ccall</span></span><span> </span><span class="annot"><span class="hs-string">&quot;cardano_crypto_ed25519_publickey&quot;</span></span><span>
+</span><span id="line-153"></span><span>    </span><span id="ccryptonite_ed25519_publickey"><span class="annot"><a href="Crypto.ECC.Ed25519Donna.html#ccryptonite_ed25519_publickey"><span class="hs-identifier hs-var">ccryptonite_ed25519_publickey</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Ptr</span></span><span> </span><span class="annot"><a href="Crypto.ECC.Ed25519Donna.html#SecretKey"><span class="hs-identifier hs-type">SecretKey</span></a></span><span> </span><span class="hs-comment">-- secret key</span><span>
+</span><span id="line-154"></span><span>                                  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Ptr</span></span><span> </span><span class="annot"><a href="Crypto.ECC.Ed25519Donna.html#PublicKey"><span class="hs-identifier hs-type">PublicKey</span></a></span><span> </span><span class="hs-comment">-- public key</span><span>
+</span><span id="line-155"></span><span>                                  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">IO</span></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
+</span><span id="line-156"></span><span>
+</span><span id="line-157"></span><span class="hs-keyword">foreign</span><span> </span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-keyword">ccall</span></span><span> </span><span class="annot"><span class="hs-string">&quot;cardano_crypto_ed25519_sign_open&quot;</span></span><span>
+</span><span id="line-158"></span><span>    </span><span id="ccryptonite_ed25519_sign_open"><span class="annot"><a href="Crypto.ECC.Ed25519Donna.html#ccryptonite_ed25519_sign_open"><span class="hs-identifier hs-var">ccryptonite_ed25519_sign_open</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Ptr</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Word8</span></span><span>     </span><span class="hs-comment">-- message</span><span>
+</span><span id="line-159"></span><span>                                  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">CSize</span></span><span>         </span><span class="hs-comment">-- message len</span><span>
+</span><span id="line-160"></span><span>                                  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Ptr</span></span><span> </span><span class="annot"><a href="Crypto.ECC.Ed25519Donna.html#PublicKey"><span class="hs-identifier hs-type">PublicKey</span></a></span><span> </span><span class="hs-comment">-- public</span><span>
+</span><span id="line-161"></span><span>                                  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Ptr</span></span><span> </span><span class="annot"><a href="Crypto.ECC.Ed25519Donna.html#Signature"><span class="hs-identifier hs-type">Signature</span></a></span><span> </span><span class="hs-comment">-- signature</span><span>
+</span><span id="line-162"></span><span>                                  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">IO</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">CInt</span></span><span>
+</span><span id="line-163"></span><span>
+</span><span id="line-164"></span><span class="hs-keyword">foreign</span><span> </span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-keyword">ccall</span></span><span> </span><span class="annot"><span class="hs-string">&quot;cardano_crypto_ed25519_sign&quot;</span></span><span>
+</span><span id="line-165"></span><span>    </span><span id="ccryptonite_ed25519_sign"><span class="annot"><a href="Crypto.ECC.Ed25519Donna.html#ccryptonite_ed25519_sign"><span class="hs-identifier hs-var">ccryptonite_ed25519_sign</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Ptr</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Word8</span></span><span>     </span><span class="hs-comment">-- message</span><span>
+</span><span id="line-166"></span><span>                             </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">CSize</span></span><span>         </span><span class="hs-comment">-- message len</span><span>
+</span><span id="line-167"></span><span>                             </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Ptr</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Word8</span></span><span>     </span><span class="hs-comment">-- salt</span><span>
+</span><span id="line-168"></span><span>                             </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">CSize</span></span><span>         </span><span class="hs-comment">-- salt len</span><span>
+</span><span id="line-169"></span><span>                             </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Ptr</span></span><span> </span><span class="annot"><a href="Crypto.ECC.Ed25519Donna.html#SecretKey"><span class="hs-identifier hs-type">SecretKey</span></a></span><span> </span><span class="hs-comment">-- secret</span><span>
+</span><span id="line-170"></span><span>                             </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Ptr</span></span><span> </span><span class="annot"><a href="Crypto.ECC.Ed25519Donna.html#PublicKey"><span class="hs-identifier hs-type">PublicKey</span></a></span><span> </span><span class="hs-comment">-- public</span><span>
+</span><span id="line-171"></span><span>                             </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Ptr</span></span><span> </span><span class="annot"><a href="Crypto.ECC.Ed25519Donna.html#Signature"><span class="hs-identifier hs-type">Signature</span></a></span><span> </span><span class="hs-comment">-- signature</span><span>
+</span><span id="line-172"></span><span>                             </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">IO</span></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
+</span><span id="line-173"></span><span>
+</span><span id="line-174"></span><span class="hs-keyword">foreign</span><span> </span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-keyword">ccall</span></span><span> </span><span class="annot"><span class="hs-string">&quot;cardano_crypto_ed25519_point_add&quot;</span></span><span>
+</span><span id="line-175"></span><span>    </span><span id="ccryptonite_ed25519_point_add"><span class="annot"><a href="Crypto.ECC.Ed25519Donna.html#ccryptonite_ed25519_point_add"><span class="hs-identifier hs-var">ccryptonite_ed25519_point_add</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Ptr</span></span><span> </span><span class="annot"><a href="Crypto.ECC.Ed25519Donna.html#PublicKey"><span class="hs-identifier hs-type">PublicKey</span></a></span><span> </span><span class="hs-comment">-- p1</span><span>
+</span><span id="line-176"></span><span>                                  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Ptr</span></span><span> </span><span class="annot"><a href="Crypto.ECC.Ed25519Donna.html#PublicKey"><span class="hs-identifier hs-type">PublicKey</span></a></span><span> </span><span class="hs-comment">-- p2</span><span>
+</span><span id="line-177"></span><span>                                  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Ptr</span></span><span> </span><span class="annot"><a href="Crypto.ECC.Ed25519Donna.html#PublicKey"><span class="hs-identifier hs-type">PublicKey</span></a></span><span> </span><span class="hs-comment">-- p1 + p2</span><span>
+</span><span id="line-178"></span><span>                                  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">IO</span></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
+</span><span id="line-179"></span><span>
+</span><span id="line-180"></span><span class="hs-keyword">foreign</span><span> </span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-keyword">ccall</span></span><span> </span><span class="annot"><span class="hs-string">&quot;cardano_crypto_ed25519_scalar_add&quot;</span></span><span>
+</span><span id="line-181"></span><span>    </span><span id="ccryptonite_ed25519_scalar_add"><span class="annot"><a href="Crypto.ECC.Ed25519Donna.html#ccryptonite_ed25519_scalar_add"><span class="hs-identifier hs-var">ccryptonite_ed25519_scalar_add</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Ptr</span></span><span> </span><span class="annot"><a href="Crypto.ECC.Ed25519Donna.html#SecretKey"><span class="hs-identifier hs-type">SecretKey</span></a></span><span> </span><span class="hs-comment">-- s1</span><span>
+</span><span id="line-182"></span><span>                                   </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Ptr</span></span><span> </span><span class="annot"><a href="Crypto.ECC.Ed25519Donna.html#SecretKey"><span class="hs-identifier hs-type">SecretKey</span></a></span><span> </span><span class="hs-comment">-- s2</span><span>
+</span><span id="line-183"></span><span>                                   </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Ptr</span></span><span> </span><span class="annot"><a href="Crypto.ECC.Ed25519Donna.html#SecretKey"><span class="hs-identifier hs-type">SecretKey</span></a></span><span> </span><span class="hs-comment">-- s1 + s2</span><span>
+</span><span id="line-184"></span><span>                                   </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">IO</span></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
+</span><span id="line-185"></span></pre></body></html>

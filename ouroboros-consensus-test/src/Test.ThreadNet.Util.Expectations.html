@@ -1,170 +1,341 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-pragma">{-# LANGUAGE NamedFieldPuns #-}</span><span>
-</span><a name="line-2"></a><span>
-</span><a name="line-3"></a><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Test.ThreadNet.Util.Expectations</span><span>
-</span><a name="line-4"></a><span>    </span><span class="hs-special">(</span><span> </span><a href="Test.ThreadNet.Util.Expectations.html#NumBlocks"><span class="hs-identifier hs-type">NumBlocks</span></a><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
-</span><a name="line-5"></a><span>    </span><span class="hs-special">,</span><span> </span><a href="Test.ThreadNet.Util.Expectations.html#determineForkLength"><span class="hs-identifier hs-var">determineForkLength</span></a><span>
-</span><a name="line-6"></a><span>    </span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
-</span><a name="line-7"></a><span>
-</span><a name="line-8"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data.Foldable</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-var">foldl'</span><span class="hs-special">)</span><span>
-</span><a name="line-9"></a><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-identifier">Data.Map.Strict</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">Map</span><span>
-</span><a name="line-10"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data.Word</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Word64</span><span class="hs-special">)</span><span>
-</span><a name="line-11"></a><span>
-</span><a name="line-12"></a><span class="hs-keyword">import</span><span>           </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src/Ouroboros.Consensus.Block.html"><span class="hs-identifier">Ouroboros.Consensus.Block</span></a><span>
-</span><a name="line-13"></a><span class="hs-keyword">import</span><span>           </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src/Ouroboros.Consensus.Config.SecurityParam.html"><span class="hs-identifier">Ouroboros.Consensus.Config.SecurityParam</span></a><span>
-</span><a name="line-14"></a><span class="hs-keyword">import</span><span>           </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src/Ouroboros.Consensus.NodeId.html"><span class="hs-identifier">Ouroboros.Consensus.NodeId</span></a><span> </span><span class="hs-special">(</span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src/Ouroboros.Consensus.NodeId.html#CoreNodeId"><span class="hs-identifier hs-type">CoreNodeId</span></a><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
-</span><a name="line-15"></a><span class="hs-keyword">import</span><span>           </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src/Ouroboros.Consensus.Protocol.LeaderSchedule.html"><span class="hs-identifier">Ouroboros.Consensus.Protocol.LeaderSchedule</span></a><span>
-</span><a name="line-16"></a><span>                     </span><span class="hs-special">(</span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src/Ouroboros.Consensus.Protocol.LeaderSchedule.html#LeaderSchedule"><span class="hs-identifier hs-type">LeaderSchedule</span></a><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
-</span><a name="line-17"></a><span>
-</span><a name="line-18"></a><span class="hs-keyword">import</span><span>           </span><a href="Test.ThreadNet.Util.NodeJoinPlan.html"><span class="hs-identifier">Test.ThreadNet.Util.NodeJoinPlan</span></a><span>
-</span><a name="line-19"></a><span>
-</span><a name="line-20"></a><span class="hs-keyword">newtype</span><span> </span><a name="NumBlocks"><a href="Test.ThreadNet.Util.Expectations.html#NumBlocks"><span class="hs-identifier">NumBlocks</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><a name="NumBlocks"><a href="Test.ThreadNet.Util.Expectations.html#NumBlocks"><span class="hs-identifier">NumBlocks</span></a></a><span> </span><span class="hs-identifier hs-type">Word64</span><span>
-</span><a name="line-21"></a><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Eq</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Show</span><span class="hs-special">)</span><span>
-</span><a name="line-22"></a><span>
-</span><a name="line-23"></a><span class="hs-comment">-- | Internal accumulator of 'determineForkLength'</span><span>
-</span><a name="line-24"></a><span class="hs-keyword">data</span><span> </span><a name="Acc"><a href="Test.ThreadNet.Util.Expectations.html#Acc"><span class="hs-identifier">Acc</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><a name="Acc"><a href="Test.ThreadNet.Util.Expectations.html#Acc"><span class="hs-identifier">Acc</span></a></a><span>
-</span><a name="line-25"></a><span>  </span><span class="hs-special">{</span><span> </span><a name="maxChainLength"><a href="Test.ThreadNet.Util.Expectations.html#maxChainLength"><span class="hs-identifier">maxChainLength</span></a></a><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-glyph">!</span><span class="hs-identifier hs-type">Word64</span><span>
-</span><a name="line-26"></a><span>    </span><span class="hs-comment">-- ^ Upper bound on length of the longest chain in the network</span><span>
-</span><a name="line-27"></a><span>  </span><span class="hs-special">,</span><span> </span><a name="maxForkLength"><a href="Test.ThreadNet.Util.Expectations.html#maxForkLength"><span class="hs-identifier">maxForkLength</span></a></a><span>  </span><span class="hs-glyph">::</span><span> </span><span class="hs-glyph">!</span><span class="hs-identifier hs-type">Word64</span><span>
-</span><a name="line-28"></a><span>    </span><span class="hs-comment">-- ^ Upper bound on length of the longest fork in the network, excluding</span><span>
-</span><a name="line-29"></a><span>    </span><span class="hs-comment">-- the common prefix</span><span>
-</span><a name="line-30"></a><span>    </span><span class="hs-comment">--</span><span>
-</span><a name="line-31"></a><span>    </span><span class="hs-comment">-- Note that @0@ corresponds to /consensus/.</span><span>
-</span><a name="line-32"></a><span>  </span><span class="hs-special">}</span><span>
-</span><a name="line-33"></a><span>
-</span><a name="line-34"></a><span class="hs-comment">-- | Compute a bound for the length of the final forks</span><span>
-</span><a name="line-35"></a><span class="hs-comment">--</span><span>
-</span><a name="line-36"></a><span class="hs-comment">-- At the end of the test, the nodes' final chains will share a common prefix</span><span>
-</span><a name="line-37"></a><span class="hs-comment">-- (\&quot;intersection\&quot;), though it may be empty. Each node's current chain is a</span><span>
-</span><a name="line-38"></a><span class="hs-comment">-- fork off that prefix. No such fork will be longer than the result of this</span><span>
-</span><a name="line-39"></a><span class="hs-comment">-- function.</span><span>
-</span><a name="line-40"></a><span class="hs-comment">--</span><span>
-</span><a name="line-41"></a><span class="hs-comment">-- ASSUMPTION: The network connectivity is such that -- barring other</span><span>
-</span><a name="line-42"></a><span class="hs-comment">-- non-network considerations -- any block forged at the start of a slot will</span><span>
-</span><a name="line-43"></a><span class="hs-comment">-- be fetched and possibly selected by every other node before the end of the</span><span>
-</span><a name="line-44"></a><span class="hs-comment">-- slot.</span><span>
-</span><a name="line-45"></a><span class="hs-comment">--</span><span>
-</span><a name="line-46"></a><span class="hs-comment">-- *How 'LeaderSchedule' affects this function*</span><span>
-</span><a name="line-47"></a><span class="hs-comment">--</span><span>
-</span><a name="line-48"></a><span class="hs-comment">-- A round-robin 'LeaderSchedule' will always reach consensus, so the fork</span><span>
-</span><a name="line-49"></a><span class="hs-comment">-- length will be @0@. For other 'LeaderSchedule's -- whether known /a priori/</span><span>
-</span><a name="line-50"></a><span class="hs-comment">-- (see &quot;Test.ThreadNet.LeaderSchedule&quot;) or /a posteriori/ (see</span><span>
-</span><a name="line-51"></a><span class="hs-comment">-- &quot;Test.ThreadNet.Praos&quot;) -- we often will not expect consensus. The key</span><span>
-</span><a name="line-52"></a><span class="hs-comment">-- difference is that a round-robin schedule always has exactly one leader per</span><span>
-</span><a name="line-53"></a><span class="hs-comment">-- slot. Arbitrary schedules instead may have 0 or multiple leaders.</span><span>
-</span><a name="line-54"></a><span class="hs-comment">--</span><span>
-</span><a name="line-55"></a><span class="hs-comment">-- A sequence of slots in which no slot has exactly one leader can drive a</span><span>
-</span><a name="line-56"></a><span class="hs-comment">-- network away from consensus. This function bounds how far from consensus the</span><span>
-</span><a name="line-57"></a><span class="hs-comment">-- network could be after the last simulated slot. It determines a conservative</span><span>
-</span><a name="line-58"></a><span class="hs-comment">-- upper bound on the length of the contended suffix of the nodes' final</span><span>
-</span><a name="line-59"></a><span class="hs-comment">-- chains. The bound may be less than, equal, or greater than @k@; regardless</span><span>
-</span><a name="line-60"></a><span class="hs-comment">-- of which, it should be used to test the nodes' final chains.</span><span>
-</span><a name="line-61"></a><span class="hs-comment">--</span><span>
-</span><a name="line-62"></a><span class="hs-comment">-- If such a sequence is long enough, it might even prevent the network from</span><span>
-</span><a name="line-63"></a><span class="hs-comment">-- every reaching consensus again: the nodes at the end of the sequence may</span><span>
-</span><a name="line-64"></a><span class="hs-comment">-- have chains that disagree by more than @k@ blocks, thereby exceeding the</span><span>
-</span><a name="line-65"></a><span class="hs-comment">-- security parameter @k@. In particular, if the bound determined by a</span><span>
-</span><a name="line-66"></a><span class="hs-comment">-- 'LeaderSchedule' is greater than @k@, then no extension of that</span><span>
-</span><a name="line-67"></a><span class="hs-comment">-- 'LeaderSchedule' can determine a lesser bound.</span><span>
-</span><a name="line-68"></a><span class="hs-comment">--</span><span>
-</span><a name="line-69"></a><span class="hs-comment">-- Multiple leaders create divergent chains as follows. Assume that every</span><span>
-</span><a name="line-70"></a><span class="hs-comment">-- leader of @s + 1@ begins the slot with a chain of length @n@, and that no</span><span>
-</span><a name="line-71"></a><span class="hs-comment">-- chain in the network has a greater length. Each leader forges a unique</span><span>
-</span><a name="line-72"></a><span class="hs-comment">-- block. A race condition between ChainSync/BlockFetch and forging makes it</span><span>
-</span><a name="line-73"></a><span class="hs-comment">-- possible, though relatively unlikely, that a leader would have received</span><span>
-</span><a name="line-74"></a><span class="hs-comment">-- another leader's new block before it forges its own. In that case, the new</span><span>
-</span><a name="line-75"></a><span class="hs-comment">-- leader will forged a block but then not select it, since it already selected</span><span>
-</span><a name="line-76"></a><span class="hs-comment">-- the other leader's new block. This function assumes the \&quot;worst-case\&quot; in</span><span>
-</span><a name="line-77"></a><span class="hs-comment">-- which both leaders make separate chains, thereby breaking consensus. Hence</span><span>
-</span><a name="line-78"></a><span class="hs-comment">-- it computes an upper bound. Each leader thus selects a new @n+1@-length</span><span>
-</span><a name="line-79"></a><span class="hs-comment">-- chain, and each non-leader will adopt one of them because they previously</span><span>
-</span><a name="line-80"></a><span class="hs-comment">-- had a chain of length @&lt;= n@. Thus the network is likely not in consensus at</span><span>
-</span><a name="line-81"></a><span class="hs-comment">-- the end of a multi-leader slot.</span><span>
-</span><a name="line-82"></a><span class="hs-comment">--</span><span>
-</span><a name="line-83"></a><span class="hs-comment">-- The network will reestablish consensus at the end of a single-leader slot,</span><span>
-</span><a name="line-84"></a><span class="hs-comment">-- because the leader creates the only chain of length @n+1@ and all other</span><span>
-</span><a name="line-85"></a><span class="hs-comment">-- nodes thus select it.</span><span>
-</span><a name="line-86"></a><span class="hs-comment">--</span><span>
-</span><a name="line-87"></a><span class="hs-comment">-- In a slot with no leaders, all nodes will simply retain their current</span><span>
-</span><a name="line-88"></a><span class="hs-comment">-- chains.</span><span>
-</span><a name="line-89"></a><span class="hs-comment">--</span><span>
-</span><a name="line-90"></a><span class="hs-comment">-- *How 'NodeJoinPlan' affects this function*</span><span>
-</span><a name="line-91"></a><span class="hs-comment">--</span><span>
-</span><a name="line-92"></a><span class="hs-comment">-- Because the race condition between forging and ChainSync/BlockFetch is</span><span>
-</span><a name="line-93"></a><span class="hs-comment">-- consistently won by forging, a node that leads in the same slot it joins</span><span>
-</span><a name="line-94"></a><span class="hs-comment">-- always attempts to make a chain of length 1 (ASSUMPTION: new nodes start</span><span>
-</span><a name="line-95"></a><span class="hs-comment">-- with an empty chain). Except for the edge cases when the longest chains in</span><span>
-</span><a name="line-96"></a><span class="hs-comment">-- the network are of length 0 or 1, this means that leaders who are joining</span><span>
-</span><a name="line-97"></a><span class="hs-comment">-- can be disregarded.</span><span>
-</span><a name="line-98"></a><span class="hs-comment">--</span><span>
-</span><a name="line-99"></a><span class="hs-identifier">determineForkLength</span><span> </span><span class="hs-glyph">::</span><span>
-</span><a name="line-100"></a><span>     </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src/Ouroboros.Consensus.Config.SecurityParam.html#SecurityParam"><span class="hs-identifier hs-type">SecurityParam</span></a><span>
-</span><a name="line-101"></a><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><a href="Test.ThreadNet.Util.NodeJoinPlan.html#NodeJoinPlan"><span class="hs-identifier hs-type">NodeJoinPlan</span></a><span>
-</span><a name="line-102"></a><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src/Ouroboros.Consensus.Protocol.LeaderSchedule.html#LeaderSchedule"><span class="hs-identifier hs-type">LeaderSchedule</span></a><span>
-</span><a name="line-103"></a><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><a href="Test.ThreadNet.Util.Expectations.html#NumBlocks"><span class="hs-identifier hs-type">NumBlocks</span></a><span>
-</span><a name="line-104"></a><a name="determineForkLength"><a href="Test.ThreadNet.Util.Expectations.html#determineForkLength"><span class="hs-identifier">determineForkLength</span></a></a><span> </span><a name="local-6989586621679239129"><a href="#local-6989586621679239129"><span class="hs-identifier">k</span></a></a><span> </span><span class="hs-special">(</span><a href="Test.ThreadNet.Util.NodeJoinPlan.html#NodeJoinPlan"><span class="hs-identifier hs-var">NodeJoinPlan</span></a><span> </span><a name="local-6989586621679239130"><a href="#local-6989586621679239130"><span class="hs-identifier">joinPlan</span></a></a><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src/Ouroboros.Consensus.Protocol.LeaderSchedule.html#LeaderSchedule"><span class="hs-identifier hs-var">LeaderSchedule</span></a><span> </span><a name="local-6989586621679239131"><a href="#local-6989586621679239131"><span class="hs-identifier">sched</span></a></a><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span>
-</span><a name="line-105"></a><span>    </span><a href="#local-6989586621679239132"><span class="hs-identifier hs-var">prj</span></a><span> </span><span class="hs-operator hs-var">$</span><span> </span><span class="hs-identifier hs-var">foldl'</span><span> </span><a href="#local-6989586621679239134"><span class="hs-identifier hs-var">step</span></a><span> </span><a href="#local-6989586621679239133"><span class="hs-identifier hs-var">initial</span></a><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-var">Map.toAscList</span><span> </span><a href="#local-6989586621679239131"><span class="hs-identifier hs-var">sched</span></a><span class="hs-special">)</span><span>
-</span><a name="line-106"></a><span>  </span><span class="hs-keyword">where</span><span>
-</span><a name="line-107"></a><span>    </span><a name="local-6989586621679239132"><a href="#local-6989586621679239132"><span class="hs-identifier">prj</span></a></a><span> </span><a href="Test.ThreadNet.Util.Expectations.html#Acc"><span class="hs-identifier hs-var">Acc</span></a><span class="hs-special">{</span><a name="local-6989586621679239135"><a href="#local-6989586621679239135"><span class="hs-identifier">maxForkLength</span></a></a><span class="hs-special">}</span><span> </span><span class="hs-glyph">=</span><span> </span><a href="Test.ThreadNet.Util.Expectations.html#NumBlocks"><span class="hs-identifier hs-var">NumBlocks</span></a><span> </span><a href="#local-6989586621679239135"><span class="hs-identifier hs-var">maxForkLength</span></a><span>
-</span><a name="line-108"></a><span>
-</span><a name="line-109"></a><span>    </span><span class="hs-comment">-- assume the network begins in consensus (eg all nodes start at Genesis)</span><span>
-</span><a name="line-110"></a><span>    </span><a name="local-6989586621679239133"><a href="#local-6989586621679239133"><span class="hs-identifier">initial</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><a href="Test.ThreadNet.Util.Expectations.html#Acc"><span class="hs-identifier hs-var">Acc</span></a><span>
-</span><a name="line-111"></a><span>      </span><span class="hs-special">{</span><span> </span><span class="hs-identifier">maxChainLength</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-number">0</span><span>
-</span><a name="line-112"></a><span>      </span><span class="hs-special">,</span><span> </span><span class="hs-identifier">maxForkLength</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-number">0</span><span>
-</span><a name="line-113"></a><span>      </span><span class="hs-special">}</span><span>
-</span><a name="line-114"></a><span>
-</span><a name="line-115"></a><span>    </span><span class="hs-comment">-- this logic focuses on the new chains made in this slot that are longer</span><span>
-</span><a name="line-116"></a><span>    </span><span class="hs-comment">-- than the longest chains from the previous slot</span><span>
-</span><a name="line-117"></a><span>    </span><a name="local-6989586621679239134"><a href="#local-6989586621679239134"><span class="hs-identifier">step</span></a></a><span> </span><a href="Test.ThreadNet.Util.Expectations.html#Acc"><span class="hs-identifier hs-var">Acc</span></a><span class="hs-special">{</span><a name="local-6989586621679239136"><a href="#local-6989586621679239136"><span class="hs-identifier">maxChainLength</span></a></a><span class="hs-special">,</span><span> </span><a name="local-6989586621679239137"><a href="#local-6989586621679239137"><span class="hs-identifier">maxForkLength</span></a></a><span class="hs-special">}</span><span> </span><span class="hs-special">(</span><a name="local-6989586621679239138"><a href="#local-6989586621679239138"><span class="hs-identifier">slot</span></a></a><span class="hs-special">,</span><span> </span><a name="local-6989586621679239139"><a href="#local-6989586621679239139"><span class="hs-identifier">leaders</span></a></a><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span>
-</span><a name="line-118"></a><span>        </span><a href="Test.ThreadNet.Util.Expectations.html#Acc"><span class="hs-identifier hs-var">Acc</span></a><span>
-</span><a name="line-119"></a><span>          </span><span class="hs-special">{</span><span> </span><span class="hs-identifier">maxChainLength</span><span> </span><span class="hs-glyph">=</span><span> </span><a href="#local-6989586621679239140"><span class="hs-identifier hs-var">grow</span></a><span>    </span><a href="#local-6989586621679239136"><span class="hs-identifier hs-var">maxChainLength</span></a><span>
-</span><a name="line-120"></a><span>          </span><span class="hs-special">,</span><span> </span><span class="hs-identifier">maxForkLength</span><span>  </span><span class="hs-glyph">=</span><span> </span><a href="#local-6989586621679239141"><span class="hs-identifier hs-var">update</span></a><span>  </span><a href="#local-6989586621679239137"><span class="hs-identifier hs-var">maxForkLength</span></a><span>
-</span><a name="line-121"></a><span>          </span><span class="hs-special">}</span><span>
-</span><a name="line-122"></a><span>      </span><span class="hs-keyword">where</span><span>
-</span><a name="line-123"></a><span>        </span><a name="local-6989586621679239140"><a href="#local-6989586621679239140"><span class="hs-identifier">grow</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">if</span><span> </span><span class="hs-number">0</span><span> </span><span class="hs-operator hs-var">==</span><span> </span><a href="#local-6989586621679239142"><span class="hs-identifier hs-var">pullingAhead</span></a><span> </span><span class="hs-keyword">then</span><span> </span><span class="hs-identifier hs-var">id</span><span> </span><span class="hs-keyword">else</span><span> </span><span class="hs-special">(</span><span class="hs-operator hs-var">+</span><span> </span><span class="hs-number">1</span><span class="hs-special">)</span><span>
-</span><a name="line-124"></a><span>
-</span><a name="line-125"></a><span>        </span><a name="local-6989586621679239141"><a href="#local-6989586621679239141"><span class="hs-identifier">update</span></a></a><span>
-</span><a name="line-126"></a><span>            </span><span class="hs-comment">-- too late to reach consensus, so further diverge</span><span>
-</span><a name="line-127"></a><span>          </span><span class="hs-glyph">|</span><span> </span><a href="#local-6989586621679239137"><span class="hs-identifier hs-var">maxForkLength</span></a><span> </span><span class="hs-operator hs-var">&gt;</span><span> </span><span class="hs-identifier">maxRollbacks</span><span> </span><a href="#local-6989586621679239129"><span class="hs-identifier hs-var">k</span></a><span> </span><span class="hs-glyph">=</span><span> </span><a href="#local-6989586621679239140"><span class="hs-identifier hs-var">grow</span></a><span>
-</span><a name="line-128"></a><span>
-</span><a name="line-129"></a><span>            </span><span class="hs-comment">-- assume (common) worst-case: each leader creates a unique longer</span><span>
-</span><a name="line-130"></a><span>            </span><span class="hs-comment">-- chain</span><span>
-</span><a name="line-131"></a><span>          </span><span class="hs-glyph">|</span><span> </span><a href="#local-6989586621679239142"><span class="hs-identifier hs-var">pullingAhead</span></a><span> </span><span class="hs-operator hs-var">&gt;</span><span>  </span><span class="hs-number">1</span><span>              </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">(</span><span class="hs-operator hs-var">+</span><span> </span><span class="hs-number">1</span><span class="hs-special">)</span><span>
-</span><a name="line-132"></a><span>
-</span><a name="line-133"></a><span>            </span><span class="hs-comment">-- the sole leader creates the sole longer chain, bringing the</span><span>
-</span><a name="line-134"></a><span>            </span><span class="hs-comment">-- network into consensus</span><span>
-</span><a name="line-135"></a><span>          </span><span class="hs-glyph">|</span><span> </span><a href="#local-6989586621679239142"><span class="hs-identifier hs-var">pullingAhead</span></a><span> </span><span class="hs-operator hs-var">==</span><span> </span><span class="hs-number">1</span><span>              </span><span class="hs-glyph">=</span><span> </span><span class="hs-identifier hs-var">const</span><span> </span><span class="hs-number">0</span><span>
-</span><a name="line-136"></a><span>
-</span><a name="line-137"></a><span>            </span><span class="hs-comment">-- there will be multiple longest chains that disagree on at least</span><span>
-</span><a name="line-138"></a><span>            </span><span class="hs-comment">-- the latest block</span><span>
-</span><a name="line-139"></a><span>            </span><span class="hs-comment">--</span><span>
-</span><a name="line-140"></a><span>            </span><span class="hs-comment">-- Note that pullingAhead == 0 by the preceding guards</span><span>
-</span><a name="line-141"></a><span>          </span><span class="hs-glyph">|</span><span> </span><a href="#local-6989586621679239143"><span class="hs-identifier hs-var">pullingEven</span></a><span>  </span><span class="hs-operator hs-var">&gt;</span><span>  </span><span class="hs-number">0</span><span>              </span><span class="hs-glyph">=</span><span> </span><span class="hs-identifier hs-var">max</span><span> </span><span class="hs-number">1</span><span>
-</span><a name="line-142"></a><span>
-</span><a name="line-143"></a><span>            </span><span class="hs-comment">-- no nodes are extending their chain, so the longest chains are</span><span>
-</span><a name="line-144"></a><span>            </span><span class="hs-comment">-- the same as in the previous slot</span><span>
-</span><a name="line-145"></a><span>          </span><span class="hs-glyph">|</span><span> </span><span class="hs-identifier hs-var">otherwise</span><span>                      </span><span class="hs-glyph">=</span><span> </span><span class="hs-identifier hs-var">id</span><span>
-</span><a name="line-146"></a><span>
-</span><a name="line-147"></a><span>        </span><span class="hs-comment">-- how many leaders are forging a block onto a @maxForkLength@-chain</span><span>
-</span><a name="line-148"></a><span>        </span><a name="local-6989586621679239142"><a href="#local-6989586621679239142"><span class="hs-identifier">pullingAhead</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><a href="#local-6989586621679239144"><span class="hs-identifier hs-var">nlOld</span></a><span> </span><span class="hs-operator hs-var">+</span><span> </span><a href="#local-6989586621679239145"><span class="hs-identifier hs-var">nlNew</span></a><span> </span><span class="hs-special">(</span><a href="#local-6989586621679239136"><span class="hs-identifier hs-var">maxChainLength</span></a><span> </span><span class="hs-operator hs-var">==</span><span> </span><span class="hs-number">0</span><span class="hs-special">)</span><span>
-</span><a name="line-149"></a><span>        </span><span class="hs-comment">-- how many leaders are forging a block onto a @maxForkLength - 1@-chain</span><span>
-</span><a name="line-150"></a><span>        </span><a name="local-6989586621679239143"><a href="#local-6989586621679239143"><span class="hs-identifier">pullingEven</span></a></a><span>  </span><span class="hs-glyph">=</span><span> </span><a href="#local-6989586621679239145"><span class="hs-identifier hs-var">nlNew</span></a><span> </span><span class="hs-special">(</span><a href="#local-6989586621679239136"><span class="hs-identifier hs-var">maxChainLength</span></a><span> </span><span class="hs-operator hs-var">==</span><span> </span><span class="hs-number">1</span><span class="hs-special">)</span><span>
-</span><a name="line-151"></a><span>
-</span><a name="line-152"></a><span>        </span><span class="hs-comment">-- how many leaders joined before this slot</span><span>
-</span><a name="line-153"></a><span>        </span><a name="local-6989586621679239144"><a href="#local-6989586621679239144"><span class="hs-identifier">nlOld</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-identifier hs-var">length</span><span> </span><span class="hs-operator hs-var">$</span><span> </span><span class="hs-identifier hs-var">filter</span><span> </span><span class="hs-special">(</span><span class="hs-special">(</span><span class="hs-operator hs-var">&lt;</span><span> </span><a href="#local-6989586621679239138"><span class="hs-identifier hs-var">slot</span></a><span class="hs-special">)</span><span> </span><span class="hs-operator hs-var">.</span><span> </span><a href="#local-6989586621679239146"><span class="hs-identifier hs-var">joinSlot</span></a><span class="hs-special">)</span><span> </span><a href="#local-6989586621679239139"><span class="hs-identifier hs-var">leaders</span></a><span>
-</span><a name="line-154"></a><span>        </span><a name="local-6989586621679239145"><a href="#local-6989586621679239145"><span class="hs-identifier">nlNew</span></a></a><span> </span><a name="local-6989586621679239147"><a href="#local-6989586621679239147"><span class="hs-identifier">b</span></a></a><span>
-</span><a name="line-155"></a><span>          </span><span class="hs-glyph">|</span><span> </span><span class="hs-identifier hs-var">not</span><span> </span><a href="#local-6989586621679239147"><span class="hs-identifier hs-var">b</span></a><span>     </span><span class="hs-glyph">=</span><span> </span><span class="hs-number">0</span><span>
-</span><a name="line-156"></a><span>            </span><span class="hs-comment">-- how many leaders are joining during this slot; these might not</span><span>
-</span><a name="line-157"></a><span>            </span><span class="hs-comment">-- be relevant</span><span>
-</span><a name="line-158"></a><span>            </span><span class="hs-comment">--</span><span>
-</span><a name="line-159"></a><span>            </span><span class="hs-comment">-- A node leading the same slot it joins always forges a 1-block</span><span>
-</span><a name="line-160"></a><span>            </span><span class="hs-comment">-- chain; there's actually a race-condition between block forging</span><span>
-</span><a name="line-161"></a><span>            </span><span class="hs-comment">-- and BlockFetch/ChainSync, but forging always wins in the current</span><span>
-</span><a name="line-162"></a><span>            </span><span class="hs-comment">-- test framework implementation.</span><span>
-</span><a name="line-163"></a><span>          </span><span class="hs-glyph">|</span><span> </span><span class="hs-identifier hs-var">otherwise</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-identifier hs-var">length</span><span> </span><span class="hs-operator hs-var">$</span><span> </span><span class="hs-identifier hs-var">filter</span><span> </span><span class="hs-special">(</span><span class="hs-special">(</span><span class="hs-operator hs-var">==</span><span> </span><a href="#local-6989586621679239138"><span class="hs-identifier hs-var">slot</span></a><span class="hs-special">)</span><span> </span><span class="hs-operator hs-var">.</span><span> </span><a href="#local-6989586621679239146"><span class="hs-identifier hs-var">joinSlot</span></a><span class="hs-special">)</span><span> </span><a href="#local-6989586621679239139"><span class="hs-identifier hs-var">leaders</span></a><span>
-</span><a name="line-164"></a><span>
-</span><a name="line-165"></a><span>        </span><span class="hs-comment">-- slot in which the node joins the network</span><span>
-</span><a name="line-166"></a><span>        </span><span class="hs-identifier">joinSlot</span><span> </span><span class="hs-glyph">::</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src/Ouroboros.Consensus.NodeId.html#CoreNodeId"><span class="hs-identifier hs-type">CoreNodeId</span></a><span> </span><span class="hs-glyph">-&gt;</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-slotting-0.1.0.0/noopt/doc/html/cardano-slotting/src/Cardano.Slotting.Slot.html#SlotNo"><span class="hs-identifier hs-type">SlotNo</span></a><span>
-</span><a name="line-167"></a><span>        </span><a name="local-6989586621679239146"><a href="#local-6989586621679239146"><span class="hs-identifier">joinSlot</span></a></a><span> </span><a name="local-6989586621679239148"><a href="#local-6989586621679239148"><span class="hs-identifier">nid</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">case</span><span> </span><span class="hs-identifier hs-var">Map.lookup</span><span> </span><a href="#local-6989586621679239148"><span class="hs-identifier hs-var">nid</span></a><span> </span><a href="#local-6989586621679239130"><span class="hs-identifier hs-var">joinPlan</span></a><span> </span><span class="hs-keyword">of</span><span>
-</span><a name="line-168"></a><span>            </span><span class="hs-identifier hs-var">Nothing</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-var">error</span><span> </span><span class="hs-string">&quot;determineForkLength: incomplete node join plan&quot;</span><span>
-</span><a name="line-169"></a><span>            </span><span class="hs-identifier hs-var">Just</span><span> </span><a name="local-6989586621679239149"><a href="#local-6989586621679239149"><span class="hs-identifier">slot'</span></a></a><span> </span><span class="hs-glyph">-&gt;</span><span> </span><a href="#local-6989586621679239149"><span class="hs-identifier hs-var">slot'</span></a><span>
-</span><a name="line-170"></a></pre></body></html>
+</span><span id="line-2"></span><span>
+</span><span id="line-3"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Test.ThreadNet.Util.Expectations</span><span>
+</span><span id="line-4"></span><span>    </span><span class="hs-special">(</span><span> </span><span class="annot"><a href="Test.ThreadNet.Util.Expectations.html#NumBlocks"><span class="hs-identifier">NumBlocks</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
+</span><span id="line-5"></span><span>    </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Test.ThreadNet.Util.Expectations.html#determineForkLength"><span class="hs-identifier">determineForkLength</span></a></span><span>
+</span><span id="line-6"></span><span>    </span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-7"></span><span>
+</span><span id="line-8"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><span class="hs-identifier">Data.Foldable</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">foldl'</span></span><span class="hs-special">)</span><span>
+</span><span id="line-9"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Data.Map.Strict</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Map</span></span><span>
+</span><span id="line-10"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><span class="hs-identifier">Data.Word</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Word64</span></span><span class="hs-special">)</span><span>
+</span><span id="line-11"></span><span>
+</span><span id="line-12"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier">Ouroboros.Consensus.Block</span></a></span><span>
+</span><span id="line-13"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier">Ouroboros.Consensus.Config.SecurityParam</span></a></span><span>
+</span><span id="line-14"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier">Ouroboros.Consensus.NodeId</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier">CoreNodeId</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-15"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier">Ouroboros.Consensus.Protocol.LeaderSchedule</span></a></span><span>
+</span><span id="line-16"></span><span>                     </span><span class="hs-special">(</span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier">LeaderSchedule</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-17"></span><span>
+</span><span id="line-18"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="Test.ThreadNet.Util.NodeJoinPlan.html"><span class="hs-identifier">Test.ThreadNet.Util.NodeJoinPlan</span></a></span><span>
+</span><span id="line-19"></span><span>
+</span><span id="line-20"></span><span class="hs-keyword">newtype</span><span> </span><span id="NumBlocks"><span class="annot"><a href="Test.ThreadNet.Util.Expectations.html#NumBlocks"><span class="hs-identifier hs-var">NumBlocks</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="NumBlocks"><span class="annot"><a href="Test.ThreadNet.Util.Expectations.html#NumBlocks"><span class="hs-identifier hs-var">NumBlocks</span></a></span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Word64</span></span><span>
+</span><span id="line-21"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679253439"><span id="local-6989586621679253441"><span class="annot"><span class="annottext">NumBlocks -&gt; NumBlocks -&gt; Bool
+(NumBlocks -&gt; NumBlocks -&gt; Bool)
+-&gt; (NumBlocks -&gt; NumBlocks -&gt; Bool) -&gt; Eq NumBlocks
+forall a. (a -&gt; a -&gt; Bool) -&gt; (a -&gt; a -&gt; Bool) -&gt; Eq a
+/= :: NumBlocks -&gt; NumBlocks -&gt; Bool
+$c/= :: NumBlocks -&gt; NumBlocks -&gt; Bool
+== :: NumBlocks -&gt; NumBlocks -&gt; Bool
+$c== :: NumBlocks -&gt; NumBlocks -&gt; Bool
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679253432"><span id="local-6989586621679253434"><span id="local-6989586621679253436"><span class="annot"><span class="annottext">Int -&gt; NumBlocks -&gt; ShowS
+[NumBlocks] -&gt; ShowS
+NumBlocks -&gt; String
+(Int -&gt; NumBlocks -&gt; ShowS)
+-&gt; (NumBlocks -&gt; String)
+-&gt; ([NumBlocks] -&gt; ShowS)
+-&gt; Show NumBlocks
+forall a.
+(Int -&gt; a -&gt; ShowS) -&gt; (a -&gt; String) -&gt; ([a] -&gt; ShowS) -&gt; Show a
+showList :: [NumBlocks] -&gt; ShowS
+$cshowList :: [NumBlocks] -&gt; ShowS
+show :: NumBlocks -&gt; String
+$cshow :: NumBlocks -&gt; String
+showsPrec :: Int -&gt; NumBlocks -&gt; ShowS
+$cshowsPrec :: Int -&gt; NumBlocks -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">)</span><span>
+</span><span id="line-22"></span><span>
+</span><span id="line-23"></span><span class="hs-comment">-- | Internal accumulator of 'determineForkLength'</span><span>
+</span><span id="line-24"></span><span class="hs-keyword">data</span><span> </span><span id="Acc"><span class="annot"><a href="Test.ThreadNet.Util.Expectations.html#Acc"><span class="hs-identifier hs-var">Acc</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="Acc"><span class="annot"><a href="Test.ThreadNet.Util.Expectations.html#Acc"><span class="hs-identifier hs-var">Acc</span></a></span></span><span>
+</span><span id="line-25"></span><span>  </span><span class="hs-special">{</span><span> </span><span id="maxChainLength"><span class="annot"><span class="annottext">Acc -&gt; Word64
+</span><a href="Test.ThreadNet.Util.Expectations.html#maxChainLength"><span class="hs-identifier hs-var hs-var">maxChainLength</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-glyph">!</span><span class="annot"><span class="hs-identifier hs-type">Word64</span></span><span>
+</span><span id="line-26"></span><span>    </span><span class="hs-comment">-- ^ Upper bound on length of the longest chain in the network</span><span>
+</span><span id="line-27"></span><span>  </span><span class="hs-special">,</span><span> </span><span id="maxForkLength"><span class="annot"><span class="annottext">Acc -&gt; Word64
+</span><a href="Test.ThreadNet.Util.Expectations.html#maxForkLength"><span class="hs-identifier hs-var hs-var">maxForkLength</span></a></span></span><span>  </span><span class="hs-glyph">::</span><span> </span><span class="hs-glyph">!</span><span class="annot"><span class="hs-identifier hs-type">Word64</span></span><span>
+</span><span id="line-28"></span><span>    </span><span class="hs-comment">-- ^ Upper bound on length of the longest fork in the network, excluding</span><span>
+</span><span id="line-29"></span><span>    </span><span class="hs-comment">-- the common prefix</span><span>
+</span><span id="line-30"></span><span>    </span><span class="hs-comment">--</span><span>
+</span><span id="line-31"></span><span>    </span><span class="hs-comment">-- Note that @0@ corresponds to /consensus/.</span><span>
+</span><span id="line-32"></span><span>  </span><span class="hs-special">}</span><span>
+</span><span id="line-33"></span><span>
+</span><span id="line-34"></span><span class="hs-comment">-- | Compute a bound for the length of the final forks</span><span>
+</span><span id="line-35"></span><span class="hs-comment">--</span><span>
+</span><span id="line-36"></span><span class="hs-comment">-- At the end of the test, the nodes' final chains will share a common prefix</span><span>
+</span><span id="line-37"></span><span class="hs-comment">-- (\&quot;intersection\&quot;), though it may be empty. Each node's current chain is a</span><span>
+</span><span id="line-38"></span><span class="hs-comment">-- fork off that prefix. No such fork will be longer than the result of this</span><span>
+</span><span id="line-39"></span><span class="hs-comment">-- function.</span><span>
+</span><span id="line-40"></span><span class="hs-comment">--</span><span>
+</span><span id="line-41"></span><span class="hs-comment">-- ASSUMPTION: The network connectivity is such that -- barring other</span><span>
+</span><span id="line-42"></span><span class="hs-comment">-- non-network considerations -- any block forged at the start of a slot will</span><span>
+</span><span id="line-43"></span><span class="hs-comment">-- be fetched and possibly selected by every other node before the end of the</span><span>
+</span><span id="line-44"></span><span class="hs-comment">-- slot.</span><span>
+</span><span id="line-45"></span><span class="hs-comment">--</span><span>
+</span><span id="line-46"></span><span class="hs-comment">-- *How 'LeaderSchedule' affects this function*</span><span>
+</span><span id="line-47"></span><span class="hs-comment">--</span><span>
+</span><span id="line-48"></span><span class="hs-comment">-- A round-robin 'LeaderSchedule' will always reach consensus, so the fork</span><span>
+</span><span id="line-49"></span><span class="hs-comment">-- length will be @0@. For other 'LeaderSchedule's -- whether known /a priori/</span><span>
+</span><span id="line-50"></span><span class="hs-comment">-- (see &quot;Test.ThreadNet.LeaderSchedule&quot;) or /a posteriori/ (see</span><span>
+</span><span id="line-51"></span><span class="hs-comment">-- &quot;Test.ThreadNet.Praos&quot;) -- we often will not expect consensus. The key</span><span>
+</span><span id="line-52"></span><span class="hs-comment">-- difference is that a round-robin schedule always has exactly one leader per</span><span>
+</span><span id="line-53"></span><span class="hs-comment">-- slot. Arbitrary schedules instead may have 0 or multiple leaders.</span><span>
+</span><span id="line-54"></span><span class="hs-comment">--</span><span>
+</span><span id="line-55"></span><span class="hs-comment">-- A sequence of slots in which no slot has exactly one leader can drive a</span><span>
+</span><span id="line-56"></span><span class="hs-comment">-- network away from consensus. This function bounds how far from consensus the</span><span>
+</span><span id="line-57"></span><span class="hs-comment">-- network could be after the last simulated slot. It determines a conservative</span><span>
+</span><span id="line-58"></span><span class="hs-comment">-- upper bound on the length of the contended suffix of the nodes' final</span><span>
+</span><span id="line-59"></span><span class="hs-comment">-- chains. The bound may be less than, equal, or greater than @k@; regardless</span><span>
+</span><span id="line-60"></span><span class="hs-comment">-- of which, it should be used to test the nodes' final chains.</span><span>
+</span><span id="line-61"></span><span class="hs-comment">--</span><span>
+</span><span id="line-62"></span><span class="hs-comment">-- If such a sequence is long enough, it might even prevent the network from</span><span>
+</span><span id="line-63"></span><span class="hs-comment">-- every reaching consensus again: the nodes at the end of the sequence may</span><span>
+</span><span id="line-64"></span><span class="hs-comment">-- have chains that disagree by more than @k@ blocks, thereby exceeding the</span><span>
+</span><span id="line-65"></span><span class="hs-comment">-- security parameter @k@. In particular, if the bound determined by a</span><span>
+</span><span id="line-66"></span><span class="hs-comment">-- 'LeaderSchedule' is greater than @k@, then no extension of that</span><span>
+</span><span id="line-67"></span><span class="hs-comment">-- 'LeaderSchedule' can determine a lesser bound.</span><span>
+</span><span id="line-68"></span><span class="hs-comment">--</span><span>
+</span><span id="line-69"></span><span class="hs-comment">-- Multiple leaders create divergent chains as follows. Assume that every</span><span>
+</span><span id="line-70"></span><span class="hs-comment">-- leader of @s + 1@ begins the slot with a chain of length @n@, and that no</span><span>
+</span><span id="line-71"></span><span class="hs-comment">-- chain in the network has a greater length. Each leader forges a unique</span><span>
+</span><span id="line-72"></span><span class="hs-comment">-- block. A race condition between ChainSync/BlockFetch and forging makes it</span><span>
+</span><span id="line-73"></span><span class="hs-comment">-- possible, though relatively unlikely, that a leader would have received</span><span>
+</span><span id="line-74"></span><span class="hs-comment">-- another leader's new block before it forges its own. In that case, the new</span><span>
+</span><span id="line-75"></span><span class="hs-comment">-- leader will forged a block but then not select it, since it already selected</span><span>
+</span><span id="line-76"></span><span class="hs-comment">-- the other leader's new block. This function assumes the \&quot;worst-case\&quot; in</span><span>
+</span><span id="line-77"></span><span class="hs-comment">-- which both leaders make separate chains, thereby breaking consensus. Hence</span><span>
+</span><span id="line-78"></span><span class="hs-comment">-- it computes an upper bound. Each leader thus selects a new @n+1@-length</span><span>
+</span><span id="line-79"></span><span class="hs-comment">-- chain, and each non-leader will adopt one of them because they previously</span><span>
+</span><span id="line-80"></span><span class="hs-comment">-- had a chain of length @&lt;= n@. Thus the network is likely not in consensus at</span><span>
+</span><span id="line-81"></span><span class="hs-comment">-- the end of a multi-leader slot.</span><span>
+</span><span id="line-82"></span><span class="hs-comment">--</span><span>
+</span><span id="line-83"></span><span class="hs-comment">-- The network will reestablish consensus at the end of a single-leader slot,</span><span>
+</span><span id="line-84"></span><span class="hs-comment">-- because the leader creates the only chain of length @n+1@ and all other</span><span>
+</span><span id="line-85"></span><span class="hs-comment">-- nodes thus select it.</span><span>
+</span><span id="line-86"></span><span class="hs-comment">--</span><span>
+</span><span id="line-87"></span><span class="hs-comment">-- In a slot with no leaders, all nodes will simply retain their current</span><span>
+</span><span id="line-88"></span><span class="hs-comment">-- chains.</span><span>
+</span><span id="line-89"></span><span class="hs-comment">--</span><span>
+</span><span id="line-90"></span><span class="hs-comment">-- *How 'NodeJoinPlan' affects this function*</span><span>
+</span><span id="line-91"></span><span class="hs-comment">--</span><span>
+</span><span id="line-92"></span><span class="hs-comment">-- Because the race condition between forging and ChainSync/BlockFetch is</span><span>
+</span><span id="line-93"></span><span class="hs-comment">-- consistently won by forging, a node that leads in the same slot it joins</span><span>
+</span><span id="line-94"></span><span class="hs-comment">-- always attempts to make a chain of length 1 (ASSUMPTION: new nodes start</span><span>
+</span><span id="line-95"></span><span class="hs-comment">-- with an empty chain). Except for the edge cases when the longest chains in</span><span>
+</span><span id="line-96"></span><span class="hs-comment">-- the network are of length 0 or 1, this means that leaders who are joining</span><span>
+</span><span id="line-97"></span><span class="hs-comment">-- can be disregarded.</span><span>
+</span><span id="line-98"></span><span class="hs-comment">--</span><span>
+</span><span id="line-99"></span><span class="annot"><a href="Test.ThreadNet.Util.Expectations.html#determineForkLength"><span class="hs-identifier hs-type">determineForkLength</span></a></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-100"></span><span>     </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier hs-type">SecurityParam</span></a></span><span>
+</span><span id="line-101"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Test.ThreadNet.Util.NodeJoinPlan.html#NodeJoinPlan"><span class="hs-identifier hs-type">NodeJoinPlan</span></a></span><span>
+</span><span id="line-102"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier hs-type">LeaderSchedule</span></a></span><span>
+</span><span id="line-103"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Test.ThreadNet.Util.Expectations.html#NumBlocks"><span class="hs-identifier hs-type">NumBlocks</span></a></span><span>
+</span><span id="line-104"></span><span id="determineForkLength"><span class="annot"><span class="annottext">determineForkLength :: SecurityParam -&gt; NodeJoinPlan -&gt; LeaderSchedule -&gt; NumBlocks
+</span><a href="Test.ThreadNet.Util.Expectations.html#determineForkLength"><span class="hs-identifier hs-var hs-var">determineForkLength</span></a></span></span><span> </span><span id="local-6989586621679253427"><span class="annot"><span class="annottext">SecurityParam
+</span><a href="#local-6989586621679253427"><span class="hs-identifier hs-var">k</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Test.ThreadNet.Util.NodeJoinPlan.html#NodeJoinPlan"><span class="hs-identifier hs-type">NodeJoinPlan</span></a></span><span> </span><span id="local-6989586621679253425"><span class="annot"><span class="annottext">Map CoreNodeId SlotNo
+</span><a href="#local-6989586621679253425"><span class="hs-identifier hs-var">joinPlan</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier hs-type">LeaderSchedule</span></a></span><span> </span><span id="local-6989586621679253423"><span class="annot"><span class="annottext">Map SlotNo [CoreNodeId]
+</span><a href="#local-6989586621679253423"><span class="hs-identifier hs-var">sched</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-105"></span><span>    </span><span class="annot"><span class="annottext">Acc -&gt; NumBlocks
+</span><a href="#local-6989586621679253422"><span class="hs-identifier hs-var">prj</span></a></span><span> </span><span class="annot"><span class="annottext">(Acc -&gt; NumBlocks) -&gt; Acc -&gt; NumBlocks
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">(Acc -&gt; (SlotNo, [CoreNodeId]) -&gt; Acc)
+-&gt; Acc -&gt; [(SlotNo, [CoreNodeId])] -&gt; Acc
+forall (t :: * -&gt; *) b a.
+Foldable t =&gt;
+(b -&gt; a -&gt; b) -&gt; b -&gt; t a -&gt; b
+</span><span class="hs-identifier hs-var">foldl'</span></span><span> </span><span class="annot"><span class="annottext">Acc -&gt; (SlotNo, [CoreNodeId]) -&gt; Acc
+</span><a href="#local-6989586621679253421"><span class="hs-identifier hs-var">step</span></a></span><span> </span><span class="annot"><span class="annottext">Acc
+</span><a href="#local-6989586621679253420"><span class="hs-identifier hs-var">initial</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Map SlotNo [CoreNodeId] -&gt; [(SlotNo, [CoreNodeId])]
+forall k a. Map k a -&gt; [(k, a)]
+</span><span class="hs-identifier hs-var">Map.toAscList</span></span><span> </span><span class="annot"><span class="annottext">Map SlotNo [CoreNodeId]
+</span><a href="#local-6989586621679253423"><span class="hs-identifier hs-var">sched</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-106"></span><span>  </span><span class="hs-keyword">where</span><span>
+</span><span id="line-107"></span><span>    </span><span id="local-6989586621679253422"><span class="annot"><span class="annottext">prj :: Acc -&gt; NumBlocks
+</span><a href="#local-6989586621679253422"><span class="hs-identifier hs-var hs-var">prj</span></a></span></span><span> </span><span class="annot"><a href="Test.ThreadNet.Util.Expectations.html#Acc"><span class="hs-identifier hs-type">Acc</span></a></span><span class="hs-special">{</span><span id="local-6989586621679253418"><span class="annot"><span class="annottext">Word64
+maxForkLength :: Word64
+maxForkLength :: Acc -&gt; Word64
+</span><a href="#local-6989586621679253418"><span class="hs-identifier hs-var hs-var">maxForkLength</span></a></span></span><span class="hs-special">}</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Word64 -&gt; NumBlocks
+</span><a href="Test.ThreadNet.Util.Expectations.html#NumBlocks"><span class="hs-identifier hs-var">NumBlocks</span></a></span><span> </span><span class="annot"><span class="annottext">Word64
+</span><a href="#local-6989586621679253418"><span class="hs-identifier hs-var">maxForkLength</span></a></span><span>
+</span><span id="line-108"></span><span>
+</span><span id="line-109"></span><span>    </span><span class="hs-comment">-- assume the network begins in consensus (eg all nodes start at Genesis)</span><span>
+</span><span id="line-110"></span><span>    </span><span id="local-6989586621679253420"><span class="annot"><span class="annottext">initial :: Acc
+</span><a href="#local-6989586621679253420"><span class="hs-identifier hs-var hs-var">initial</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Acc :: Word64 -&gt; Word64 -&gt; Acc
+</span><a href="Test.ThreadNet.Util.Expectations.html#Acc"><span class="hs-identifier hs-type">Acc</span></a></span><span>
+</span><span id="line-111"></span><span>      </span><span class="hs-special">{</span><span> </span><span class="annot"><span class="annottext">maxChainLength :: Word64
+</span><a href="Test.ThreadNet.Util.Expectations.html#maxChainLength"><span class="hs-identifier hs-var">maxChainLength</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Word64
+</span><span class="hs-number">0</span></span><span>
+</span><span id="line-112"></span><span>      </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">maxForkLength :: Word64
+</span><a href="Test.ThreadNet.Util.Expectations.html#maxForkLength"><span class="hs-identifier hs-var">maxForkLength</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Word64
+</span><span class="hs-number">0</span></span><span>
+</span><span id="line-113"></span><span>      </span><span class="hs-special">}</span><span>
+</span><span id="line-114"></span><span>
+</span><span id="line-115"></span><span>    </span><span class="hs-comment">-- this logic focuses on the new chains made in this slot that are longer</span><span>
+</span><span id="line-116"></span><span>    </span><span class="hs-comment">-- than the longest chains from the previous slot</span><span>
+</span><span id="line-117"></span><span>    </span><span id="local-6989586621679253421"><span class="annot"><span class="annottext">step :: Acc -&gt; (SlotNo, [CoreNodeId]) -&gt; Acc
+</span><a href="#local-6989586621679253421"><span class="hs-identifier hs-var hs-var">step</span></a></span></span><span> </span><span class="annot"><a href="Test.ThreadNet.Util.Expectations.html#Acc"><span class="hs-identifier hs-type">Acc</span></a></span><span class="hs-special">{</span><span id="local-6989586621679253417"><span class="annot"><span class="annottext">Word64
+maxChainLength :: Word64
+maxChainLength :: Acc -&gt; Word64
+</span><a href="#local-6989586621679253417"><span class="hs-identifier hs-var hs-var">maxChainLength</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679253416"><span class="annot"><span class="annottext">Word64
+maxForkLength :: Word64
+maxForkLength :: Acc -&gt; Word64
+</span><a href="#local-6989586621679253416"><span class="hs-identifier hs-var hs-var">maxForkLength</span></a></span></span><span class="hs-special">}</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679253415"><span class="annot"><span class="annottext">SlotNo
+</span><a href="#local-6989586621679253415"><span class="hs-identifier hs-var">slot</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679253414"><span class="annot"><span class="annottext">[CoreNodeId]
+</span><a href="#local-6989586621679253414"><span class="hs-identifier hs-var">leaders</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-118"></span><span>        </span><span class="annot"><span class="annottext">Acc :: Word64 -&gt; Word64 -&gt; Acc
+</span><a href="Test.ThreadNet.Util.Expectations.html#Acc"><span class="hs-identifier hs-type">Acc</span></a></span><span>
+</span><span id="line-119"></span><span>          </span><span class="hs-special">{</span><span> </span><span class="annot"><span class="annottext">maxChainLength :: Word64
+</span><a href="Test.ThreadNet.Util.Expectations.html#maxChainLength"><span class="hs-identifier hs-var">maxChainLength</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Word64 -&gt; Word64
+</span><a href="#local-6989586621679253413"><span class="hs-identifier hs-var">grow</span></a></span><span>    </span><span class="annot"><span class="annottext">Word64
+</span><a href="#local-6989586621679253417"><span class="hs-identifier hs-var">maxChainLength</span></a></span><span>
+</span><span id="line-120"></span><span>          </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">maxForkLength :: Word64
+</span><a href="Test.ThreadNet.Util.Expectations.html#maxForkLength"><span class="hs-identifier hs-var">maxForkLength</span></a></span><span>  </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Word64 -&gt; Word64
+</span><a href="#local-6989586621679253412"><span class="hs-identifier hs-var">update</span></a></span><span>  </span><span class="annot"><span class="annottext">Word64
+</span><a href="#local-6989586621679253416"><span class="hs-identifier hs-var">maxForkLength</span></a></span><span>
+</span><span id="line-121"></span><span>          </span><span class="hs-special">}</span><span>
+</span><span id="line-122"></span><span>      </span><span class="hs-keyword">where</span><span>
+</span><span id="line-123"></span><span>        </span><span id="local-6989586621679253413"><span class="annot"><span class="annottext">grow :: Word64 -&gt; Word64
+</span><a href="#local-6989586621679253413"><span class="hs-identifier hs-var hs-var">grow</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">if</span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+forall a. Eq a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">==</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679253411"><span class="hs-identifier hs-var">pullingAhead</span></a></span><span> </span><span class="hs-keyword">then</span><span> </span><span class="annot"><span class="annottext">Word64 -&gt; Word64
+forall a. a -&gt; a
+</span><span class="hs-identifier hs-var">id</span></span><span> </span><span class="hs-keyword">else</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Word64 -&gt; Word64 -&gt; Word64
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="annottext">Word64
+</span><span class="hs-number">1</span></span><span class="hs-special">)</span><span>
+</span><span id="line-124"></span><span>
+</span><span id="line-125"></span><span>        </span><span id="local-6989586621679253412"><span class="annot"><span class="annottext">update :: Word64 -&gt; Word64
+</span><a href="#local-6989586621679253412"><span class="hs-identifier hs-var hs-var">update</span></a></span></span><span>
+</span><span id="line-126"></span><span>            </span><span class="hs-comment">-- too late to reach consensus, so further diverge</span><span>
+</span><span id="line-127"></span><span>          </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Word64
+</span><a href="#local-6989586621679253416"><span class="hs-identifier hs-var">maxForkLength</span></a></span><span> </span><span class="annot"><span class="annottext">Word64 -&gt; Word64 -&gt; Bool
+forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">&gt;</span></span><span> </span><span class="annot"><span class="annottext">SecurityParam -&gt; Word64
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier hs-var hs-var">maxRollbacks</span></a></span><span> </span><span class="annot"><span class="annottext">SecurityParam
+</span><a href="#local-6989586621679253427"><span class="hs-identifier hs-var">k</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Word64 -&gt; Word64
+</span><a href="#local-6989586621679253413"><span class="hs-identifier hs-var">grow</span></a></span><span>
+</span><span id="line-128"></span><span>
+</span><span id="line-129"></span><span>            </span><span class="hs-comment">-- assume (common) worst-case: each leader creates a unique longer</span><span>
+</span><span id="line-130"></span><span>            </span><span class="hs-comment">-- chain</span><span>
+</span><span id="line-131"></span><span>          </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679253411"><span class="hs-identifier hs-var">pullingAhead</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">&gt;</span></span><span>  </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">1</span></span><span>              </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Word64 -&gt; Word64 -&gt; Word64
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="annottext">Word64
+</span><span class="hs-number">1</span></span><span class="hs-special">)</span><span>
+</span><span id="line-132"></span><span>
+</span><span id="line-133"></span><span>            </span><span class="hs-comment">-- the sole leader creates the sole longer chain, bringing the</span><span>
+</span><span id="line-134"></span><span>            </span><span class="hs-comment">-- network into consensus</span><span>
+</span><span id="line-135"></span><span>          </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679253411"><span class="hs-identifier hs-var">pullingAhead</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+forall a. Eq a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">==</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">1</span></span><span>              </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Word64 -&gt; Word64 -&gt; Word64
+forall a b. a -&gt; b -&gt; a
+</span><span class="hs-identifier hs-var">const</span></span><span> </span><span class="annot"><span class="annottext">Word64
+</span><span class="hs-number">0</span></span><span>
+</span><span id="line-136"></span><span>
+</span><span id="line-137"></span><span>            </span><span class="hs-comment">-- there will be multiple longest chains that disagree on at least</span><span>
+</span><span id="line-138"></span><span>            </span><span class="hs-comment">-- the latest block</span><span>
+</span><span id="line-139"></span><span>            </span><span class="hs-comment">--</span><span>
+</span><span id="line-140"></span><span>            </span><span class="hs-comment">-- Note that pullingAhead == 0 by the preceding guards</span><span>
+</span><span id="line-141"></span><span>          </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679253405"><span class="hs-identifier hs-var">pullingEven</span></a></span><span>  </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">&gt;</span></span><span>  </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span>              </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Word64 -&gt; Word64 -&gt; Word64
+forall a. Ord a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-identifier hs-var">max</span></span><span> </span><span class="annot"><span class="annottext">Word64
+</span><span class="hs-number">1</span></span><span>
+</span><span id="line-142"></span><span>
+</span><span id="line-143"></span><span>            </span><span class="hs-comment">-- no nodes are extending their chain, so the longest chains are</span><span>
+</span><span id="line-144"></span><span>            </span><span class="hs-comment">-- the same as in the previous slot</span><span>
+</span><span id="line-145"></span><span>          </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">otherwise</span></span><span>                      </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Word64 -&gt; Word64
+forall a. a -&gt; a
+</span><span class="hs-identifier hs-var">id</span></span><span>
+</span><span id="line-146"></span><span>
+</span><span id="line-147"></span><span>        </span><span class="hs-comment">-- how many leaders are forging a block onto a @maxForkLength@-chain</span><span>
+</span><span id="line-148"></span><span>        </span><span id="local-6989586621679253411"><span class="annot"><span class="annottext">pullingAhead :: Int
+</span><a href="#local-6989586621679253411"><span class="hs-identifier hs-var hs-var">pullingAhead</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679253403"><span class="hs-identifier hs-var">nlOld</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="annottext">Bool -&gt; Int
+</span><a href="#local-6989586621679253402"><span class="hs-identifier hs-var">nlNew</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Word64
+</span><a href="#local-6989586621679253417"><span class="hs-identifier hs-var">maxChainLength</span></a></span><span> </span><span class="annot"><span class="annottext">Word64 -&gt; Word64 -&gt; Bool
+forall a. Eq a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">==</span></span><span> </span><span class="annot"><span class="annottext">Word64
+</span><span class="hs-number">0</span></span><span class="hs-special">)</span><span>
+</span><span id="line-149"></span><span>        </span><span class="hs-comment">-- how many leaders are forging a block onto a @maxForkLength - 1@-chain</span><span>
+</span><span id="line-150"></span><span>        </span><span id="local-6989586621679253405"><span class="annot"><span class="annottext">pullingEven :: Int
+</span><a href="#local-6989586621679253405"><span class="hs-identifier hs-var hs-var">pullingEven</span></a></span></span><span>  </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Bool -&gt; Int
+</span><a href="#local-6989586621679253402"><span class="hs-identifier hs-var">nlNew</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Word64
+</span><a href="#local-6989586621679253417"><span class="hs-identifier hs-var">maxChainLength</span></a></span><span> </span><span class="annot"><span class="annottext">Word64 -&gt; Word64 -&gt; Bool
+forall a. Eq a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">==</span></span><span> </span><span class="annot"><span class="annottext">Word64
+</span><span class="hs-number">1</span></span><span class="hs-special">)</span><span>
+</span><span id="line-151"></span><span>
+</span><span id="line-152"></span><span>        </span><span class="hs-comment">-- how many leaders joined before this slot</span><span>
+</span><span id="line-153"></span><span>        </span><span id="local-6989586621679253403"><span class="annot"><span class="annottext">nlOld :: Int
+</span><a href="#local-6989586621679253403"><span class="hs-identifier hs-var hs-var">nlOld</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[CoreNodeId] -&gt; Int
+forall (t :: * -&gt; *) a. Foldable t =&gt; t a -&gt; Int
+</span><span class="hs-identifier hs-var">length</span></span><span> </span><span class="annot"><span class="annottext">([CoreNodeId] -&gt; Int) -&gt; [CoreNodeId] -&gt; Int
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">(CoreNodeId -&gt; Bool) -&gt; [CoreNodeId] -&gt; [CoreNodeId]
+forall a. (a -&gt; Bool) -&gt; [a] -&gt; [a]
+</span><span class="hs-identifier hs-var">filter</span></span><span> </span><span class="hs-special">(</span><span class="hs-special">(</span><span class="annot"><span class="annottext">SlotNo -&gt; SlotNo -&gt; Bool
+forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">&lt;</span></span><span> </span><span class="annot"><span class="annottext">SlotNo
+</span><a href="#local-6989586621679253415"><span class="hs-identifier hs-var">slot</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(SlotNo -&gt; Bool) -&gt; (CoreNodeId -&gt; SlotNo) -&gt; CoreNodeId -&gt; Bool
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">CoreNodeId -&gt; SlotNo
+</span><a href="#local-6989586621679253398"><span class="hs-identifier hs-var">joinSlot</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">[CoreNodeId]
+</span><a href="#local-6989586621679253414"><span class="hs-identifier hs-var">leaders</span></a></span><span>
+</span><span id="line-154"></span><span>        </span><span id="local-6989586621679253402"><span class="annot"><span class="annottext">nlNew :: Bool -&gt; Int
+</span><a href="#local-6989586621679253402"><span class="hs-identifier hs-var hs-var">nlNew</span></a></span></span><span> </span><span id="local-6989586621679253397"><span class="annot"><span class="annottext">Bool
+</span><a href="#local-6989586621679253397"><span class="hs-identifier hs-var">b</span></a></span></span><span>
+</span><span id="line-155"></span><span>          </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Bool -&gt; Bool
+</span><span class="hs-identifier hs-var">not</span></span><span> </span><span class="annot"><span class="annottext">Bool
+</span><a href="#local-6989586621679253397"><span class="hs-identifier hs-var">b</span></a></span><span>     </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span>
+</span><span id="line-156"></span><span>            </span><span class="hs-comment">-- how many leaders are joining during this slot; these might not</span><span>
+</span><span id="line-157"></span><span>            </span><span class="hs-comment">-- be relevant</span><span>
+</span><span id="line-158"></span><span>            </span><span class="hs-comment">--</span><span>
+</span><span id="line-159"></span><span>            </span><span class="hs-comment">-- A node leading the same slot it joins always forges a 1-block</span><span>
+</span><span id="line-160"></span><span>            </span><span class="hs-comment">-- chain; there's actually a race-condition between block forging</span><span>
+</span><span id="line-161"></span><span>            </span><span class="hs-comment">-- and BlockFetch/ChainSync, but forging always wins in the current</span><span>
+</span><span id="line-162"></span><span>            </span><span class="hs-comment">-- test framework implementation.</span><span>
+</span><span id="line-163"></span><span>          </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">otherwise</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[CoreNodeId] -&gt; Int
+forall (t :: * -&gt; *) a. Foldable t =&gt; t a -&gt; Int
+</span><span class="hs-identifier hs-var">length</span></span><span> </span><span class="annot"><span class="annottext">([CoreNodeId] -&gt; Int) -&gt; [CoreNodeId] -&gt; Int
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">(CoreNodeId -&gt; Bool) -&gt; [CoreNodeId] -&gt; [CoreNodeId]
+forall a. (a -&gt; Bool) -&gt; [a] -&gt; [a]
+</span><span class="hs-identifier hs-var">filter</span></span><span> </span><span class="hs-special">(</span><span class="hs-special">(</span><span class="annot"><span class="annottext">SlotNo -&gt; SlotNo -&gt; Bool
+forall a. Eq a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">==</span></span><span> </span><span class="annot"><span class="annottext">SlotNo
+</span><a href="#local-6989586621679253415"><span class="hs-identifier hs-var">slot</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(SlotNo -&gt; Bool) -&gt; (CoreNodeId -&gt; SlotNo) -&gt; CoreNodeId -&gt; Bool
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">CoreNodeId -&gt; SlotNo
+</span><a href="#local-6989586621679253398"><span class="hs-identifier hs-var">joinSlot</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">[CoreNodeId]
+</span><a href="#local-6989586621679253414"><span class="hs-identifier hs-var">leaders</span></a></span><span>
+</span><span id="line-164"></span><span>
+</span><span id="line-165"></span><span>        </span><span class="hs-comment">-- slot in which the node joins the network</span><span>
+</span><span id="line-166"></span><span>        </span><span class="annot"><a href="#local-6989586621679253398"><span class="hs-identifier hs-type">joinSlot</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier hs-type">CoreNodeId</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-slotting-0.1.0.0/noopt/doc/html/cardano-slotting/src"><span class="hs-identifier hs-type">SlotNo</span></a></span><span>
+</span><span id="line-167"></span><span>        </span><span id="local-6989586621679253398"><span class="annot"><span class="annottext">joinSlot :: CoreNodeId -&gt; SlotNo
+</span><a href="#local-6989586621679253398"><span class="hs-identifier hs-var hs-var">joinSlot</span></a></span></span><span> </span><span id="local-6989586621679253395"><span class="annot"><span class="annottext">CoreNodeId
+</span><a href="#local-6989586621679253395"><span class="hs-identifier hs-var">nid</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">CoreNodeId -&gt; Map CoreNodeId SlotNo -&gt; Maybe SlotNo
+forall k a. Ord k =&gt; k -&gt; Map k a -&gt; Maybe a
+</span><span class="hs-identifier hs-var">Map.lookup</span></span><span> </span><span class="annot"><span class="annottext">CoreNodeId
+</span><a href="#local-6989586621679253395"><span class="hs-identifier hs-var">nid</span></a></span><span> </span><span class="annot"><span class="annottext">Map CoreNodeId SlotNo
+</span><a href="#local-6989586621679253425"><span class="hs-identifier hs-var">joinPlan</span></a></span><span> </span><span class="hs-keyword">of</span><span>
+</span><span id="line-168"></span><span>            </span><span class="annot"><span class="annottext">Maybe SlotNo
+</span><span class="hs-identifier hs-var">Nothing</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">String -&gt; SlotNo
+forall a. HasCallStack =&gt; String -&gt; a
+</span><span class="hs-identifier hs-var">error</span></span><span> </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;determineForkLength: incomplete node join plan&quot;</span></span><span>
+</span><span id="line-169"></span><span>            </span><span class="annot"><span class="hs-identifier hs-type">Just</span></span><span> </span><span id="local-6989586621679253392"><span class="annot"><span class="annottext">SlotNo
+</span><a href="#local-6989586621679253392"><span class="hs-identifier hs-var">slot'</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">SlotNo
+</span><a href="#local-6989586621679253392"><span class="hs-identifier hs-var">slot'</span></a></span><span>
+</span><span id="line-170"></span></pre></body></html>

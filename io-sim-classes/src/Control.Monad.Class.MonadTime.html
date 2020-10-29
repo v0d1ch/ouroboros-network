@@ -1,72 +1,180 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span>
-</span><a name="line-2"></a><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Control.Monad.Class.MonadTime</span><span> </span><span class="hs-special">(</span><span>
-</span><a name="line-3"></a><span>    </span><a href="Control.Monad.Class.MonadTime.html#MonadTime"><span class="hs-identifier hs-type">MonadTime</span></a><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
-</span><a name="line-4"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Control.Monad.Class.MonadTime.html#MonadMonotonicTime"><span class="hs-identifier hs-type">MonadMonotonicTime</span></a><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
-</span><a name="line-5"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Control.Monad.Class.MonadTime.html#Time"><span class="hs-identifier hs-type">Time</span></a><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
-</span><a name="line-6"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Control.Monad.Class.MonadTime.html#diffTime"><span class="hs-identifier hs-var">diffTime</span></a><span>
-</span><a name="line-7"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Control.Monad.Class.MonadTime.html#addTime"><span class="hs-identifier hs-var">addTime</span></a><span>
-</span><a name="line-8"></a><span>  </span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">DiffTime</span><span>
-</span><a name="line-9"></a><span>  </span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">UTCTime</span><span>
-</span><a name="line-10"></a><span>  </span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
-</span><a name="line-11"></a><span>
-</span><a name="line-12"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Control.Monad.Reader</span><span>
-</span><a name="line-13"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data.Time.Clock</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">DiffTime</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">UTCTime</span><span class="hs-special">)</span><span>
-</span><a name="line-14"></a><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-identifier">Data.Time.Clock</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">Time</span><span>
-</span><a name="line-15"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data.Word</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Word64</span><span class="hs-special">)</span><span>
-</span><a name="line-16"></a><span>
-</span><a name="line-17"></a><span class="hs-comment">-- | A point in time in a monotonic clock.</span><span>
-</span><a name="line-18"></a><span class="hs-comment">--</span><span>
-</span><a name="line-19"></a><span class="hs-comment">-- The epoch for this clock is arbitrary and does not correspond to any wall</span><span>
-</span><a name="line-20"></a><span class="hs-comment">-- clock or calendar, and is /not guaranteed/ to be the same epoch across</span><span>
-</span><a name="line-21"></a><span class="hs-comment">-- program runs. It is represented as the 'DiffTime' from this arbitrary epoch.</span><span>
-</span><a name="line-22"></a><span class="hs-comment">--</span><span>
-</span><a name="line-23"></a><span class="hs-keyword">newtype</span><span> </span><a name="Time"><a href="Control.Monad.Class.MonadTime.html#Time"><span class="hs-identifier">Time</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><a name="Time"><a href="Control.Monad.Class.MonadTime.html#Time"><span class="hs-identifier">Time</span></a></a><span> </span><span class="hs-identifier hs-type">DiffTime</span><span>
-</span><a name="line-24"></a><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Eq</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Ord</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Show</span><span class="hs-special">)</span><span>
-</span><a name="line-25"></a><span>
-</span><a name="line-26"></a><span class="hs-comment">-- | The time duration between two points in time (positive or negative).</span><span>
-</span><a name="line-27"></a><span class="hs-identifier">diffTime</span><span> </span><span class="hs-glyph">::</span><span> </span><a href="Control.Monad.Class.MonadTime.html#Time"><span class="hs-identifier hs-type">Time</span></a><span> </span><span class="hs-glyph">-&gt;</span><span> </span><a href="Control.Monad.Class.MonadTime.html#Time"><span class="hs-identifier hs-type">Time</span></a><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">DiffTime</span><span>
-</span><a name="line-28"></a><a name="diffTime"><a href="Control.Monad.Class.MonadTime.html#diffTime"><span class="hs-identifier">diffTime</span></a></a><span> </span><span class="hs-special">(</span><a href="Control.Monad.Class.MonadTime.html#Time"><span class="hs-identifier hs-var">Time</span></a><span> </span><a name="local-6989586621679060320"><a href="#local-6989586621679060320"><span class="hs-identifier">t</span></a></a><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><a href="Control.Monad.Class.MonadTime.html#Time"><span class="hs-identifier hs-var">Time</span></a><span> </span><a name="local-6989586621679060321"><a href="#local-6989586621679060321"><span class="hs-identifier">t'</span></a></a><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><a href="#local-6989586621679060320"><span class="hs-identifier hs-var">t</span></a><span> </span><span class="hs-glyph">-</span><span> </span><a href="#local-6989586621679060321"><span class="hs-identifier hs-var">t'</span></a><span>
-</span><a name="line-29"></a><span>
-</span><a name="line-30"></a><span class="hs-comment">-- | Add a duration to a point in time, giving another time.</span><span>
-</span><a name="line-31"></a><span class="hs-identifier">addTime</span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">DiffTime</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><a href="Control.Monad.Class.MonadTime.html#Time"><span class="hs-identifier hs-type">Time</span></a><span> </span><span class="hs-glyph">-&gt;</span><span> </span><a href="Control.Monad.Class.MonadTime.html#Time"><span class="hs-identifier hs-type">Time</span></a><span>
-</span><a name="line-32"></a><a name="addTime"><a href="Control.Monad.Class.MonadTime.html#addTime"><span class="hs-identifier">addTime</span></a></a><span> </span><a name="local-6989586621679060322"><a href="#local-6989586621679060322"><span class="hs-identifier">d</span></a></a><span> </span><span class="hs-special">(</span><a href="Control.Monad.Class.MonadTime.html#Time"><span class="hs-identifier hs-var">Time</span></a><span> </span><a name="local-6989586621679060323"><a href="#local-6989586621679060323"><span class="hs-identifier">t</span></a></a><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><a href="Control.Monad.Class.MonadTime.html#Time"><span class="hs-identifier hs-var">Time</span></a><span> </span><span class="hs-special">(</span><a href="#local-6989586621679060322"><span class="hs-identifier hs-var">d</span></a><span> </span><span class="hs-operator hs-var">+</span><span> </span><a href="#local-6989586621679060323"><span class="hs-identifier hs-var">t</span></a><span class="hs-special">)</span><span>
-</span><a name="line-33"></a><span>
-</span><a name="line-34"></a><span>
-</span><a name="line-35"></a><span class="hs-keyword">class</span><span> </span><span class="hs-identifier hs-type">Monad</span><span> </span><a href="#local-6989586621679058819"><span class="hs-identifier hs-type">m</span></a><span> </span><span class="hs-glyph">=&gt;</span><span> </span><a name="MonadMonotonicTime"><a href="Control.Monad.Class.MonadTime.html#MonadMonotonicTime"><span class="hs-identifier">MonadMonotonicTime</span></a></a><span> </span><a name="local-6989586621679058819"><a href="#local-6989586621679058819"><span class="hs-identifier">m</span></a></a><span> </span><span class="hs-keyword">where</span><span>
-</span><a name="line-36"></a><span>  </span><span class="hs-comment">-- | Time in a monotonic clock, with high precision. The epoch for this</span><span>
-</span><a name="line-37"></a><span>  </span><span class="hs-comment">-- clock is arbitrary and does not correspond to any wall clock or calendar.</span><span>
-</span><a name="line-38"></a><span>  </span><span class="hs-comment">--</span><span>
-</span><a name="line-39"></a><span>  </span><a name="getMonotonicTime"><a href="Control.Monad.Class.MonadTime.html#getMonotonicTime"><span class="hs-identifier">getMonotonicTime</span></a></a><span> </span><span class="hs-glyph">::</span><span> </span><a href="#local-6989586621679058819"><span class="hs-identifier hs-type">m</span></a><span> </span><a href="Control.Monad.Class.MonadTime.html#Time"><span class="hs-identifier hs-type">Time</span></a><span>
-</span><a name="line-40"></a><span>
-</span><a name="line-41"></a><span class="hs-keyword">class</span><span> </span><a href="Control.Monad.Class.MonadTime.html#MonadMonotonicTime"><span class="hs-identifier hs-type">MonadMonotonicTime</span></a><span> </span><a href="#local-6989586621679058697"><span class="hs-identifier hs-type">m</span></a><span> </span><span class="hs-glyph">=&gt;</span><span> </span><a name="MonadTime"><a href="Control.Monad.Class.MonadTime.html#MonadTime"><span class="hs-identifier">MonadTime</span></a></a><span> </span><a name="local-6989586621679058697"><a href="#local-6989586621679058697"><span class="hs-identifier">m</span></a></a><span> </span><span class="hs-keyword">where</span><span>
-</span><a name="line-42"></a><span>  </span><span class="hs-comment">-- | Wall clock time.</span><span>
-</span><a name="line-43"></a><span>  </span><span class="hs-comment">--</span><span>
-</span><a name="line-44"></a><span>  </span><a name="getCurrentTime"><a href="Control.Monad.Class.MonadTime.html#getCurrentTime"><span class="hs-identifier">getCurrentTime</span></a></a><span>   </span><span class="hs-glyph">::</span><span> </span><a href="#local-6989586621679058697"><span class="hs-identifier hs-type">m</span></a><span> </span><span class="hs-identifier hs-type">UTCTime</span><span>
-</span><a name="line-45"></a><span>
-</span><a name="line-46"></a><span class="hs-comment">--</span><span>
-</span><a name="line-47"></a><span class="hs-comment">-- Instances for IO</span><span>
-</span><a name="line-48"></a><span class="hs-comment">--</span><span>
-</span><a name="line-49"></a><span>
-</span><a name="line-50"></a><span class="hs-keyword">instance</span><span> </span><a href="Control.Monad.Class.MonadTime.html#MonadMonotonicTime"><span class="hs-identifier hs-type">MonadMonotonicTime</span></a><span> </span><span class="hs-identifier hs-type">IO</span><span> </span><span class="hs-keyword">where</span><span>
-</span><a name="line-51"></a><span>  </span><a name="local-8214565720323833602"><a href="Control.Monad.Class.MonadTime.html#getMonotonicTime"><span class="hs-identifier">getMonotonicTime</span></a></a><span> </span><span class="hs-glyph">=</span><span>
-</span><a name="line-52"></a><span>      </span><span class="hs-identifier hs-var">fmap</span><span> </span><a href="#local-6989586621679059062"><span class="hs-identifier hs-var">conv</span></a><span> </span><a href="Control.Monad.Class.MonadTime.html#getMonotonicNSec"><span class="hs-identifier hs-var">getMonotonicNSec</span></a><span>
-</span><a name="line-53"></a><span>    </span><span class="hs-keyword">where</span><span>
-</span><a name="line-54"></a><span>      </span><span class="hs-identifier">conv</span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">Word64</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><a href="Control.Monad.Class.MonadTime.html#Time"><span class="hs-identifier hs-type">Time</span></a><span>
-</span><a name="line-55"></a><span>      </span><a name="local-6989586621679059062"><a href="#local-6989586621679059062"><span class="hs-identifier">conv</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><a href="Control.Monad.Class.MonadTime.html#Time"><span class="hs-identifier hs-var">Time</span></a><span> </span><span class="hs-operator hs-var">.</span><span> </span><span class="hs-identifier hs-var">Time.picosecondsToDiffTime</span><span> </span><span class="hs-operator hs-var">.</span><span> </span><span class="hs-special">(</span><span class="hs-operator hs-var">*</span><span> </span><span class="hs-number">1000</span><span class="hs-special">)</span><span> </span><span class="hs-operator hs-var">.</span><span> </span><span class="hs-identifier hs-var">toInteger</span><span>
-</span><a name="line-56"></a><span>
-</span><a name="line-57"></a><span class="hs-keyword">instance</span><span> </span><a href="Control.Monad.Class.MonadTime.html#MonadTime"><span class="hs-identifier hs-type">MonadTime</span></a><span> </span><span class="hs-identifier hs-type">IO</span><span> </span><span class="hs-keyword">where</span><span>
-</span><a name="line-58"></a><span>  </span><a name="local-8214565720323833600"><a href="Control.Monad.Class.MonadTime.html#getCurrentTime"><span class="hs-identifier">getCurrentTime</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-identifier hs-var">Time.getCurrentTime</span><span>
-</span><a name="line-59"></a><span>
-</span><a name="line-60"></a><span class="hs-keyword">foreign</span><span> </span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">ccall</span><span> </span><span class="hs-keyword">unsafe</span><span> </span><span class="hs-string">&quot;getMonotonicNSec&quot;</span><span>
-</span><a name="line-61"></a><span>    </span><span class="hs-identifier">getMonotonicNSec</span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">IO</span><span> </span><span class="hs-identifier hs-type">Word64</span><span>
-</span><a name="line-62"></a><span>
-</span><a name="line-63"></a><span class="hs-comment">--</span><span>
-</span><a name="line-64"></a><span class="hs-comment">-- Instance for ReaderT</span><span>
-</span><a name="line-65"></a><span class="hs-comment">--</span><span>
-</span><a name="line-66"></a><span>
-</span><a name="line-67"></a><span class="hs-keyword">instance</span><span> </span><a href="Control.Monad.Class.MonadTime.html#MonadMonotonicTime"><span class="hs-identifier hs-type">MonadMonotonicTime</span></a><span> </span><a href="#local-6989586621679059025"><span class="hs-identifier hs-type">m</span></a><span> </span><span class="hs-glyph">=&gt;</span><span> </span><a href="Control.Monad.Class.MonadTime.html#MonadMonotonicTime"><span class="hs-identifier hs-type">MonadMonotonicTime</span></a><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">ReaderT</span><span> </span><a href="#local-6989586621679059026"><span class="hs-identifier hs-type">r</span></a><span> </span><a href="#local-6989586621679059025"><span class="hs-identifier hs-type">m</span></a><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
-</span><a name="line-68"></a><span>  </span><a name="local-8214565720323833602"><a href="Control.Monad.Class.MonadTime.html#getMonotonicTime"><span class="hs-identifier">getMonotonicTime</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-identifier hs-var">lift</span><span> </span><a href="Control.Monad.Class.MonadTime.html#getMonotonicTime"><span class="hs-identifier hs-var">getMonotonicTime</span></a><span>
-</span><a name="line-69"></a><span>
-</span><a name="line-70"></a><span class="hs-keyword">instance</span><span> </span><a href="Control.Monad.Class.MonadTime.html#MonadTime"><span class="hs-identifier hs-type">MonadTime</span></a><span> </span><a href="#local-6989586621679059023"><span class="hs-identifier hs-type">m</span></a><span> </span><span class="hs-glyph">=&gt;</span><span> </span><a href="Control.Monad.Class.MonadTime.html#MonadTime"><span class="hs-identifier hs-type">MonadTime</span></a><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">ReaderT</span><span> </span><a href="#local-6989586621679059024"><span class="hs-identifier hs-type">r</span></a><span> </span><a href="#local-6989586621679059023"><span class="hs-identifier hs-type">m</span></a><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
-</span><a name="line-71"></a><span>  </span><a name="local-8214565720323833600"><a href="Control.Monad.Class.MonadTime.html#getCurrentTime"><span class="hs-identifier">getCurrentTime</span></a></a><span>   </span><span class="hs-glyph">=</span><span> </span><span class="hs-identifier hs-var">lift</span><span> </span><a href="Control.Monad.Class.MonadTime.html#getCurrentTime"><span class="hs-identifier hs-var">getCurrentTime</span></a><span>
-</span><a name="line-72"></a></pre></body></html>
+</span><span id="line-2"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Control.Monad.Class.MonadTime</span><span> </span><span class="hs-special">(</span><span>
+</span><span id="line-3"></span><span>    </span><span class="annot"><a href="Control.Monad.Class.MonadTime.html#MonadTime"><span class="hs-identifier">MonadTime</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
+</span><span id="line-4"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Control.Monad.Class.MonadTime.html#MonadMonotonicTime"><span class="hs-identifier">MonadMonotonicTime</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
+</span><span id="line-5"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Control.Monad.Class.MonadTime.html#Time"><span class="hs-identifier">Time</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
+</span><span id="line-6"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Control.Monad.Class.MonadTime.html#diffTime"><span class="hs-identifier">diffTime</span></a></span><span>
+</span><span id="line-7"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Control.Monad.Class.MonadTime.html#addTime"><span class="hs-identifier">addTime</span></a></span><span>
+</span><span id="line-8"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">DiffTime</span></span><span>
+</span><span id="line-9"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">UTCTime</span></span><span>
+</span><span id="line-10"></span><span>  </span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-11"></span><span>
+</span><span id="line-12"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><span class="hs-identifier">Control.Monad.Reader</span></span><span>
+</span><span id="line-13"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><span class="hs-identifier">Data.Time.Clock</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">DiffTime</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">UTCTime</span></span><span class="hs-special">)</span><span>
+</span><span id="line-14"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Data.Time.Clock</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Time</span></span><span>
+</span><span id="line-15"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><span class="hs-identifier">Data.Word</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Word64</span></span><span class="hs-special">)</span><span>
+</span><span id="line-16"></span><span>
+</span><span id="line-17"></span><span class="hs-comment">-- | A point in time in a monotonic clock.</span><span>
+</span><span id="line-18"></span><span class="hs-comment">--</span><span>
+</span><span id="line-19"></span><span class="hs-comment">-- The epoch for this clock is arbitrary and does not correspond to any wall</span><span>
+</span><span id="line-20"></span><span class="hs-comment">-- clock or calendar, and is /not guaranteed/ to be the same epoch across</span><span>
+</span><span id="line-21"></span><span class="hs-comment">-- program runs. It is represented as the 'DiffTime' from this arbitrary epoch.</span><span>
+</span><span id="line-22"></span><span class="hs-comment">--</span><span>
+</span><span id="line-23"></span><span class="hs-keyword">newtype</span><span> </span><span id="Time"><span class="annot"><a href="Control.Monad.Class.MonadTime.html#Time"><span class="hs-identifier hs-var">Time</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="Time"><span class="annot"><a href="Control.Monad.Class.MonadTime.html#Time"><span class="hs-identifier hs-var">Time</span></a></span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">DiffTime</span></span><span>
+</span><span id="line-24"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679075480"><span id="local-6989586621679075482"><span class="annot"><span class="annottext">Time -&gt; Time -&gt; Bool
+(Time -&gt; Time -&gt; Bool) -&gt; (Time -&gt; Time -&gt; Bool) -&gt; Eq Time
+forall a. (a -&gt; a -&gt; Bool) -&gt; (a -&gt; a -&gt; Bool) -&gt; Eq a
+/= :: Time -&gt; Time -&gt; Bool
+$c/= :: Time -&gt; Time -&gt; Bool
+== :: Time -&gt; Time -&gt; Bool
+$c== :: Time -&gt; Time -&gt; Bool
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679075464"><span id="local-6989586621679075466"><span id="local-6989586621679075468"><span id="local-6989586621679075470"><span id="local-6989586621679075472"><span id="local-6989586621679075474"><span id="local-6989586621679075476"><span class="annot"><span class="annottext">Eq Time
+Eq Time
+-&gt; (Time -&gt; Time -&gt; Ordering)
+-&gt; (Time -&gt; Time -&gt; Bool)
+-&gt; (Time -&gt; Time -&gt; Bool)
+-&gt; (Time -&gt; Time -&gt; Bool)
+-&gt; (Time -&gt; Time -&gt; Bool)
+-&gt; (Time -&gt; Time -&gt; Time)
+-&gt; (Time -&gt; Time -&gt; Time)
+-&gt; Ord Time
+Time -&gt; Time -&gt; Bool
+Time -&gt; Time -&gt; Ordering
+Time -&gt; Time -&gt; Time
+forall a.
+Eq a
+-&gt; (a -&gt; a -&gt; Ordering)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; a)
+-&gt; (a -&gt; a -&gt; a)
+-&gt; Ord a
+min :: Time -&gt; Time -&gt; Time
+$cmin :: Time -&gt; Time -&gt; Time
+max :: Time -&gt; Time -&gt; Time
+$cmax :: Time -&gt; Time -&gt; Time
+&gt;= :: Time -&gt; Time -&gt; Bool
+$c&gt;= :: Time -&gt; Time -&gt; Bool
+&gt; :: Time -&gt; Time -&gt; Bool
+$c&gt; :: Time -&gt; Time -&gt; Bool
+&lt;= :: Time -&gt; Time -&gt; Bool
+$c&lt;= :: Time -&gt; Time -&gt; Bool
+&lt; :: Time -&gt; Time -&gt; Bool
+$c&lt; :: Time -&gt; Time -&gt; Bool
+compare :: Time -&gt; Time -&gt; Ordering
+$ccompare :: Time -&gt; Time -&gt; Ordering
+$cp1Ord :: Eq Time
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Ord</span></span></span></span></span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679075457"><span id="local-6989586621679075459"><span id="local-6989586621679075461"><span class="annot"><span class="annottext">Int -&gt; Time -&gt; ShowS
+[Time] -&gt; ShowS
+Time -&gt; String
+(Int -&gt; Time -&gt; ShowS)
+-&gt; (Time -&gt; String) -&gt; ([Time] -&gt; ShowS) -&gt; Show Time
+forall a.
+(Int -&gt; a -&gt; ShowS) -&gt; (a -&gt; String) -&gt; ([a] -&gt; ShowS) -&gt; Show a
+showList :: [Time] -&gt; ShowS
+$cshowList :: [Time] -&gt; ShowS
+show :: Time -&gt; String
+$cshow :: Time -&gt; String
+showsPrec :: Int -&gt; Time -&gt; ShowS
+$cshowsPrec :: Int -&gt; Time -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">)</span><span>
+</span><span id="line-25"></span><span>
+</span><span id="line-26"></span><span class="hs-comment">-- | The time duration between two points in time (positive or negative).</span><span>
+</span><span id="line-27"></span><span class="annot"><a href="Control.Monad.Class.MonadTime.html#diffTime"><span class="hs-identifier hs-type">diffTime</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Control.Monad.Class.MonadTime.html#Time"><span class="hs-identifier hs-type">Time</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Control.Monad.Class.MonadTime.html#Time"><span class="hs-identifier hs-type">Time</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">DiffTime</span></span><span>
+</span><span id="line-28"></span><span id="diffTime"><span class="annot"><span class="annottext">diffTime :: Time -&gt; Time -&gt; DiffTime
+</span><a href="Control.Monad.Class.MonadTime.html#diffTime"><span class="hs-identifier hs-var hs-var">diffTime</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Control.Monad.Class.MonadTime.html#Time"><span class="hs-identifier hs-type">Time</span></a></span><span> </span><span id="local-6989586621679075455"><span class="annot"><span class="annottext">DiffTime
+</span><a href="#local-6989586621679075455"><span class="hs-identifier hs-var">t</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Control.Monad.Class.MonadTime.html#Time"><span class="hs-identifier hs-type">Time</span></a></span><span> </span><span id="local-6989586621679075454"><span class="annot"><span class="annottext">DiffTime
+</span><a href="#local-6989586621679075454"><span class="hs-identifier hs-var">t'</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">DiffTime
+</span><a href="#local-6989586621679075455"><span class="hs-identifier hs-var">t</span></a></span><span> </span><span class="annot"><span class="annottext">DiffTime -&gt; DiffTime -&gt; DiffTime
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-glyph hs-var">-</span></span><span> </span><span class="annot"><span class="annottext">DiffTime
+</span><a href="#local-6989586621679075454"><span class="hs-identifier hs-var">t'</span></a></span><span>
+</span><span id="line-29"></span><span>
+</span><span id="line-30"></span><span class="hs-comment">-- | Add a duration to a point in time, giving another time.</span><span>
+</span><span id="line-31"></span><span class="annot"><a href="Control.Monad.Class.MonadTime.html#addTime"><span class="hs-identifier hs-type">addTime</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">DiffTime</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Control.Monad.Class.MonadTime.html#Time"><span class="hs-identifier hs-type">Time</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Control.Monad.Class.MonadTime.html#Time"><span class="hs-identifier hs-type">Time</span></a></span><span>
+</span><span id="line-32"></span><span id="addTime"><span class="annot"><span class="annottext">addTime :: DiffTime -&gt; Time -&gt; Time
+</span><a href="Control.Monad.Class.MonadTime.html#addTime"><span class="hs-identifier hs-var hs-var">addTime</span></a></span></span><span> </span><span id="local-6989586621679075453"><span class="annot"><span class="annottext">DiffTime
+</span><a href="#local-6989586621679075453"><span class="hs-identifier hs-var">d</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Control.Monad.Class.MonadTime.html#Time"><span class="hs-identifier hs-type">Time</span></a></span><span> </span><span id="local-6989586621679075452"><span class="annot"><span class="annottext">DiffTime
+</span><a href="#local-6989586621679075452"><span class="hs-identifier hs-var">t</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">DiffTime -&gt; Time
+</span><a href="Control.Monad.Class.MonadTime.html#Time"><span class="hs-identifier hs-var">Time</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">DiffTime
+</span><a href="#local-6989586621679075453"><span class="hs-identifier hs-var">d</span></a></span><span> </span><span class="annot"><span class="annottext">DiffTime -&gt; DiffTime -&gt; DiffTime
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="annottext">DiffTime
+</span><a href="#local-6989586621679075452"><span class="hs-identifier hs-var">t</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-33"></span><span>
+</span><span id="line-34"></span><span>
+</span><span id="line-35"></span><span class="hs-keyword">class</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Monad</span></span><span> </span><span class="annot"><a href="#local-6989586621679075506"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span id="MonadMonotonicTime"><span class="annot"><a href="Control.Monad.Class.MonadTime.html#MonadMonotonicTime"><span class="hs-identifier hs-var">MonadMonotonicTime</span></a></span></span><span> </span><span id="local-6989586621679075506"><span class="annot"><a href="#local-6989586621679075506"><span class="hs-identifier hs-type">m</span></a></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-36"></span><span>  </span><span class="hs-comment">-- | Time in a monotonic clock, with high precision. The epoch for this</span><span>
+</span><span id="line-37"></span><span>  </span><span class="hs-comment">-- clock is arbitrary and does not correspond to any wall clock or calendar.</span><span>
+</span><span id="line-38"></span><span>  </span><span class="hs-comment">--</span><span>
+</span><span id="line-39"></span><span>  </span><span id="getMonotonicTime"><span class="annot"><a href="Control.Monad.Class.MonadTime.html#getMonotonicTime"><span class="hs-identifier hs-type">getMonotonicTime</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="#local-6989586621679075506"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><a href="Control.Monad.Class.MonadTime.html#Time"><span class="hs-identifier hs-type">Time</span></a></span><span>
+</span><span id="line-40"></span><span>
+</span><span id="line-41"></span><span class="hs-keyword">class</span><span> </span><span class="annot"><a href="Control.Monad.Class.MonadTime.html#MonadMonotonicTime"><span class="hs-identifier hs-type">MonadMonotonicTime</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679075496"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span id="MonadTime"><span class="annot"><a href="Control.Monad.Class.MonadTime.html#MonadTime"><span class="hs-identifier hs-var">MonadTime</span></a></span></span><span> </span><span id="local-6989586621679075496"><span class="annot"><a href="#local-6989586621679075496"><span class="hs-identifier hs-type">m</span></a></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-42"></span><span>  </span><span class="hs-comment">-- | Wall clock time.</span><span>
+</span><span id="line-43"></span><span>  </span><span class="hs-comment">--</span><span>
+</span><span id="line-44"></span><span>  </span><span id="getCurrentTime"><span class="annot"><a href="Control.Monad.Class.MonadTime.html#getCurrentTime"><span class="hs-identifier hs-type">getCurrentTime</span></a></span></span><span>   </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="#local-6989586621679075496"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">UTCTime</span></span><span>
+</span><span id="line-45"></span><span>
+</span><span id="line-46"></span><span class="hs-comment">--</span><span>
+</span><span id="line-47"></span><span class="hs-comment">-- Instances for IO</span><span>
+</span><span id="line-48"></span><span class="hs-comment">--</span><span>
+</span><span id="line-49"></span><span>
+</span><span id="line-50"></span><span class="hs-keyword">instance</span><span> </span><span class="annot"><a href="Control.Monad.Class.MonadTime.html#MonadMonotonicTime"><span class="hs-identifier hs-type">MonadMonotonicTime</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">IO</span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-51"></span><span>  </span><span id="local-6989586621679075445"><span class="annot"><span class="annottext">getMonotonicTime :: IO Time
+</span><a href="#local-6989586621679075445"><span class="hs-identifier hs-var hs-var hs-var hs-var">getMonotonicTime</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-52"></span><span>      </span><span class="annot"><span class="annottext">(Word64 -&gt; Time) -&gt; IO Word64 -&gt; IO Time
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-identifier hs-var">fmap</span></span><span> </span><span class="annot"><span class="annottext">Word64 -&gt; Time
+</span><a href="#local-6989586621679075444"><span class="hs-identifier hs-var">conv</span></a></span><span> </span><span class="annot"><span class="annottext">IO Word64
+</span><a href="Control.Monad.Class.MonadTime.html#getMonotonicNSec"><span class="hs-identifier hs-var">getMonotonicNSec</span></a></span><span>
+</span><span id="line-53"></span><span>    </span><span class="hs-keyword">where</span><span>
+</span><span id="line-54"></span><span>      </span><span class="annot"><a href="#local-6989586621679075444"><span class="hs-identifier hs-type">conv</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Word64</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Control.Monad.Class.MonadTime.html#Time"><span class="hs-identifier hs-type">Time</span></a></span><span>
+</span><span id="line-55"></span><span>      </span><span id="local-6989586621679075444"><span class="annot"><span class="annottext">conv :: Word64 -&gt; Time
+</span><a href="#local-6989586621679075444"><span class="hs-identifier hs-var hs-var">conv</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">DiffTime -&gt; Time
+</span><a href="Control.Monad.Class.MonadTime.html#Time"><span class="hs-identifier hs-var">Time</span></a></span><span> </span><span class="annot"><span class="annottext">(DiffTime -&gt; Time) -&gt; (Word64 -&gt; DiffTime) -&gt; Word64 -&gt; Time
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; DiffTime
+</span><span class="hs-identifier hs-var">Time.picosecondsToDiffTime</span></span><span> </span><span class="annot"><span class="annottext">(Integer -&gt; DiffTime) -&gt; (Word64 -&gt; Integer) -&gt; Word64 -&gt; DiffTime
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Integer -&gt; Integer -&gt; Integer
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">*</span></span><span> </span><span class="annot"><span class="annottext">Integer
+</span><span class="hs-number">1000</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(Integer -&gt; Integer) -&gt; (Word64 -&gt; Integer) -&gt; Word64 -&gt; Integer
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Word64 -&gt; Integer
+forall a. Integral a =&gt; a -&gt; Integer
+</span><span class="hs-identifier hs-var">toInteger</span></span><span>
+</span><span id="line-56"></span><span>
+</span><span id="line-57"></span><span class="hs-keyword">instance</span><span> </span><span class="annot"><a href="Control.Monad.Class.MonadTime.html#MonadTime"><span class="hs-identifier hs-type">MonadTime</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">IO</span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-58"></span><span>  </span><span id="local-6989586621679075436"><span class="annot"><span class="annottext">getCurrentTime :: IO UTCTime
+</span><a href="#local-6989586621679075436"><span class="hs-identifier hs-var hs-var hs-var hs-var">getCurrentTime</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">IO UTCTime
+</span><span class="hs-identifier hs-var">Time.getCurrentTime</span></span><span>
+</span><span id="line-59"></span><span>
+</span><span id="line-60"></span><span class="hs-keyword">foreign</span><span> </span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-keyword">ccall</span></span><span> </span><span class="annot"><span class="hs-keyword">unsafe</span></span><span> </span><span class="annot"><span class="hs-string">&quot;getMonotonicNSec&quot;</span></span><span>
+</span><span id="line-61"></span><span>    </span><span id="getMonotonicNSec"><span class="annot"><a href="Control.Monad.Class.MonadTime.html#getMonotonicNSec"><span class="hs-identifier hs-var">getMonotonicNSec</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">IO</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Word64</span></span><span>
+</span><span id="line-62"></span><span>
+</span><span id="line-63"></span><span class="hs-comment">--</span><span>
+</span><span id="line-64"></span><span class="hs-comment">-- Instance for ReaderT</span><span>
+</span><span id="line-65"></span><span class="hs-comment">--</span><span>
+</span><span id="line-66"></span><span>
+</span><span id="line-67"></span><span id="local-6989586621679075433"><span id="local-6989586621679075434"><span class="hs-keyword">instance</span><span> </span><span class="annot"><a href="Control.Monad.Class.MonadTime.html#MonadMonotonicTime"><span class="hs-identifier hs-type">MonadMonotonicTime</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679075434"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Control.Monad.Class.MonadTime.html#MonadMonotonicTime"><span class="hs-identifier hs-type">MonadMonotonicTime</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">ReaderT</span></span><span> </span><span class="annot"><a href="#local-6989586621679075433"><span class="hs-identifier hs-type">r</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679075434"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-68"></span><span>  </span><span id="local-6989586621679075430"><span class="annot"><span class="annottext">getMonotonicTime :: ReaderT r m Time
+</span><a href="#local-6989586621679075430"><span class="hs-identifier hs-var hs-var hs-var hs-var">getMonotonicTime</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">m Time -&gt; ReaderT r m Time
+forall (t :: (* -&gt; *) -&gt; * -&gt; *) (m :: * -&gt; *) a.
+(MonadTrans t, Monad m) =&gt;
+m a -&gt; t m a
+</span><span class="hs-identifier hs-var">lift</span></span><span> </span><span class="annot"><span class="annottext">m Time
+forall (m :: * -&gt; *). MonadMonotonicTime m =&gt; m Time
+</span><a href="Control.Monad.Class.MonadTime.html#getMonotonicTime"><span class="hs-identifier hs-var">getMonotonicTime</span></a></span></span></span><span>
+</span><span id="line-69"></span><span>
+</span><span id="line-70"></span><span id="local-6989586621679075427"><span id="local-6989586621679075428"><span class="hs-keyword">instance</span><span> </span><span class="annot"><a href="Control.Monad.Class.MonadTime.html#MonadTime"><span class="hs-identifier hs-type">MonadTime</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679075428"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Control.Monad.Class.MonadTime.html#MonadTime"><span class="hs-identifier hs-type">MonadTime</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">ReaderT</span></span><span> </span><span class="annot"><a href="#local-6989586621679075427"><span class="hs-identifier hs-type">r</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679075428"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-71"></span><span>  </span><span id="local-6989586621679075424"><span class="annot"><span class="annottext">getCurrentTime :: ReaderT r m UTCTime
+</span><a href="#local-6989586621679075424"><span class="hs-identifier hs-var hs-var hs-var hs-var">getCurrentTime</span></a></span></span><span>   </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">m UTCTime -&gt; ReaderT r m UTCTime
+forall (t :: (* -&gt; *) -&gt; * -&gt; *) (m :: * -&gt; *) a.
+(MonadTrans t, Monad m) =&gt;
+m a -&gt; t m a
+</span><span class="hs-identifier hs-var">lift</span></span><span> </span><span class="annot"><span class="annottext">m UTCTime
+forall (m :: * -&gt; *). MonadTime m =&gt; m UTCTime
+</span><a href="Control.Monad.Class.MonadTime.html#getCurrentTime"><span class="hs-identifier hs-var">getCurrentTime</span></a></span></span></span><span>
+</span><span id="line-72"></span></pre></body></html>

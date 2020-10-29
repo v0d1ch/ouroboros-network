@@ -1,76 +1,251 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-pragma">{-# LANGUAGE DeriveGeneric #-}</span><span>
-</span><a name="line-2"></a><span class="hs-pragma">{-# LANGUAGE EmptyDataDecls #-}</span><span>
-</span><a name="line-3"></a><span class="hs-pragma">{-# LANGUAGE EmptyDataDeriving #-}</span><span>
-</span><a name="line-4"></a><span class="hs-pragma">{-# LANGUAGE FlexibleInstances #-}</span><span>
-</span><a name="line-5"></a><span class="hs-pragma">{-# LANGUAGE LambdaCase #-}</span><span>
-</span><a name="line-6"></a><span class="hs-pragma">{-# LANGUAGE OverloadedStrings #-}</span><span>
-</span><a name="line-7"></a><span class="hs-pragma">{-# LANGUAGE Rank2Types #-}</span><span>
-</span><a name="line-8"></a><span class="hs-pragma">{-# LANGUAGE TypeFamilies #-}</span><span>
-</span><a name="line-9"></a><span>
-</span><a name="line-10"></a><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Shelley.Spec.Ledger.STS.Updn</span><span>
-</span><a name="line-11"></a><span>  </span><span class="hs-special">(</span><span> </span><a href="Shelley.Spec.Ledger.STS.Updn.html#UPDN"><span class="hs-identifier hs-type">UPDN</span></a><span class="hs-special">,</span><span>
-</span><a name="line-12"></a><span>    </span><a href="Shelley.Spec.Ledger.STS.Updn.html#UpdnEnv"><span class="hs-identifier hs-type">UpdnEnv</span></a><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span>
-</span><a name="line-13"></a><span>    </span><a href="Shelley.Spec.Ledger.STS.Updn.html#UpdnState"><span class="hs-identifier hs-type">UpdnState</span></a><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span>
-</span><a name="line-14"></a><span>    </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/small-steps-0.1.0.0/noopt/doc/html/small-steps/src/Control.State.Transition.Extended.html#PredicateFailure"><span class="hs-identifier hs-type">PredicateFailure</span></a><span class="hs-special">,</span><span>
-</span><a name="line-15"></a><span>    </span><a href="Shelley.Spec.Ledger.STS.Updn.html#UpdnPredicateFailure"><span class="hs-identifier hs-type">UpdnPredicateFailure</span></a><span class="hs-special">,</span><span>
-</span><a name="line-16"></a><span>  </span><span class="hs-special">)</span><span>
-</span><a name="line-17"></a><span class="hs-keyword">where</span><span>
-</span><a name="line-18"></a><span>
-</span><a name="line-19"></a><span class="hs-keyword">import</span><span> </span><a href="Cardano.Ledger.Era.html"><span class="hs-identifier">Cardano.Ledger.Era</span></a><span>
-</span><a name="line-20"></a><span class="hs-keyword">import</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-prelude-0.1.0.0/noopt/doc/html/cardano-prelude/src/Cardano.Prelude.html"><span class="hs-identifier">Cardano.Prelude</span></a><span> </span><span class="hs-special">(</span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-prelude-0.1.0.0/noopt/doc/html/cardano-prelude/src/Cardano.Prelude.GHC.Heap.NormalForm.Classy.html#NoUnexpectedThunks"><span class="hs-identifier hs-type">NoUnexpectedThunks</span></a><span class="hs-special">)</span><span>
-</span><a name="line-21"></a><span class="hs-keyword">import</span><span> </span><span class="hs-identifier">Control.Monad.Trans.Reader</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-var">asks</span><span class="hs-special">)</span><span>
-</span><a name="line-22"></a><span class="hs-keyword">import</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/small-steps-0.1.0.0/noopt/doc/html/small-steps/src/Control.State.Transition.html"><span class="hs-identifier">Control.State.Transition</span></a><span>
-</span><a name="line-23"></a><span class="hs-keyword">import</span><span> </span><span class="hs-identifier">GHC.Generics</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Generic</span><span class="hs-special">)</span><span>
-</span><a name="line-24"></a><span class="hs-keyword">import</span><span> </span><a href="Shelley.Spec.Ledger.BaseTypes.html"><span class="hs-identifier">Shelley.Spec.Ledger.BaseTypes</span></a><span>
-</span><a name="line-25"></a><span class="hs-keyword">import</span><span> </span><a href="Shelley.Spec.Ledger.Slot.html"><span class="hs-identifier">Shelley.Spec.Ledger.Slot</span></a><span>
-</span><a name="line-26"></a><span>
-</span><a name="line-27"></a><span class="hs-keyword">data</span><span> </span><a name="UPDN"><a href="Shelley.Spec.Ledger.STS.Updn.html#UPDN"><span class="hs-identifier">UPDN</span></a></a><span> </span><a name="local-6989586621679290217"><a href="#local-6989586621679290217"><span class="hs-identifier">era</span></a></a><span>
-</span><a name="line-28"></a><span>
-</span><a name="line-29"></a><span class="hs-keyword">newtype</span><span> </span><a name="UpdnEnv"><a href="Shelley.Spec.Ledger.STS.Updn.html#UpdnEnv"><span class="hs-identifier">UpdnEnv</span></a></a><span>
-</span><a name="line-30"></a><span>  </span><span class="hs-glyph">=</span><span> </span><span class="hs-comment">-- | New nonce</span><span>
-</span><a name="line-31"></a><span>    </span><a name="UpdnEnv"><a href="Shelley.Spec.Ledger.STS.Updn.html#UpdnEnv"><span class="hs-identifier">UpdnEnv</span></a></a><span>
-</span><a name="line-32"></a><span>      </span><a href="Shelley.Spec.Ledger.BaseTypes.html#Nonce"><span class="hs-identifier hs-type">Nonce</span></a><span>
-</span><a name="line-33"></a><span>
-</span><a name="line-34"></a><span class="hs-keyword">data</span><span> </span><a name="UpdnState"><a href="Shelley.Spec.Ledger.STS.Updn.html#UpdnState"><span class="hs-identifier">UpdnState</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><a name="UpdnState"><a href="Shelley.Spec.Ledger.STS.Updn.html#UpdnState"><span class="hs-identifier">UpdnState</span></a></a><span> </span><a href="Shelley.Spec.Ledger.BaseTypes.html#Nonce"><span class="hs-identifier hs-type">Nonce</span></a><span> </span><a href="Shelley.Spec.Ledger.BaseTypes.html#Nonce"><span class="hs-identifier hs-type">Nonce</span></a><span>
-</span><a name="line-35"></a><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Show</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Eq</span><span class="hs-special">)</span><span>
-</span><a name="line-36"></a><span>
-</span><a name="line-37"></a><span class="hs-keyword">data</span><span> </span><a name="UpdnPredicateFailure"><a href="Shelley.Spec.Ledger.STS.Updn.html#UpdnPredicateFailure"><span class="hs-identifier">UpdnPredicateFailure</span></a></a><span> </span><a name="local-6989586621679290216"><a href="#local-6989586621679290216"><span class="hs-identifier">era</span></a></a><span> </span><span class="hs-comment">-- No predicate failures</span><span>
-</span><a name="line-38"></a><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Generic</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Show</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Eq</span><span class="hs-special">)</span><span>
-</span><a name="line-39"></a><span>
-</span><a name="line-40"></a><span class="hs-keyword">instance</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-prelude-0.1.0.0/noopt/doc/html/cardano-prelude/src/Cardano.Prelude.GHC.Heap.NormalForm.Classy.html#NoUnexpectedThunks"><span class="hs-identifier hs-type">NoUnexpectedThunks</span></a><span> </span><span class="hs-special">(</span><a href="Shelley.Spec.Ledger.STS.Updn.html#UpdnPredicateFailure"><span class="hs-identifier hs-type">UpdnPredicateFailure</span></a><span> </span><a href="#local-6989586621679290220"><span class="hs-identifier hs-type">era</span></a><span class="hs-special">)</span><span>
-</span><a name="line-41"></a><span>
-</span><a name="line-42"></a><span class="hs-keyword">instance</span><span>
-</span><a name="line-43"></a><span>  </span><span class="hs-special">(</span><a href="Cardano.Ledger.Era.html#Era"><span class="hs-identifier hs-type">Era</span></a><span> </span><a href="#local-6989586621679290218"><span class="hs-identifier hs-type">era</span></a><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
-</span><a name="line-44"></a><span>  </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/small-steps-0.1.0.0/noopt/doc/html/small-steps/src/Control.State.Transition.Extended.html#STS"><span class="hs-identifier hs-type">STS</span></a><span> </span><span class="hs-special">(</span><a href="Shelley.Spec.Ledger.STS.Updn.html#UPDN"><span class="hs-identifier hs-type">UPDN</span></a><span> </span><a href="#local-6989586621679290218"><span class="hs-identifier hs-type">era</span></a><span class="hs-special">)</span><span>
-</span><a name="line-45"></a><span>  </span><span class="hs-keyword">where</span><span>
-</span><a name="line-46"></a><span>  </span><span class="hs-keyword">type</span><span> </span><span class="hs-identifier">State</span><span> </span><span class="hs-special">(</span><a href="Shelley.Spec.Ledger.STS.Updn.html#UPDN"><span class="hs-identifier hs-type">UPDN</span></a><span> </span><a href="#local-6989586621679290218"><span class="hs-identifier hs-type">era</span></a><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><a href="Shelley.Spec.Ledger.STS.Updn.html#UpdnState"><span class="hs-identifier hs-type">UpdnState</span></a><span>
-</span><a name="line-47"></a><span>  </span><span class="hs-keyword">type</span><span> </span><span class="hs-identifier">Signal</span><span> </span><span class="hs-special">(</span><a href="Shelley.Spec.Ledger.STS.Updn.html#UPDN"><span class="hs-identifier hs-type">UPDN</span></a><span> </span><a href="#local-6989586621679290218"><span class="hs-identifier hs-type">era</span></a><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-slotting-0.1.0.0/noopt/doc/html/cardano-slotting/src/Cardano.Slotting.Slot.html#SlotNo"><span class="hs-identifier hs-type">SlotNo</span></a><span>
-</span><a name="line-48"></a><span>  </span><span class="hs-keyword">type</span><span> </span><span class="hs-identifier">Environment</span><span> </span><span class="hs-special">(</span><a href="Shelley.Spec.Ledger.STS.Updn.html#UPDN"><span class="hs-identifier hs-type">UPDN</span></a><span> </span><a href="#local-6989586621679290218"><span class="hs-identifier hs-type">era</span></a><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><a href="Shelley.Spec.Ledger.STS.Updn.html#UpdnEnv"><span class="hs-identifier hs-type">UpdnEnv</span></a><span>
-</span><a name="line-49"></a><span>  </span><span class="hs-keyword">type</span><span> </span><span class="hs-identifier">BaseM</span><span> </span><span class="hs-special">(</span><a href="Shelley.Spec.Ledger.STS.Updn.html#UPDN"><span class="hs-identifier hs-type">UPDN</span></a><span> </span><a href="#local-6989586621679290218"><span class="hs-identifier hs-type">era</span></a><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><a href="Shelley.Spec.Ledger.BaseTypes.html#ShelleyBase"><span class="hs-identifier hs-type">ShelleyBase</span></a><span>
-</span><a name="line-50"></a><span>  </span><span class="hs-keyword">type</span><span> </span><span class="hs-identifier">PredicateFailure</span><span> </span><span class="hs-special">(</span><a href="Shelley.Spec.Ledger.STS.Updn.html#UPDN"><span class="hs-identifier hs-type">UPDN</span></a><span> </span><a href="#local-6989586621679290218"><span class="hs-identifier hs-type">era</span></a><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><a href="Shelley.Spec.Ledger.STS.Updn.html#UpdnPredicateFailure"><span class="hs-identifier hs-type">UpdnPredicateFailure</span></a><span> </span><a href="#local-6989586621679290218"><span class="hs-identifier hs-type">era</span></a><span>
-</span><a name="line-51"></a><span>  </span><a name="local-8214565720323804389"><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/small-steps-0.1.0.0/noopt/doc/html/small-steps/src/Control.State.Transition.Extended.html#initialRules"><span class="hs-identifier">initialRules</span></a></a><span> </span><span class="hs-glyph">=</span><span>
-</span><a name="line-52"></a><span>    </span><span class="hs-special">[</span><span> </span><span class="hs-identifier hs-var">pure</span><span>
-</span><a name="line-53"></a><span>        </span><span class="hs-special">(</span><span> </span><a href="Shelley.Spec.Ledger.STS.Updn.html#UpdnState"><span class="hs-identifier hs-var">UpdnState</span></a><span>
-</span><a name="line-54"></a><span>            </span><a href="#local-6989586621679290219"><span class="hs-identifier hs-var">initialNonce</span></a><span>
-</span><a name="line-55"></a><span>            </span><a href="#local-6989586621679290219"><span class="hs-identifier hs-var">initialNonce</span></a><span>
-</span><a name="line-56"></a><span>        </span><span class="hs-special">)</span><span>
-</span><a name="line-57"></a><span>    </span><span class="hs-special">]</span><span>
-</span><a name="line-58"></a><span>    </span><span class="hs-keyword">where</span><span>
-</span><a name="line-59"></a><span>      </span><a name="local-6989586621679290219"><a href="#local-6989586621679290219"><span class="hs-identifier">initialNonce</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><a href="Shelley.Spec.Ledger.BaseTypes.html#mkNonceFromNumber"><span class="hs-identifier hs-var">mkNonceFromNumber</span></a><span> </span><span class="hs-number">0</span><span>
-</span><a name="line-60"></a><span>  </span><a name="local-8214565720323804388"><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/small-steps-0.1.0.0/noopt/doc/html/small-steps/src/Control.State.Transition.Extended.html#transitionRules"><span class="hs-identifier">transitionRules</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">[</span><a href="Shelley.Spec.Ledger.STS.Updn.html#updTransition"><span class="hs-identifier hs-var">updTransition</span></a><span class="hs-special">]</span><span>
-</span><a name="line-61"></a><span>
-</span><a name="line-62"></a><span class="hs-identifier">updTransition</span><span> </span><span class="hs-glyph">::</span><span> </span><a href="Cardano.Ledger.Era.html#Era"><span class="hs-identifier hs-type">Era</span></a><span> </span><a href="#local-6989586621679290221"><span class="hs-identifier hs-type">era</span></a><span> </span><span class="hs-glyph">=&gt;</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/small-steps-0.1.0.0/noopt/doc/html/small-steps/src/Control.State.Transition.Extended.html#TransitionRule"><span class="hs-identifier hs-type">TransitionRule</span></a><span> </span><span class="hs-special">(</span><a href="Shelley.Spec.Ledger.STS.Updn.html#UPDN"><span class="hs-identifier hs-type">UPDN</span></a><span> </span><a href="#local-6989586621679290221"><span class="hs-identifier hs-type">era</span></a><span class="hs-special">)</span><span>
-</span><a name="line-63"></a><a name="updTransition"><a href="Shelley.Spec.Ledger.STS.Updn.html#updTransition"><span class="hs-identifier">updTransition</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
-</span><a name="line-64"></a><span>  </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/small-steps-0.1.0.0/noopt/doc/html/small-steps/src/Control.State.Transition.Extended.html#TRC"><span class="hs-identifier hs-var">TRC</span></a><span> </span><span class="hs-special">(</span><a href="Shelley.Spec.Ledger.STS.Updn.html#UpdnEnv"><span class="hs-identifier hs-var">UpdnEnv</span></a><span> </span><a name="local-6989586621679290222"><a href="#local-6989586621679290222"><span class="hs-identifier">eta</span></a></a><span class="hs-special">,</span><span> </span><a href="Shelley.Spec.Ledger.STS.Updn.html#UpdnState"><span class="hs-identifier hs-var">UpdnState</span></a><span> </span><a name="local-6989586621679290223"><a href="#local-6989586621679290223"><span class="hs-identifier">eta_v</span></a></a><span> </span><a name="local-6989586621679290224"><a href="#local-6989586621679290224"><span class="hs-identifier">eta_c</span></a></a><span class="hs-special">,</span><span> </span><a name="local-6989586621679290225"><a href="#local-6989586621679290225"><span class="hs-identifier">s</span></a></a><span class="hs-special">)</span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/small-steps-0.1.0.0/noopt/doc/html/small-steps/src/Control.State.Transition.Extended.html#judgmentContext"><span class="hs-identifier hs-var">judgmentContext</span></a><span>
-</span><a name="line-65"></a><span>  </span><a name="local-6989586621679290226"><a href="#local-6989586621679290226"><span class="hs-identifier">ei</span></a></a><span> </span><span class="hs-glyph">&lt;-</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/small-steps-0.1.0.0/noopt/doc/html/small-steps/src/Control.State.Transition.Extended.html#liftSTS"><span class="hs-identifier hs-var">liftSTS</span></a><span> </span><span class="hs-operator hs-var">$</span><span> </span><span class="hs-identifier hs-var">asks</span><span> </span><span class="hs-identifier">epochInfo</span><span>
-</span><a name="line-66"></a><span>  </span><a name="local-6989586621679290227"><a href="#local-6989586621679290227"><span class="hs-identifier">sp</span></a></a><span> </span><span class="hs-glyph">&lt;-</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/small-steps-0.1.0.0/noopt/doc/html/small-steps/src/Control.State.Transition.Extended.html#liftSTS"><span class="hs-identifier hs-var">liftSTS</span></a><span> </span><span class="hs-operator hs-var">$</span><span> </span><span class="hs-identifier hs-var">asks</span><span> </span><span class="hs-identifier">stabilityWindow</span><span>
-</span><a name="line-67"></a><span>  </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-slotting-0.1.0.0/noopt/doc/html/cardano-slotting/src/Cardano.Slotting.Slot.html#EpochNo"><span class="hs-identifier hs-var">EpochNo</span></a><span> </span><a name="local-6989586621679290228"><a href="#local-6989586621679290228"><span class="hs-identifier">e</span></a></a><span> </span><span class="hs-glyph">&lt;-</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/small-steps-0.1.0.0/noopt/doc/html/small-steps/src/Control.State.Transition.Extended.html#liftSTS"><span class="hs-identifier hs-var">liftSTS</span></a><span> </span><span class="hs-operator hs-var">$</span><span> </span><a href="Shelley.Spec.Ledger.Slot.html#epochInfoEpoch"><span class="hs-identifier hs-var">epochInfoEpoch</span></a><span> </span><a href="#local-6989586621679290226"><span class="hs-identifier hs-var">ei</span></a><span> </span><a href="#local-6989586621679290225"><span class="hs-identifier hs-var">s</span></a><span>
-</span><a name="line-68"></a><span>  </span><a name="local-6989586621679290229"><a href="#local-6989586621679290229"><span class="hs-identifier">firstSlotNextEpoch</span></a></a><span> </span><span class="hs-glyph">&lt;-</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/small-steps-0.1.0.0/noopt/doc/html/small-steps/src/Control.State.Transition.Extended.html#liftSTS"><span class="hs-identifier hs-var">liftSTS</span></a><span> </span><span class="hs-operator hs-var">$</span><span> </span><a href="Shelley.Spec.Ledger.Slot.html#epochInfoFirst"><span class="hs-identifier hs-var">epochInfoFirst</span></a><span> </span><a href="#local-6989586621679290226"><span class="hs-identifier hs-var">ei</span></a><span> </span><span class="hs-special">(</span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-slotting-0.1.0.0/noopt/doc/html/cardano-slotting/src/Cardano.Slotting.Slot.html#EpochNo"><span class="hs-identifier hs-var">EpochNo</span></a><span> </span><span class="hs-special">(</span><a href="#local-6989586621679290228"><span class="hs-identifier hs-var">e</span></a><span> </span><span class="hs-operator hs-var">+</span><span> </span><span class="hs-number">1</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
-</span><a name="line-69"></a><span>  </span><span class="hs-identifier hs-var">pure</span><span> </span><span class="hs-operator hs-var">$</span><span>
-</span><a name="line-70"></a><span>    </span><a href="Shelley.Spec.Ledger.STS.Updn.html#UpdnState"><span class="hs-identifier hs-var">UpdnState</span></a><span>
-</span><a name="line-71"></a><span>      </span><span class="hs-special">(</span><a href="#local-6989586621679290223"><span class="hs-identifier hs-var">eta_v</span></a><span> </span><a href="Shelley.Spec.Ledger.BaseTypes.html#%2B52"><span class="hs-operator hs-var">&#11090;</span></a><span> </span><a href="#local-6989586621679290222"><span class="hs-identifier hs-var">eta</span></a><span class="hs-special">)</span><span>
-</span><a name="line-72"></a><span>      </span><span class="hs-special">(</span><span> </span><span class="hs-keyword">if</span><span> </span><a href="#local-6989586621679290225"><span class="hs-identifier hs-var">s</span></a><span> </span><a href="Shelley.Spec.Ledger.Slot.html#%2B%2A"><span class="hs-operator hs-var">+*</span></a><span> </span><a href="Shelley.Spec.Ledger.Slot.html#Duration"><span class="hs-identifier hs-var">Duration</span></a><span> </span><a href="#local-6989586621679290227"><span class="hs-identifier hs-var">sp</span></a><span> </span><span class="hs-operator hs-var">&lt;</span><span> </span><a href="#local-6989586621679290229"><span class="hs-identifier hs-var">firstSlotNextEpoch</span></a><span>
-</span><a name="line-73"></a><span>          </span><span class="hs-keyword">then</span><span> </span><a href="#local-6989586621679290223"><span class="hs-identifier hs-var">eta_v</span></a><span> </span><a href="Shelley.Spec.Ledger.BaseTypes.html#%2B52"><span class="hs-operator hs-var">&#11090;</span></a><span> </span><a href="#local-6989586621679290222"><span class="hs-identifier hs-var">eta</span></a><span>
-</span><a name="line-74"></a><span>          </span><span class="hs-keyword">else</span><span> </span><a href="#local-6989586621679290224"><span class="hs-identifier hs-var">eta_c</span></a><span>
-</span><a name="line-75"></a><span>      </span><span class="hs-special">)</span><span>
-</span><a name="line-76"></a></pre></body></html>
+</span><span id="line-2"></span><span class="hs-pragma">{-# LANGUAGE EmptyDataDecls #-}</span><span>
+</span><span id="line-3"></span><span class="hs-pragma">{-# LANGUAGE EmptyDataDeriving #-}</span><span>
+</span><span id="line-4"></span><span class="hs-pragma">{-# LANGUAGE FlexibleInstances #-}</span><span>
+</span><span id="line-5"></span><span class="hs-pragma">{-# LANGUAGE LambdaCase #-}</span><span>
+</span><span id="line-6"></span><span class="hs-pragma">{-# LANGUAGE OverloadedStrings #-}</span><span>
+</span><span id="line-7"></span><span class="hs-pragma">{-# LANGUAGE Rank2Types #-}</span><span>
+</span><span id="line-8"></span><span class="hs-pragma">{-# LANGUAGE TypeFamilies #-}</span><span>
+</span><span id="line-9"></span><span>
+</span><span id="line-10"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Shelley.Spec.Ledger.STS.Updn</span><span>
+</span><span id="line-11"></span><span>  </span><span class="hs-special">(</span><span> </span><span class="annot"><a href="Shelley.Spec.Ledger.STS.Updn.html#UPDN"><span class="hs-identifier">UPDN</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-12"></span><span>    </span><span class="annot"><a href="Shelley.Spec.Ledger.STS.Updn.html#UpdnEnv"><span class="hs-identifier">UpdnEnv</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span>
+</span><span id="line-13"></span><span>    </span><span class="annot"><a href="Shelley.Spec.Ledger.STS.Updn.html#UpdnState"><span class="hs-identifier">UpdnState</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span>
+</span><span id="line-14"></span><span>    </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/small-steps-0.1.0.0/noopt/doc/html/small-steps/src"><span class="hs-identifier">PredicateFailure</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-15"></span><span>    </span><span class="annot"><a href="Shelley.Spec.Ledger.STS.Updn.html#UpdnPredicateFailure"><span class="hs-identifier">UpdnPredicateFailure</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-16"></span><span>  </span><span class="hs-special">)</span><span>
+</span><span id="line-17"></span><span class="hs-keyword">where</span><span>
+</span><span id="line-18"></span><span>
+</span><span id="line-19"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Cardano.Ledger.Crypto.html"><span class="hs-identifier">Cardano.Ledger.Crypto</span></a></span><span>
+</span><span id="line-20"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Control.Monad.Trans.Reader</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">asks</span></span><span class="hs-special">)</span><span>
+</span><span id="line-21"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/small-steps-0.1.0.0/noopt/doc/html/small-steps/src"><span class="hs-identifier">Control.State.Transition</span></a></span><span>
+</span><span id="line-22"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">GHC.Generics</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Generic</span></span><span class="hs-special">)</span><span>
+</span><span id="line-23"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">NoThunks.Class</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">NoThunks</span></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-24"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Shelley.Spec.Ledger.BaseTypes.html"><span class="hs-identifier">Shelley.Spec.Ledger.BaseTypes</span></a></span><span>
+</span><span id="line-25"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Shelley.Spec.Ledger.Slot.html"><span class="hs-identifier">Shelley.Spec.Ledger.Slot</span></a></span><span>
+</span><span id="line-26"></span><span>
+</span><span id="line-27"></span><span class="hs-keyword">data</span><span> </span><span id="UPDN"><span class="annot"><a href="Shelley.Spec.Ledger.STS.Updn.html#UPDN"><span class="hs-identifier hs-var">UPDN</span></a></span></span><span> </span><span id="local-6989586621680013619"><span class="annot"><a href="#local-6989586621680013619"><span class="hs-identifier hs-type">crypto</span></a></span></span><span>
+</span><span id="line-28"></span><span>
+</span><span id="line-29"></span><span class="hs-keyword">newtype</span><span> </span><span id="UpdnEnv"><span class="annot"><a href="Shelley.Spec.Ledger.STS.Updn.html#UpdnEnv"><span class="hs-identifier hs-var">UpdnEnv</span></a></span></span><span>
+</span><span id="line-30"></span><span>  </span><span class="hs-glyph">=</span><span> </span><span class="hs-comment">-- | New nonce</span><span>
+</span><span id="line-31"></span><span>    </span><span id="UpdnEnv"><span class="annot"><a href="Shelley.Spec.Ledger.STS.Updn.html#UpdnEnv"><span class="hs-identifier hs-var">UpdnEnv</span></a></span></span><span>
+</span><span id="line-32"></span><span>      </span><span class="annot"><a href="Shelley.Spec.Ledger.BaseTypes.html#Nonce"><span class="hs-identifier hs-type">Nonce</span></a></span><span>
+</span><span id="line-33"></span><span>
+</span><span id="line-34"></span><span class="hs-keyword">data</span><span> </span><span id="UpdnState"><span class="annot"><a href="Shelley.Spec.Ledger.STS.Updn.html#UpdnState"><span class="hs-identifier hs-var">UpdnState</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="UpdnState"><span class="annot"><a href="Shelley.Spec.Ledger.STS.Updn.html#UpdnState"><span class="hs-identifier hs-var">UpdnState</span></a></span></span><span> </span><span class="annot"><a href="Shelley.Spec.Ledger.BaseTypes.html#Nonce"><span class="hs-identifier hs-type">Nonce</span></a></span><span> </span><span class="annot"><a href="Shelley.Spec.Ledger.BaseTypes.html#Nonce"><span class="hs-identifier hs-type">Nonce</span></a></span><span>
+</span><span id="line-35"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621680013611"><span id="local-6989586621680013613"><span id="local-6989586621680013615"><span class="annot"><span class="annottext">Int -&gt; UpdnState -&gt; ShowS
+[UpdnState] -&gt; ShowS
+UpdnState -&gt; String
+(Int -&gt; UpdnState -&gt; ShowS)
+-&gt; (UpdnState -&gt; String)
+-&gt; ([UpdnState] -&gt; ShowS)
+-&gt; Show UpdnState
+forall a.
+(Int -&gt; a -&gt; ShowS) -&gt; (a -&gt; String) -&gt; ([a] -&gt; ShowS) -&gt; Show a
+showList :: [UpdnState] -&gt; ShowS
+$cshowList :: [UpdnState] -&gt; ShowS
+show :: UpdnState -&gt; String
+$cshow :: UpdnState -&gt; String
+showsPrec :: Int -&gt; UpdnState -&gt; ShowS
+$cshowsPrec :: Int -&gt; UpdnState -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621680013606"><span id="local-6989586621680013608"><span class="annot"><span class="annottext">UpdnState -&gt; UpdnState -&gt; Bool
+(UpdnState -&gt; UpdnState -&gt; Bool)
+-&gt; (UpdnState -&gt; UpdnState -&gt; Bool) -&gt; Eq UpdnState
+forall a. (a -&gt; a -&gt; Bool) -&gt; (a -&gt; a -&gt; Bool) -&gt; Eq a
+/= :: UpdnState -&gt; UpdnState -&gt; Bool
+$c/= :: UpdnState -&gt; UpdnState -&gt; Bool
+== :: UpdnState -&gt; UpdnState -&gt; Bool
+$c== :: UpdnState -&gt; UpdnState -&gt; Bool
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">)</span><span>
+</span><span id="line-36"></span><span>
+</span><span id="line-37"></span><span id="local-6989586621680013603"><span id="local-6989586621680013604"></span></span><span class="hs-keyword">data</span><span> </span><span id="UpdnPredicateFailure"><span class="annot"><a href="Shelley.Spec.Ledger.STS.Updn.html#UpdnPredicateFailure"><span class="hs-identifier hs-var">UpdnPredicateFailure</span></a></span></span><span> </span><span id="local-6989586621680013602"><span class="annot"><a href="#local-6989586621680013602"><span class="hs-identifier hs-type">crypto</span></a></span></span><span> </span><span class="hs-comment">-- No predicate failures</span><span>
+</span><span id="line-38"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">(forall x.
+ UpdnPredicateFailure crypto -&gt; Rep (UpdnPredicateFailure crypto) x)
+-&gt; (forall x.
+    Rep (UpdnPredicateFailure crypto) x -&gt; UpdnPredicateFailure crypto)
+-&gt; Generic (UpdnPredicateFailure crypto)
+forall x.
+Rep (UpdnPredicateFailure crypto) x -&gt; UpdnPredicateFailure crypto
+forall x.
+UpdnPredicateFailure crypto -&gt; Rep (UpdnPredicateFailure crypto) x
+forall a.
+(forall x. a -&gt; Rep a x) -&gt; (forall x. Rep a x -&gt; a) -&gt; Generic a
+forall crypto x.
+Rep (UpdnPredicateFailure crypto) x -&gt; UpdnPredicateFailure crypto
+forall crypto x.
+UpdnPredicateFailure crypto -&gt; Rep (UpdnPredicateFailure crypto) x
+$cto :: forall crypto x.
+Rep (UpdnPredicateFailure crypto) x -&gt; UpdnPredicateFailure crypto
+$cfrom :: forall crypto x.
+UpdnPredicateFailure crypto -&gt; Rep (UpdnPredicateFailure crypto) x
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">Generic</span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621680013593"><span id="local-6989586621680013595"><span id="local-6989586621680013597"><span class="annot"><span class="annottext">Int -&gt; UpdnPredicateFailure crypto -&gt; ShowS
+[UpdnPredicateFailure crypto] -&gt; ShowS
+UpdnPredicateFailure crypto -&gt; String
+(Int -&gt; UpdnPredicateFailure crypto -&gt; ShowS)
+-&gt; (UpdnPredicateFailure crypto -&gt; String)
+-&gt; ([UpdnPredicateFailure crypto] -&gt; ShowS)
+-&gt; Show (UpdnPredicateFailure crypto)
+forall crypto. Int -&gt; UpdnPredicateFailure crypto -&gt; ShowS
+forall crypto. [UpdnPredicateFailure crypto] -&gt; ShowS
+forall crypto. UpdnPredicateFailure crypto -&gt; String
+forall a.
+(Int -&gt; a -&gt; ShowS) -&gt; (a -&gt; String) -&gt; ([a] -&gt; ShowS) -&gt; Show a
+showList :: [UpdnPredicateFailure crypto] -&gt; ShowS
+$cshowList :: forall crypto. [UpdnPredicateFailure crypto] -&gt; ShowS
+show :: UpdnPredicateFailure crypto -&gt; String
+$cshow :: forall crypto. UpdnPredicateFailure crypto -&gt; String
+showsPrec :: Int -&gt; UpdnPredicateFailure crypto -&gt; ShowS
+$cshowsPrec :: forall crypto. Int -&gt; UpdnPredicateFailure crypto -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621680013589"><span id="local-6989586621680013591"><span class="annot"><span class="annottext">UpdnPredicateFailure crypto -&gt; UpdnPredicateFailure crypto -&gt; Bool
+(UpdnPredicateFailure crypto
+ -&gt; UpdnPredicateFailure crypto -&gt; Bool)
+-&gt; (UpdnPredicateFailure crypto
+    -&gt; UpdnPredicateFailure crypto -&gt; Bool)
+-&gt; Eq (UpdnPredicateFailure crypto)
+forall crypto.
+UpdnPredicateFailure crypto -&gt; UpdnPredicateFailure crypto -&gt; Bool
+forall a. (a -&gt; a -&gt; Bool) -&gt; (a -&gt; a -&gt; Bool) -&gt; Eq a
+/= :: UpdnPredicateFailure crypto -&gt; UpdnPredicateFailure crypto -&gt; Bool
+$c/= :: forall crypto.
+UpdnPredicateFailure crypto -&gt; UpdnPredicateFailure crypto -&gt; Bool
+== :: UpdnPredicateFailure crypto -&gt; UpdnPredicateFailure crypto -&gt; Bool
+$c== :: forall crypto.
+UpdnPredicateFailure crypto -&gt; UpdnPredicateFailure crypto -&gt; Bool
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">)</span><span>
+</span><span id="line-39"></span><span>
+</span><span id="line-40"></span><span id="local-6989586621680013588"><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621680013582"><span id="local-6989586621680013584"><span id="local-6989586621680013586"><span class="annot"><span class="hs-identifier hs-type">NoThunks</span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Shelley.Spec.Ledger.STS.Updn.html#UpdnPredicateFailure"><span class="hs-identifier hs-type">UpdnPredicateFailure</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680013588"><span class="hs-identifier hs-type">crypto</span></a></span><span class="hs-special">)</span></span></span></span></span><span>
+</span><span id="line-41"></span><span>
+</span><span id="line-42"></span><span id="local-6989586621680013580"><span class="hs-keyword">instance</span><span>
+</span><span id="line-43"></span><span>  </span><span id="local-6989586621680013570"><span id="local-6989586621680013572"><span class="hs-special">(</span><span class="annot"><a href="Cardano.Ledger.Crypto.html#Crypto"><span class="hs-identifier hs-type">Crypto</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680013580"><span class="hs-identifier hs-type">crypto</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
+</span><span id="line-44"></span><span>  </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/small-steps-0.1.0.0/noopt/doc/html/small-steps/src"><span class="hs-identifier hs-type">STS</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Shelley.Spec.Ledger.STS.Updn.html#UPDN"><span class="hs-identifier hs-type">UPDN</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680013580"><span class="hs-identifier hs-type">crypto</span></a></span><span class="hs-special">)</span></span></span><span>
+</span><span id="line-45"></span><span>  </span><span class="hs-keyword">where</span><span>
+</span><span id="line-46"></span><span>  </span><span class="hs-keyword">type</span><span> </span><span id="State"><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/small-steps-0.1.0.0/noopt/doc/html/small-steps/src"><span class="hs-identifier hs-var">State</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Shelley.Spec.Ledger.STS.Updn.html#UPDN"><span class="hs-identifier hs-type">UPDN</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680013580"><span class="hs-identifier hs-type">crypto</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><a href="Shelley.Spec.Ledger.STS.Updn.html#UpdnState"><span class="hs-identifier hs-type">UpdnState</span></a></span><span>
+</span><span id="line-47"></span><span>  </span><span class="hs-keyword">type</span><span> </span><span id="Signal"><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/small-steps-0.1.0.0/noopt/doc/html/small-steps/src"><span class="hs-identifier hs-var">Signal</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Shelley.Spec.Ledger.STS.Updn.html#UPDN"><span class="hs-identifier hs-type">UPDN</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680013580"><span class="hs-identifier hs-type">crypto</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-slotting-0.1.0.0/noopt/doc/html/cardano-slotting/src"><span class="hs-identifier hs-type">SlotNo</span></a></span><span>
+</span><span id="line-48"></span><span>  </span><span class="hs-keyword">type</span><span> </span><span id="Environment"><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/small-steps-0.1.0.0/noopt/doc/html/small-steps/src"><span class="hs-identifier hs-var">Environment</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Shelley.Spec.Ledger.STS.Updn.html#UPDN"><span class="hs-identifier hs-type">UPDN</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680013580"><span class="hs-identifier hs-type">crypto</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><a href="Shelley.Spec.Ledger.STS.Updn.html#UpdnEnv"><span class="hs-identifier hs-type">UpdnEnv</span></a></span><span>
+</span><span id="line-49"></span><span>  </span><span class="hs-keyword">type</span><span> </span><span id="BaseM"><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/small-steps-0.1.0.0/noopt/doc/html/small-steps/src"><span class="hs-identifier hs-var">BaseM</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Shelley.Spec.Ledger.STS.Updn.html#UPDN"><span class="hs-identifier hs-type">UPDN</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680013580"><span class="hs-identifier hs-type">crypto</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><a href="Shelley.Spec.Ledger.BaseTypes.html#ShelleyBase"><span class="hs-identifier hs-type">ShelleyBase</span></a></span><span>
+</span><span id="line-50"></span><span>  </span><span class="hs-keyword">type</span><span> </span><span id="PredicateFailure"><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/small-steps-0.1.0.0/noopt/doc/html/small-steps/src"><span class="hs-identifier hs-var">PredicateFailure</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Shelley.Spec.Ledger.STS.Updn.html#UPDN"><span class="hs-identifier hs-type">UPDN</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680013580"><span class="hs-identifier hs-type">crypto</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><a href="Shelley.Spec.Ledger.STS.Updn.html#UpdnPredicateFailure"><span class="hs-identifier hs-type">UpdnPredicateFailure</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680013580"><span class="hs-identifier hs-type">crypto</span></a></span><span>
+</span><span id="line-51"></span><span>  </span><span id="local-6989586621680013568"><span class="annot"><span class="annottext">initialRules :: [InitialRule (UPDN crypto)]
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/small-steps-0.1.0.0/noopt/doc/html/small-steps/src"><span class="hs-identifier hs-var hs-var hs-var hs-var">initialRules</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-52"></span><span>    </span><span class="hs-special">[</span><span> </span><span class="annot"><span class="annottext">UpdnState -&gt; F (Clause (UPDN crypto) 'Initial) UpdnState
+forall (f :: * -&gt; *) a. Applicative f =&gt; a -&gt; f a
+</span><span class="hs-identifier hs-var">pure</span></span><span>
+</span><span id="line-53"></span><span>        </span><span class="hs-special">(</span><span> </span><span class="annot"><span class="annottext">Nonce -&gt; Nonce -&gt; UpdnState
+</span><a href="Shelley.Spec.Ledger.STS.Updn.html#UpdnState"><span class="hs-identifier hs-var">UpdnState</span></a></span><span>
+</span><span id="line-54"></span><span>            </span><span class="annot"><span class="annottext">Nonce
+</span><a href="#local-6989586621680013566"><span class="hs-identifier hs-var">initialNonce</span></a></span><span>
+</span><span id="line-55"></span><span>            </span><span class="annot"><span class="annottext">Nonce
+</span><a href="#local-6989586621680013566"><span class="hs-identifier hs-var">initialNonce</span></a></span><span>
+</span><span id="line-56"></span><span>        </span><span class="hs-special">)</span><span>
+</span><span id="line-57"></span><span>    </span><span class="hs-special">]</span><span>
+</span><span id="line-58"></span><span>    </span><span class="hs-keyword">where</span><span>
+</span><span id="line-59"></span><span>      </span><span id="local-6989586621680013566"><span class="annot"><span class="annottext">initialNonce :: Nonce
+</span><a href="#local-6989586621680013566"><span class="hs-identifier hs-var hs-var">initialNonce</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Word64 -&gt; Nonce
+</span><a href="Shelley.Spec.Ledger.BaseTypes.html#mkNonceFromNumber"><span class="hs-identifier hs-var">mkNonceFromNumber</span></a></span><span> </span><span class="annot"><span class="annottext">Word64
+</span><span class="hs-number">0</span></span><span>
+</span><span id="line-60"></span><span>  </span><span id="local-6989586621680013564"><span class="annot"><span class="annottext">transitionRules :: [TransitionRule (UPDN crypto)]
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/small-steps-0.1.0.0/noopt/doc/html/small-steps/src"><span class="hs-identifier hs-var hs-var hs-var hs-var">transitionRules</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">[</span><span class="annot"><span class="annottext">TransitionRule (UPDN crypto)
+forall crypto. Crypto crypto =&gt; TransitionRule (UPDN crypto)
+</span><a href="Shelley.Spec.Ledger.STS.Updn.html#updTransition"><span class="hs-identifier hs-var">updTransition</span></a></span><span class="hs-special">]</span></span><span>
+</span><span id="line-61"></span><span>
+</span><span id="line-62"></span><span id="local-6989586621680013653"><span class="annot"><a href="Shelley.Spec.Ledger.STS.Updn.html#updTransition"><span class="hs-identifier hs-type">updTransition</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cardano.Ledger.Crypto.html#Crypto"><span class="hs-identifier hs-type">Crypto</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680013653"><span class="hs-identifier hs-type">crypto</span></a></span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/small-steps-0.1.0.0/noopt/doc/html/small-steps/src"><span class="hs-identifier hs-type">TransitionRule</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Shelley.Spec.Ledger.STS.Updn.html#UPDN"><span class="hs-identifier hs-type">UPDN</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680013653"><span class="hs-identifier hs-type">crypto</span></a></span><span class="hs-special">)</span></span><span>
+</span><span id="line-63"></span><span id="updTransition"><span class="annot"><span class="annottext">updTransition :: TransitionRule (UPDN crypto)
+</span><a href="Shelley.Spec.Ledger.STS.Updn.html#updTransition"><span class="hs-identifier hs-var hs-var">updTransition</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-64"></span><span>  </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/small-steps-0.1.0.0/noopt/doc/html/small-steps/src"><span class="hs-identifier hs-type">TRC</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Shelley.Spec.Ledger.STS.Updn.html#UpdnEnv"><span class="hs-identifier hs-type">UpdnEnv</span></a></span><span> </span><span id="local-6989586621680013560"><span class="annot"><a href="#local-6989586621680013560"><span class="hs-identifier hs-var">eta</span></a></span></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Shelley.Spec.Ledger.STS.Updn.html#UpdnState"><span class="hs-identifier hs-type">UpdnState</span></a></span><span> </span><span id="local-6989586621680013559"><span class="annot"><a href="#local-6989586621680013559"><span class="hs-identifier hs-var">eta_v</span></a></span></span><span> </span><span id="local-6989586621680013558"><span class="annot"><a href="#local-6989586621680013558"><span class="hs-identifier hs-var">eta_c</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621680013557"><span class="annot"><span class="annottext">Signal (UPDN crypto)
+</span><a href="#local-6989586621680013557"><span class="hs-identifier hs-var">s</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">F (Clause (UPDN crypto) 'Transition) (TRC (UPDN crypto))
+forall sts (rtype :: RuleType).
+Rule sts rtype (RuleContext rtype sts)
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/small-steps-0.1.0.0/noopt/doc/html/small-steps/src"><span class="hs-identifier hs-var">judgmentContext</span></a></span><span>
+</span><span id="line-65"></span><span>  </span><span id="local-6989586621680013555"><span class="annot"><span class="annottext">EpochInfo Identity
+</span><a href="#local-6989586621680013555"><span class="hs-identifier hs-var">ei</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">BaseM (UPDN crypto) (EpochInfo Identity)
+-&gt; Rule (UPDN crypto) 'Transition (EpochInfo Identity)
+forall sts a (ctx :: RuleType).
+STS sts =&gt;
+BaseM sts a -&gt; Rule sts ctx a
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/small-steps-0.1.0.0/noopt/doc/html/small-steps/src"><span class="hs-identifier hs-var">liftSTS</span></a></span><span> </span><span class="annot"><span class="annottext">(BaseM (UPDN crypto) (EpochInfo Identity)
+ -&gt; Rule (UPDN crypto) 'Transition (EpochInfo Identity))
+-&gt; BaseM (UPDN crypto) (EpochInfo Identity)
+-&gt; Rule (UPDN crypto) 'Transition (EpochInfo Identity)
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">(Globals -&gt; EpochInfo Identity)
+-&gt; ReaderT Globals Identity (EpochInfo Identity)
+forall (m :: * -&gt; *) r a. Monad m =&gt; (r -&gt; a) -&gt; ReaderT r m a
+</span><span class="hs-identifier hs-var">asks</span></span><span> </span><span class="annot"><span class="annottext">Globals -&gt; EpochInfo Identity
+</span><a href="Shelley.Spec.Ledger.BaseTypes.html#epochInfo"><span class="hs-identifier hs-var hs-var">epochInfo</span></a></span><span>
+</span><span id="line-66"></span><span>  </span><span id="local-6989586621680013552"><span class="annot"><span class="annottext">Word64
+</span><a href="#local-6989586621680013552"><span class="hs-identifier hs-var">sp</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">BaseM (UPDN crypto) Word64 -&gt; Rule (UPDN crypto) 'Transition Word64
+forall sts a (ctx :: RuleType).
+STS sts =&gt;
+BaseM sts a -&gt; Rule sts ctx a
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/small-steps-0.1.0.0/noopt/doc/html/small-steps/src"><span class="hs-identifier hs-var">liftSTS</span></a></span><span> </span><span class="annot"><span class="annottext">(BaseM (UPDN crypto) Word64
+ -&gt; Rule (UPDN crypto) 'Transition Word64)
+-&gt; BaseM (UPDN crypto) Word64
+-&gt; Rule (UPDN crypto) 'Transition Word64
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">(Globals -&gt; Word64) -&gt; ReaderT Globals Identity Word64
+forall (m :: * -&gt; *) r a. Monad m =&gt; (r -&gt; a) -&gt; ReaderT r m a
+</span><span class="hs-identifier hs-var">asks</span></span><span> </span><span class="annot"><span class="annottext">Globals -&gt; Word64
+</span><a href="Shelley.Spec.Ledger.BaseTypes.html#stabilityWindow"><span class="hs-identifier hs-var hs-var">stabilityWindow</span></a></span><span>
+</span><span id="line-67"></span><span>  </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-slotting-0.1.0.0/noopt/doc/html/cardano-slotting/src"><span class="hs-identifier hs-type">EpochNo</span></a></span><span> </span><span id="local-6989586621680013549"><span class="annot"><span class="annottext">Word64
+</span><a href="#local-6989586621680013549"><span class="hs-identifier hs-var">e</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">BaseM (UPDN crypto) EpochNo
+-&gt; Rule (UPDN crypto) 'Transition EpochNo
+forall sts a (ctx :: RuleType).
+STS sts =&gt;
+BaseM sts a -&gt; Rule sts ctx a
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/small-steps-0.1.0.0/noopt/doc/html/small-steps/src"><span class="hs-identifier hs-var">liftSTS</span></a></span><span> </span><span class="annot"><span class="annottext">(BaseM (UPDN crypto) EpochNo
+ -&gt; Rule (UPDN crypto) 'Transition EpochNo)
+-&gt; BaseM (UPDN crypto) EpochNo
+-&gt; Rule (UPDN crypto) 'Transition EpochNo
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">HasCallStack =&gt; EpochInfo Identity -&gt; SlotNo -&gt; ShelleyBase EpochNo
+EpochInfo Identity -&gt; SlotNo -&gt; ShelleyBase EpochNo
+</span><a href="Shelley.Spec.Ledger.Slot.html#epochInfoEpoch"><span class="hs-identifier hs-var">epochInfoEpoch</span></a></span><span> </span><span class="annot"><span class="annottext">EpochInfo Identity
+</span><a href="#local-6989586621680013555"><span class="hs-identifier hs-var">ei</span></a></span><span> </span><span class="annot"><span class="annottext">SlotNo
+Signal (UPDN crypto)
+</span><a href="#local-6989586621680013557"><span class="hs-identifier hs-var">s</span></a></span><span>
+</span><span id="line-68"></span><span>  </span><span id="local-6989586621680013547"><span class="annot"><span class="annottext">SlotNo
+</span><a href="#local-6989586621680013547"><span class="hs-identifier hs-var">firstSlotNextEpoch</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">BaseM (UPDN crypto) SlotNo -&gt; Rule (UPDN crypto) 'Transition SlotNo
+forall sts a (ctx :: RuleType).
+STS sts =&gt;
+BaseM sts a -&gt; Rule sts ctx a
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/small-steps-0.1.0.0/noopt/doc/html/small-steps/src"><span class="hs-identifier hs-var">liftSTS</span></a></span><span> </span><span class="annot"><span class="annottext">(BaseM (UPDN crypto) SlotNo
+ -&gt; Rule (UPDN crypto) 'Transition SlotNo)
+-&gt; BaseM (UPDN crypto) SlotNo
+-&gt; Rule (UPDN crypto) 'Transition SlotNo
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">HasCallStack =&gt; EpochInfo Identity -&gt; EpochNo -&gt; ShelleyBase SlotNo
+EpochInfo Identity -&gt; EpochNo -&gt; ShelleyBase SlotNo
+</span><a href="Shelley.Spec.Ledger.Slot.html#epochInfoFirst"><span class="hs-identifier hs-var">epochInfoFirst</span></a></span><span> </span><span class="annot"><span class="annottext">EpochInfo Identity
+</span><a href="#local-6989586621680013555"><span class="hs-identifier hs-var">ei</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Word64 -&gt; EpochNo
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-slotting-0.1.0.0/noopt/doc/html/cardano-slotting/src"><span class="hs-identifier hs-var">EpochNo</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Word64
+</span><a href="#local-6989586621680013549"><span class="hs-identifier hs-var">e</span></a></span><span> </span><span class="annot"><span class="annottext">Word64 -&gt; Word64 -&gt; Word64
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="annottext">Word64
+</span><span class="hs-number">1</span></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-69"></span><span>  </span><span class="annot"><span class="annottext">UpdnState -&gt; F (Clause (UPDN crypto) 'Transition) UpdnState
+forall (f :: * -&gt; *) a. Applicative f =&gt; a -&gt; f a
+</span><span class="hs-identifier hs-var">pure</span></span><span> </span><span class="annot"><span class="annottext">(UpdnState -&gt; F (Clause (UPDN crypto) 'Transition) UpdnState)
+-&gt; UpdnState -&gt; F (Clause (UPDN crypto) 'Transition) UpdnState
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span>
+</span><span id="line-70"></span><span>    </span><span class="annot"><span class="annottext">Nonce -&gt; Nonce -&gt; UpdnState
+</span><a href="Shelley.Spec.Ledger.STS.Updn.html#UpdnState"><span class="hs-identifier hs-var">UpdnState</span></a></span><span>
+</span><span id="line-71"></span><span>      </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Nonce
+</span><a href="#local-6989586621680013559"><span class="hs-identifier hs-var">eta_v</span></a></span><span> </span><span class="annot"><span class="annottext">Nonce -&gt; Nonce -&gt; Nonce
+</span><a href="Shelley.Spec.Ledger.BaseTypes.html#%2B52"><span class="hs-operator hs-var">&#11090;</span></a></span><span> </span><span class="annot"><span class="annottext">Nonce
+</span><a href="#local-6989586621680013560"><span class="hs-identifier hs-var">eta</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-72"></span><span>      </span><span class="hs-special">(</span><span> </span><span class="hs-keyword">if</span><span> </span><span class="annot"><span class="annottext">SlotNo
+Signal (UPDN crypto)
+</span><a href="#local-6989586621680013557"><span class="hs-identifier hs-var">s</span></a></span><span> </span><span class="annot"><span class="annottext">SlotNo -&gt; Duration -&gt; SlotNo
+</span><a href="Shelley.Spec.Ledger.Slot.html#%2B%2A"><span class="hs-operator hs-var">+*</span></a></span><span> </span><span class="annot"><span class="annottext">Word64 -&gt; Duration
+</span><a href="Shelley.Spec.Ledger.Slot.html#Duration"><span class="hs-identifier hs-var">Duration</span></a></span><span> </span><span class="annot"><span class="annottext">Word64
+</span><a href="#local-6989586621680013552"><span class="hs-identifier hs-var">sp</span></a></span><span> </span><span class="annot"><span class="annottext">SlotNo -&gt; SlotNo -&gt; Bool
+forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">&lt;</span></span><span> </span><span class="annot"><span class="annottext">SlotNo
+</span><a href="#local-6989586621680013547"><span class="hs-identifier hs-var">firstSlotNextEpoch</span></a></span><span>
+</span><span id="line-73"></span><span>          </span><span class="hs-keyword">then</span><span> </span><span class="annot"><span class="annottext">Nonce
+</span><a href="#local-6989586621680013559"><span class="hs-identifier hs-var">eta_v</span></a></span><span> </span><span class="annot"><span class="annottext">Nonce -&gt; Nonce -&gt; Nonce
+</span><a href="Shelley.Spec.Ledger.BaseTypes.html#%2B52"><span class="hs-operator hs-var">&#11090;</span></a></span><span> </span><span class="annot"><span class="annottext">Nonce
+</span><a href="#local-6989586621680013560"><span class="hs-identifier hs-var">eta</span></a></span><span>
+</span><span id="line-74"></span><span>          </span><span class="hs-keyword">else</span><span> </span><span class="annot"><span class="annottext">Nonce
+</span><a href="#local-6989586621680013558"><span class="hs-identifier hs-var">eta_c</span></a></span><span>
+</span><span id="line-75"></span><span>      </span><span class="hs-special">)</span><span>
+</span><span id="line-76"></span></pre></body></html>

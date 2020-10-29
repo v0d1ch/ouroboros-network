@@ -1,6 +1,6 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-pragma">{-# LANGUAGE DoAndIfThenElse #-}</span><span>
-</span><a name="line-2"></a><span>
-</span><a name="line-3"></a><span class="hs-comment">{-|
+</span><span id="line-2"></span><span>
+</span><span id="line-3"></span><span class="hs-comment">{-|
 Module      :  Cardano.Prelude.GHC.Heap.NormalForm
 Copyright   :  (c) 2013 Joachim Breitner
 License     :  BSD3
@@ -48,68 +48,128 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 -}</span><span>
-</span><a name="line-51"></a><span>
-</span><a name="line-52"></a><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Cardano.Prelude.GHC.Heap.NormalForm</span><span>
-</span><a name="line-53"></a><span>  </span><span class="hs-special">(</span><span> </span><a href="Cardano.Prelude.GHC.Heap.NormalForm.html#isHeadNormalForm"><span class="hs-identifier hs-var">isHeadNormalForm</span></a><span>
-</span><a name="line-54"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Cardano.Prelude.GHC.Heap.NormalForm.html#isNormalForm"><span class="hs-identifier hs-var">isNormalForm</span></a><span>
-</span><a name="line-55"></a><span>  </span><span class="hs-special">)</span><span>
-</span><a name="line-56"></a><span class="hs-keyword">where</span><span>
-</span><a name="line-57"></a><span>
-</span><a name="line-58"></a><span class="hs-keyword">import</span><span> </span><a href="Cardano.Prelude.Base.html"><span class="hs-identifier">Cardano.Prelude.Base</span></a><span>
-</span><a name="line-59"></a><span>
-</span><a name="line-60"></a><span class="hs-keyword">import</span><span> </span><span class="hs-identifier">GHC.Exts.Heap</span><span>
-</span><a name="line-61"></a><span>
-</span><a name="line-62"></a><span class="hs-comment">-- Everything is in normal form, unless it is a</span><span>
-</span><a name="line-63"></a><span class="hs-comment">-- thunk explicitly marked as such.</span><span>
-</span><a name="line-64"></a><span class="hs-comment">-- Indirection are also considered to be in HNF</span><span>
-</span><a name="line-65"></a><span class="hs-identifier">isHeadNormalForm</span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">Closure</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">IO</span><span> </span><span class="hs-identifier hs-type">Bool</span><span>
-</span><a name="line-66"></a><a name="isHeadNormalForm"><a href="Cardano.Prelude.GHC.Heap.NormalForm.html#isHeadNormalForm"><span class="hs-identifier">isHeadNormalForm</span></a></a><span> </span><a name="local-6989586621679102094"><a href="#local-6989586621679102094"><span class="hs-identifier">c</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
-</span><a name="line-67"></a><span>  </span><span class="hs-keyword">case</span><span> </span><a href="#local-6989586621679102094"><span class="hs-identifier hs-var">c</span></a><span> </span><span class="hs-keyword">of</span><span>
-</span><a name="line-68"></a><span>    </span><span class="hs-identifier hs-var">ThunkClosure</span><span class="hs-special">{</span><span class="hs-special">}</span><span>    </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-var">return</span><span> </span><span class="hs-identifier hs-var">False</span><span>
-</span><a name="line-69"></a><span>    </span><span class="hs-identifier hs-var">APClosure</span><span class="hs-special">{</span><span class="hs-special">}</span><span>       </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-var">return</span><span> </span><span class="hs-identifier hs-var">False</span><span>
-</span><a name="line-70"></a><span>    </span><span class="hs-identifier hs-var">SelectorClosure</span><span class="hs-special">{</span><span class="hs-special">}</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-var">return</span><span> </span><span class="hs-identifier hs-var">False</span><span>
-</span><a name="line-71"></a><span>    </span><span class="hs-identifier hs-var">BCOClosure</span><span class="hs-special">{</span><span class="hs-special">}</span><span>      </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-var">return</span><span> </span><span class="hs-identifier hs-var">False</span><span>
-</span><a name="line-72"></a><span>    </span><span class="hs-identifier">_</span><span>                 </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-var">return</span><span> </span><span class="hs-identifier hs-var">True</span><span>
-</span><a name="line-73"></a><span>
-</span><a name="line-74"></a><span class="hs-comment">-- | The function 'isNormalForm' checks whether its argument is fully evaluated</span><span>
-</span><a name="line-75"></a><span class="hs-comment">-- and deeply evaluated.</span><span>
-</span><a name="line-76"></a><span class="hs-comment">--</span><span>
-</span><a name="line-77"></a><span class="hs-comment">-- NOTE 1: If you want to override the behaviour of 'isNormalForm' for specific</span><span>
-</span><a name="line-78"></a><span class="hs-comment">-- types (in particular, for specific types that may be /nested/ somewhere</span><span>
-</span><a name="line-79"></a><span class="hs-comment">-- inside the @a@), consider using</span><span>
-</span><a name="line-80"></a><span class="hs-comment">-- 'Cardano.Prelude.GHC.Heap.NormalForm.Classy.noUnexpectedThunks' instead.</span><span>
-</span><a name="line-81"></a><span class="hs-comment">--</span><span>
-</span><a name="line-82"></a><span class="hs-comment">-- NOTE 2: The normal form check can be quite brittle, especially with @-O0@.</span><span>
-</span><a name="line-83"></a><span class="hs-comment">-- For example, writing something like</span><span>
-</span><a name="line-84"></a><span class="hs-comment">--</span><span>
-</span><a name="line-85"></a><span class="hs-comment">-- &gt; let !(Value x) = ... in ....</span><span>
-</span><a name="line-86"></a><span class="hs-comment">--</span><span>
-</span><a name="line-87"></a><span class="hs-comment">-- might translate to</span><span>
-</span><a name="line-88"></a><span class="hs-comment">--</span><span>
-</span><a name="line-89"></a><span class="hs-comment">-- &gt; let !.. = ... in ... (case ... of Value x -&gt; x)</span><span>
-</span><a name="line-90"></a><span class="hs-comment">--</span><span>
-</span><a name="line-91"></a><span class="hs-comment">-- which would trivially be @False@. In general, 'isNormalForm' should probably</span><span>
-</span><a name="line-92"></a><span class="hs-comment">-- only be used with @-O1@, but even then the answer may still depend on</span><span>
-</span><a name="line-93"></a><span class="hs-comment">-- internal decisions made by ghc during compilation.</span><span>
-</span><a name="line-94"></a><span class="hs-identifier">isNormalForm</span><span> </span><span class="hs-glyph">::</span><span> </span><a href="#local-6989586621679102093"><span class="hs-identifier hs-type">a</span></a><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">IO</span><span> </span><span class="hs-identifier hs-type">Bool</span><span>
-</span><a name="line-95"></a><a name="isNormalForm"><a href="Cardano.Prelude.GHC.Heap.NormalForm.html#isNormalForm"><span class="hs-identifier">isNormalForm</span></a></a><span> </span><a name="local-6989586621679102095"><a href="#local-6989586621679102095"><span class="hs-identifier">x</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><a href="Cardano.Prelude.GHC.Heap.NormalForm.html#isNormalFormBoxed"><span class="hs-identifier hs-var">isNormalFormBoxed</span></a><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-var">asBox</span><span> </span><a href="#local-6989586621679102095"><span class="hs-identifier hs-var">x</span></a><span class="hs-special">)</span><span>
-</span><a name="line-96"></a><span>
-</span><a name="line-97"></a><span class="hs-identifier">isNormalFormBoxed</span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">Box</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">IO</span><span> </span><span class="hs-identifier hs-type">Bool</span><span>
-</span><a name="line-98"></a><a name="isNormalFormBoxed"><a href="Cardano.Prelude.GHC.Heap.NormalForm.html#isNormalFormBoxed"><span class="hs-identifier">isNormalFormBoxed</span></a></a><span> </span><a name="local-6989586621679102096"><a href="#local-6989586621679102096"><span class="hs-identifier">b</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
-</span><a name="line-99"></a><span>  </span><a name="local-6989586621679102097"><a href="#local-6989586621679102097"><span class="hs-identifier">c</span></a></a><span>  </span><span class="hs-glyph">&lt;-</span><span> </span><span class="hs-identifier hs-var">getBoxedClosureData</span><span> </span><a href="#local-6989586621679102096"><span class="hs-identifier hs-var">b</span></a><span>
-</span><a name="line-100"></a><span>  </span><a name="local-6989586621679102098"><a href="#local-6989586621679102098"><span class="hs-identifier">nf</span></a></a><span> </span><span class="hs-glyph">&lt;-</span><span> </span><a href="Cardano.Prelude.GHC.Heap.NormalForm.html#isHeadNormalForm"><span class="hs-identifier hs-var">isHeadNormalForm</span></a><span> </span><a href="#local-6989586621679102097"><span class="hs-identifier hs-var">c</span></a><span>
-</span><a name="line-101"></a><span>  </span><span class="hs-keyword">if</span><span> </span><a href="#local-6989586621679102098"><span class="hs-identifier hs-var">nf</span></a><span>
-</span><a name="line-102"></a><span>    </span><span class="hs-keyword">then</span><span> </span><span class="hs-keyword">do</span><span>
-</span><a name="line-103"></a><span>      </span><a name="local-6989586621679102099"><a href="#local-6989586621679102099"><span class="hs-identifier">c'</span></a></a><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="hs-identifier hs-var">getBoxedClosureData</span><span> </span><a href="#local-6989586621679102096"><span class="hs-identifier hs-var">b</span></a><span>
-</span><a name="line-104"></a><span>      </span><a href="Cardano.Prelude.GHC.Heap.NormalForm.html#allM"><span class="hs-identifier hs-var">allM</span></a><span> </span><a href="Cardano.Prelude.GHC.Heap.NormalForm.html#isNormalFormBoxed"><span class="hs-identifier hs-var">isNormalFormBoxed</span></a><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-var">allClosures</span><span> </span><a href="#local-6989586621679102099"><span class="hs-identifier hs-var">c'</span></a><span class="hs-special">)</span><span>
-</span><a name="line-105"></a><span>    </span><span class="hs-keyword">else</span><span> </span><span class="hs-keyword">do</span><span>
-</span><a name="line-106"></a><span>      </span><span class="hs-identifier hs-var">return</span><span> </span><span class="hs-identifier hs-var">False</span><span>
-</span><a name="line-107"></a><span>
-</span><a name="line-108"></a><span class="hs-comment">-- From Control.Monad.Loops in monad-loops, but I'd like to avoid too many</span><span>
-</span><a name="line-109"></a><span class="hs-comment">-- trivial dependencies</span><span>
-</span><a name="line-110"></a><span class="hs-identifier">allM</span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Monad</span><span> </span><a href="#local-6989586621679101594"><span class="hs-identifier hs-type">m</span></a><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="hs-special">(</span><a href="#local-6989586621679101595"><span class="hs-identifier hs-type">a</span></a><span> </span><span class="hs-glyph">-&gt;</span><span> </span><a href="#local-6989586621679101594"><span class="hs-identifier hs-type">m</span></a><span> </span><span class="hs-identifier hs-type">Bool</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">[</span><a href="#local-6989586621679101595"><span class="hs-identifier hs-type">a</span></a><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><a href="#local-6989586621679101594"><span class="hs-identifier hs-type">m</span></a><span> </span><span class="hs-identifier hs-type">Bool</span><span>
-</span><a name="line-111"></a><a name="allM"><a href="Cardano.Prelude.GHC.Heap.NormalForm.html#allM"><span class="hs-identifier">allM</span></a></a><span> </span><span class="hs-identifier">_</span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span>       </span><span class="hs-glyph">=</span><span> </span><span class="hs-identifier hs-var">return</span><span> </span><span class="hs-identifier hs-var">True</span><span>
-</span><a name="line-112"></a><span class="hs-identifier">allM</span><span> </span><a name="local-6989586621679102100"><a href="#local-6989586621679102100"><span class="hs-identifier">p</span></a></a><span> </span><span class="hs-special">(</span><a name="local-6989586621679102101"><a href="#local-6989586621679102101"><span class="hs-identifier">x</span></a></a><span> </span><span class="hs-glyph">:</span><span> </span><a name="local-6989586621679102102"><a href="#local-6989586621679102102"><span class="hs-identifier">xs</span></a></a><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
-</span><a name="line-113"></a><span>  </span><a name="local-6989586621679102103"><a href="#local-6989586621679102103"><span class="hs-identifier">q</span></a></a><span> </span><span class="hs-glyph">&lt;-</span><span> </span><a href="#local-6989586621679102100"><span class="hs-identifier hs-var">p</span></a><span> </span><a href="#local-6989586621679102101"><span class="hs-identifier hs-var">x</span></a><span>
-</span><a name="line-114"></a><span>  </span><span class="hs-keyword">if</span><span> </span><a href="#local-6989586621679102103"><span class="hs-identifier hs-var">q</span></a><span> </span><span class="hs-keyword">then</span><span> </span><a href="Cardano.Prelude.GHC.Heap.NormalForm.html#allM"><span class="hs-identifier hs-var">allM</span></a><span> </span><a href="#local-6989586621679102100"><span class="hs-identifier hs-var">p</span></a><span> </span><a href="#local-6989586621679102102"><span class="hs-identifier hs-var">xs</span></a><span> </span><span class="hs-keyword">else</span><span> </span><span class="hs-identifier hs-var">return</span><span> </span><span class="hs-identifier hs-var">False</span><span>
-</span><a name="line-115"></a></pre></body></html>
+</span><span id="line-51"></span><span>
+</span><span id="line-52"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Cardano.Prelude.GHC.Heap.NormalForm</span><span>
+</span><span id="line-53"></span><span>  </span><span class="hs-special">(</span><span> </span><span class="annot"><a href="Cardano.Prelude.GHC.Heap.NormalForm.html#isHeadNormalForm"><span class="hs-identifier">isHeadNormalForm</span></a></span><span>
+</span><span id="line-54"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cardano.Prelude.GHC.Heap.NormalForm.html#isNormalForm"><span class="hs-identifier">isNormalForm</span></a></span><span>
+</span><span id="line-55"></span><span>  </span><span class="hs-special">)</span><span>
+</span><span id="line-56"></span><span class="hs-keyword">where</span><span>
+</span><span id="line-57"></span><span>
+</span><span id="line-58"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Cardano.Prelude.Base.html"><span class="hs-identifier">Cardano.Prelude.Base</span></a></span><span>
+</span><span id="line-59"></span><span>
+</span><span id="line-60"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">GHC.Exts.Heap</span></span><span>
+</span><span id="line-61"></span><span>
+</span><span id="line-62"></span><span class="hs-comment">-- Everything is in normal form, unless it is a</span><span>
+</span><span id="line-63"></span><span class="hs-comment">-- thunk explicitly marked as such.</span><span>
+</span><span id="line-64"></span><span class="hs-comment">-- Indirection are also considered to be in HNF</span><span>
+</span><span id="line-65"></span><span class="annot"><a href="Cardano.Prelude.GHC.Heap.NormalForm.html#isHeadNormalForm"><span class="hs-identifier hs-type">isHeadNormalForm</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Closure</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">IO</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span><span>
+</span><span id="line-66"></span><span id="isHeadNormalForm"><span class="annot"><span class="annottext">isHeadNormalForm :: Closure -&gt; IO Bool
+</span><a href="Cardano.Prelude.GHC.Heap.NormalForm.html#isHeadNormalForm"><span class="hs-identifier hs-var hs-var">isHeadNormalForm</span></a></span></span><span> </span><span id="local-6989586621679092624"><span class="annot"><span class="annottext">Closure
+</span><a href="#local-6989586621679092624"><span class="hs-identifier hs-var">c</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-67"></span><span>  </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">Closure
+</span><a href="#local-6989586621679092624"><span class="hs-identifier hs-var">c</span></a></span><span> </span><span class="hs-keyword">of</span><span>
+</span><span id="line-68"></span><span>    </span><span class="annot"><span class="hs-identifier hs-type">ThunkClosure</span></span><span class="hs-special">{</span><span class="hs-special">}</span><span>    </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Bool -&gt; IO Bool
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">False</span></span><span>
+</span><span id="line-69"></span><span>    </span><span class="annot"><span class="hs-identifier hs-type">APClosure</span></span><span class="hs-special">{</span><span class="hs-special">}</span><span>       </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Bool -&gt; IO Bool
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">False</span></span><span>
+</span><span id="line-70"></span><span>    </span><span class="annot"><span class="hs-identifier hs-type">SelectorClosure</span></span><span class="hs-special">{</span><span class="hs-special">}</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Bool -&gt; IO Bool
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">False</span></span><span>
+</span><span id="line-71"></span><span>    </span><span class="annot"><span class="hs-identifier hs-type">BCOClosure</span></span><span class="hs-special">{</span><span class="hs-special">}</span><span>      </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Bool -&gt; IO Bool
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">False</span></span><span>
+</span><span id="line-72"></span><span>    </span><span class="annot"><span class="annottext">Closure
+</span><span class="hs-identifier">_</span></span><span>                 </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Bool -&gt; IO Bool
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">True</span></span><span>
+</span><span id="line-73"></span><span>
+</span><span id="line-74"></span><span class="hs-comment">-- | The function 'isNormalForm' checks whether its argument is fully evaluated</span><span>
+</span><span id="line-75"></span><span class="hs-comment">-- and deeply evaluated.</span><span>
+</span><span id="line-76"></span><span class="hs-comment">--</span><span>
+</span><span id="line-77"></span><span class="hs-comment">-- NOTE: The normal form check can be quite brittle, especially with @-O0@. For</span><span>
+</span><span id="line-78"></span><span class="hs-comment">-- example, writing something like</span><span>
+</span><span id="line-79"></span><span class="hs-comment">--</span><span>
+</span><span id="line-80"></span><span class="hs-comment">-- &gt; let !(Value x) = ... in ....</span><span>
+</span><span id="line-81"></span><span class="hs-comment">--</span><span>
+</span><span id="line-82"></span><span class="hs-comment">-- might translate to</span><span>
+</span><span id="line-83"></span><span class="hs-comment">--</span><span>
+</span><span id="line-84"></span><span class="hs-comment">-- &gt; let !.. = ... in ... (case ... of Value x -&gt; x)</span><span>
+</span><span id="line-85"></span><span class="hs-comment">--</span><span>
+</span><span id="line-86"></span><span class="hs-comment">-- which would trivially be @False@. In general, 'isNormalForm' should probably</span><span>
+</span><span id="line-87"></span><span class="hs-comment">-- only be used with @-O1@, but even then the answer may still depend on</span><span>
+</span><span id="line-88"></span><span class="hs-comment">-- internal decisions made by ghc during compilation.</span><span>
+</span><span id="line-89"></span><span id="local-6989586621679092619"><span class="annot"><a href="Cardano.Prelude.GHC.Heap.NormalForm.html#isNormalForm"><span class="hs-identifier hs-type">isNormalForm</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="#local-6989586621679092619"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">IO</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span></span><span>
+</span><span id="line-90"></span><span id="isNormalForm"><span class="annot"><span class="annottext">isNormalForm :: a -&gt; IO Bool
+</span><a href="Cardano.Prelude.GHC.Heap.NormalForm.html#isNormalForm"><span class="hs-identifier hs-var hs-var">isNormalForm</span></a></span></span><span> </span><span id="local-6989586621679092618"><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679092618"><span class="hs-identifier hs-var">x</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Box -&gt; IO Bool
+</span><a href="Cardano.Prelude.GHC.Heap.NormalForm.html#isNormalFormBoxed"><span class="hs-identifier hs-var">isNormalFormBoxed</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">a -&gt; Box
+forall a. a -&gt; Box
+</span><span class="hs-identifier hs-var">asBox</span></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679092618"><span class="hs-identifier hs-var">x</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-91"></span><span>
+</span><span id="line-92"></span><span class="annot"><a href="Cardano.Prelude.GHC.Heap.NormalForm.html#isNormalFormBoxed"><span class="hs-identifier hs-type">isNormalFormBoxed</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Box</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">IO</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span><span>
+</span><span id="line-93"></span><span id="isNormalFormBoxed"><span class="annot"><span class="annottext">isNormalFormBoxed :: Box -&gt; IO Bool
+</span><a href="Cardano.Prelude.GHC.Heap.NormalForm.html#isNormalFormBoxed"><span class="hs-identifier hs-var hs-var">isNormalFormBoxed</span></a></span></span><span> </span><span id="local-6989586621679092615"><span class="annot"><span class="annottext">Box
+</span><a href="#local-6989586621679092615"><span class="hs-identifier hs-var">b</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-94"></span><span>  </span><span id="local-6989586621679092614"><span class="annot"><span class="annottext">Closure
+</span><a href="#local-6989586621679092614"><span class="hs-identifier hs-var">c</span></a></span></span><span>  </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Box -&gt; IO Closure
+</span><span class="hs-identifier hs-var">getBoxedClosureData</span></span><span> </span><span class="annot"><span class="annottext">Box
+</span><a href="#local-6989586621679092615"><span class="hs-identifier hs-var">b</span></a></span><span>
+</span><span id="line-95"></span><span>  </span><span id="local-6989586621679092612"><span class="annot"><span class="annottext">Bool
+</span><a href="#local-6989586621679092612"><span class="hs-identifier hs-var">nf</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Closure -&gt; IO Bool
+</span><a href="Cardano.Prelude.GHC.Heap.NormalForm.html#isHeadNormalForm"><span class="hs-identifier hs-var">isHeadNormalForm</span></a></span><span> </span><span class="annot"><span class="annottext">Closure
+</span><a href="#local-6989586621679092614"><span class="hs-identifier hs-var">c</span></a></span><span>
+</span><span id="line-96"></span><span>  </span><span class="hs-keyword">if</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><a href="#local-6989586621679092612"><span class="hs-identifier hs-var">nf</span></a></span><span>
+</span><span id="line-97"></span><span>    </span><span class="hs-keyword">then</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-98"></span><span>      </span><span id="local-6989586621679092611"><span class="annot"><span class="annottext">Closure
+</span><a href="#local-6989586621679092611"><span class="hs-identifier hs-var">c'</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Box -&gt; IO Closure
+</span><span class="hs-identifier hs-var">getBoxedClosureData</span></span><span> </span><span class="annot"><span class="annottext">Box
+</span><a href="#local-6989586621679092615"><span class="hs-identifier hs-var">b</span></a></span><span>
+</span><span id="line-99"></span><span>      </span><span class="annot"><span class="annottext">(Box -&gt; IO Bool) -&gt; [Box] -&gt; IO Bool
+forall (m :: * -&gt; *) a. Monad m =&gt; (a -&gt; m Bool) -&gt; [a] -&gt; m Bool
+</span><a href="Cardano.Prelude.GHC.Heap.NormalForm.html#allM"><span class="hs-identifier hs-var">allM</span></a></span><span> </span><span class="annot"><span class="annottext">Box -&gt; IO Bool
+</span><a href="Cardano.Prelude.GHC.Heap.NormalForm.html#isNormalFormBoxed"><span class="hs-identifier hs-var">isNormalFormBoxed</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Closure -&gt; [Box]
+forall b. GenClosure b -&gt; [b]
+</span><span class="hs-identifier hs-var">allClosures</span></span><span> </span><span class="annot"><span class="annottext">Closure
+</span><a href="#local-6989586621679092611"><span class="hs-identifier hs-var">c'</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-100"></span><span>    </span><span class="hs-keyword">else</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-101"></span><span>      </span><span class="annot"><span class="annottext">Bool -&gt; IO Bool
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">False</span></span><span>
+</span><span id="line-102"></span><span>
+</span><span id="line-103"></span><span class="hs-comment">-- From Control.Monad.Loops in monad-loops, but I'd like to avoid too many</span><span>
+</span><span id="line-104"></span><span class="hs-comment">-- trivial dependencies</span><span>
+</span><span id="line-105"></span><span id="local-6989586621679092631"><span id="local-6989586621679092632"><span class="annot"><a href="Cardano.Prelude.GHC.Heap.NormalForm.html#allM"><span class="hs-identifier hs-type">allM</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Monad</span></span><span> </span><span class="annot"><a href="#local-6989586621679092632"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="#local-6989586621679092631"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679092632"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">[</span><span class="annot"><a href="#local-6989586621679092631"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679092632"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span></span></span><span>
+</span><span id="line-106"></span><span id="allM"><span class="annot"><span class="annottext">allM :: (a -&gt; m Bool) -&gt; [a] -&gt; m Bool
+</span><a href="Cardano.Prelude.GHC.Heap.NormalForm.html#allM"><span class="hs-identifier hs-var hs-var">allM</span></a></span></span><span> </span><span class="annot"><span class="annottext">a -&gt; m Bool
+</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span>       </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Bool -&gt; m Bool
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">True</span></span><span>
+</span><span id="line-107"></span><span class="annot"><a href="Cardano.Prelude.GHC.Heap.NormalForm.html#allM"><span class="hs-identifier hs-var">allM</span></a></span><span> </span><span id="local-6989586621679092608"><span class="annot"><span class="annottext">a -&gt; m Bool
+</span><a href="#local-6989586621679092608"><span class="hs-identifier hs-var">p</span></a></span></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679092607"><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679092607"><span class="hs-identifier hs-var">x</span></a></span></span><span> </span><span class="annot"><span class="hs-glyph hs-type">:</span></span><span> </span><span id="local-6989586621679092606"><span class="annot"><span class="annottext">[a]
+</span><a href="#local-6989586621679092606"><span class="hs-identifier hs-var">xs</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-108"></span><span>  </span><span id="local-6989586621679092605"><span class="annot"><span class="annottext">Bool
+</span><a href="#local-6989586621679092605"><span class="hs-identifier hs-var">q</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">a -&gt; m Bool
+</span><a href="#local-6989586621679092608"><span class="hs-identifier hs-var">p</span></a></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679092607"><span class="hs-identifier hs-var">x</span></a></span><span>
+</span><span id="line-109"></span><span>  </span><span class="hs-keyword">if</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><a href="#local-6989586621679092605"><span class="hs-identifier hs-var">q</span></a></span><span> </span><span class="hs-keyword">then</span><span> </span><span class="annot"><span class="annottext">(a -&gt; m Bool) -&gt; [a] -&gt; m Bool
+forall (m :: * -&gt; *) a. Monad m =&gt; (a -&gt; m Bool) -&gt; [a] -&gt; m Bool
+</span><a href="Cardano.Prelude.GHC.Heap.NormalForm.html#allM"><span class="hs-identifier hs-var">allM</span></a></span><span> </span><span class="annot"><span class="annottext">a -&gt; m Bool
+</span><a href="#local-6989586621679092608"><span class="hs-identifier hs-var">p</span></a></span><span> </span><span class="annot"><span class="annottext">[a]
+</span><a href="#local-6989586621679092606"><span class="hs-identifier hs-var">xs</span></a></span><span> </span><span class="hs-keyword">else</span><span> </span><span class="annot"><span class="annottext">Bool -&gt; m Bool
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">False</span></span><span>
+</span><span id="line-110"></span></pre></body></html>

@@ -1,33 +1,55 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span>
-</span><a name="line-2"></a><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Network.Mux.Time</span><span> </span><span class="hs-special">(</span><span>
-</span><a name="line-3"></a><span>    </span><span class="hs-comment">-- * DiffTime</span><span>
-</span><a name="line-4"></a><span>    </span><span class="hs-identifier hs-type">DiffTime</span><span class="hs-special">,</span><span>
-</span><a name="line-5"></a><span>    </span><a href="Network.Mux.Time.html#diffTimeToMicroseconds"><span class="hs-identifier hs-var">diffTimeToMicroseconds</span></a><span class="hs-special">,</span><span>
-</span><a name="line-6"></a><span>    </span><a href="Network.Mux.Time.html#microsecondsToDiffTime"><span class="hs-identifier hs-var">microsecondsToDiffTime</span></a><span class="hs-special">,</span><span>
-</span><a name="line-7"></a><span>
-</span><a name="line-8"></a><span>    </span><span class="hs-comment">-- * Compact timestamp</span><span>
-</span><a name="line-9"></a><span>    </span><a href="Network.Mux.Time.html#timestampMicrosecondsLow32Bits"><span class="hs-identifier hs-var">timestampMicrosecondsLow32Bits</span></a><span class="hs-special">,</span><span>
-</span><a name="line-10"></a><span>  </span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
-</span><a name="line-11"></a><span>
-</span><a name="line-12"></a><span class="hs-keyword">import</span><span> </span><span class="hs-identifier">Data.Word</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Word32</span><span class="hs-special">)</span><span>
-</span><a name="line-13"></a><span class="hs-keyword">import</span><span> </span><span class="hs-identifier">Data.Time.Clock</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">DiffTime</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-var">diffTimeToPicoseconds</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-var">picosecondsToDiffTime</span><span class="hs-special">)</span><span>
-</span><a name="line-14"></a><span class="hs-keyword">import</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/io-sim-classes-0.1.0.0/noopt/doc/html/io-sim-classes/src/Control.Monad.Class.MonadTime.html"><span class="hs-identifier">Control.Monad.Class.MonadTime</span></a><span> </span><span class="hs-special">(</span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/io-sim-classes-0.1.0.0/noopt/doc/html/io-sim-classes/src/Control.Monad.Class.MonadTime.html#Time"><span class="hs-identifier hs-type">Time</span></a><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
-</span><a name="line-15"></a><span>
-</span><a name="line-16"></a><span class="hs-identifier">diffTimeToMicroseconds</span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">DiffTime</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">Integer</span><span>
-</span><a name="line-17"></a><a name="diffTimeToMicroseconds"><a href="Network.Mux.Time.html#diffTimeToMicroseconds"><span class="hs-identifier">diffTimeToMicroseconds</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">(</span><span class="hs-special">`</span><span class="hs-identifier hs-var">div</span><span class="hs-special">`</span><span> </span><span class="hs-number">1000000</span><span class="hs-special">)</span><span> </span><span class="hs-operator hs-var">.</span><span> </span><span class="hs-identifier hs-var">diffTimeToPicoseconds</span><span>
-</span><a name="line-18"></a><span>
-</span><a name="line-19"></a><span class="hs-identifier">microsecondsToDiffTime</span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">Integer</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">DiffTime</span><span>
-</span><a name="line-20"></a><a name="microsecondsToDiffTime"><a href="Network.Mux.Time.html#microsecondsToDiffTime"><span class="hs-identifier">microsecondsToDiffTime</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-identifier hs-var">picosecondsToDiffTime</span><span> </span><span class="hs-operator hs-var">.</span><span> </span><span class="hs-special">(</span><span class="hs-operator hs-var">*</span><span> </span><span class="hs-number">1000000</span><span class="hs-special">)</span><span>
-</span><a name="line-21"></a><span>
-</span><a name="line-22"></a><span class="hs-comment">-- | This is a slightly peculiar operation: it returns the number of</span><span>
-</span><a name="line-23"></a><span class="hs-comment">-- microseconds since an arbitrary epoch, modulo 2^32. This number of</span><span>
-</span><a name="line-24"></a><span class="hs-comment">-- microseconds wraps every ~35 minutes.</span><span>
-</span><a name="line-25"></a><span class="hs-comment">--</span><span>
-</span><a name="line-26"></a><span class="hs-comment">-- The purpose is to give a compact timestamp (compact to send over the wire)</span><span>
-</span><a name="line-27"></a><span class="hs-comment">-- for measuring time differences on the order of seconds or less.</span><span>
-</span><a name="line-28"></a><span class="hs-comment">--</span><span>
-</span><a name="line-29"></a><span class="hs-identifier">timestampMicrosecondsLow32Bits</span><span> </span><span class="hs-glyph">::</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/io-sim-classes-0.1.0.0/noopt/doc/html/io-sim-classes/src/Control.Monad.Class.MonadTime.html#Time"><span class="hs-identifier hs-type">Time</span></a><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">Word32</span><span>
-</span><a name="line-30"></a><a name="timestampMicrosecondsLow32Bits"><a href="Network.Mux.Time.html#timestampMicrosecondsLow32Bits"><span class="hs-identifier">timestampMicrosecondsLow32Bits</span></a></a><span> </span><span class="hs-special">(</span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/io-sim-classes-0.1.0.0/noopt/doc/html/io-sim-classes/src/Control.Monad.Class.MonadTime.html#Time"><span class="hs-identifier hs-var">Time</span></a><span> </span><a name="local-6989586621679069439"><a href="#local-6989586621679069439"><span class="hs-identifier">ts</span></a></a><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span>
-</span><a name="line-31"></a><span>    </span><span class="hs-identifier hs-var">fromIntegral</span><span> </span><span class="hs-special">(</span><a href="Network.Mux.Time.html#diffTimeToMicroseconds"><span class="hs-identifier hs-var">diffTimeToMicroseconds</span></a><span> </span><a href="#local-6989586621679069439"><span class="hs-identifier hs-var">ts</span></a><span class="hs-special">)</span><span>
-</span><a name="line-32"></a><span>
-</span><a name="line-33"></a></pre></body></html>
+</span><span id="line-2"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Network.Mux.Time</span><span> </span><span class="hs-special">(</span><span>
+</span><span id="line-3"></span><span>    </span><span class="annot"><span class="hs-comment">-- * DiffTime</span></span><span>
+</span><span id="line-4"></span><span>    </span><span class="annot"><span class="hs-identifier">DiffTime</span></span><span class="hs-special">,</span><span>
+</span><span id="line-5"></span><span>    </span><span class="annot"><a href="Network.Mux.Time.html#diffTimeToMicroseconds"><span class="hs-identifier">diffTimeToMicroseconds</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-6"></span><span>    </span><span class="annot"><a href="Network.Mux.Time.html#microsecondsToDiffTime"><span class="hs-identifier">microsecondsToDiffTime</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-7"></span><span>
+</span><span id="line-8"></span><span>    </span><span class="annot"><span class="hs-comment">-- * Compact timestamp</span></span><span>
+</span><span id="line-9"></span><span>    </span><span class="annot"><a href="Network.Mux.Time.html#timestampMicrosecondsLow32Bits"><span class="hs-identifier">timestampMicrosecondsLow32Bits</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-10"></span><span>  </span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-11"></span><span>
+</span><span id="line-12"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Word</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Word32</span></span><span class="hs-special">)</span><span>
+</span><span id="line-13"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Time.Clock</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">DiffTime</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">diffTimeToPicoseconds</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">picosecondsToDiffTime</span></span><span class="hs-special">)</span><span>
+</span><span id="line-14"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/io-sim-classes-0.2.0.0/noopt/doc/html/io-sim-classes/src"><span class="hs-identifier">Control.Monad.Class.MonadTime</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/io-sim-classes-0.2.0.0/noopt/doc/html/io-sim-classes/src"><span class="hs-identifier">Time</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-15"></span><span>
+</span><span id="line-16"></span><span class="annot"><a href="Network.Mux.Time.html#diffTimeToMicroseconds"><span class="hs-identifier hs-type">diffTimeToMicroseconds</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">DiffTime</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Integer</span></span><span>
+</span><span id="line-17"></span><span id="diffTimeToMicroseconds"><span class="annot"><span class="annottext">diffTimeToMicroseconds :: DiffTime -&gt; Integer
+</span><a href="Network.Mux.Time.html#diffTimeToMicroseconds"><span class="hs-identifier hs-var hs-var">diffTimeToMicroseconds</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Integer -&gt; Integer -&gt; Integer
+forall a. Integral a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">`div`</span></span><span> </span><span class="annot"><span class="annottext">Integer
+</span><span class="hs-number">1000000</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(Integer -&gt; Integer)
+-&gt; (DiffTime -&gt; Integer) -&gt; DiffTime -&gt; Integer
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">DiffTime -&gt; Integer
+</span><span class="hs-identifier hs-var">diffTimeToPicoseconds</span></span><span>
+</span><span id="line-18"></span><span>
+</span><span id="line-19"></span><span class="annot"><a href="Network.Mux.Time.html#microsecondsToDiffTime"><span class="hs-identifier hs-type">microsecondsToDiffTime</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Integer</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">DiffTime</span></span><span>
+</span><span id="line-20"></span><span id="microsecondsToDiffTime"><span class="annot"><span class="annottext">microsecondsToDiffTime :: Integer -&gt; DiffTime
+</span><a href="Network.Mux.Time.html#microsecondsToDiffTime"><span class="hs-identifier hs-var hs-var">microsecondsToDiffTime</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Integer -&gt; DiffTime
+</span><span class="hs-identifier hs-var">picosecondsToDiffTime</span></span><span> </span><span class="annot"><span class="annottext">(Integer -&gt; DiffTime)
+-&gt; (Integer -&gt; Integer) -&gt; Integer -&gt; DiffTime
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Integer -&gt; Integer -&gt; Integer
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">*</span></span><span> </span><span class="annot"><span class="annottext">Integer
+</span><span class="hs-number">1000000</span></span><span class="hs-special">)</span><span>
+</span><span id="line-21"></span><span>
+</span><span id="line-22"></span><span class="hs-comment">-- | This is a slightly peculiar operation: it returns the number of</span><span>
+</span><span id="line-23"></span><span class="hs-comment">-- microseconds since an arbitrary epoch, modulo 2^32. This number of</span><span>
+</span><span id="line-24"></span><span class="hs-comment">-- microseconds wraps every ~35 minutes.</span><span>
+</span><span id="line-25"></span><span class="hs-comment">--</span><span>
+</span><span id="line-26"></span><span class="hs-comment">-- The purpose is to give a compact timestamp (compact to send over the wire)</span><span>
+</span><span id="line-27"></span><span class="hs-comment">-- for measuring time differences on the order of seconds or less.</span><span>
+</span><span id="line-28"></span><span class="hs-comment">--</span><span>
+</span><span id="line-29"></span><span class="annot"><a href="Network.Mux.Time.html#timestampMicrosecondsLow32Bits"><span class="hs-identifier hs-type">timestampMicrosecondsLow32Bits</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/io-sim-classes-0.2.0.0/noopt/doc/html/io-sim-classes/src"><span class="hs-identifier hs-type">Time</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Word32</span></span><span>
+</span><span id="line-30"></span><span id="timestampMicrosecondsLow32Bits"><span class="annot"><span class="annottext">timestampMicrosecondsLow32Bits :: Time -&gt; Word32
+</span><a href="Network.Mux.Time.html#timestampMicrosecondsLow32Bits"><span class="hs-identifier hs-var hs-var">timestampMicrosecondsLow32Bits</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/io-sim-classes-0.2.0.0/noopt/doc/html/io-sim-classes/src"><span class="hs-identifier hs-type">Time</span></a></span><span> </span><span id="local-6989586621679096577"><span class="annot"><span class="annottext">DiffTime
+</span><a href="#local-6989586621679096577"><span class="hs-identifier hs-var">ts</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-31"></span><span>    </span><span class="annot"><span class="annottext">Integer -&gt; Word32
+forall a b. (Integral a, Num b) =&gt; a -&gt; b
+</span><span class="hs-identifier hs-var">fromIntegral</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">DiffTime -&gt; Integer
+</span><a href="Network.Mux.Time.html#diffTimeToMicroseconds"><span class="hs-identifier hs-var">diffTimeToMicroseconds</span></a></span><span> </span><span class="annot"><span class="annottext">DiffTime
+</span><a href="#local-6989586621679096577"><span class="hs-identifier hs-var">ts</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-32"></span><span>
+</span><span id="line-33"></span></pre></body></html>

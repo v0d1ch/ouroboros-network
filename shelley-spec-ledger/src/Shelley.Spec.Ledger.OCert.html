@@ -1,167 +1,678 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-pragma">{-# LANGUAGE DataKinds #-}</span><span>
-</span><a name="line-2"></a><span class="hs-pragma">{-# LANGUAGE DeriveGeneric #-}</span><span>
-</span><a name="line-3"></a><span class="hs-pragma">{-# LANGUAGE DerivingStrategies #-}</span><span>
-</span><a name="line-4"></a><span class="hs-pragma">{-# LANGUAGE DerivingVia #-}</span><span>
-</span><a name="line-5"></a><span class="hs-pragma">{-# LANGUAGE GeneralizedNewtypeDeriving #-}</span><span>
-</span><a name="line-6"></a><span class="hs-pragma">{-# LANGUAGE NamedFieldPuns #-}</span><span>
-</span><a name="line-7"></a><span class="hs-pragma">{-# LANGUAGE OverloadedStrings #-}</span><span>
-</span><a name="line-8"></a><span class="hs-pragma">{-# LANGUAGE ScopedTypeVariables #-}</span><span>
-</span><a name="line-9"></a><span class="hs-pragma">{-# LANGUAGE StandaloneDeriving #-}</span><span>
-</span><a name="line-10"></a><span class="hs-pragma">{-# LANGUAGE TypeApplications #-}</span><span>
-</span><a name="line-11"></a><span>
-</span><a name="line-12"></a><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Shelley.Spec.Ledger.OCert</span><span>
-</span><a name="line-13"></a><span>  </span><span class="hs-special">(</span><span> </span><a href="Shelley.Spec.Ledger.OCert.html#OCert"><span class="hs-identifier hs-type">OCert</span></a><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span>
-</span><a name="line-14"></a><span>    </span><a href="Shelley.Spec.Ledger.OCert.html#OCertEnv"><span class="hs-identifier hs-type">OCertEnv</span></a><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span>
-</span><a name="line-15"></a><span>    </span><a href="Shelley.Spec.Ledger.OCert.html#OCertSignable"><span class="hs-identifier hs-type">OCertSignable</span></a><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span>
-</span><a name="line-16"></a><span>    </span><a href="Shelley.Spec.Ledger.OCert.html#ocertToSignable"><span class="hs-identifier hs-var">ocertToSignable</span></a><span class="hs-special">,</span><span>
-</span><a name="line-17"></a><span>    </span><a href="Shelley.Spec.Ledger.OCert.html#currentIssueNo"><span class="hs-identifier hs-var">currentIssueNo</span></a><span class="hs-special">,</span><span>
-</span><a name="line-18"></a><span>    </span><a href="Shelley.Spec.Ledger.OCert.html#KESPeriod"><span class="hs-identifier hs-type">KESPeriod</span></a><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span>
-</span><a name="line-19"></a><span>    </span><a href="Shelley.Spec.Ledger.BaseTypes.html#slotsPerKESPeriod"><span class="hs-identifier hs-var">slotsPerKESPeriod</span></a><span class="hs-special">,</span><span>
-</span><a name="line-20"></a><span>    </span><a href="Shelley.Spec.Ledger.OCert.html#kesPeriod"><span class="hs-identifier hs-var">kesPeriod</span></a><span class="hs-special">,</span><span>
-</span><a name="line-21"></a><span>  </span><span class="hs-special">)</span><span>
-</span><a name="line-22"></a><span class="hs-keyword">where</span><span>
-</span><a name="line-23"></a><span>
-</span><a name="line-24"></a><span class="hs-keyword">import</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.html"><span class="hs-identifier">Cardano.Binary</span></a><span> </span><span class="hs-special">(</span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.FromCBOR.html#FromCBOR"><span class="hs-identifier hs-type">FromCBOR</span></a><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.ToCBOR.html#ToCBOR"><span class="hs-identifier hs-type">ToCBOR</span></a><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.ToCBOR.html#toCBOR"><span class="hs-identifier hs-var">toCBOR</span></a><span class="hs-special">)</span><span>
-</span><a name="line-25"></a><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-crypto-class-2.0.0/noopt/doc/html/cardano-crypto-class/src/Cardano.Crypto.DSIGN.html"><span class="hs-identifier">Cardano.Crypto.DSIGN</span></a><span> </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">DSIGN</span><span>
-</span><a name="line-26"></a><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-crypto-class-2.0.0/noopt/doc/html/cardano-crypto-class/src/Cardano.Crypto.KES.html"><span class="hs-identifier">Cardano.Crypto.KES</span></a><span> </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">KES</span><span>
-</span><a name="line-27"></a><span class="hs-keyword">import</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-crypto-class-2.0.0/noopt/doc/html/cardano-crypto-class/src/Cardano.Crypto.Util.html"><span class="hs-identifier">Cardano.Crypto.Util</span></a><span> </span><span class="hs-special">(</span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-crypto-class-2.0.0/noopt/doc/html/cardano-crypto-class/src/Cardano.Crypto.Util.html#SignableRepresentation"><span class="hs-identifier hs-type">SignableRepresentation</span></a><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
-</span><a name="line-28"></a><span class="hs-keyword">import</span><span> </span><a href="Cardano.Ledger.Crypto.html"><span class="hs-identifier">Cardano.Ledger.Crypto</span></a><span> </span><span class="hs-special">(</span><a href="Cardano.Ledger.Crypto.html#KES"><span class="hs-identifier hs-type">KES</span></a><span class="hs-special">)</span><span>
-</span><a name="line-29"></a><span class="hs-keyword">import</span><span> </span><a href="Cardano.Ledger.Era.html"><span class="hs-identifier">Cardano.Ledger.Era</span></a><span>
-</span><a name="line-30"></a><span class="hs-keyword">import</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-prelude-0.1.0.0/noopt/doc/html/cardano-prelude/src/Cardano.Prelude.html"><span class="hs-identifier">Cardano.Prelude</span></a><span> </span><span class="hs-special">(</span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-prelude-0.1.0.0/noopt/doc/html/cardano-prelude/src/Cardano.Prelude.GHC.Heap.NormalForm.Classy.html#NoUnexpectedThunks"><span class="hs-identifier hs-type">NoUnexpectedThunks</span></a><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
-</span><a name="line-31"></a><span class="hs-keyword">import</span><span> </span><span class="hs-identifier">Control.Monad.Trans.Reader</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-var">asks</span><span class="hs-special">)</span><span>
-</span><a name="line-32"></a><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-identifier">Data.ByteString.Builder</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">BS</span><span>
-</span><a name="line-33"></a><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-identifier">Data.ByteString.Builder.Extra</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">BS</span><span>
-</span><a name="line-34"></a><span class="hs-keyword">import</span><span> </span><span class="hs-identifier">Data.Functor</span><span> </span><span class="hs-special">(</span><span class="hs-special">(</span><span class="hs-operator hs-var">&lt;&amp;&gt;</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
-</span><a name="line-35"></a><span class="hs-keyword">import</span><span> </span><span class="hs-identifier">Data.Map.Strict</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Map</span><span class="hs-special">)</span><span>
-</span><a name="line-36"></a><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-identifier">Data.Map.Strict</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">Map</span><span>
-</span><a name="line-37"></a><span class="hs-keyword">import</span><span> </span><span class="hs-identifier">Data.Proxy</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Proxy</span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
-</span><a name="line-38"></a><span class="hs-keyword">import</span><span> </span><span class="hs-identifier">Data.Set</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Set</span><span class="hs-special">)</span><span>
-</span><a name="line-39"></a><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-identifier">Data.Set</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">Set</span><span>
-</span><a name="line-40"></a><span class="hs-keyword">import</span><span> </span><span class="hs-identifier">Data.Word</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Word64</span><span class="hs-special">)</span><span>
-</span><a name="line-41"></a><span class="hs-keyword">import</span><span> </span><span class="hs-identifier">GHC.Generics</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Generic</span><span class="hs-special">)</span><span>
-</span><a name="line-42"></a><span class="hs-keyword">import</span><span> </span><span class="hs-identifier">Quiet</span><span>
-</span><a name="line-43"></a><span class="hs-keyword">import</span><span> </span><a href="Shelley.Spec.Ledger.BaseTypes.html"><span class="hs-identifier">Shelley.Spec.Ledger.BaseTypes</span></a><span>
-</span><a name="line-44"></a><span class="hs-keyword">import</span><span> </span><a href="Shelley.Spec.Ledger.Keys.html"><span class="hs-identifier">Shelley.Spec.Ledger.Keys</span></a><span>
-</span><a name="line-45"></a><span>  </span><span class="hs-special">(</span><span> </span><a href="Shelley.Spec.Ledger.Keys.html#KeyHash"><span class="hs-identifier hs-type">KeyHash</span></a><span class="hs-special">,</span><span>
-</span><a name="line-46"></a><span>    </span><a href="Shelley.Spec.Ledger.Keys.html#KeyRole"><span class="hs-identifier hs-type">KeyRole</span></a><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span>
-</span><a name="line-47"></a><span>    </span><a href="Shelley.Spec.Ledger.Keys.html#SignedDSIGN"><span class="hs-identifier hs-type">SignedDSIGN</span></a><span class="hs-special">,</span><span>
-</span><a name="line-48"></a><span>    </span><a href="Shelley.Spec.Ledger.Keys.html#VerKeyKES"><span class="hs-identifier hs-type">VerKeyKES</span></a><span class="hs-special">,</span><span>
-</span><a name="line-49"></a><span>    </span><a href="Shelley.Spec.Ledger.Keys.html#coerceKeyRole"><span class="hs-identifier hs-var">coerceKeyRole</span></a><span class="hs-special">,</span><span>
-</span><a name="line-50"></a><span>    </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-crypto-class-2.0.0/noopt/doc/html/cardano-crypto-class/src/Cardano.Crypto.DSIGN.Class.html#decodeSignedDSIGN"><span class="hs-identifier hs-var">decodeSignedDSIGN</span></a><span class="hs-special">,</span><span>
-</span><a name="line-51"></a><span>    </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-crypto-class-2.0.0/noopt/doc/html/cardano-crypto-class/src/Cardano.Crypto.KES.Class.html#decodeVerKeyKES"><span class="hs-identifier hs-var">decodeVerKeyKES</span></a><span class="hs-special">,</span><span>
-</span><a name="line-52"></a><span>    </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-crypto-class-2.0.0/noopt/doc/html/cardano-crypto-class/src/Cardano.Crypto.DSIGN.Class.html#encodeSignedDSIGN"><span class="hs-identifier hs-var">encodeSignedDSIGN</span></a><span class="hs-special">,</span><span>
-</span><a name="line-53"></a><span>    </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-crypto-class-2.0.0/noopt/doc/html/cardano-crypto-class/src/Cardano.Crypto.KES.Class.html#encodeVerKeyKES"><span class="hs-identifier hs-var">encodeVerKeyKES</span></a><span class="hs-special">,</span><span>
-</span><a name="line-54"></a><span>  </span><span class="hs-special">)</span><span>
-</span><a name="line-55"></a><span class="hs-keyword">import</span><span> </span><a href="Shelley.Spec.Ledger.Serialization.html"><span class="hs-identifier">Shelley.Spec.Ledger.Serialization</span></a><span>
-</span><a name="line-56"></a><span>  </span><span class="hs-special">(</span><span> </span><a href="Shelley.Spec.Ledger.Serialization.html#CBORGroup"><span class="hs-identifier hs-type">CBORGroup</span></a><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span>
-</span><a name="line-57"></a><span>    </span><a href="Shelley.Spec.Ledger.Serialization.html#FromCBORGroup"><span class="hs-identifier hs-type">FromCBORGroup</span></a><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span>
-</span><a name="line-58"></a><span>    </span><a href="Shelley.Spec.Ledger.Serialization.html#ToCBORGroup"><span class="hs-identifier hs-type">ToCBORGroup</span></a><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span>
-</span><a name="line-59"></a><span>    </span><a href="Shelley.Spec.Ledger.Serialization.html#runByteBuilder"><span class="hs-identifier hs-var">runByteBuilder</span></a><span class="hs-special">,</span><span>
-</span><a name="line-60"></a><span>  </span><span class="hs-special">)</span><span>
-</span><a name="line-61"></a><span class="hs-keyword">import</span><span> </span><a href="Shelley.Spec.Ledger.Slot.html"><span class="hs-identifier">Shelley.Spec.Ledger.Slot</span></a><span> </span><span class="hs-special">(</span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-slotting-0.1.0.0/noopt/doc/html/cardano-slotting/src/Cardano.Slotting.Slot.html#SlotNo"><span class="hs-identifier hs-type">SlotNo</span></a><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
-</span><a name="line-62"></a><span>
-</span><a name="line-63"></a><span class="hs-keyword">data</span><span> </span><a name="OCertEnv"><a href="Shelley.Spec.Ledger.OCert.html#OCertEnv"><span class="hs-identifier">OCertEnv</span></a></a><span> </span><a name="local-6989586621679367132"><a href="#local-6989586621679367132"><span class="hs-identifier">era</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><a name="OCertEnv"><a href="Shelley.Spec.Ledger.OCert.html#OCertEnv"><span class="hs-identifier">OCertEnv</span></a></a><span>
-</span><a name="line-64"></a><span>  </span><span class="hs-special">{</span><span> </span><a name="ocertEnvStPools"><a href="Shelley.Spec.Ledger.OCert.html#ocertEnvStPools"><span class="hs-identifier">ocertEnvStPools</span></a></a><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">Set</span><span> </span><span class="hs-special">(</span><a href="Shelley.Spec.Ledger.Keys.html#KeyHash"><span class="hs-identifier hs-type">KeyHash</span></a><span> </span><span class="hs-special">'</span><a href="Shelley.Spec.Ledger.Keys.html#StakePool"><span class="hs-identifier hs-type">StakePool</span></a><span> </span><a href="#local-6989586621679367132"><span class="hs-identifier hs-type">era</span></a><span class="hs-special">)</span><span class="hs-special">,</span><span>
-</span><a name="line-65"></a><span>    </span><a name="ocertEnvGenDelegs"><a href="Shelley.Spec.Ledger.OCert.html#ocertEnvGenDelegs"><span class="hs-identifier">ocertEnvGenDelegs</span></a></a><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">Set</span><span> </span><span class="hs-special">(</span><a href="Shelley.Spec.Ledger.Keys.html#KeyHash"><span class="hs-identifier hs-type">KeyHash</span></a><span> </span><span class="hs-special">'</span><a href="Shelley.Spec.Ledger.Keys.html#GenesisDelegate"><span class="hs-identifier hs-type">GenesisDelegate</span></a><span> </span><a href="#local-6989586621679367132"><span class="hs-identifier hs-type">era</span></a><span class="hs-special">)</span><span>
-</span><a name="line-66"></a><span>  </span><span class="hs-special">}</span><span>
-</span><a name="line-67"></a><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Show</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Eq</span><span class="hs-special">)</span><span>
-</span><a name="line-68"></a><span>
-</span><a name="line-69"></a><span class="hs-identifier">currentIssueNo</span><span> </span><span class="hs-glyph">::</span><span>
-</span><a name="line-70"></a><span>  </span><a href="Shelley.Spec.Ledger.OCert.html#OCertEnv"><span class="hs-identifier hs-type">OCertEnv</span></a><span> </span><a href="#local-6989586621679367147"><span class="hs-identifier hs-type">era</span></a><span> </span><span class="hs-glyph">-&gt;</span><span>
-</span><a name="line-71"></a><span>  </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Map</span><span> </span><span class="hs-special">(</span><a href="Shelley.Spec.Ledger.Keys.html#KeyHash"><span class="hs-identifier hs-type">KeyHash</span></a><span> </span><span class="hs-special">'</span><a href="Shelley.Spec.Ledger.Keys.html#BlockIssuer"><span class="hs-identifier hs-type">BlockIssuer</span></a><span> </span><a href="#local-6989586621679367147"><span class="hs-identifier hs-type">era</span></a><span class="hs-special">)</span><span> </span><span class="hs-identifier hs-type">Word64</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
-</span><a name="line-72"></a><span>  </span><span class="hs-comment">-- | Pool hash</span><span>
-</span><a name="line-73"></a><span>  </span><a href="Shelley.Spec.Ledger.Keys.html#KeyHash"><span class="hs-identifier hs-type">KeyHash</span></a><span> </span><span class="hs-special">'</span><a href="Shelley.Spec.Ledger.Keys.html#BlockIssuer"><span class="hs-identifier hs-type">BlockIssuer</span></a><span> </span><a href="#local-6989586621679367147"><span class="hs-identifier hs-type">era</span></a><span> </span><span class="hs-glyph">-&gt;</span><span>
-</span><a name="line-74"></a><span>  </span><span class="hs-identifier hs-type">Maybe</span><span> </span><span class="hs-identifier hs-type">Word64</span><span>
-</span><a name="line-75"></a><a name="currentIssueNo"><a href="Shelley.Spec.Ledger.OCert.html#currentIssueNo"><span class="hs-identifier">currentIssueNo</span></a></a><span> </span><span class="hs-special">(</span><a href="Shelley.Spec.Ledger.OCert.html#OCertEnv"><span class="hs-identifier hs-var">OCertEnv</span></a><span> </span><a name="local-6989586621679367148"><a href="#local-6989586621679367148"><span class="hs-identifier">stPools</span></a></a><span> </span><a name="local-6989586621679367149"><a href="#local-6989586621679367149"><span class="hs-identifier">genDelegs</span></a></a><span class="hs-special">)</span><span> </span><a name="local-6989586621679367150"><a href="#local-6989586621679367150"><span class="hs-identifier">cs</span></a></a><span> </span><a name="local-6989586621679367151"><a href="#local-6989586621679367151"><span class="hs-identifier">hk</span></a></a><span>
-</span><a name="line-76"></a><span>  </span><span class="hs-glyph">|</span><span> </span><span class="hs-identifier hs-var">Map.member</span><span> </span><a href="#local-6989586621679367151"><span class="hs-identifier hs-var">hk</span></a><span> </span><a href="#local-6989586621679367150"><span class="hs-identifier hs-var">cs</span></a><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-identifier hs-var">Map.lookup</span><span> </span><a href="#local-6989586621679367151"><span class="hs-identifier hs-var">hk</span></a><span> </span><a href="#local-6989586621679367150"><span class="hs-identifier hs-var">cs</span></a><span>
-</span><a name="line-77"></a><span>  </span><span class="hs-glyph">|</span><span> </span><span class="hs-identifier hs-var">Set.member</span><span> </span><span class="hs-special">(</span><a href="Shelley.Spec.Ledger.Keys.html#coerceKeyRole"><span class="hs-identifier hs-var">coerceKeyRole</span></a><span> </span><a href="#local-6989586621679367151"><span class="hs-identifier hs-var">hk</span></a><span class="hs-special">)</span><span> </span><a href="#local-6989586621679367148"><span class="hs-identifier hs-var">stPools</span></a><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-identifier hs-var">Just</span><span> </span><span class="hs-number">0</span><span>
-</span><a name="line-78"></a><span>  </span><span class="hs-glyph">|</span><span> </span><span class="hs-identifier hs-var">Set.member</span><span> </span><span class="hs-special">(</span><a href="Shelley.Spec.Ledger.Keys.html#coerceKeyRole"><span class="hs-identifier hs-var">coerceKeyRole</span></a><span> </span><a href="#local-6989586621679367151"><span class="hs-identifier hs-var">hk</span></a><span class="hs-special">)</span><span> </span><a href="#local-6989586621679367149"><span class="hs-identifier hs-var">genDelegs</span></a><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-identifier hs-var">Just</span><span> </span><span class="hs-number">0</span><span>
-</span><a name="line-79"></a><span>  </span><span class="hs-glyph">|</span><span> </span><span class="hs-identifier hs-var">otherwise</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-identifier hs-var">Nothing</span><span>
-</span><a name="line-80"></a><span>
-</span><a name="line-81"></a><span class="hs-keyword">newtype</span><span> </span><a name="KESPeriod"><a href="Shelley.Spec.Ledger.OCert.html#KESPeriod"><span class="hs-identifier">KESPeriod</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><a name="KESPeriod"><a href="Shelley.Spec.Ledger.OCert.html#KESPeriod"><span class="hs-identifier">KESPeriod</span></a></a><span> </span><span class="hs-special">{</span><a name="unKESPeriod"><a href="Shelley.Spec.Ledger.OCert.html#unKESPeriod"><span class="hs-identifier">unKESPeriod</span></a></a><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">Word</span><span class="hs-special">}</span><span>
-</span><a name="line-82"></a><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Eq</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Generic</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Ord</span><span class="hs-special">,</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-prelude-0.1.0.0/noopt/doc/html/cardano-prelude/src/Cardano.Prelude.GHC.Heap.NormalForm.Classy.html#NoUnexpectedThunks"><span class="hs-identifier hs-type">NoUnexpectedThunks</span></a><span class="hs-special">,</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.FromCBOR.html#FromCBOR"><span class="hs-identifier hs-type">FromCBOR</span></a><span class="hs-special">,</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.ToCBOR.html#ToCBOR"><span class="hs-identifier hs-type">ToCBOR</span></a><span class="hs-special">)</span><span>
-</span><a name="line-83"></a><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Show</span><span class="hs-special">)</span><span> </span><span class="hs-keyword">via</span><span> </span><span class="hs-identifier hs-type">Quiet</span><span> </span><a href="Shelley.Spec.Ledger.OCert.html#KESPeriod"><span class="hs-identifier hs-type">KESPeriod</span></a><span>
-</span><a name="line-84"></a><span>
-</span><a name="line-85"></a><span class="hs-keyword">data</span><span> </span><a name="OCert"><a href="Shelley.Spec.Ledger.OCert.html#OCert"><span class="hs-identifier">OCert</span></a></a><span> </span><a name="local-6989586621679367131"><a href="#local-6989586621679367131"><span class="hs-identifier">era</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><a name="OCert"><a href="Shelley.Spec.Ledger.OCert.html#OCert"><span class="hs-identifier">OCert</span></a></a><span>
-</span><a name="line-86"></a><span>  </span><span class="hs-special">{</span><span> </span><span class="hs-comment">-- | The operational hot key</span><span>
-</span><a name="line-87"></a><span>    </span><a name="ocertVkHot"><a href="Shelley.Spec.Ledger.OCert.html#ocertVkHot"><span class="hs-identifier">ocertVkHot</span></a></a><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-glyph">!</span><span class="hs-special">(</span><a href="Shelley.Spec.Ledger.Keys.html#VerKeyKES"><span class="hs-identifier hs-type">VerKeyKES</span></a><span> </span><a href="#local-6989586621679367131"><span class="hs-identifier hs-type">era</span></a><span class="hs-special">)</span><span class="hs-special">,</span><span>
-</span><a name="line-88"></a><span>    </span><span class="hs-comment">-- | counter</span><span>
-</span><a name="line-89"></a><span>    </span><a name="ocertN"><a href="Shelley.Spec.Ledger.OCert.html#ocertN"><span class="hs-identifier">ocertN</span></a></a><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-glyph">!</span><span class="hs-identifier hs-type">Word64</span><span class="hs-special">,</span><span>
-</span><a name="line-90"></a><span>    </span><span class="hs-comment">-- | Start of key evolving signature period</span><span>
-</span><a name="line-91"></a><span>    </span><a name="ocertKESPeriod"><a href="Shelley.Spec.Ledger.OCert.html#ocertKESPeriod"><span class="hs-identifier">ocertKESPeriod</span></a></a><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-glyph">!</span><a href="Shelley.Spec.Ledger.OCert.html#KESPeriod"><span class="hs-identifier hs-type">KESPeriod</span></a><span class="hs-special">,</span><span>
-</span><a name="line-92"></a><span>    </span><span class="hs-comment">-- | Signature of block operational certificate content</span><span>
-</span><a name="line-93"></a><span>    </span><a name="ocertSigma"><a href="Shelley.Spec.Ledger.OCert.html#ocertSigma"><span class="hs-identifier">ocertSigma</span></a></a><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-glyph">!</span><span class="hs-special">(</span><a href="Shelley.Spec.Ledger.Keys.html#SignedDSIGN"><span class="hs-identifier hs-type">SignedDSIGN</span></a><span> </span><a href="#local-6989586621679367131"><span class="hs-identifier hs-type">era</span></a><span> </span><span class="hs-special">(</span><a href="Shelley.Spec.Ledger.OCert.html#OCertSignable"><span class="hs-identifier hs-type">OCertSignable</span></a><span> </span><a href="#local-6989586621679367131"><span class="hs-identifier hs-type">era</span></a><span class="hs-special">)</span><span class="hs-special">)</span><span>
-</span><a name="line-94"></a><span>  </span><span class="hs-special">}</span><span>
-</span><a name="line-95"></a><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Generic</span><span class="hs-special">)</span><span>
-</span><a name="line-96"></a><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.ToCBOR.html#ToCBOR"><span class="hs-identifier hs-type">ToCBOR</span></a><span class="hs-special">)</span><span> </span><span class="hs-keyword">via</span><span> </span><span class="hs-special">(</span><a href="Shelley.Spec.Ledger.Serialization.html#CBORGroup"><span class="hs-identifier hs-type">CBORGroup</span></a><span> </span><span class="hs-special">(</span><a href="Shelley.Spec.Ledger.OCert.html#OCert"><span class="hs-identifier hs-type">OCert</span></a><span> </span><a href="#local-6989586621679367131"><span class="hs-identifier hs-type">era</span></a><span class="hs-special">)</span><span class="hs-special">)</span><span>
-</span><a name="line-97"></a><span>
-</span><a name="line-98"></a><span class="hs-keyword">deriving</span><span> </span><span class="hs-keyword">instance</span><span> </span><a href="Cardano.Ledger.Era.html#Era"><span class="hs-identifier hs-type">Era</span></a><span> </span><a href="#local-6989586621679367158"><span class="hs-identifier hs-type">era</span></a><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="hs-identifier hs-type">Eq</span><span> </span><span class="hs-special">(</span><a href="Shelley.Spec.Ledger.OCert.html#OCert"><span class="hs-identifier hs-type">OCert</span></a><span> </span><a href="#local-6989586621679367158"><span class="hs-identifier hs-type">era</span></a><span class="hs-special">)</span><span>
-</span><a name="line-99"></a><span>
-</span><a name="line-100"></a><span class="hs-keyword">deriving</span><span> </span><span class="hs-keyword">instance</span><span> </span><a href="Cardano.Ledger.Era.html#Era"><span class="hs-identifier hs-type">Era</span></a><span> </span><a href="#local-6989586621679367157"><span class="hs-identifier hs-type">era</span></a><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="hs-identifier hs-type">Show</span><span> </span><span class="hs-special">(</span><a href="Shelley.Spec.Ledger.OCert.html#OCert"><span class="hs-identifier hs-type">OCert</span></a><span> </span><a href="#local-6989586621679367157"><span class="hs-identifier hs-type">era</span></a><span class="hs-special">)</span><span>
-</span><a name="line-101"></a><span>
-</span><a name="line-102"></a><span class="hs-keyword">instance</span><span> </span><a href="Cardano.Ledger.Era.html#Era"><span class="hs-identifier hs-type">Era</span></a><span> </span><a href="#local-6989586621679367145"><span class="hs-identifier hs-type">era</span></a><span> </span><span class="hs-glyph">=&gt;</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-prelude-0.1.0.0/noopt/doc/html/cardano-prelude/src/Cardano.Prelude.GHC.Heap.NormalForm.Classy.html#NoUnexpectedThunks"><span class="hs-identifier hs-type">NoUnexpectedThunks</span></a><span> </span><span class="hs-special">(</span><a href="Shelley.Spec.Ledger.OCert.html#OCert"><span class="hs-identifier hs-type">OCert</span></a><span> </span><a href="#local-6989586621679367145"><span class="hs-identifier hs-type">era</span></a><span class="hs-special">)</span><span>
-</span><a name="line-103"></a><span>
-</span><a name="line-104"></a><span class="hs-keyword">instance</span><span>
-</span><a name="line-105"></a><span>  </span><span class="hs-special">(</span><a href="Cardano.Ledger.Era.html#Era"><span class="hs-identifier hs-type">Era</span></a><span> </span><a href="#local-6989586621679367138"><span class="hs-identifier hs-type">era</span></a><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
-</span><a name="line-106"></a><span>  </span><a href="Shelley.Spec.Ledger.Serialization.html#ToCBORGroup"><span class="hs-identifier hs-type">ToCBORGroup</span></a><span> </span><span class="hs-special">(</span><a href="Shelley.Spec.Ledger.OCert.html#OCert"><span class="hs-identifier hs-type">OCert</span></a><span> </span><a href="#local-6989586621679367138"><span class="hs-identifier hs-type">era</span></a><span class="hs-special">)</span><span>
-</span><a name="line-107"></a><span>  </span><span class="hs-keyword">where</span><span>
-</span><a name="line-108"></a><span>  </span><a name="local-8214565720323903299"><a href="Shelley.Spec.Ledger.Serialization.html#toCBORGroup"><span class="hs-identifier">toCBORGroup</span></a></a><span> </span><a name="local-6989586621679367139"><a href="#local-6989586621679367139"><span class="hs-identifier">ocert</span></a></a><span> </span><span class="hs-glyph">=</span><span>
-</span><a name="line-109"></a><span>    </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-crypto-class-2.0.0/noopt/doc/html/cardano-crypto-class/src/Cardano.Crypto.KES.Class.html#encodeVerKeyKES"><span class="hs-identifier hs-var">encodeVerKeyKES</span></a><span> </span><span class="hs-special">(</span><span class="hs-identifier">ocertVkHot</span><span> </span><a href="#local-6989586621679367139"><span class="hs-identifier hs-var">ocert</span></a><span class="hs-special">)</span><span>
-</span><a name="line-110"></a><span>      </span><span class="hs-operator hs-var">&lt;&gt;</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.ToCBOR.html#toCBOR"><span class="hs-identifier hs-var">toCBOR</span></a><span> </span><span class="hs-special">(</span><span class="hs-identifier">ocertN</span><span> </span><a href="#local-6989586621679367139"><span class="hs-identifier hs-var">ocert</span></a><span class="hs-special">)</span><span>
-</span><a name="line-111"></a><span>      </span><span class="hs-operator hs-var">&lt;&gt;</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.ToCBOR.html#toCBOR"><span class="hs-identifier hs-var">toCBOR</span></a><span> </span><span class="hs-special">(</span><span class="hs-identifier">ocertKESPeriod</span><span> </span><a href="#local-6989586621679367139"><span class="hs-identifier hs-var">ocert</span></a><span class="hs-special">)</span><span>
-</span><a name="line-112"></a><span>      </span><span class="hs-operator hs-var">&lt;&gt;</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-crypto-class-2.0.0/noopt/doc/html/cardano-crypto-class/src/Cardano.Crypto.DSIGN.Class.html#encodeSignedDSIGN"><span class="hs-identifier hs-var">encodeSignedDSIGN</span></a><span> </span><span class="hs-special">(</span><span class="hs-identifier">ocertSigma</span><span> </span><a href="#local-6989586621679367139"><span class="hs-identifier hs-var">ocert</span></a><span class="hs-special">)</span><span>
-</span><a name="line-113"></a><span>  </span><a name="local-8214565720323903300"><a href="Shelley.Spec.Ledger.Serialization.html#encodedGroupSizeExpr"><span class="hs-identifier">encodedGroupSizeExpr</span></a></a><span> </span><a name="local-6989586621679367140"><a href="#local-6989586621679367140"><span class="hs-identifier">size</span></a></a><span> </span><a name="local-6989586621679367141"><a href="#local-6989586621679367141"><span class="hs-identifier">proxy</span></a></a><span> </span><span class="hs-glyph">=</span><span>
-</span><a name="line-114"></a><span>    </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-crypto-class-2.0.0/noopt/doc/html/cardano-crypto-class/src/Cardano.Crypto.KES.Class.html#encodedVerKeyKESSizeExpr"><span class="hs-identifier hs-var">KES.encodedVerKeyKESSizeExpr</span></a><span> </span><span class="hs-special">(</span><span class="hs-identifier">ocertVkHot</span><span> </span><span class="hs-operator hs-var">&lt;$&gt;</span><span> </span><a href="#local-6989586621679367141"><span class="hs-identifier hs-var">proxy</span></a><span class="hs-special">)</span><span>
-</span><a name="line-115"></a><span>      </span><span class="hs-operator hs-var">+</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.ToCBOR.html#encodedSizeExpr"><span class="hs-identifier hs-var">encodedSizeExpr</span></a><span> </span><a href="#local-6989586621679367140"><span class="hs-identifier hs-var">size</span></a><span> </span><span class="hs-special">(</span><span class="hs-special">(</span><a href="#local-6989586621679367142"><span class="hs-identifier hs-var">toWord</span></a><span> </span><span class="hs-operator hs-var">.</span><span> </span><span class="hs-identifier">ocertN</span><span class="hs-special">)</span><span> </span><span class="hs-operator hs-var">&lt;$&gt;</span><span> </span><a href="#local-6989586621679367141"><span class="hs-identifier hs-var">proxy</span></a><span class="hs-special">)</span><span>
-</span><a name="line-116"></a><span>      </span><span class="hs-operator hs-var">+</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.ToCBOR.html#encodedSizeExpr"><span class="hs-identifier hs-var">encodedSizeExpr</span></a><span> </span><a href="#local-6989586621679367140"><span class="hs-identifier hs-var">size</span></a><span> </span><span class="hs-special">(</span><span class="hs-special">(</span><span class="hs-glyph">\</span><span class="hs-special">(</span><a href="Shelley.Spec.Ledger.OCert.html#KESPeriod"><span class="hs-identifier hs-var">KESPeriod</span></a><span> </span><a name="local-6989586621679367143"><a href="#local-6989586621679367143"><span class="hs-identifier">p</span></a></a><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><a href="#local-6989586621679367143"><span class="hs-identifier hs-var">p</span></a><span class="hs-special">)</span><span> </span><span class="hs-operator hs-var">.</span><span> </span><span class="hs-identifier">ocertKESPeriod</span><span> </span><span class="hs-operator hs-var">&lt;$&gt;</span><span> </span><a href="#local-6989586621679367141"><span class="hs-identifier hs-var">proxy</span></a><span class="hs-special">)</span><span>
-</span><a name="line-117"></a><span>      </span><span class="hs-operator hs-var">+</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-crypto-class-2.0.0/noopt/doc/html/cardano-crypto-class/src/Cardano.Crypto.DSIGN.Class.html#encodedSigDSIGNSizeExpr"><span class="hs-identifier hs-var">DSIGN.encodedSigDSIGNSizeExpr</span></a><span> </span><span class="hs-special">(</span><span class="hs-special">(</span><span class="hs-special">(</span><span class="hs-glyph">\</span><span class="hs-special">(</span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-crypto-class-2.0.0/noopt/doc/html/cardano-crypto-class/src/Cardano.Crypto.DSIGN.Class.html#SignedDSIGN"><span class="hs-identifier hs-var">DSIGN.SignedDSIGN</span></a><span> </span><a name="local-6989586621679367144"><a href="#local-6989586621679367144"><span class="hs-identifier">sig</span></a></a><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><a href="#local-6989586621679367144"><span class="hs-identifier hs-var">sig</span></a><span class="hs-special">)</span><span> </span><span class="hs-operator hs-var">.</span><span> </span><span class="hs-identifier">ocertSigma</span><span class="hs-special">)</span><span> </span><span class="hs-operator hs-var">&lt;$&gt;</span><span> </span><a href="#local-6989586621679367141"><span class="hs-identifier hs-var">proxy</span></a><span class="hs-special">)</span><span>
-</span><a name="line-118"></a><span>    </span><span class="hs-keyword">where</span><span>
-</span><a name="line-119"></a><span>      </span><span class="hs-identifier">toWord</span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">Word64</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">Word</span><span>
-</span><a name="line-120"></a><span>      </span><a name="local-6989586621679367142"><a href="#local-6989586621679367142"><span class="hs-identifier">toWord</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-identifier hs-var">fromIntegral</span><span>
-</span><a name="line-121"></a><span>
-</span><a name="line-122"></a><span>  </span><a name="local-8214565720323903301"><a href="Shelley.Spec.Ledger.Serialization.html#listLen"><span class="hs-identifier">listLen</span></a></a><span> </span><span class="hs-identifier">_</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-number">4</span><span>
-</span><a name="line-123"></a><span>  </span><a name="local-8214565720323903302"><a href="Shelley.Spec.Ledger.Serialization.html#listLenBound"><span class="hs-identifier">listLenBound</span></a></a><span> </span><span class="hs-identifier">_</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-number">4</span><span>
-</span><a name="line-124"></a><span>
-</span><a name="line-125"></a><span class="hs-keyword">instance</span><span>
-</span><a name="line-126"></a><span>  </span><span class="hs-special">(</span><a href="Cardano.Ledger.Era.html#Era"><span class="hs-identifier hs-type">Era</span></a><span> </span><a href="#local-6989586621679367137"><span class="hs-identifier hs-type">era</span></a><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
-</span><a name="line-127"></a><span>  </span><a href="Shelley.Spec.Ledger.Serialization.html#FromCBORGroup"><span class="hs-identifier hs-type">FromCBORGroup</span></a><span> </span><span class="hs-special">(</span><a href="Shelley.Spec.Ledger.OCert.html#OCert"><span class="hs-identifier hs-type">OCert</span></a><span> </span><a href="#local-6989586621679367137"><span class="hs-identifier hs-type">era</span></a><span class="hs-special">)</span><span>
-</span><a name="line-128"></a><span>  </span><span class="hs-keyword">where</span><span>
-</span><a name="line-129"></a><span>  </span><a name="local-8214565720323903294"><a href="Shelley.Spec.Ledger.Serialization.html#fromCBORGroup"><span class="hs-identifier">fromCBORGroup</span></a></a><span> </span><span class="hs-glyph">=</span><span>
-</span><a name="line-130"></a><span>    </span><a href="Shelley.Spec.Ledger.OCert.html#OCert"><span class="hs-identifier hs-var">OCert</span></a><span>
-</span><a name="line-131"></a><span>      </span><span class="hs-operator hs-var">&lt;$&gt;</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-crypto-class-2.0.0/noopt/doc/html/cardano-crypto-class/src/Cardano.Crypto.KES.Class.html#decodeVerKeyKES"><span class="hs-identifier hs-var">decodeVerKeyKES</span></a><span>
-</span><a name="line-132"></a><span>      </span><span class="hs-operator hs-var">&lt;*&gt;</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.FromCBOR.html#fromCBOR"><span class="hs-identifier hs-var">fromCBOR</span></a><span>
-</span><a name="line-133"></a><span>      </span><span class="hs-operator hs-var">&lt;*&gt;</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.FromCBOR.html#fromCBOR"><span class="hs-identifier hs-var">fromCBOR</span></a><span>
-</span><a name="line-134"></a><span>      </span><span class="hs-operator hs-var">&lt;*&gt;</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-crypto-class-2.0.0/noopt/doc/html/cardano-crypto-class/src/Cardano.Crypto.DSIGN.Class.html#decodeSignedDSIGN"><span class="hs-identifier hs-var">decodeSignedDSIGN</span></a><span>
-</span><a name="line-135"></a><span>
-</span><a name="line-136"></a><span class="hs-identifier">kesPeriod</span><span> </span><span class="hs-glyph">::</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-slotting-0.1.0.0/noopt/doc/html/cardano-slotting/src/Cardano.Slotting.Slot.html#SlotNo"><span class="hs-identifier hs-type">SlotNo</span></a><span> </span><span class="hs-glyph">-&gt;</span><span> </span><a href="Shelley.Spec.Ledger.BaseTypes.html#ShelleyBase"><span class="hs-identifier hs-type">ShelleyBase</span></a><span> </span><a href="Shelley.Spec.Ledger.OCert.html#KESPeriod"><span class="hs-identifier hs-type">KESPeriod</span></a><span>
-</span><a name="line-137"></a><a name="kesPeriod"><a href="Shelley.Spec.Ledger.OCert.html#kesPeriod"><span class="hs-identifier">kesPeriod</span></a></a><span> </span><span class="hs-special">(</span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-slotting-0.1.0.0/noopt/doc/html/cardano-slotting/src/Cardano.Slotting.Slot.html#SlotNo"><span class="hs-identifier hs-var">SlotNo</span></a><span> </span><a name="local-6989586621679367152"><a href="#local-6989586621679367152"><span class="hs-identifier">s</span></a></a><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span>
-</span><a name="line-138"></a><span>  </span><span class="hs-identifier hs-var">asks</span><span> </span><span class="hs-identifier">slotsPerKESPeriod</span><span> </span><span class="hs-operator hs-var">&lt;&amp;&gt;</span><span> </span><span class="hs-glyph">\</span><a name="local-6989586621679367153"><a href="#local-6989586621679367153"><span class="hs-identifier">spkp</span></a></a><span> </span><span class="hs-glyph">-&gt;</span><span>
-</span><a name="line-139"></a><span>    </span><span class="hs-keyword">if</span><span> </span><a href="#local-6989586621679367153"><span class="hs-identifier hs-var">spkp</span></a><span> </span><span class="hs-operator hs-var">==</span><span> </span><span class="hs-number">0</span><span>
-</span><a name="line-140"></a><span>      </span><span class="hs-keyword">then</span><span> </span><span class="hs-identifier hs-var">error</span><span> </span><span class="hs-string">&quot;kesPeriod: slots per KES period was set to zero&quot;</span><span>
-</span><a name="line-141"></a><span>      </span><span class="hs-keyword">else</span><span> </span><a href="Shelley.Spec.Ledger.OCert.html#KESPeriod"><span class="hs-identifier hs-var">KESPeriod</span></a><span> </span><span class="hs-operator hs-var">.</span><span> </span><span class="hs-identifier hs-var">fromIntegral</span><span> </span><span class="hs-operator hs-var">$</span><span> </span><a href="#local-6989586621679367152"><span class="hs-identifier hs-var">s</span></a><span> </span><span class="hs-special">`</span><span class="hs-identifier hs-var">div</span><span class="hs-special">`</span><span> </span><a href="#local-6989586621679367153"><span class="hs-identifier hs-var">spkp</span></a><span>
-</span><a name="line-142"></a><span>
-</span><a name="line-143"></a><span class="hs-comment">-- | Signable part of an operational certificate</span><span>
-</span><a name="line-144"></a><span class="hs-keyword">data</span><span> </span><a name="OCertSignable"><a href="Shelley.Spec.Ledger.OCert.html#OCertSignable"><span class="hs-identifier">OCertSignable</span></a></a><span> </span><a name="local-6989586621679367130"><a href="#local-6989586621679367130"><span class="hs-identifier">era</span></a></a><span>
-</span><a name="line-145"></a><span>  </span><span class="hs-glyph">=</span><span> </span><a name="OCertSignable"><a href="Shelley.Spec.Ledger.OCert.html#OCertSignable"><span class="hs-identifier">OCertSignable</span></a></a><span> </span><span class="hs-glyph">!</span><span class="hs-special">(</span><a href="Shelley.Spec.Ledger.Keys.html#VerKeyKES"><span class="hs-identifier hs-type">VerKeyKES</span></a><span> </span><a href="#local-6989586621679367130"><span class="hs-identifier hs-type">era</span></a><span class="hs-special">)</span><span> </span><span class="hs-glyph">!</span><span class="hs-identifier hs-type">Word64</span><span> </span><span class="hs-glyph">!</span><a href="Shelley.Spec.Ledger.OCert.html#KESPeriod"><span class="hs-identifier hs-type">KESPeriod</span></a><span>
-</span><a name="line-146"></a><span>
-</span><a name="line-147"></a><span class="hs-keyword">instance</span><span>
-</span><a name="line-148"></a><span>  </span><span class="hs-keyword">forall</span><span> </span><a name="local-6989586621679367133"><a href="#local-6989586621679367133"><span class="hs-identifier">era</span></a></a><span class="hs-operator">.</span><span>
-</span><a name="line-149"></a><span>  </span><a href="Cardano.Ledger.Era.html#Era"><span class="hs-identifier hs-type">Era</span></a><span> </span><a href="#local-6989586621679367133"><span class="hs-identifier hs-type">era</span></a><span> </span><span class="hs-glyph">=&gt;</span><span>
-</span><a name="line-150"></a><span>  </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-crypto-class-2.0.0/noopt/doc/html/cardano-crypto-class/src/Cardano.Crypto.Util.html#SignableRepresentation"><span class="hs-identifier hs-type">SignableRepresentation</span></a><span> </span><span class="hs-special">(</span><a href="Shelley.Spec.Ledger.OCert.html#OCertSignable"><span class="hs-identifier hs-type">OCertSignable</span></a><span> </span><a href="#local-6989586621679367133"><span class="hs-identifier hs-type">era</span></a><span class="hs-special">)</span><span>
-</span><a name="line-151"></a><span>  </span><span class="hs-keyword">where</span><span>
-</span><a name="line-152"></a><span>  </span><a name="local-8214565720323797983"><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-crypto-class-2.0.0/noopt/doc/html/cardano-crypto-class/src/Cardano.Crypto.Util.html#getSignableRepresentation"><span class="hs-identifier">getSignableRepresentation</span></a></a><span> </span><span class="hs-special">(</span><a href="Shelley.Spec.Ledger.OCert.html#OCertSignable"><span class="hs-identifier hs-var">OCertSignable</span></a><span> </span><a name="local-6989586621679367134"><a href="#local-6989586621679367134"><span class="hs-identifier">vk</span></a></a><span> </span><a name="local-6989586621679367135"><a href="#local-6989586621679367135"><span class="hs-identifier">counter</span></a></a><span> </span><a name="local-6989586621679367136"><a href="#local-6989586621679367136"><span class="hs-identifier">period</span></a></a><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span>
-</span><a name="line-153"></a><span>    </span><a href="Shelley.Spec.Ledger.Serialization.html#runByteBuilder"><span class="hs-identifier hs-var">runByteBuilder</span></a><span>
-</span><a name="line-154"></a><span>      </span><span class="hs-special">(</span><span> </span><span class="hs-identifier hs-var">fromIntegral</span><span> </span><span class="hs-operator hs-var">$</span><span>
-</span><a name="line-155"></a><span>          </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-crypto-class-2.0.0/noopt/doc/html/cardano-crypto-class/src/Cardano.Crypto.KES.Class.html#sizeVerKeyKES"><span class="hs-identifier hs-var">KES.sizeVerKeyKES</span></a><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-var">Proxy</span><span> </span><span class="hs-glyph">@</span><span class="hs-special">(</span><a href="Cardano.Ledger.Crypto.html#KES"><span class="hs-identifier hs-type">KES</span></a><span> </span><span class="hs-special">(</span><a href="Cardano.Ledger.Era.html#Crypto"><span class="hs-identifier hs-type">Crypto</span></a><span> </span><a href="#local-6989586621679367133"><span class="hs-identifier hs-type">era</span></a><span class="hs-special">)</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
-</span><a name="line-156"></a><span>            </span><span class="hs-operator hs-var">+</span><span> </span><span class="hs-number">8</span><span>
-</span><a name="line-157"></a><span>            </span><span class="hs-operator hs-var">+</span><span> </span><span class="hs-number">8</span><span>
-</span><a name="line-158"></a><span>      </span><span class="hs-special">)</span><span>
-</span><a name="line-159"></a><span>      </span><span class="hs-operator hs-var">$</span><span> </span><span class="hs-identifier hs-var">BS.byteStringCopy</span><span> </span><span class="hs-special">(</span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-crypto-class-2.0.0/noopt/doc/html/cardano-crypto-class/src/Cardano.Crypto.KES.Class.html#rawSerialiseVerKeyKES"><span class="hs-identifier hs-var">KES.rawSerialiseVerKeyKES</span></a><span> </span><a href="#local-6989586621679367134"><span class="hs-identifier hs-var">vk</span></a><span class="hs-special">)</span><span>
-</span><a name="line-160"></a><span>        </span><span class="hs-operator hs-var">&lt;&gt;</span><span> </span><span class="hs-identifier hs-var">BS.word64BE</span><span> </span><a href="#local-6989586621679367135"><span class="hs-identifier hs-var">counter</span></a><span>
-</span><a name="line-161"></a><span>        </span><span class="hs-operator hs-var">&lt;&gt;</span><span> </span><span class="hs-identifier hs-var">BS.word64BE</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-var">fromIntegral</span><span> </span><span class="hs-operator hs-var">$</span><span> </span><span class="hs-identifier">unKESPeriod</span><span> </span><a href="#local-6989586621679367136"><span class="hs-identifier hs-var">period</span></a><span class="hs-special">)</span><span>
-</span><a name="line-162"></a><span>
-</span><a name="line-163"></a><span class="hs-comment">-- | Extract the signable part of an operational certificate (for verification)</span><span>
-</span><a name="line-164"></a><span class="hs-identifier">ocertToSignable</span><span> </span><span class="hs-glyph">::</span><span> </span><a href="Shelley.Spec.Ledger.OCert.html#OCert"><span class="hs-identifier hs-type">OCert</span></a><span> </span><a href="#local-6989586621679367146"><span class="hs-identifier hs-type">era</span></a><span> </span><span class="hs-glyph">-&gt;</span><span> </span><a href="Shelley.Spec.Ledger.OCert.html#OCertSignable"><span class="hs-identifier hs-type">OCertSignable</span></a><span> </span><a href="#local-6989586621679367146"><span class="hs-identifier hs-type">era</span></a><span>
-</span><a name="line-165"></a><a name="ocertToSignable"><a href="Shelley.Spec.Ledger.OCert.html#ocertToSignable"><span class="hs-identifier">ocertToSignable</span></a></a><span> </span><a href="Shelley.Spec.Ledger.OCert.html#OCert"><span class="hs-identifier hs-var">OCert</span></a><span> </span><span class="hs-special">{</span><a name="local-6989586621679367154"><a href="#local-6989586621679367154"><span class="hs-identifier">ocertVkHot</span></a></a><span class="hs-special">,</span><span> </span><a name="local-6989586621679367155"><a href="#local-6989586621679367155"><span class="hs-identifier">ocertN</span></a></a><span class="hs-special">,</span><span> </span><a name="local-6989586621679367156"><a href="#local-6989586621679367156"><span class="hs-identifier">ocertKESPeriod</span></a></a><span class="hs-special">}</span><span> </span><span class="hs-glyph">=</span><span>
-</span><a name="line-166"></a><span>  </span><a href="Shelley.Spec.Ledger.OCert.html#OCertSignable"><span class="hs-identifier hs-var">OCertSignable</span></a><span> </span><a href="#local-6989586621679367154"><span class="hs-identifier hs-var">ocertVkHot</span></a><span> </span><a href="#local-6989586621679367155"><span class="hs-identifier hs-var">ocertN</span></a><span> </span><a href="#local-6989586621679367156"><span class="hs-identifier hs-var">ocertKESPeriod</span></a><span>
-</span><a name="line-167"></a></pre></body></html>
+</span><span id="line-2"></span><span class="hs-pragma">{-# LANGUAGE DeriveGeneric #-}</span><span>
+</span><span id="line-3"></span><span class="hs-pragma">{-# LANGUAGE DerivingStrategies #-}</span><span>
+</span><span id="line-4"></span><span class="hs-pragma">{-# LANGUAGE DerivingVia #-}</span><span>
+</span><span id="line-5"></span><span class="hs-pragma">{-# LANGUAGE GeneralizedNewtypeDeriving #-}</span><span>
+</span><span id="line-6"></span><span class="hs-pragma">{-# LANGUAGE NamedFieldPuns #-}</span><span>
+</span><span id="line-7"></span><span class="hs-pragma">{-# LANGUAGE OverloadedStrings #-}</span><span>
+</span><span id="line-8"></span><span class="hs-pragma">{-# LANGUAGE ScopedTypeVariables #-}</span><span>
+</span><span id="line-9"></span><span class="hs-pragma">{-# LANGUAGE StandaloneDeriving #-}</span><span>
+</span><span id="line-10"></span><span class="hs-pragma">{-# LANGUAGE TypeApplications #-}</span><span>
+</span><span id="line-11"></span><span>
+</span><span id="line-12"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Shelley.Spec.Ledger.OCert</span><span>
+</span><span id="line-13"></span><span>  </span><span class="hs-special">(</span><span> </span><span class="annot"><a href="Shelley.Spec.Ledger.OCert.html#OCert"><span class="hs-identifier">OCert</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span>
+</span><span id="line-14"></span><span>    </span><span class="annot"><a href="Shelley.Spec.Ledger.OCert.html#OCertEnv"><span class="hs-identifier">OCertEnv</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span>
+</span><span id="line-15"></span><span>    </span><span class="annot"><a href="Shelley.Spec.Ledger.OCert.html#OCertSignable"><span class="hs-identifier">OCertSignable</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span>
+</span><span id="line-16"></span><span>    </span><span class="annot"><a href="Shelley.Spec.Ledger.OCert.html#ocertToSignable"><span class="hs-identifier">ocertToSignable</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-17"></span><span>    </span><span class="annot"><a href="Shelley.Spec.Ledger.OCert.html#currentIssueNo"><span class="hs-identifier">currentIssueNo</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-18"></span><span>    </span><span class="annot"><a href="Shelley.Spec.Ledger.OCert.html#KESPeriod"><span class="hs-identifier">KESPeriod</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span>
+</span><span id="line-19"></span><span>    </span><span class="annot"><a href="Shelley.Spec.Ledger.BaseTypes.html#slotsPerKESPeriod"><span class="hs-identifier">slotsPerKESPeriod</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-20"></span><span>    </span><span class="annot"><a href="Shelley.Spec.Ledger.OCert.html#kesPeriod"><span class="hs-identifier">kesPeriod</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-21"></span><span>  </span><span class="hs-special">)</span><span>
+</span><span id="line-22"></span><span class="hs-keyword">where</span><span>
+</span><span id="line-23"></span><span>
+</span><span id="line-24"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src"><span class="hs-identifier">Cardano.Binary</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src"><span class="hs-identifier">FromCBOR</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src"><span class="hs-identifier">ToCBOR</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src"><span class="hs-identifier">toCBOR</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-25"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-crypto-class-2.0.0/noopt/doc/html/cardano-crypto-class/src"><span class="hs-identifier">Cardano.Crypto.DSIGN</span></a></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">DSIGN</span></span><span>
+</span><span id="line-26"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-crypto-class-2.0.0/noopt/doc/html/cardano-crypto-class/src"><span class="hs-identifier">Cardano.Crypto.KES</span></a></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">KES</span></span><span>
+</span><span id="line-27"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-crypto-class-2.0.0/noopt/doc/html/cardano-crypto-class/src"><span class="hs-identifier">Cardano.Crypto.Util</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-crypto-class-2.0.0/noopt/doc/html/cardano-crypto-class/src"><span class="hs-identifier">SignableRepresentation</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-28"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Cardano.Ledger.Crypto.html"><span class="hs-identifier">Cardano.Ledger.Crypto</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cardano.Ledger.Crypto.html#Crypto"><span class="hs-identifier">Crypto</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cardano.Ledger.Crypto.html#KES"><span class="hs-identifier">KES</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-29"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Control.Monad.Trans.Reader</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">asks</span></span><span class="hs-special">)</span><span>
+</span><span id="line-30"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Data.ByteString.Builder</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">BS</span></span><span>
+</span><span id="line-31"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Data.ByteString.Builder.Extra</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">BS</span></span><span>
+</span><span id="line-32"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Functor</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-operator">(&lt;&amp;&gt;)</span></span><span class="hs-special">)</span><span>
+</span><span id="line-33"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Map.Strict</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Map</span></span><span class="hs-special">)</span><span>
+</span><span id="line-34"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Data.Map.Strict</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Map</span></span><span>
+</span><span id="line-35"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Proxy</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Proxy</span></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-36"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Set</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Set</span></span><span class="hs-special">)</span><span>
+</span><span id="line-37"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Data.Set</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Set</span></span><span>
+</span><span id="line-38"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Word</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Word64</span></span><span class="hs-special">)</span><span>
+</span><span id="line-39"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">GHC.Generics</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Generic</span></span><span class="hs-special">)</span><span>
+</span><span id="line-40"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">NoThunks.Class</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">NoThunks</span></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-41"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Quiet</span></span><span>
+</span><span id="line-42"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Shelley.Spec.Ledger.BaseTypes.html"><span class="hs-identifier">Shelley.Spec.Ledger.BaseTypes</span></a></span><span>
+</span><span id="line-43"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Shelley.Spec.Ledger.Keys.html"><span class="hs-identifier">Shelley.Spec.Ledger.Keys</span></a></span><span>
+</span><span id="line-44"></span><span>  </span><span class="hs-special">(</span><span> </span><span class="annot"><a href="Shelley.Spec.Ledger.Keys.html#KeyHash"><span class="hs-identifier">KeyHash</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-45"></span><span>    </span><span class="annot"><a href="Shelley.Spec.Ledger.Keys.html#KeyRole"><span class="hs-identifier">KeyRole</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span>
+</span><span id="line-46"></span><span>    </span><span class="annot"><a href="Shelley.Spec.Ledger.Keys.html#SignedDSIGN"><span class="hs-identifier">SignedDSIGN</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-47"></span><span>    </span><span class="annot"><a href="Shelley.Spec.Ledger.Keys.html#VerKeyKES"><span class="hs-identifier">VerKeyKES</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-48"></span><span>    </span><span class="annot"><a href="Shelley.Spec.Ledger.Keys.html#coerceKeyRole"><span class="hs-identifier">coerceKeyRole</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-49"></span><span>    </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-crypto-class-2.0.0/noopt/doc/html/cardano-crypto-class/src"><span class="hs-identifier">decodeSignedDSIGN</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-50"></span><span>    </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-crypto-class-2.0.0/noopt/doc/html/cardano-crypto-class/src"><span class="hs-identifier">decodeVerKeyKES</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-51"></span><span>    </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-crypto-class-2.0.0/noopt/doc/html/cardano-crypto-class/src"><span class="hs-identifier">encodeSignedDSIGN</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-52"></span><span>    </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-crypto-class-2.0.0/noopt/doc/html/cardano-crypto-class/src"><span class="hs-identifier">encodeVerKeyKES</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-53"></span><span>  </span><span class="hs-special">)</span><span>
+</span><span id="line-54"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Shelley.Spec.Ledger.Serialization.html"><span class="hs-identifier">Shelley.Spec.Ledger.Serialization</span></a></span><span>
+</span><span id="line-55"></span><span>  </span><span class="hs-special">(</span><span> </span><span class="annot"><a href="Shelley.Spec.Ledger.Serialization.html#CBORGroup"><span class="hs-identifier">CBORGroup</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span>
+</span><span id="line-56"></span><span>    </span><span class="annot"><a href="Shelley.Spec.Ledger.Serialization.html#FromCBORGroup"><span class="hs-identifier">FromCBORGroup</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span>
+</span><span id="line-57"></span><span>    </span><span class="annot"><a href="Shelley.Spec.Ledger.Serialization.html#ToCBORGroup"><span class="hs-identifier">ToCBORGroup</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span>
+</span><span id="line-58"></span><span>    </span><span class="annot"><a href="Shelley.Spec.Ledger.Serialization.html#runByteBuilder"><span class="hs-identifier">runByteBuilder</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-59"></span><span>  </span><span class="hs-special">)</span><span>
+</span><span id="line-60"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Shelley.Spec.Ledger.Slot.html"><span class="hs-identifier">Shelley.Spec.Ledger.Slot</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-slotting-0.1.0.0/noopt/doc/html/cardano-slotting/src"><span class="hs-identifier">SlotNo</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-61"></span><span>
+</span><span id="line-62"></span><span class="hs-keyword">data</span><span> </span><span id="OCertEnv"><span class="annot"><a href="Shelley.Spec.Ledger.OCert.html#OCertEnv"><span class="hs-identifier hs-var">OCertEnv</span></a></span></span><span> </span><span id="local-6989586621680014909"><span class="annot"><a href="#local-6989586621680014909"><span class="hs-identifier hs-type">crypto</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="OCertEnv"><span class="annot"><a href="Shelley.Spec.Ledger.OCert.html#OCertEnv"><span class="hs-identifier hs-var">OCertEnv</span></a></span></span><span>
+</span><span id="line-63"></span><span>  </span><span class="hs-special">{</span><span> </span><span id="ocertEnvStPools"><span class="annot"><span class="annottext">OCertEnv crypto -&gt; Set (KeyHash 'StakePool crypto)
+</span><a href="Shelley.Spec.Ledger.OCert.html#ocertEnvStPools"><span class="hs-identifier hs-var hs-var">ocertEnvStPools</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Set</span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Shelley.Spec.Ledger.Keys.html#KeyHash"><span class="hs-identifier hs-type">KeyHash</span></a></span><span> </span><span class="hs-special">'</span><span class="annot"><a href="Shelley.Spec.Ledger.Keys.html#StakePool"><span class="hs-identifier hs-type">StakePool</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680014909"><span class="hs-identifier hs-type">crypto</span></a></span><span class="hs-special">)</span><span class="hs-special">,</span><span>
+</span><span id="line-64"></span><span>    </span><span id="ocertEnvGenDelegs"><span class="annot"><span class="annottext">OCertEnv crypto -&gt; Set (KeyHash 'GenesisDelegate crypto)
+</span><a href="Shelley.Spec.Ledger.OCert.html#ocertEnvGenDelegs"><span class="hs-identifier hs-var hs-var">ocertEnvGenDelegs</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Set</span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Shelley.Spec.Ledger.Keys.html#KeyHash"><span class="hs-identifier hs-type">KeyHash</span></a></span><span> </span><span class="hs-special">'</span><span class="annot"><a href="Shelley.Spec.Ledger.Keys.html#GenesisDelegate"><span class="hs-identifier hs-type">GenesisDelegate</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680014909"><span class="hs-identifier hs-type">crypto</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-65"></span><span>  </span><span class="hs-special">}</span><span>
+</span><span id="line-66"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621680014900"><span id="local-6989586621680014902"><span id="local-6989586621680014904"><span class="annot"><span class="annottext">Int -&gt; OCertEnv crypto -&gt; ShowS
+[OCertEnv crypto] -&gt; ShowS
+OCertEnv crypto -&gt; String
+(Int -&gt; OCertEnv crypto -&gt; ShowS)
+-&gt; (OCertEnv crypto -&gt; String)
+-&gt; ([OCertEnv crypto] -&gt; ShowS)
+-&gt; Show (OCertEnv crypto)
+forall crypto. Int -&gt; OCertEnv crypto -&gt; ShowS
+forall crypto. [OCertEnv crypto] -&gt; ShowS
+forall crypto. OCertEnv crypto -&gt; String
+forall a.
+(Int -&gt; a -&gt; ShowS) -&gt; (a -&gt; String) -&gt; ([a] -&gt; ShowS) -&gt; Show a
+showList :: [OCertEnv crypto] -&gt; ShowS
+$cshowList :: forall crypto. [OCertEnv crypto] -&gt; ShowS
+show :: OCertEnv crypto -&gt; String
+$cshow :: forall crypto. OCertEnv crypto -&gt; String
+showsPrec :: Int -&gt; OCertEnv crypto -&gt; ShowS
+$cshowsPrec :: forall crypto. Int -&gt; OCertEnv crypto -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621680014895"><span id="local-6989586621680014897"><span class="annot"><span class="annottext">OCertEnv crypto -&gt; OCertEnv crypto -&gt; Bool
+(OCertEnv crypto -&gt; OCertEnv crypto -&gt; Bool)
+-&gt; (OCertEnv crypto -&gt; OCertEnv crypto -&gt; Bool)
+-&gt; Eq (OCertEnv crypto)
+forall crypto. OCertEnv crypto -&gt; OCertEnv crypto -&gt; Bool
+forall a. (a -&gt; a -&gt; Bool) -&gt; (a -&gt; a -&gt; Bool) -&gt; Eq a
+/= :: OCertEnv crypto -&gt; OCertEnv crypto -&gt; Bool
+$c/= :: forall crypto. OCertEnv crypto -&gt; OCertEnv crypto -&gt; Bool
+== :: OCertEnv crypto -&gt; OCertEnv crypto -&gt; Bool
+$c== :: forall crypto. OCertEnv crypto -&gt; OCertEnv crypto -&gt; Bool
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">)</span><span>
+</span><span id="line-67"></span><span>
+</span><span id="line-68"></span><span id="local-6989586621680014893"><span class="annot"><a href="Shelley.Spec.Ledger.OCert.html#currentIssueNo"><span class="hs-identifier hs-type">currentIssueNo</span></a></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-69"></span><span>  </span><span class="annot"><a href="Shelley.Spec.Ledger.OCert.html#OCertEnv"><span class="hs-identifier hs-type">OCertEnv</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680014893"><span class="hs-identifier hs-type">crypto</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-70"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Map</span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Shelley.Spec.Ledger.Keys.html#KeyHash"><span class="hs-identifier hs-type">KeyHash</span></a></span><span> </span><span class="hs-special">'</span><span class="annot"><a href="Shelley.Spec.Ledger.Keys.html#BlockIssuer"><span class="hs-identifier hs-type">BlockIssuer</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680014893"><span class="hs-identifier hs-type">crypto</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Word64</span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-71"></span><span>  </span><span class="hs-comment">-- | Pool hash</span><span>
+</span><span id="line-72"></span><span>  </span><span class="annot"><a href="Shelley.Spec.Ledger.Keys.html#KeyHash"><span class="hs-identifier hs-type">KeyHash</span></a></span><span> </span><span class="hs-special">'</span><span class="annot"><a href="Shelley.Spec.Ledger.Keys.html#BlockIssuer"><span class="hs-identifier hs-type">BlockIssuer</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680014893"><span class="hs-identifier hs-type">crypto</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-73"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Word64</span></span></span><span>
+</span><span id="line-74"></span><span id="currentIssueNo"><span class="annot"><span class="annottext">currentIssueNo :: OCertEnv crypto
+-&gt; Map (KeyHash 'BlockIssuer crypto) Word64
+-&gt; KeyHash 'BlockIssuer crypto
+-&gt; Maybe Word64
+</span><a href="Shelley.Spec.Ledger.OCert.html#currentIssueNo"><span class="hs-identifier hs-var hs-var">currentIssueNo</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Shelley.Spec.Ledger.OCert.html#OCertEnv"><span class="hs-identifier hs-type">OCertEnv</span></a></span><span> </span><span id="local-6989586621680014892"><span class="annot"><span class="annottext">Set (KeyHash 'StakePool crypto)
+</span><a href="#local-6989586621680014892"><span class="hs-identifier hs-var">stPools</span></a></span></span><span> </span><span id="local-6989586621680014891"><span class="annot"><span class="annottext">Set (KeyHash 'GenesisDelegate crypto)
+</span><a href="#local-6989586621680014891"><span class="hs-identifier hs-var">genDelegs</span></a></span></span><span class="hs-special">)</span><span> </span><span id="local-6989586621680014890"><span class="annot"><span class="annottext">Map (KeyHash 'BlockIssuer crypto) Word64
+</span><a href="#local-6989586621680014890"><span class="hs-identifier hs-var">cs</span></a></span></span><span> </span><span id="local-6989586621680014889"><span class="annot"><span class="annottext">KeyHash 'BlockIssuer crypto
+</span><a href="#local-6989586621680014889"><span class="hs-identifier hs-var">hk</span></a></span></span><span>
+</span><span id="line-75"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">KeyHash 'BlockIssuer crypto
+-&gt; Map (KeyHash 'BlockIssuer crypto) Word64 -&gt; Bool
+forall k a. Ord k =&gt; k -&gt; Map k a -&gt; Bool
+</span><span class="hs-identifier hs-var">Map.member</span></span><span> </span><span class="annot"><span class="annottext">KeyHash 'BlockIssuer crypto
+</span><a href="#local-6989586621680014889"><span class="hs-identifier hs-var">hk</span></a></span><span> </span><span class="annot"><span class="annottext">Map (KeyHash 'BlockIssuer crypto) Word64
+</span><a href="#local-6989586621680014890"><span class="hs-identifier hs-var">cs</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">KeyHash 'BlockIssuer crypto
+-&gt; Map (KeyHash 'BlockIssuer crypto) Word64 -&gt; Maybe Word64
+forall k a. Ord k =&gt; k -&gt; Map k a -&gt; Maybe a
+</span><span class="hs-identifier hs-var">Map.lookup</span></span><span> </span><span class="annot"><span class="annottext">KeyHash 'BlockIssuer crypto
+</span><a href="#local-6989586621680014889"><span class="hs-identifier hs-var">hk</span></a></span><span> </span><span class="annot"><span class="annottext">Map (KeyHash 'BlockIssuer crypto) Word64
+</span><a href="#local-6989586621680014890"><span class="hs-identifier hs-var">cs</span></a></span><span>
+</span><span id="line-76"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">KeyHash 'StakePool crypto
+-&gt; Set (KeyHash 'StakePool crypto) -&gt; Bool
+forall a. Ord a =&gt; a -&gt; Set a -&gt; Bool
+</span><span class="hs-identifier hs-var">Set.member</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">KeyHash 'BlockIssuer crypto -&gt; KeyHash 'StakePool crypto
+forall (a :: KeyRole -&gt; * -&gt; *) (r :: KeyRole) crypto
+       (r' :: KeyRole).
+HasKeyRole a =&gt;
+a r crypto -&gt; a r' crypto
+</span><a href="Shelley.Spec.Ledger.Keys.html#coerceKeyRole"><span class="hs-identifier hs-var">coerceKeyRole</span></a></span><span> </span><span class="annot"><span class="annottext">KeyHash 'BlockIssuer crypto
+</span><a href="#local-6989586621680014889"><span class="hs-identifier hs-var">hk</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Set (KeyHash 'StakePool crypto)
+</span><a href="#local-6989586621680014892"><span class="hs-identifier hs-var">stPools</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Word64 -&gt; Maybe Word64
+forall a. a -&gt; Maybe a
+</span><span class="hs-identifier hs-var">Just</span></span><span> </span><span class="annot"><span class="annottext">Word64
+</span><span class="hs-number">0</span></span><span>
+</span><span id="line-77"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">KeyHash 'GenesisDelegate crypto
+-&gt; Set (KeyHash 'GenesisDelegate crypto) -&gt; Bool
+forall a. Ord a =&gt; a -&gt; Set a -&gt; Bool
+</span><span class="hs-identifier hs-var">Set.member</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">KeyHash 'BlockIssuer crypto -&gt; KeyHash 'GenesisDelegate crypto
+forall (a :: KeyRole -&gt; * -&gt; *) (r :: KeyRole) crypto
+       (r' :: KeyRole).
+HasKeyRole a =&gt;
+a r crypto -&gt; a r' crypto
+</span><a href="Shelley.Spec.Ledger.Keys.html#coerceKeyRole"><span class="hs-identifier hs-var">coerceKeyRole</span></a></span><span> </span><span class="annot"><span class="annottext">KeyHash 'BlockIssuer crypto
+</span><a href="#local-6989586621680014889"><span class="hs-identifier hs-var">hk</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Set (KeyHash 'GenesisDelegate crypto)
+</span><a href="#local-6989586621680014891"><span class="hs-identifier hs-var">genDelegs</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Word64 -&gt; Maybe Word64
+forall a. a -&gt; Maybe a
+</span><span class="hs-identifier hs-var">Just</span></span><span> </span><span class="annot"><span class="annottext">Word64
+</span><span class="hs-number">0</span></span><span>
+</span><span id="line-78"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">otherwise</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Maybe Word64
+forall a. Maybe a
+</span><span class="hs-identifier hs-var">Nothing</span></span><span>
+</span><span id="line-79"></span><span>
+</span><span id="line-80"></span><span id="local-6989586621680014884"><span id="local-6989586621680014885"></span></span><span class="hs-keyword">newtype</span><span> </span><span id="KESPeriod"><span class="annot"><a href="Shelley.Spec.Ledger.OCert.html#KESPeriod"><span class="hs-identifier hs-var">KESPeriod</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="KESPeriod"><span class="annot"><a href="Shelley.Spec.Ledger.OCert.html#KESPeriod"><span class="hs-identifier hs-var">KESPeriod</span></a></span></span><span> </span><span class="hs-special">{</span><span id="unKESPeriod"><span class="annot"><span class="annottext">KESPeriod -&gt; Word
+</span><a href="Shelley.Spec.Ledger.OCert.html#unKESPeriod"><span class="hs-identifier hs-var hs-var">unKESPeriod</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Word</span></span><span class="hs-special">}</span><span>
+</span><span id="line-81"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621680014878"><span id="local-6989586621680014880"><span class="annot"><span class="annottext">KESPeriod -&gt; KESPeriod -&gt; Bool
+(KESPeriod -&gt; KESPeriod -&gt; Bool)
+-&gt; (KESPeriod -&gt; KESPeriod -&gt; Bool) -&gt; Eq KESPeriod
+forall a. (a -&gt; a -&gt; Bool) -&gt; (a -&gt; a -&gt; Bool) -&gt; Eq a
+/= :: KESPeriod -&gt; KESPeriod -&gt; Bool
+$c/= :: KESPeriod -&gt; KESPeriod -&gt; Bool
+== :: KESPeriod -&gt; KESPeriod -&gt; Bool
+$c== :: KESPeriod -&gt; KESPeriod -&gt; Bool
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">(forall x. KESPeriod -&gt; Rep KESPeriod x)
+-&gt; (forall x. Rep KESPeriod x -&gt; KESPeriod) -&gt; Generic KESPeriod
+forall x. Rep KESPeriod x -&gt; KESPeriod
+forall x. KESPeriod -&gt; Rep KESPeriod x
+forall a.
+(forall x. a -&gt; Rep a x) -&gt; (forall x. Rep a x -&gt; a) -&gt; Generic a
+$cto :: forall x. Rep KESPeriod x -&gt; KESPeriod
+$cfrom :: forall x. KESPeriod -&gt; Rep KESPeriod x
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">Generic</span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621680014860"><span id="local-6989586621680014862"><span id="local-6989586621680014864"><span id="local-6989586621680014866"><span id="local-6989586621680014868"><span id="local-6989586621680014870"><span id="local-6989586621680014872"><span class="annot"><span class="annottext">Eq KESPeriod
+Eq KESPeriod
+-&gt; (KESPeriod -&gt; KESPeriod -&gt; Ordering)
+-&gt; (KESPeriod -&gt; KESPeriod -&gt; Bool)
+-&gt; (KESPeriod -&gt; KESPeriod -&gt; Bool)
+-&gt; (KESPeriod -&gt; KESPeriod -&gt; Bool)
+-&gt; (KESPeriod -&gt; KESPeriod -&gt; Bool)
+-&gt; (KESPeriod -&gt; KESPeriod -&gt; KESPeriod)
+-&gt; (KESPeriod -&gt; KESPeriod -&gt; KESPeriod)
+-&gt; Ord KESPeriod
+KESPeriod -&gt; KESPeriod -&gt; Bool
+KESPeriod -&gt; KESPeriod -&gt; Ordering
+KESPeriod -&gt; KESPeriod -&gt; KESPeriod
+forall a.
+Eq a
+-&gt; (a -&gt; a -&gt; Ordering)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; a)
+-&gt; (a -&gt; a -&gt; a)
+-&gt; Ord a
+min :: KESPeriod -&gt; KESPeriod -&gt; KESPeriod
+$cmin :: KESPeriod -&gt; KESPeriod -&gt; KESPeriod
+max :: KESPeriod -&gt; KESPeriod -&gt; KESPeriod
+$cmax :: KESPeriod -&gt; KESPeriod -&gt; KESPeriod
+&gt;= :: KESPeriod -&gt; KESPeriod -&gt; Bool
+$c&gt;= :: KESPeriod -&gt; KESPeriod -&gt; Bool
+&gt; :: KESPeriod -&gt; KESPeriod -&gt; Bool
+$c&gt; :: KESPeriod -&gt; KESPeriod -&gt; Bool
+&lt;= :: KESPeriod -&gt; KESPeriod -&gt; Bool
+$c&lt;= :: KESPeriod -&gt; KESPeriod -&gt; Bool
+&lt; :: KESPeriod -&gt; KESPeriod -&gt; Bool
+$c&lt; :: KESPeriod -&gt; KESPeriod -&gt; Bool
+compare :: KESPeriod -&gt; KESPeriod -&gt; Ordering
+$ccompare :: KESPeriod -&gt; KESPeriod -&gt; Ordering
+$cp1Ord :: Eq KESPeriod
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Ord</span></span></span></span></span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621680014853"><span id="local-6989586621680014855"><span id="local-6989586621680014857"><span class="annot"><span class="annottext">Context -&gt; KESPeriod -&gt; IO (Maybe ThunkInfo)
+Proxy KESPeriod -&gt; String
+(Context -&gt; KESPeriod -&gt; IO (Maybe ThunkInfo))
+-&gt; (Context -&gt; KESPeriod -&gt; IO (Maybe ThunkInfo))
+-&gt; (Proxy KESPeriod -&gt; String)
+-&gt; NoThunks KESPeriod
+forall a.
+(Context -&gt; a -&gt; IO (Maybe ThunkInfo))
+-&gt; (Context -&gt; a -&gt; IO (Maybe ThunkInfo))
+-&gt; (Proxy a -&gt; String)
+-&gt; NoThunks a
+showTypeOf :: Proxy KESPeriod -&gt; String
+$cshowTypeOf :: Proxy KESPeriod -&gt; String
+wNoThunks :: Context -&gt; KESPeriod -&gt; IO (Maybe ThunkInfo)
+$cwNoThunks :: Context -&gt; KESPeriod -&gt; IO (Maybe ThunkInfo)
+noThunks :: Context -&gt; KESPeriod -&gt; IO (Maybe ThunkInfo)
+$cnoThunks :: Context -&gt; KESPeriod -&gt; IO (Maybe ThunkInfo)
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">NoThunks</span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621680014847"><span id="local-6989586621680014849"><span class="annot"><span class="annottext">Typeable KESPeriod
+Decoder s KESPeriod
+Typeable KESPeriod
+-&gt; (forall s. Decoder s KESPeriod)
+-&gt; (Proxy KESPeriod -&gt; Text)
+-&gt; FromCBOR KESPeriod
+Proxy KESPeriod -&gt; Text
+forall s. Decoder s KESPeriod
+forall a.
+Typeable a
+-&gt; (forall s. Decoder s a) -&gt; (Proxy a -&gt; Text) -&gt; FromCBOR a
+label :: Proxy KESPeriod -&gt; Text
+$clabel :: Proxy KESPeriod -&gt; Text
+fromCBOR :: Decoder s KESPeriod
+$cfromCBOR :: forall s. Decoder s KESPeriod
+$cp1FromCBOR :: Typeable KESPeriod
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src"><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var">FromCBOR</span></a></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621680014839"><span id="local-6989586621680014841"><span id="local-6989586621680014843"><span class="annot"><span class="annottext">Typeable KESPeriod
+Typeable KESPeriod
+-&gt; (KESPeriod -&gt; Encoding)
+-&gt; ((forall t. ToCBOR t =&gt; Proxy t -&gt; Size)
+    -&gt; Proxy KESPeriod -&gt; Size)
+-&gt; ((forall t. ToCBOR t =&gt; Proxy t -&gt; Size)
+    -&gt; Proxy [KESPeriod] -&gt; Size)
+-&gt; ToCBOR KESPeriod
+KESPeriod -&gt; Encoding
+(forall t. ToCBOR t =&gt; Proxy t -&gt; Size)
+-&gt; Proxy [KESPeriod] -&gt; Size
+(forall t. ToCBOR t =&gt; Proxy t -&gt; Size) -&gt; Proxy KESPeriod -&gt; Size
+forall a.
+Typeable a
+-&gt; (a -&gt; Encoding)
+-&gt; ((forall t. ToCBOR t =&gt; Proxy t -&gt; Size) -&gt; Proxy a -&gt; Size)
+-&gt; ((forall t. ToCBOR t =&gt; Proxy t -&gt; Size) -&gt; Proxy [a] -&gt; Size)
+-&gt; ToCBOR a
+encodedListSizeExpr :: (forall t. ToCBOR t =&gt; Proxy t -&gt; Size)
+-&gt; Proxy [KESPeriod] -&gt; Size
+$cencodedListSizeExpr :: (forall t. ToCBOR t =&gt; Proxy t -&gt; Size)
+-&gt; Proxy [KESPeriod] -&gt; Size
+encodedSizeExpr :: (forall t. ToCBOR t =&gt; Proxy t -&gt; Size) -&gt; Proxy KESPeriod -&gt; Size
+$cencodedSizeExpr :: (forall t. ToCBOR t =&gt; Proxy t -&gt; Size) -&gt; Proxy KESPeriod -&gt; Size
+toCBOR :: KESPeriod -&gt; Encoding
+$ctoCBOR :: KESPeriod -&gt; Encoding
+$cp1ToCBOR :: Typeable KESPeriod
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src"><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">ToCBOR</span></a></span></span></span></span><span class="hs-special">)</span><span>
+</span><span id="line-82"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621680014832"><span id="local-6989586621680014834"><span id="local-6989586621680014836"><span class="annot"><span class="annottext">Int -&gt; KESPeriod -&gt; ShowS
+[KESPeriod] -&gt; ShowS
+KESPeriod -&gt; String
+(Int -&gt; KESPeriod -&gt; ShowS)
+-&gt; (KESPeriod -&gt; String)
+-&gt; ([KESPeriod] -&gt; ShowS)
+-&gt; Show KESPeriod
+forall a.
+(Int -&gt; a -&gt; ShowS) -&gt; (a -&gt; String) -&gt; ([a] -&gt; ShowS) -&gt; Show a
+showList :: [KESPeriod] -&gt; ShowS
+$cshowList :: [KESPeriod] -&gt; ShowS
+show :: KESPeriod -&gt; String
+$cshow :: KESPeriod -&gt; String
+showsPrec :: Int -&gt; KESPeriod -&gt; ShowS
+$cshowsPrec :: Int -&gt; KESPeriod -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">)</span><span> </span><span class="hs-keyword">via</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Quiet</span></span><span> </span><span class="annot"><a href="Shelley.Spec.Ledger.OCert.html#KESPeriod"><span class="hs-identifier hs-type">KESPeriod</span></a></span><span>
+</span><span id="line-83"></span><span>
+</span><span id="line-84"></span><span id="local-6989586621680014829"><span id="local-6989586621680014830"></span></span><span class="hs-keyword">data</span><span> </span><span id="OCert"><span class="annot"><a href="Shelley.Spec.Ledger.OCert.html#OCert"><span class="hs-identifier hs-var">OCert</span></a></span></span><span> </span><span id="local-6989586621680014984"><span class="annot"><a href="#local-6989586621680014984"><span class="hs-identifier hs-type">crypto</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="OCert"><span class="annot"><a href="Shelley.Spec.Ledger.OCert.html#OCert"><span class="hs-identifier hs-var">OCert</span></a></span></span><span>
+</span><span id="line-85"></span><span>  </span><span class="hs-special">{</span><span> </span><span class="hs-comment">-- | The operational hot key</span><span>
+</span><span id="line-86"></span><span>    </span><span id="ocertVkHot"><span class="annot"><span class="annottext">OCert crypto -&gt; VerKeyKES crypto
+</span><a href="Shelley.Spec.Ledger.OCert.html#ocertVkHot"><span class="hs-identifier hs-var hs-var">ocertVkHot</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-glyph">!</span><span class="hs-special">(</span><span class="annot"><a href="Shelley.Spec.Ledger.Keys.html#VerKeyKES"><span class="hs-identifier hs-type">VerKeyKES</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680014984"><span class="hs-identifier hs-type">crypto</span></a></span><span class="hs-special">)</span><span class="hs-special">,</span><span>
+</span><span id="line-87"></span><span>    </span><span class="hs-comment">-- | counter</span><span>
+</span><span id="line-88"></span><span>    </span><span id="ocertN"><span class="annot"><span class="annottext">OCert crypto -&gt; Word64
+</span><a href="Shelley.Spec.Ledger.OCert.html#ocertN"><span class="hs-identifier hs-var hs-var">ocertN</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-glyph">!</span><span class="annot"><span class="hs-identifier hs-type">Word64</span></span><span class="hs-special">,</span><span>
+</span><span id="line-89"></span><span>    </span><span class="hs-comment">-- | Start of key evolving signature period</span><span>
+</span><span id="line-90"></span><span>    </span><span id="ocertKESPeriod"><span class="annot"><span class="annottext">OCert crypto -&gt; KESPeriod
+</span><a href="Shelley.Spec.Ledger.OCert.html#ocertKESPeriod"><span class="hs-identifier hs-var hs-var">ocertKESPeriod</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-glyph">!</span><span class="annot"><a href="Shelley.Spec.Ledger.OCert.html#KESPeriod"><span class="hs-identifier hs-type">KESPeriod</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-91"></span><span>    </span><span class="hs-comment">-- | Signature of block operational certificate content</span><span>
+</span><span id="line-92"></span><span>    </span><span id="ocertSigma"><span class="annot"><span class="annottext">OCert crypto -&gt; SignedDSIGN crypto (OCertSignable crypto)
+</span><a href="Shelley.Spec.Ledger.OCert.html#ocertSigma"><span class="hs-identifier hs-var hs-var">ocertSigma</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-glyph">!</span><span class="hs-special">(</span><span class="annot"><a href="Shelley.Spec.Ledger.Keys.html#SignedDSIGN"><span class="hs-identifier hs-type">SignedDSIGN</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680014984"><span class="hs-identifier hs-type">crypto</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Shelley.Spec.Ledger.OCert.html#OCertSignable"><span class="hs-identifier hs-type">OCertSignable</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680014984"><span class="hs-identifier hs-type">crypto</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-93"></span><span>  </span><span class="hs-special">}</span><span>
+</span><span id="line-94"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">(forall x. OCert crypto -&gt; Rep (OCert crypto) x)
+-&gt; (forall x. Rep (OCert crypto) x -&gt; OCert crypto)
+-&gt; Generic (OCert crypto)
+forall x. Rep (OCert crypto) x -&gt; OCert crypto
+forall x. OCert crypto -&gt; Rep (OCert crypto) x
+forall a.
+(forall x. a -&gt; Rep a x) -&gt; (forall x. Rep a x -&gt; a) -&gt; Generic a
+forall crypto x. Rep (OCert crypto) x -&gt; OCert crypto
+forall crypto x. OCert crypto -&gt; Rep (OCert crypto) x
+$cto :: forall crypto x. Rep (OCert crypto) x -&gt; OCert crypto
+$cfrom :: forall crypto x. OCert crypto -&gt; Rep (OCert crypto) x
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">Generic</span></span><span class="hs-special">)</span><span>
+</span><span id="line-95"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621680014815"><span id="local-6989586621680014817"><span id="local-6989586621680014819"><span class="annot"><span class="annottext">Typeable (OCert crypto)
+Typeable (OCert crypto)
+-&gt; (OCert crypto -&gt; Encoding)
+-&gt; ((forall t. ToCBOR t =&gt; Proxy t -&gt; Size)
+    -&gt; Proxy (OCert crypto) -&gt; Size)
+-&gt; ((forall t. ToCBOR t =&gt; Proxy t -&gt; Size)
+    -&gt; Proxy [OCert crypto] -&gt; Size)
+-&gt; ToCBOR (OCert crypto)
+OCert crypto -&gt; Encoding
+(forall t. ToCBOR t =&gt; Proxy t -&gt; Size)
+-&gt; Proxy [OCert crypto] -&gt; Size
+(forall t. ToCBOR t =&gt; Proxy t -&gt; Size)
+-&gt; Proxy (OCert crypto) -&gt; Size
+forall a.
+Typeable a
+-&gt; (a -&gt; Encoding)
+-&gt; ((forall t. ToCBOR t =&gt; Proxy t -&gt; Size) -&gt; Proxy a -&gt; Size)
+-&gt; ((forall t. ToCBOR t =&gt; Proxy t -&gt; Size) -&gt; Proxy [a] -&gt; Size)
+-&gt; ToCBOR a
+forall crypto. Crypto crypto =&gt; Typeable (OCert crypto)
+forall crypto. Crypto crypto =&gt; OCert crypto -&gt; Encoding
+forall crypto.
+Crypto crypto =&gt;
+(forall t. ToCBOR t =&gt; Proxy t -&gt; Size)
+-&gt; Proxy [OCert crypto] -&gt; Size
+forall crypto.
+Crypto crypto =&gt;
+(forall t. ToCBOR t =&gt; Proxy t -&gt; Size)
+-&gt; Proxy (OCert crypto) -&gt; Size
+encodedListSizeExpr :: (forall t. ToCBOR t =&gt; Proxy t -&gt; Size)
+-&gt; Proxy [OCert crypto] -&gt; Size
+$cencodedListSizeExpr :: forall crypto.
+Crypto crypto =&gt;
+(forall t. ToCBOR t =&gt; Proxy t -&gt; Size)
+-&gt; Proxy [OCert crypto] -&gt; Size
+encodedSizeExpr :: (forall t. ToCBOR t =&gt; Proxy t -&gt; Size)
+-&gt; Proxy (OCert crypto) -&gt; Size
+$cencodedSizeExpr :: forall crypto.
+Crypto crypto =&gt;
+(forall t. ToCBOR t =&gt; Proxy t -&gt; Size)
+-&gt; Proxy (OCert crypto) -&gt; Size
+toCBOR :: OCert crypto -&gt; Encoding
+$ctoCBOR :: forall crypto. Crypto crypto =&gt; OCert crypto -&gt; Encoding
+$cp1ToCBOR :: forall crypto. Crypto crypto =&gt; Typeable (OCert crypto)
+</span><a href="#local-6989586621680014815"><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">ToCBOR</span></a></span></span></span></span><span class="hs-special">)</span><span> </span><span class="hs-keyword">via</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Shelley.Spec.Ledger.Serialization.html#CBORGroup"><span class="hs-identifier hs-type">CBORGroup</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Shelley.Spec.Ledger.OCert.html#OCert"><span class="hs-identifier hs-type">OCert</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680014984"><span class="hs-identifier hs-type">crypto</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-96"></span><span>
+</span><span id="line-97"></span><span id="local-6989586621680014810"><span id="local-6989586621680014812"><span id="local-6989586621680014814"><span class="hs-keyword">deriving</span><span> </span><span class="hs-keyword">instance</span><span> </span><span class="annot"><a href="Cardano.Ledger.Crypto.html#Crypto"><span class="hs-identifier hs-type">Crypto</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680014814"><span class="hs-identifier hs-type">crypto</span></a></span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Eq</span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Shelley.Spec.Ledger.OCert.html#OCert"><span class="hs-identifier hs-type">OCert</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680014814"><span class="hs-identifier hs-type">crypto</span></a></span><span class="hs-special">)</span></span></span></span><span>
+</span><span id="line-98"></span><span>
+</span><span id="line-99"></span><span id="local-6989586621680014803"><span id="local-6989586621680014805"><span id="local-6989586621680014807"><span id="local-6989586621680014809"><span class="hs-keyword">deriving</span><span> </span><span class="hs-keyword">instance</span><span> </span><span class="annot"><a href="Cardano.Ledger.Crypto.html#Crypto"><span class="hs-identifier hs-type">Crypto</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680014809"><span class="hs-identifier hs-type">crypto</span></a></span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Show</span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Shelley.Spec.Ledger.OCert.html#OCert"><span class="hs-identifier hs-type">OCert</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680014809"><span class="hs-identifier hs-type">crypto</span></a></span><span class="hs-special">)</span></span></span></span></span><span>
+</span><span id="line-100"></span><span>
+</span><span id="line-101"></span><span id="local-6989586621680014802"><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621680014796"><span id="local-6989586621680014798"><span id="local-6989586621680014800"><span class="annot"><a href="Cardano.Ledger.Crypto.html#Crypto"><span class="hs-identifier hs-type">Crypto</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680014802"><span class="hs-identifier hs-type">crypto</span></a></span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">NoThunks</span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Shelley.Spec.Ledger.OCert.html#OCert"><span class="hs-identifier hs-type">OCert</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680014802"><span class="hs-identifier hs-type">crypto</span></a></span><span class="hs-special">)</span></span></span></span></span><span>
+</span><span id="line-102"></span><span>
+</span><span id="line-103"></span><span id="local-6989586621680014795"><span class="hs-keyword">instance</span><span>
+</span><span id="line-104"></span><span>  </span><span class="hs-special">(</span><span class="annot"><a href="Cardano.Ledger.Crypto.html#Crypto"><span class="hs-identifier hs-type">Crypto</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680014795"><span class="hs-identifier hs-type">crypto</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
+</span><span id="line-105"></span><span>  </span><span class="annot"><a href="Shelley.Spec.Ledger.Serialization.html#ToCBORGroup"><span class="hs-identifier hs-type">ToCBORGroup</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Shelley.Spec.Ledger.OCert.html#OCert"><span class="hs-identifier hs-type">OCert</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680014795"><span class="hs-identifier hs-type">crypto</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-106"></span><span>  </span><span class="hs-keyword">where</span><span>
+</span><span id="line-107"></span><span>  </span><span id="local-6989586621680014788"><span class="annot"><span class="annottext">toCBORGroup :: OCert crypto -&gt; Encoding
+</span><a href="Shelley.Spec.Ledger.Serialization.html#toCBORGroup"><span class="hs-identifier hs-var hs-var hs-var hs-var">toCBORGroup</span></a></span></span><span> </span><span id="local-6989586621680014786"><span class="annot"><span class="annottext">OCert crypto
+</span><a href="#local-6989586621680014786"><span class="hs-identifier hs-var">ocert</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-108"></span><span>    </span><span class="annot"><span class="annottext">VerKeyKES (KES crypto) -&gt; Encoding
+forall v. KESAlgorithm v =&gt; VerKeyKES v -&gt; Encoding
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-crypto-class-2.0.0/noopt/doc/html/cardano-crypto-class/src"><span class="hs-identifier hs-var">encodeVerKeyKES</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">OCert crypto -&gt; VerKeyKES (KES crypto)
+forall crypto. OCert crypto -&gt; VerKeyKES crypto
+</span><a href="Shelley.Spec.Ledger.OCert.html#ocertVkHot"><span class="hs-identifier hs-var hs-var">ocertVkHot</span></a></span><span> </span><span class="annot"><span class="annottext">OCert crypto
+</span><a href="#local-6989586621680014786"><span class="hs-identifier hs-var">ocert</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-109"></span><span>      </span><span class="annot"><span class="annottext">Encoding -&gt; Encoding -&gt; Encoding
+forall a. Semigroup a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">&lt;&gt;</span></span><span> </span><span class="annot"><span class="annottext">Word64 -&gt; Encoding
+forall a. ToCBOR a =&gt; a -&gt; Encoding
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src"><span class="hs-identifier hs-var">toCBOR</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">OCert crypto -&gt; Word64
+forall crypto. OCert crypto -&gt; Word64
+</span><a href="Shelley.Spec.Ledger.OCert.html#ocertN"><span class="hs-identifier hs-var hs-var">ocertN</span></a></span><span> </span><span class="annot"><span class="annottext">OCert crypto
+</span><a href="#local-6989586621680014786"><span class="hs-identifier hs-var">ocert</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-110"></span><span>      </span><span class="annot"><span class="annottext">Encoding -&gt; Encoding -&gt; Encoding
+forall a. Semigroup a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">&lt;&gt;</span></span><span> </span><span class="annot"><span class="annottext">KESPeriod -&gt; Encoding
+forall a. ToCBOR a =&gt; a -&gt; Encoding
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src"><span class="hs-identifier hs-var">toCBOR</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">OCert crypto -&gt; KESPeriod
+forall crypto. OCert crypto -&gt; KESPeriod
+</span><a href="Shelley.Spec.Ledger.OCert.html#ocertKESPeriod"><span class="hs-identifier hs-var hs-var">ocertKESPeriod</span></a></span><span> </span><span class="annot"><span class="annottext">OCert crypto
+</span><a href="#local-6989586621680014786"><span class="hs-identifier hs-var">ocert</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-111"></span><span>      </span><span class="annot"><span class="annottext">Encoding -&gt; Encoding -&gt; Encoding
+forall a. Semigroup a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">&lt;&gt;</span></span><span> </span><span class="annot"><span class="annottext">SignedDSIGN (DSIGN crypto) (OCertSignable crypto) -&gt; Encoding
+forall v a. DSIGNAlgorithm v =&gt; SignedDSIGN v a -&gt; Encoding
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-crypto-class-2.0.0/noopt/doc/html/cardano-crypto-class/src"><span class="hs-identifier hs-var">encodeSignedDSIGN</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">OCert crypto -&gt; SignedDSIGN (DSIGN crypto) (OCertSignable crypto)
+forall crypto.
+OCert crypto -&gt; SignedDSIGN crypto (OCertSignable crypto)
+</span><a href="Shelley.Spec.Ledger.OCert.html#ocertSigma"><span class="hs-identifier hs-var hs-var">ocertSigma</span></a></span><span> </span><span class="annot"><span class="annottext">OCert crypto
+</span><a href="#local-6989586621680014786"><span class="hs-identifier hs-var">ocert</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-112"></span><span>  </span><span id="local-6989586621680014785"><span class="annot"><span class="annottext">encodedGroupSizeExpr :: (forall t. ToCBOR t =&gt; Proxy t -&gt; Size)
+-&gt; Proxy (OCert crypto) -&gt; Size
+</span><a href="Shelley.Spec.Ledger.Serialization.html#encodedGroupSizeExpr"><span class="hs-identifier hs-var hs-var hs-var hs-var">encodedGroupSizeExpr</span></a></span></span><span> </span><span id="local-6989586621680014783"><span class="annot"><span class="annottext">forall t. ToCBOR t =&gt; Proxy t -&gt; Size
+</span><a href="#local-6989586621680014783"><span class="hs-identifier hs-var">size</span></a></span></span><span> </span><span id="local-6989586621680014782"><span class="annot"><span class="annottext">Proxy (OCert crypto)
+</span><a href="#local-6989586621680014782"><span class="hs-identifier hs-var">proxy</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-113"></span><span>    </span><span class="annot"><span class="annottext">Proxy (VerKeyKES (KES crypto)) -&gt; Size
+forall v. KESAlgorithm v =&gt; Proxy (VerKeyKES v) -&gt; Size
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-crypto-class-2.0.0/noopt/doc/html/cardano-crypto-class/src"><span class="hs-identifier hs-var">KES.encodedVerKeyKESSizeExpr</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">OCert crypto -&gt; VerKeyKES (KES crypto)
+forall crypto. OCert crypto -&gt; VerKeyKES crypto
+</span><a href="Shelley.Spec.Ledger.OCert.html#ocertVkHot"><span class="hs-identifier hs-var hs-var">ocertVkHot</span></a></span><span> </span><span class="annot"><span class="annottext">(OCert crypto -&gt; VerKeyKES (KES crypto))
+-&gt; Proxy (OCert crypto) -&gt; Proxy (VerKeyKES (KES crypto))
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">Proxy (OCert crypto)
+</span><a href="#local-6989586621680014782"><span class="hs-identifier hs-var">proxy</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-114"></span><span>      </span><span class="annot"><span class="annottext">Size -&gt; Size -&gt; Size
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="annottext">(forall t. ToCBOR t =&gt; Proxy t -&gt; Size) -&gt; Proxy Word -&gt; Size
+forall a.
+ToCBOR a =&gt;
+(forall t. ToCBOR t =&gt; Proxy t -&gt; Size) -&gt; Proxy a -&gt; Size
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src"><span class="hs-identifier hs-var">encodedSizeExpr</span></a></span><span> </span><span class="annot"><span class="annottext">forall t. ToCBOR t =&gt; Proxy t -&gt; Size
+</span><a href="#local-6989586621680014783"><span class="hs-identifier hs-var">size</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">(</span><span class="annot"><span class="annottext">Word64 -&gt; Word
+</span><a href="#local-6989586621680014777"><span class="hs-identifier hs-var">toWord</span></a></span><span> </span><span class="annot"><span class="annottext">(Word64 -&gt; Word)
+-&gt; (OCert crypto -&gt; Word64) -&gt; OCert crypto -&gt; Word
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">OCert crypto -&gt; Word64
+forall crypto. OCert crypto -&gt; Word64
+</span><a href="Shelley.Spec.Ledger.OCert.html#ocertN"><span class="hs-identifier hs-var hs-var">ocertN</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(OCert crypto -&gt; Word) -&gt; Proxy (OCert crypto) -&gt; Proxy Word
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">Proxy (OCert crypto)
+</span><a href="#local-6989586621680014782"><span class="hs-identifier hs-var">proxy</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-115"></span><span>      </span><span class="annot"><span class="annottext">Size -&gt; Size -&gt; Size
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="annottext">(forall t. ToCBOR t =&gt; Proxy t -&gt; Size) -&gt; Proxy Word -&gt; Size
+forall a.
+ToCBOR a =&gt;
+(forall t. ToCBOR t =&gt; Proxy t -&gt; Size) -&gt; Proxy a -&gt; Size
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src"><span class="hs-identifier hs-var">encodedSizeExpr</span></a></span><span> </span><span class="annot"><span class="annottext">forall t. ToCBOR t =&gt; Proxy t -&gt; Size
+</span><a href="#local-6989586621680014783"><span class="hs-identifier hs-var">size</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">(</span><span class="hs-glyph">\</span><span class="hs-special">(</span><span class="annot"><a href="Shelley.Spec.Ledger.OCert.html#KESPeriod"><span class="hs-identifier hs-type">KESPeriod</span></a></span><span> </span><span id="local-6989586621680014775"><span class="annot"><span class="annottext">Word
+</span><a href="#local-6989586621680014775"><span class="hs-identifier hs-var">p</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Word
+</span><a href="#local-6989586621680014775"><span class="hs-identifier hs-var">p</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(KESPeriod -&gt; Word)
+-&gt; (OCert crypto -&gt; KESPeriod) -&gt; OCert crypto -&gt; Word
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">OCert crypto -&gt; KESPeriod
+forall crypto. OCert crypto -&gt; KESPeriod
+</span><a href="Shelley.Spec.Ledger.OCert.html#ocertKESPeriod"><span class="hs-identifier hs-var hs-var">ocertKESPeriod</span></a></span><span> </span><span class="annot"><span class="annottext">(OCert crypto -&gt; Word) -&gt; Proxy (OCert crypto) -&gt; Proxy Word
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">Proxy (OCert crypto)
+</span><a href="#local-6989586621680014782"><span class="hs-identifier hs-var">proxy</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-116"></span><span>      </span><span class="annot"><span class="annottext">Size -&gt; Size -&gt; Size
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="annottext">Proxy (SigDSIGN (DSIGN crypto)) -&gt; Size
+forall v. DSIGNAlgorithm v =&gt; Proxy (SigDSIGN v) -&gt; Size
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-crypto-class-2.0.0/noopt/doc/html/cardano-crypto-class/src"><span class="hs-identifier hs-var">DSIGN.encodedSigDSIGNSizeExpr</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">(</span><span class="hs-special">(</span><span class="hs-glyph">\</span><span class="hs-special">(</span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-crypto-class-2.0.0/noopt/doc/html/cardano-crypto-class/src"><span class="hs-identifier hs-type">DSIGN.SignedDSIGN</span></a></span><span> </span><span id="local-6989586621680014772"><span class="annot"><span class="annottext">SigDSIGN (DSIGN crypto)
+</span><a href="#local-6989586621680014772"><span class="hs-identifier hs-var">sig</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">SigDSIGN (DSIGN crypto)
+</span><a href="#local-6989586621680014772"><span class="hs-identifier hs-var">sig</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(SignedDSIGN (DSIGN crypto) (OCertSignable crypto)
+ -&gt; SigDSIGN (DSIGN crypto))
+-&gt; (OCert crypto
+    -&gt; SignedDSIGN (DSIGN crypto) (OCertSignable crypto))
+-&gt; OCert crypto
+-&gt; SigDSIGN (DSIGN crypto)
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">OCert crypto -&gt; SignedDSIGN (DSIGN crypto) (OCertSignable crypto)
+forall crypto.
+OCert crypto -&gt; SignedDSIGN crypto (OCertSignable crypto)
+</span><a href="Shelley.Spec.Ledger.OCert.html#ocertSigma"><span class="hs-identifier hs-var hs-var">ocertSigma</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(OCert crypto -&gt; SigDSIGN (DSIGN crypto))
+-&gt; Proxy (OCert crypto) -&gt; Proxy (SigDSIGN (DSIGN crypto))
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">Proxy (OCert crypto)
+</span><a href="#local-6989586621680014782"><span class="hs-identifier hs-var">proxy</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-117"></span><span>    </span><span class="hs-keyword">where</span><span>
+</span><span id="line-118"></span><span>      </span><span class="annot"><a href="#local-6989586621680014777"><span class="hs-identifier hs-type">toWord</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Word64</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Word</span></span><span>
+</span><span id="line-119"></span><span>      </span><span id="local-6989586621680014777"><span class="annot"><span class="annottext">toWord :: Word64 -&gt; Word
+</span><a href="#local-6989586621680014777"><span class="hs-identifier hs-var hs-var">toWord</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Word64 -&gt; Word
+forall a b. (Integral a, Num b) =&gt; a -&gt; b
+</span><span class="hs-identifier hs-var">fromIntegral</span></span><span>
+</span><span id="line-120"></span><span>
+</span><span id="line-121"></span><span>  </span><span id="local-6989586621680014771"><span class="annot"><span class="annottext">listLen :: OCert crypto -&gt; Word
+</span><a href="Shelley.Spec.Ledger.Serialization.html#listLen"><span class="hs-identifier hs-var hs-var hs-var hs-var">listLen</span></a></span></span><span> </span><span class="annot"><span class="annottext">OCert crypto
+</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Word
+</span><span class="hs-number">4</span></span><span>
+</span><span id="line-122"></span><span>  </span><span id="local-6989586621680014769"><span class="annot"><span class="annottext">listLenBound :: Proxy (OCert crypto) -&gt; Word
+</span><a href="Shelley.Spec.Ledger.Serialization.html#listLenBound"><span class="hs-identifier hs-var hs-var hs-var hs-var">listLenBound</span></a></span></span><span> </span><span class="annot"><span class="annottext">Proxy (OCert crypto)
+</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Word
+</span><span class="hs-number">4</span></span></span><span>
+</span><span id="line-123"></span><span>
+</span><span id="line-124"></span><span id="local-6989586621680014767"><span class="hs-keyword">instance</span><span>
+</span><span id="line-125"></span><span>  </span><span class="hs-special">(</span><span class="annot"><a href="Cardano.Ledger.Crypto.html#Crypto"><span class="hs-identifier hs-type">Crypto</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680014767"><span class="hs-identifier hs-type">crypto</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
+</span><span id="line-126"></span><span>  </span><span class="annot"><a href="Shelley.Spec.Ledger.Serialization.html#FromCBORGroup"><span class="hs-identifier hs-type">FromCBORGroup</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Shelley.Spec.Ledger.OCert.html#OCert"><span class="hs-identifier hs-type">OCert</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680014767"><span class="hs-identifier hs-type">crypto</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-127"></span><span>  </span><span class="hs-keyword">where</span><span>
+</span><span id="line-128"></span><span>  </span><span id="local-6989586621680014763"><span class="annot"><span class="annottext">fromCBORGroup :: Decoder s (OCert crypto)
+</span><a href="Shelley.Spec.Ledger.Serialization.html#fromCBORGroup"><span class="hs-identifier hs-var hs-var hs-var hs-var">fromCBORGroup</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-129"></span><span>    </span><span class="annot"><span class="annottext">VerKeyKES (KES crypto)
+-&gt; Word64
+-&gt; KESPeriod
+-&gt; SignedDSIGN (DSIGN crypto) (OCertSignable crypto)
+-&gt; OCert crypto
+forall crypto.
+VerKeyKES crypto
+-&gt; Word64
+-&gt; KESPeriod
+-&gt; SignedDSIGN crypto (OCertSignable crypto)
+-&gt; OCert crypto
+</span><a href="Shelley.Spec.Ledger.OCert.html#OCert"><span class="hs-identifier hs-var">OCert</span></a></span><span>
+</span><span id="line-130"></span><span>      </span><span class="annot"><span class="annottext">(VerKeyKES (KES crypto)
+ -&gt; Word64
+ -&gt; KESPeriod
+ -&gt; SignedDSIGN (DSIGN crypto) (OCertSignable crypto)
+ -&gt; OCert crypto)
+-&gt; Decoder s (VerKeyKES (KES crypto))
+-&gt; Decoder
+     s
+     (Word64
+      -&gt; KESPeriod
+      -&gt; SignedDSIGN (DSIGN crypto) (OCertSignable crypto)
+      -&gt; OCert crypto)
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">Decoder s (VerKeyKES (KES crypto))
+forall v s. KESAlgorithm v =&gt; Decoder s (VerKeyKES v)
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-crypto-class-2.0.0/noopt/doc/html/cardano-crypto-class/src"><span class="hs-identifier hs-var">decodeVerKeyKES</span></a></span><span>
+</span><span id="line-131"></span><span>      </span><span class="annot"><span class="annottext">Decoder
+  s
+  (Word64
+   -&gt; KESPeriod
+   -&gt; SignedDSIGN (DSIGN crypto) (OCertSignable crypto)
+   -&gt; OCert crypto)
+-&gt; Decoder s Word64
+-&gt; Decoder
+     s
+     (KESPeriod
+      -&gt; SignedDSIGN (DSIGN crypto) (OCertSignable crypto)
+      -&gt; OCert crypto)
+forall (f :: * -&gt; *) a b. Applicative f =&gt; f (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;*&gt;</span></span><span> </span><span class="annot"><span class="annottext">Decoder s Word64
+forall a s. FromCBOR a =&gt; Decoder s a
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src"><span class="hs-identifier hs-var">fromCBOR</span></a></span><span>
+</span><span id="line-132"></span><span>      </span><span class="annot"><span class="annottext">Decoder
+  s
+  (KESPeriod
+   -&gt; SignedDSIGN (DSIGN crypto) (OCertSignable crypto)
+   -&gt; OCert crypto)
+-&gt; Decoder s KESPeriod
+-&gt; Decoder
+     s
+     (SignedDSIGN (DSIGN crypto) (OCertSignable crypto) -&gt; OCert crypto)
+forall (f :: * -&gt; *) a b. Applicative f =&gt; f (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;*&gt;</span></span><span> </span><span class="annot"><span class="annottext">Decoder s KESPeriod
+forall a s. FromCBOR a =&gt; Decoder s a
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src"><span class="hs-identifier hs-var">fromCBOR</span></a></span><span>
+</span><span id="line-133"></span><span>      </span><span class="annot"><span class="annottext">Decoder
+  s
+  (SignedDSIGN (DSIGN crypto) (OCertSignable crypto) -&gt; OCert crypto)
+-&gt; Decoder s (SignedDSIGN (DSIGN crypto) (OCertSignable crypto))
+-&gt; Decoder s (OCert crypto)
+forall (f :: * -&gt; *) a b. Applicative f =&gt; f (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;*&gt;</span></span><span> </span><span class="annot"><span class="annottext">Decoder s (SignedDSIGN (DSIGN crypto) (OCertSignable crypto))
+forall v s a. DSIGNAlgorithm v =&gt; Decoder s (SignedDSIGN v a)
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-crypto-class-2.0.0/noopt/doc/html/cardano-crypto-class/src"><span class="hs-identifier hs-var">decodeSignedDSIGN</span></a></span></span><span>
+</span><span id="line-134"></span><span>
+</span><span id="line-135"></span><span class="annot"><a href="Shelley.Spec.Ledger.OCert.html#kesPeriod"><span class="hs-identifier hs-type">kesPeriod</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-slotting-0.1.0.0/noopt/doc/html/cardano-slotting/src"><span class="hs-identifier hs-type">SlotNo</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Shelley.Spec.Ledger.BaseTypes.html#ShelleyBase"><span class="hs-identifier hs-type">ShelleyBase</span></a></span><span> </span><span class="annot"><a href="Shelley.Spec.Ledger.OCert.html#KESPeriod"><span class="hs-identifier hs-type">KESPeriod</span></a></span><span>
+</span><span id="line-136"></span><span id="kesPeriod"><span class="annot"><span class="annottext">kesPeriod :: SlotNo -&gt; ShelleyBase KESPeriod
+</span><a href="Shelley.Spec.Ledger.OCert.html#kesPeriod"><span class="hs-identifier hs-var hs-var">kesPeriod</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-slotting-0.1.0.0/noopt/doc/html/cardano-slotting/src"><span class="hs-identifier hs-type">SlotNo</span></a></span><span> </span><span id="local-6989586621680014759"><span class="annot"><span class="annottext">Word64
+</span><a href="#local-6989586621680014759"><span class="hs-identifier hs-var">s</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-137"></span><span>  </span><span class="annot"><span class="annottext">(Globals -&gt; Word64) -&gt; ReaderT Globals Identity Word64
+forall (m :: * -&gt; *) r a. Monad m =&gt; (r -&gt; a) -&gt; ReaderT r m a
+</span><span class="hs-identifier hs-var">asks</span></span><span> </span><span class="annot"><span class="annottext">Globals -&gt; Word64
+</span><a href="Shelley.Spec.Ledger.BaseTypes.html#slotsPerKESPeriod"><span class="hs-identifier hs-var hs-var">slotsPerKESPeriod</span></a></span><span> </span><span class="annot"><span class="annottext">ReaderT Globals Identity Word64
+-&gt; (Word64 -&gt; KESPeriod) -&gt; ShelleyBase KESPeriod
+forall (f :: * -&gt; *) a b. Functor f =&gt; f a -&gt; (a -&gt; b) -&gt; f b
+</span><span class="hs-operator hs-var">&lt;&amp;&gt;</span></span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621680014758"><span class="annot"><span class="annottext">Word64
+</span><a href="#local-6989586621680014758"><span class="hs-identifier hs-var">spkp</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-138"></span><span>    </span><span class="hs-keyword">if</span><span> </span><span class="annot"><span class="annottext">Word64
+</span><a href="#local-6989586621680014758"><span class="hs-identifier hs-var">spkp</span></a></span><span> </span><span class="annot"><span class="annottext">Word64 -&gt; Word64 -&gt; Bool
+forall a. Eq a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">==</span></span><span> </span><span class="annot"><span class="annottext">Word64
+</span><span class="hs-number">0</span></span><span>
+</span><span id="line-139"></span><span>      </span><span class="hs-keyword">then</span><span> </span><span class="annot"><span class="annottext">String -&gt; KESPeriod
+forall a. HasCallStack =&gt; String -&gt; a
+</span><span class="hs-identifier hs-var">error</span></span><span> </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;kesPeriod: slots per KES period was set to zero&quot;</span></span><span>
+</span><span id="line-140"></span><span>      </span><span class="hs-keyword">else</span><span> </span><span class="annot"><span class="annottext">Word -&gt; KESPeriod
+</span><a href="Shelley.Spec.Ledger.OCert.html#KESPeriod"><span class="hs-identifier hs-var">KESPeriod</span></a></span><span> </span><span class="annot"><span class="annottext">(Word -&gt; KESPeriod) -&gt; (Word64 -&gt; Word) -&gt; Word64 -&gt; KESPeriod
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Word64 -&gt; Word
+forall a b. (Integral a, Num b) =&gt; a -&gt; b
+</span><span class="hs-identifier hs-var">fromIntegral</span></span><span> </span><span class="annot"><span class="annottext">(Word64 -&gt; KESPeriod) -&gt; Word64 -&gt; KESPeriod
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Word64
+</span><a href="#local-6989586621680014759"><span class="hs-identifier hs-var">s</span></a></span><span> </span><span class="annot"><span class="annottext">Word64 -&gt; Word64 -&gt; Word64
+forall a. Integral a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">`div`</span></span><span> </span><span class="annot"><span class="annottext">Word64
+</span><a href="#local-6989586621680014758"><span class="hs-identifier hs-var">spkp</span></a></span><span>
+</span><span id="line-141"></span><span>
+</span><span id="line-142"></span><span class="hs-comment">-- | Signable part of an operational certificate</span><span>
+</span><span id="line-143"></span><span class="hs-keyword">data</span><span> </span><span id="OCertSignable"><span class="annot"><a href="Shelley.Spec.Ledger.OCert.html#OCertSignable"><span class="hs-identifier hs-var">OCertSignable</span></a></span></span><span> </span><span id="local-6989586621680014924"><span class="annot"><a href="#local-6989586621680014924"><span class="hs-identifier hs-type">crypto</span></a></span></span><span>
+</span><span id="line-144"></span><span>  </span><span class="hs-glyph">=</span><span> </span><span id="OCertSignable"><span class="annot"><a href="Shelley.Spec.Ledger.OCert.html#OCertSignable"><span class="hs-identifier hs-var">OCertSignable</span></a></span></span><span> </span><span class="hs-glyph">!</span><span class="hs-special">(</span><span class="annot"><a href="Shelley.Spec.Ledger.Keys.html#VerKeyKES"><span class="hs-identifier hs-type">VerKeyKES</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680014924"><span class="hs-identifier hs-type">crypto</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">!</span><span class="annot"><span class="hs-identifier hs-type">Word64</span></span><span> </span><span class="hs-glyph">!</span><span class="annot"><a href="Shelley.Spec.Ledger.OCert.html#KESPeriod"><span class="hs-identifier hs-type">KESPeriod</span></a></span><span>
+</span><span id="line-145"></span><span>
+</span><span id="line-146"></span><span class="hs-keyword">instance</span><span>
+</span><span id="line-147"></span><span>  </span><span class="hs-keyword">forall</span><span> </span><span id="local-6989586621680014752"><span class="annot"><a href="#local-6989586621680014752"><span class="hs-identifier hs-type">crypto</span></a></span></span><span class="hs-operator">.</span><span>
+</span><span id="line-148"></span><span>  </span><span class="annot"><a href="Cardano.Ledger.Crypto.html#Crypto"><span class="hs-identifier hs-type">Crypto</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680014752"><span class="hs-identifier hs-type">crypto</span></a></span><span> </span><span class="hs-glyph">=&gt;</span><span>
+</span><span id="line-149"></span><span>  </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-crypto-class-2.0.0/noopt/doc/html/cardano-crypto-class/src"><span class="hs-identifier hs-type">SignableRepresentation</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Shelley.Spec.Ledger.OCert.html#OCertSignable"><span class="hs-identifier hs-type">OCertSignable</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680014752"><span class="hs-identifier hs-type">crypto</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-150"></span><span>  </span><span class="hs-keyword">where</span><span>
+</span><span id="line-151"></span><span>  </span><span id="local-6989586621680014751"><span class="annot"><span class="annottext">getSignableRepresentation :: OCertSignable crypto -&gt; ByteString
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-crypto-class-2.0.0/noopt/doc/html/cardano-crypto-class/src"><span class="hs-identifier hs-var hs-var hs-var hs-var">getSignableRepresentation</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Shelley.Spec.Ledger.OCert.html#OCertSignable"><span class="hs-identifier hs-type">OCertSignable</span></a></span><span> </span><span id="local-6989586621680014749"><span class="annot"><span class="annottext">VerKeyKES crypto
+</span><a href="#local-6989586621680014749"><span class="hs-identifier hs-var">vk</span></a></span></span><span> </span><span id="local-6989586621680014748"><span class="annot"><span class="annottext">Word64
+</span><a href="#local-6989586621680014748"><span class="hs-identifier hs-var">counter</span></a></span></span><span> </span><span id="local-6989586621680014747"><span class="annot"><span class="annottext">KESPeriod
+</span><a href="#local-6989586621680014747"><span class="hs-identifier hs-var">period</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-152"></span><span>    </span><span class="annot"><span class="annottext">Int -&gt; Builder -&gt; ByteString
+</span><a href="Shelley.Spec.Ledger.Serialization.html#runByteBuilder"><span class="hs-identifier hs-var">runByteBuilder</span></a></span><span>
+</span><span id="line-153"></span><span>      </span><span class="hs-special">(</span><span> </span><span class="annot"><span class="annottext">Word -&gt; Int
+forall a b. (Integral a, Num b) =&gt; a -&gt; b
+</span><span class="hs-identifier hs-var">fromIntegral</span></span><span> </span><span class="annot"><span class="annottext">(Word -&gt; Int) -&gt; Word -&gt; Int
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span>
+</span><span id="line-154"></span><span>          </span><span class="annot"><span class="annottext">Proxy (KES crypto) -&gt; Word
+forall v (proxy :: * -&gt; *). KESAlgorithm v =&gt; proxy v -&gt; Word
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-crypto-class-2.0.0/noopt/doc/html/cardano-crypto-class/src"><span class="hs-identifier hs-var">KES.sizeVerKeyKES</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Proxy (KES crypto)
+forall k (t :: k). Proxy t
+</span><span class="hs-identifier hs-var">Proxy</span></span><span> </span><span class="hs-glyph">@</span><span class="hs-special">(</span><span class="annot"><a href="Cardano.Ledger.Crypto.html#KES"><span class="hs-identifier hs-type">KES</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680014752"><span class="hs-identifier hs-type">crypto</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-155"></span><span>            </span><span class="annot"><span class="annottext">Word -&gt; Word -&gt; Word
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="annottext">Word
+</span><span class="hs-number">8</span></span><span>
+</span><span id="line-156"></span><span>            </span><span class="annot"><span class="annottext">Word -&gt; Word -&gt; Word
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="annottext">Word
+</span><span class="hs-number">8</span></span><span>
+</span><span id="line-157"></span><span>      </span><span class="hs-special">)</span><span>
+</span><span id="line-158"></span><span>      </span><span class="annot"><span class="annottext">(Builder -&gt; ByteString) -&gt; Builder -&gt; ByteString
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">ByteString -&gt; Builder
+</span><span class="hs-identifier hs-var">BS.byteStringCopy</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">VerKeyKES crypto -&gt; ByteString
+forall v. KESAlgorithm v =&gt; VerKeyKES v -&gt; ByteString
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-crypto-class-2.0.0/noopt/doc/html/cardano-crypto-class/src"><span class="hs-identifier hs-var">KES.rawSerialiseVerKeyKES</span></a></span><span> </span><span class="annot"><span class="annottext">VerKeyKES crypto
+</span><a href="#local-6989586621680014749"><span class="hs-identifier hs-var">vk</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-159"></span><span>        </span><span class="annot"><span class="annottext">Builder -&gt; Builder -&gt; Builder
+forall a. Semigroup a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">&lt;&gt;</span></span><span> </span><span class="annot"><span class="annottext">Word64 -&gt; Builder
+</span><span class="hs-identifier hs-var">BS.word64BE</span></span><span> </span><span class="annot"><span class="annottext">Word64
+</span><a href="#local-6989586621680014748"><span class="hs-identifier hs-var">counter</span></a></span><span>
+</span><span id="line-160"></span><span>        </span><span class="annot"><span class="annottext">Builder -&gt; Builder -&gt; Builder
+forall a. Semigroup a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">&lt;&gt;</span></span><span> </span><span class="annot"><span class="annottext">Word64 -&gt; Builder
+</span><span class="hs-identifier hs-var">BS.word64BE</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Word -&gt; Word64
+forall a b. (Integral a, Num b) =&gt; a -&gt; b
+</span><span class="hs-identifier hs-var">fromIntegral</span></span><span> </span><span class="annot"><span class="annottext">(Word -&gt; Word64) -&gt; Word -&gt; Word64
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">KESPeriod -&gt; Word
+</span><a href="Shelley.Spec.Ledger.OCert.html#unKESPeriod"><span class="hs-identifier hs-var hs-var">unKESPeriod</span></a></span><span> </span><span class="annot"><span class="annottext">KESPeriod
+</span><a href="#local-6989586621680014747"><span class="hs-identifier hs-var">period</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-161"></span><span>
+</span><span id="line-162"></span><span class="hs-comment">-- | Extract the signable part of an operational certificate (for verification)</span><span>
+</span><span id="line-163"></span><span id="local-6989586621680014741"><span class="annot"><a href="Shelley.Spec.Ledger.OCert.html#ocertToSignable"><span class="hs-identifier hs-type">ocertToSignable</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Shelley.Spec.Ledger.OCert.html#OCert"><span class="hs-identifier hs-type">OCert</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680014741"><span class="hs-identifier hs-type">crypto</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Shelley.Spec.Ledger.OCert.html#OCertSignable"><span class="hs-identifier hs-type">OCertSignable</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680014741"><span class="hs-identifier hs-type">crypto</span></a></span></span><span>
+</span><span id="line-164"></span><span id="ocertToSignable"><span class="annot"><span class="annottext">ocertToSignable :: OCert crypto -&gt; OCertSignable crypto
+</span><a href="Shelley.Spec.Ledger.OCert.html#ocertToSignable"><span class="hs-identifier hs-var hs-var">ocertToSignable</span></a></span></span><span> </span><span class="annot"><a href="Shelley.Spec.Ledger.OCert.html#OCert"><span class="hs-identifier hs-type">OCert</span></a></span><span> </span><span class="hs-special">{</span><span id="local-6989586621680014740"><span class="annot"><span class="annottext">VerKeyKES crypto
+ocertVkHot :: VerKeyKES crypto
+ocertVkHot :: forall crypto. OCert crypto -&gt; VerKeyKES crypto
+</span><a href="#local-6989586621680014740"><span class="hs-identifier hs-var hs-var">ocertVkHot</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621680014739"><span class="annot"><span class="annottext">Word64
+ocertN :: Word64
+ocertN :: forall crypto. OCert crypto -&gt; Word64
+</span><a href="#local-6989586621680014739"><span class="hs-identifier hs-var hs-var">ocertN</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621680014738"><span class="annot"><span class="annottext">KESPeriod
+ocertKESPeriod :: KESPeriod
+ocertKESPeriod :: forall crypto. OCert crypto -&gt; KESPeriod
+</span><a href="#local-6989586621680014738"><span class="hs-identifier hs-var hs-var">ocertKESPeriod</span></a></span></span><span class="hs-special">}</span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-165"></span><span>  </span><span class="annot"><span class="annottext">VerKeyKES crypto -&gt; Word64 -&gt; KESPeriod -&gt; OCertSignable crypto
+forall crypto.
+VerKeyKES crypto -&gt; Word64 -&gt; KESPeriod -&gt; OCertSignable crypto
+</span><a href="Shelley.Spec.Ledger.OCert.html#OCertSignable"><span class="hs-identifier hs-var">OCertSignable</span></a></span><span> </span><span class="annot"><span class="annottext">VerKeyKES crypto
+</span><a href="#local-6989586621680014740"><span class="hs-identifier hs-var">ocertVkHot</span></a></span><span> </span><span class="annot"><span class="annottext">Word64
+</span><a href="#local-6989586621680014739"><span class="hs-identifier hs-var">ocertN</span></a></span><span> </span><span class="annot"><span class="annottext">KESPeriod
+</span><a href="#local-6989586621680014738"><span class="hs-identifier hs-var">ocertKESPeriod</span></a></span><span>
+</span><span id="line-166"></span></pre></body></html>

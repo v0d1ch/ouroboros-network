@@ -1,38 +1,200 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-pragma">{-# LANGUAGE DeriveAnyClass             #-}</span><span>
-</span><a name="line-2"></a><span class="hs-pragma">{-# LANGUAGE DeriveGeneric              #-}</span><span>
-</span><a name="line-3"></a><span class="hs-pragma">{-# LANGUAGE DerivingStrategies         #-}</span><span>
-</span><a name="line-4"></a><span class="hs-pragma">{-# LANGUAGE GeneralizedNewtypeDeriving #-}</span><span>
-</span><a name="line-5"></a><span>
-</span><a name="line-6"></a><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Ouroboros.Consensus.HardFork.Combinator.Info</span><span> </span><span class="hs-special">(</span><span>
-</span><a name="line-7"></a><span>    </span><span class="hs-comment">-- * Era info</span><span>
-</span><a name="line-8"></a><span>    </span><a href="Ouroboros.Consensus.HardFork.Combinator.Info.html#SingleEraInfo"><span class="hs-identifier hs-type">SingleEraInfo</span></a><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
-</span><a name="line-9"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Ouroboros.Consensus.HardFork.Combinator.Info.html#LedgerEraInfo"><span class="hs-identifier hs-type">LedgerEraInfo</span></a><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
-</span><a name="line-10"></a><span>  </span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
-</span><a name="line-11"></a><span>
-</span><a name="line-12"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Codec.Serialise</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Serialise</span><span class="hs-special">)</span><span>
-</span><a name="line-13"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data.Text</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Text</span><span class="hs-special">)</span><span>
-</span><a name="line-14"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">GHC.Generics</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Generic</span><span class="hs-special">)</span><span>
-</span><a name="line-15"></a><span>
-</span><a name="line-16"></a><span class="hs-keyword">import</span><span>           </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-prelude-0.1.0.0/noopt/doc/html/cardano-prelude/src/Cardano.Prelude.html"><span class="hs-identifier">Cardano.Prelude</span></a><span> </span><span class="hs-special">(</span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-prelude-0.1.0.0/noopt/doc/html/cardano-prelude/src/Cardano.Prelude.GHC.Heap.NormalForm.Classy.html#NoUnexpectedThunks"><span class="hs-identifier hs-type">NoUnexpectedThunks</span></a><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
-</span><a name="line-17"></a><span>
-</span><a name="line-18"></a><span class="hs-comment">{-------------------------------------------------------------------------------
+</span><span id="line-2"></span><span class="hs-pragma">{-# LANGUAGE DeriveGeneric              #-}</span><span>
+</span><span id="line-3"></span><span class="hs-pragma">{-# LANGUAGE DerivingStrategies         #-}</span><span>
+</span><span id="line-4"></span><span class="hs-pragma">{-# LANGUAGE GeneralizedNewtypeDeriving #-}</span><span>
+</span><span id="line-5"></span><span>
+</span><span id="line-6"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Ouroboros.Consensus.HardFork.Combinator.Info</span><span> </span><span class="hs-special">(</span><span>
+</span><span id="line-7"></span><span>    </span><span class="annot"><span class="hs-comment">-- * Era info</span></span><span>
+</span><span id="line-8"></span><span>    </span><span class="annot"><a href="Ouroboros.Consensus.HardFork.Combinator.Info.html#SingleEraInfo"><span class="hs-identifier">SingleEraInfo</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
+</span><span id="line-9"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.HardFork.Combinator.Info.html#LedgerEraInfo"><span class="hs-identifier">LedgerEraInfo</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
+</span><span id="line-10"></span><span>  </span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-11"></span><span>
+</span><span id="line-12"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><span class="hs-identifier">Codec.Serialise</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Serialise</span></span><span class="hs-special">)</span><span>
+</span><span id="line-13"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><span class="hs-identifier">Data.Text</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Text</span></span><span class="hs-special">)</span><span>
+</span><span id="line-14"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><span class="hs-identifier">GHC.Generics</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Generic</span></span><span class="hs-special">)</span><span>
+</span><span id="line-15"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><span class="hs-identifier">NoThunks.Class</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">NoThunks</span></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-16"></span><span>
+</span><span id="line-17"></span><span class="hs-comment">{-------------------------------------------------------------------------------
   Era info
 -------------------------------------------------------------------------------}</span><span>
-</span><a name="line-21"></a><span>
-</span><a name="line-22"></a><span class="hs-comment">-- | Information about an era (mostly for type errors)</span><span>
-</span><a name="line-23"></a><span class="hs-keyword">data</span><span> </span><a name="SingleEraInfo"><a href="Ouroboros.Consensus.HardFork.Combinator.Info.html#SingleEraInfo"><span class="hs-identifier">SingleEraInfo</span></a></a><span> </span><a name="local-6989586621679114508"><a href="#local-6989586621679114508"><span class="hs-identifier">blk</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><a name="SingleEraInfo"><a href="Ouroboros.Consensus.HardFork.Combinator.Info.html#SingleEraInfo"><span class="hs-identifier">SingleEraInfo</span></a></a><span> </span><span class="hs-special">{</span><span>
-</span><a name="line-24"></a><span>      </span><a name="singleEraName"><a href="Ouroboros.Consensus.HardFork.Combinator.Info.html#singleEraName"><span class="hs-identifier">singleEraName</span></a></a><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-glyph">!</span><span class="hs-identifier hs-type">Text</span><span>
-</span><a name="line-25"></a><span>    </span><span class="hs-special">}</span><span>
-</span><a name="line-26"></a><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-keyword">stock</span><span>    </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Generic</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Eq</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Show</span><span class="hs-special">)</span><span>
-</span><a name="line-27"></a><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-keyword">anyclass</span><span> </span><span class="hs-special">(</span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-prelude-0.1.0.0/noopt/doc/html/cardano-prelude/src/Cardano.Prelude.GHC.Heap.NormalForm.Classy.html#NoUnexpectedThunks"><span class="hs-identifier hs-type">NoUnexpectedThunks</span></a><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Serialise</span><span class="hs-special">)</span><span>
-</span><a name="line-28"></a><span>
-</span><a name="line-29"></a><span class="hs-comment">-- | Additional newtype wrapper around 'SingleEraInfo'</span><span>
-</span><a name="line-30"></a><span class="hs-comment">--</span><span>
-</span><a name="line-31"></a><span class="hs-comment">-- This is primarily useful for use in error messages: it marks which era</span><span>
-</span><a name="line-32"></a><span class="hs-comment">-- info came from the ledger, and which came from a tx/block/header/etc.</span><span>
-</span><a name="line-33"></a><span class="hs-keyword">newtype</span><span> </span><a name="LedgerEraInfo"><a href="Ouroboros.Consensus.HardFork.Combinator.Info.html#LedgerEraInfo"><span class="hs-identifier">LedgerEraInfo</span></a></a><span> </span><a name="local-6989586621679114507"><a href="#local-6989586621679114507"><span class="hs-identifier">blk</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><a name="LedgerEraInfo"><a href="Ouroboros.Consensus.HardFork.Combinator.Info.html#LedgerEraInfo"><span class="hs-identifier">LedgerEraInfo</span></a></a><span> </span><span class="hs-special">{</span><span>
-</span><a name="line-34"></a><span>      </span><a name="getLedgerEraInfo"><a href="Ouroboros.Consensus.HardFork.Combinator.Info.html#getLedgerEraInfo"><span class="hs-identifier">getLedgerEraInfo</span></a></a><span> </span><span class="hs-glyph">::</span><span> </span><a href="Ouroboros.Consensus.HardFork.Combinator.Info.html#SingleEraInfo"><span class="hs-identifier hs-type">SingleEraInfo</span></a><span> </span><a href="#local-6989586621679114507"><span class="hs-identifier hs-type">blk</span></a><span>
-</span><a name="line-35"></a><span>    </span><span class="hs-special">}</span><span>
-</span><a name="line-36"></a><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-keyword">stock</span><span>   </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Eq</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Show</span><span class="hs-special">)</span><span>
-</span><a name="line-37"></a><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-keyword">newtype</span><span> </span><span class="hs-special">(</span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-prelude-0.1.0.0/noopt/doc/html/cardano-prelude/src/Cardano.Prelude.GHC.Heap.NormalForm.Classy.html#NoUnexpectedThunks"><span class="hs-identifier hs-type">NoUnexpectedThunks</span></a><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Serialise</span><span class="hs-special">)</span><span>
-</span><a name="line-38"></a></pre></body></html>
+</span><span id="line-20"></span><span>
+</span><span id="line-21"></span><span class="hs-comment">-- | Information about an era (mostly for type errors)</span><span>
+</span><span id="line-22"></span><span id="local-6989586621679999923"><span id="local-6989586621679999924"></span></span><span class="hs-keyword">data</span><span> </span><span id="SingleEraInfo"><span class="annot"><a href="Ouroboros.Consensus.HardFork.Combinator.Info.html#SingleEraInfo"><span class="hs-identifier hs-var">SingleEraInfo</span></a></span></span><span> </span><span id="local-6989586621679999922"><span class="annot"><a href="#local-6989586621679999922"><span class="hs-identifier hs-type">blk</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="SingleEraInfo"><span class="annot"><a href="Ouroboros.Consensus.HardFork.Combinator.Info.html#SingleEraInfo"><span class="hs-identifier hs-var">SingleEraInfo</span></a></span></span><span> </span><span class="hs-special">{</span><span>
+</span><span id="line-23"></span><span>      </span><span id="singleEraName"><span class="annot"><span class="annottext">SingleEraInfo blk -&gt; Text
+</span><a href="Ouroboros.Consensus.HardFork.Combinator.Info.html#singleEraName"><span class="hs-identifier hs-var hs-var">singleEraName</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-glyph">!</span><span class="annot"><span class="hs-identifier hs-type">Text</span></span><span>
+</span><span id="line-24"></span><span>    </span><span class="hs-special">}</span><span>
+</span><span id="line-25"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="annot"><span class="hs-keyword">stock</span></span><span>    </span><span class="hs-special">(</span><span class="annot"><span class="annottext">(forall x. SingleEraInfo blk -&gt; Rep (SingleEraInfo blk) x)
+-&gt; (forall x. Rep (SingleEraInfo blk) x -&gt; SingleEraInfo blk)
+-&gt; Generic (SingleEraInfo blk)
+forall x. Rep (SingleEraInfo blk) x -&gt; SingleEraInfo blk
+forall x. SingleEraInfo blk -&gt; Rep (SingleEraInfo blk) x
+forall a.
+(forall x. a -&gt; Rep a x) -&gt; (forall x. Rep a x -&gt; a) -&gt; Generic a
+forall blk x. Rep (SingleEraInfo blk) x -&gt; SingleEraInfo blk
+forall blk x. SingleEraInfo blk -&gt; Rep (SingleEraInfo blk) x
+$cto :: forall blk x. Rep (SingleEraInfo blk) x -&gt; SingleEraInfo blk
+$cfrom :: forall blk x. SingleEraInfo blk -&gt; Rep (SingleEraInfo blk) x
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">Generic</span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679999913"><span id="local-6989586621679999915"><span class="annot"><span class="annottext">SingleEraInfo blk -&gt; SingleEraInfo blk -&gt; Bool
+(SingleEraInfo blk -&gt; SingleEraInfo blk -&gt; Bool)
+-&gt; (SingleEraInfo blk -&gt; SingleEraInfo blk -&gt; Bool)
+-&gt; Eq (SingleEraInfo blk)
+forall blk. SingleEraInfo blk -&gt; SingleEraInfo blk -&gt; Bool
+forall a. (a -&gt; a -&gt; Bool) -&gt; (a -&gt; a -&gt; Bool) -&gt; Eq a
+/= :: SingleEraInfo blk -&gt; SingleEraInfo blk -&gt; Bool
+$c/= :: forall blk. SingleEraInfo blk -&gt; SingleEraInfo blk -&gt; Bool
+== :: SingleEraInfo blk -&gt; SingleEraInfo blk -&gt; Bool
+$c== :: forall blk. SingleEraInfo blk -&gt; SingleEraInfo blk -&gt; Bool
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679999906"><span id="local-6989586621679999908"><span id="local-6989586621679999910"><span class="annot"><span class="annottext">Int -&gt; SingleEraInfo blk -&gt; ShowS
+[SingleEraInfo blk] -&gt; ShowS
+SingleEraInfo blk -&gt; String
+(Int -&gt; SingleEraInfo blk -&gt; ShowS)
+-&gt; (SingleEraInfo blk -&gt; String)
+-&gt; ([SingleEraInfo blk] -&gt; ShowS)
+-&gt; Show (SingleEraInfo blk)
+forall blk. Int -&gt; SingleEraInfo blk -&gt; ShowS
+forall blk. [SingleEraInfo blk] -&gt; ShowS
+forall blk. SingleEraInfo blk -&gt; String
+forall a.
+(Int -&gt; a -&gt; ShowS) -&gt; (a -&gt; String) -&gt; ([a] -&gt; ShowS) -&gt; Show a
+showList :: [SingleEraInfo blk] -&gt; ShowS
+$cshowList :: forall blk. [SingleEraInfo blk] -&gt; ShowS
+show :: SingleEraInfo blk -&gt; String
+$cshow :: forall blk. SingleEraInfo blk -&gt; String
+showsPrec :: Int -&gt; SingleEraInfo blk -&gt; ShowS
+$cshowsPrec :: forall blk. Int -&gt; SingleEraInfo blk -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">)</span><span>
+</span><span id="line-26"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="annot"><span class="hs-keyword">anyclass</span></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679999899"><span id="local-6989586621679999901"><span id="local-6989586621679999903"><span class="annot"><span class="annottext">Context -&gt; SingleEraInfo blk -&gt; IO (Maybe ThunkInfo)
+Proxy (SingleEraInfo blk) -&gt; String
+(Context -&gt; SingleEraInfo blk -&gt; IO (Maybe ThunkInfo))
+-&gt; (Context -&gt; SingleEraInfo blk -&gt; IO (Maybe ThunkInfo))
+-&gt; (Proxy (SingleEraInfo blk) -&gt; String)
+-&gt; NoThunks (SingleEraInfo blk)
+forall blk. Context -&gt; SingleEraInfo blk -&gt; IO (Maybe ThunkInfo)
+forall blk. Proxy (SingleEraInfo blk) -&gt; String
+forall a.
+(Context -&gt; a -&gt; IO (Maybe ThunkInfo))
+-&gt; (Context -&gt; a -&gt; IO (Maybe ThunkInfo))
+-&gt; (Proxy a -&gt; String)
+-&gt; NoThunks a
+showTypeOf :: Proxy (SingleEraInfo blk) -&gt; String
+$cshowTypeOf :: forall blk. Proxy (SingleEraInfo blk) -&gt; String
+wNoThunks :: Context -&gt; SingleEraInfo blk -&gt; IO (Maybe ThunkInfo)
+$cwNoThunks :: forall blk. Context -&gt; SingleEraInfo blk -&gt; IO (Maybe ThunkInfo)
+noThunks :: Context -&gt; SingleEraInfo blk -&gt; IO (Maybe ThunkInfo)
+$cnoThunks :: forall blk. Context -&gt; SingleEraInfo blk -&gt; IO (Maybe ThunkInfo)
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">NoThunks</span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679999890"><span id="local-6989586621679999892"><span id="local-6989586621679999894"><span id="local-6989586621679999896"><span class="annot"><span class="annottext">[SingleEraInfo blk] -&gt; Encoding
+SingleEraInfo blk -&gt; Encoding
+(SingleEraInfo blk -&gt; Encoding)
+-&gt; (forall s. Decoder s (SingleEraInfo blk))
+-&gt; ([SingleEraInfo blk] -&gt; Encoding)
+-&gt; (forall s. Decoder s [SingleEraInfo blk])
+-&gt; Serialise (SingleEraInfo blk)
+forall s. Decoder s [SingleEraInfo blk]
+forall s. Decoder s (SingleEraInfo blk)
+forall blk. [SingleEraInfo blk] -&gt; Encoding
+forall blk. SingleEraInfo blk -&gt; Encoding
+forall a.
+(a -&gt; Encoding)
+-&gt; (forall s. Decoder s a)
+-&gt; ([a] -&gt; Encoding)
+-&gt; (forall s. Decoder s [a])
+-&gt; Serialise a
+forall blk s. Decoder s [SingleEraInfo blk]
+forall blk s. Decoder s (SingleEraInfo blk)
+decodeList :: Decoder s [SingleEraInfo blk]
+$cdecodeList :: forall blk s. Decoder s [SingleEraInfo blk]
+encodeList :: [SingleEraInfo blk] -&gt; Encoding
+$cencodeList :: forall blk. [SingleEraInfo blk] -&gt; Encoding
+decode :: Decoder s (SingleEraInfo blk)
+$cdecode :: forall blk s. Decoder s (SingleEraInfo blk)
+encode :: SingleEraInfo blk -&gt; Encoding
+$cencode :: forall blk. SingleEraInfo blk -&gt; Encoding
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Serialise</span></span></span></span></span></span><span class="hs-special">)</span><span>
+</span><span id="line-27"></span><span>
+</span><span id="line-28"></span><span class="hs-comment">-- | Additional newtype wrapper around 'SingleEraInfo'</span><span>
+</span><span id="line-29"></span><span class="hs-comment">--</span><span>
+</span><span id="line-30"></span><span class="hs-comment">-- This is primarily useful for use in error messages: it marks which era</span><span>
+</span><span id="line-31"></span><span class="hs-comment">-- info came from the ledger, and which came from a tx/block/header/etc.</span><span>
+</span><span id="line-32"></span><span class="hs-keyword">newtype</span><span> </span><span id="LedgerEraInfo"><span class="annot"><a href="Ouroboros.Consensus.HardFork.Combinator.Info.html#LedgerEraInfo"><span class="hs-identifier hs-var">LedgerEraInfo</span></a></span></span><span> </span><span id="local-6989586621679999888"><span class="annot"><a href="#local-6989586621679999888"><span class="hs-identifier hs-type">blk</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="LedgerEraInfo"><span class="annot"><a href="Ouroboros.Consensus.HardFork.Combinator.Info.html#LedgerEraInfo"><span class="hs-identifier hs-var">LedgerEraInfo</span></a></span></span><span> </span><span class="hs-special">{</span><span>
+</span><span id="line-33"></span><span>      </span><span id="getLedgerEraInfo"><span class="annot"><span class="annottext">LedgerEraInfo blk -&gt; SingleEraInfo blk
+</span><a href="Ouroboros.Consensus.HardFork.Combinator.Info.html#getLedgerEraInfo"><span class="hs-identifier hs-var hs-var">getLedgerEraInfo</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.HardFork.Combinator.Info.html#SingleEraInfo"><span class="hs-identifier hs-type">SingleEraInfo</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679999888"><span class="hs-identifier hs-type">blk</span></a></span><span>
+</span><span id="line-34"></span><span>    </span><span class="hs-special">}</span><span>
+</span><span id="line-35"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="annot"><span class="hs-keyword">stock</span></span><span>   </span><span class="hs-special">(</span><span id="local-6989586621679999882"><span id="local-6989586621679999884"><span class="annot"><span class="annottext">LedgerEraInfo blk -&gt; LedgerEraInfo blk -&gt; Bool
+(LedgerEraInfo blk -&gt; LedgerEraInfo blk -&gt; Bool)
+-&gt; (LedgerEraInfo blk -&gt; LedgerEraInfo blk -&gt; Bool)
+-&gt; Eq (LedgerEraInfo blk)
+forall blk. LedgerEraInfo blk -&gt; LedgerEraInfo blk -&gt; Bool
+forall a. (a -&gt; a -&gt; Bool) -&gt; (a -&gt; a -&gt; Bool) -&gt; Eq a
+/= :: LedgerEraInfo blk -&gt; LedgerEraInfo blk -&gt; Bool
+$c/= :: forall blk. LedgerEraInfo blk -&gt; LedgerEraInfo blk -&gt; Bool
+== :: LedgerEraInfo blk -&gt; LedgerEraInfo blk -&gt; Bool
+$c== :: forall blk. LedgerEraInfo blk -&gt; LedgerEraInfo blk -&gt; Bool
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679999876"><span id="local-6989586621679999878"><span id="local-6989586621679999880"><span class="annot"><span class="annottext">Int -&gt; LedgerEraInfo blk -&gt; ShowS
+[LedgerEraInfo blk] -&gt; ShowS
+LedgerEraInfo blk -&gt; String
+(Int -&gt; LedgerEraInfo blk -&gt; ShowS)
+-&gt; (LedgerEraInfo blk -&gt; String)
+-&gt; ([LedgerEraInfo blk] -&gt; ShowS)
+-&gt; Show (LedgerEraInfo blk)
+forall blk. Int -&gt; LedgerEraInfo blk -&gt; ShowS
+forall blk. [LedgerEraInfo blk] -&gt; ShowS
+forall blk. LedgerEraInfo blk -&gt; String
+forall a.
+(Int -&gt; a -&gt; ShowS) -&gt; (a -&gt; String) -&gt; ([a] -&gt; ShowS) -&gt; Show a
+showList :: [LedgerEraInfo blk] -&gt; ShowS
+$cshowList :: forall blk. [LedgerEraInfo blk] -&gt; ShowS
+show :: LedgerEraInfo blk -&gt; String
+$cshow :: forall blk. LedgerEraInfo blk -&gt; String
+showsPrec :: Int -&gt; LedgerEraInfo blk -&gt; ShowS
+$cshowsPrec :: forall blk. Int -&gt; LedgerEraInfo blk -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">)</span><span>
+</span><span id="line-36"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="annot"><span class="hs-keyword">newtype</span></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679999870"><span id="local-6989586621679999872"><span id="local-6989586621679999874"><span class="annot"><span class="annottext">Context -&gt; LedgerEraInfo blk -&gt; IO (Maybe ThunkInfo)
+Proxy (LedgerEraInfo blk) -&gt; String
+(Context -&gt; LedgerEraInfo blk -&gt; IO (Maybe ThunkInfo))
+-&gt; (Context -&gt; LedgerEraInfo blk -&gt; IO (Maybe ThunkInfo))
+-&gt; (Proxy (LedgerEraInfo blk) -&gt; String)
+-&gt; NoThunks (LedgerEraInfo blk)
+forall blk. Context -&gt; LedgerEraInfo blk -&gt; IO (Maybe ThunkInfo)
+forall blk. Proxy (LedgerEraInfo blk) -&gt; String
+forall a.
+(Context -&gt; a -&gt; IO (Maybe ThunkInfo))
+-&gt; (Context -&gt; a -&gt; IO (Maybe ThunkInfo))
+-&gt; (Proxy a -&gt; String)
+-&gt; NoThunks a
+showTypeOf :: Proxy (LedgerEraInfo blk) -&gt; String
+$cshowTypeOf :: forall blk. Proxy (LedgerEraInfo blk) -&gt; String
+wNoThunks :: Context -&gt; LedgerEraInfo blk -&gt; IO (Maybe ThunkInfo)
+$cwNoThunks :: forall blk. Context -&gt; LedgerEraInfo blk -&gt; IO (Maybe ThunkInfo)
+noThunks :: Context -&gt; LedgerEraInfo blk -&gt; IO (Maybe ThunkInfo)
+$cnoThunks :: forall blk. Context -&gt; LedgerEraInfo blk -&gt; IO (Maybe ThunkInfo)
+</span><a href="#local-6989586621679999870"><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">NoThunks</span></a></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679999862"><span id="local-6989586621679999864"><span id="local-6989586621679999866"><span id="local-6989586621679999868"><span class="annot"><span class="annottext">Decoder s (LedgerEraInfo blk)
+Decoder s [LedgerEraInfo blk]
+[LedgerEraInfo blk] -&gt; Encoding
+LedgerEraInfo blk -&gt; Encoding
+(LedgerEraInfo blk -&gt; Encoding)
+-&gt; (forall s. Decoder s (LedgerEraInfo blk))
+-&gt; ([LedgerEraInfo blk] -&gt; Encoding)
+-&gt; (forall s. Decoder s [LedgerEraInfo blk])
+-&gt; Serialise (LedgerEraInfo blk)
+forall s. Decoder s [LedgerEraInfo blk]
+forall s. Decoder s (LedgerEraInfo blk)
+forall blk. [LedgerEraInfo blk] -&gt; Encoding
+forall blk. LedgerEraInfo blk -&gt; Encoding
+forall a.
+(a -&gt; Encoding)
+-&gt; (forall s. Decoder s a)
+-&gt; ([a] -&gt; Encoding)
+-&gt; (forall s. Decoder s [a])
+-&gt; Serialise a
+forall blk s. Decoder s [LedgerEraInfo blk]
+forall blk s. Decoder s (LedgerEraInfo blk)
+decodeList :: Decoder s [LedgerEraInfo blk]
+$cdecodeList :: forall blk s. Decoder s [LedgerEraInfo blk]
+encodeList :: [LedgerEraInfo blk] -&gt; Encoding
+$cencodeList :: forall blk. [LedgerEraInfo blk] -&gt; Encoding
+decode :: Decoder s (LedgerEraInfo blk)
+$cdecode :: forall blk s. Decoder s (LedgerEraInfo blk)
+encode :: LedgerEraInfo blk -&gt; Encoding
+$cencode :: forall blk. LedgerEraInfo blk -&gt; Encoding
+</span><a href="#local-6989586621679999862"><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Serialise</span></a></span></span></span></span></span><span class="hs-special">)</span><span>
+</span><span id="line-37"></span></pre></body></html>

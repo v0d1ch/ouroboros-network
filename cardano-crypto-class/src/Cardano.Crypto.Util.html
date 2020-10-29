@@ -1,127 +1,296 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-pragma">{-# LANGUAGE BangPatterns #-}</span><span>
-</span><a name="line-2"></a><span class="hs-pragma">{-# LANGUAGE FlexibleInstances #-}</span><span>
-</span><a name="line-3"></a><span class="hs-pragma">{-# LANGUAGE MagicHash #-}</span><span>
-</span><a name="line-4"></a><span>
-</span><a name="line-5"></a><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Cardano.Crypto.Util</span><span>
-</span><a name="line-6"></a><span>  </span><span class="hs-special">(</span><span> </span><a href="Cardano.Crypto.Util.html#Empty"><span class="hs-identifier hs-type">Empty</span></a><span>
-</span><a name="line-7"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Cardano.Crypto.Util.html#SignableRepresentation"><span class="hs-identifier hs-type">SignableRepresentation</span></a><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
-</span><a name="line-8"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Cardano.Crypto.Util.html#getRandomWord64"><span class="hs-identifier hs-var">getRandomWord64</span></a><span>
-</span><a name="line-9"></a><span>
-</span><a name="line-10"></a><span>    </span><span class="hs-comment">-- * Simple serialisation used in mock instances</span><span>
-</span><a name="line-11"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Cardano.Crypto.Util.html#readBinaryWord64"><span class="hs-identifier hs-var">readBinaryWord64</span></a><span>
-</span><a name="line-12"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Cardano.Crypto.Util.html#writeBinaryWord64"><span class="hs-identifier hs-var">writeBinaryWord64</span></a><span>
-</span><a name="line-13"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Cardano.Crypto.Util.html#readBinaryNatural"><span class="hs-identifier hs-var">readBinaryNatural</span></a><span>
-</span><a name="line-14"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Cardano.Crypto.Util.html#writeBinaryNatural"><span class="hs-identifier hs-var">writeBinaryNatural</span></a><span>
-</span><a name="line-15"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Cardano.Crypto.Util.html#splitsAt"><span class="hs-identifier hs-var">splitsAt</span></a><span>
-</span><a name="line-16"></a><span>
-</span><a name="line-17"></a><span>  </span><span class="hs-comment">-- * Low level conversions</span><span>
-</span><a name="line-18"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Cardano.Crypto.Util.html#bytesToNatural"><span class="hs-identifier hs-var">bytesToNatural</span></a><span>
-</span><a name="line-19"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Cardano.Crypto.Util.html#naturalToBytes"><span class="hs-identifier hs-var">naturalToBytes</span></a><span>
-</span><a name="line-20"></a><span>  </span><span class="hs-special">)</span><span>
-</span><a name="line-21"></a><span class="hs-keyword">where</span><span>
-</span><a name="line-22"></a><span>
-</span><a name="line-23"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data.Word</span><span>
-</span><a name="line-24"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Numeric.Natural</span><span>
-</span><a name="line-25"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data.Bits</span><span>
-</span><a name="line-26"></a><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-identifier">Data.ByteString</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">BS</span><span>
-</span><a name="line-27"></a><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-identifier">Data.ByteString.Internal</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">BS</span><span>
-</span><a name="line-28"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data.ByteString</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">ByteString</span><span class="hs-special">)</span><span>
-</span><a name="line-29"></a><span>
-</span><a name="line-30"></a><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-identifier">GHC.Exts</span><span>    </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">GHC</span><span>
-</span><a name="line-31"></a><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-identifier">GHC.IO</span><span>      </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">GHC</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-var">unsafeDupablePerformIO</span><span class="hs-special">)</span><span>
-</span><a name="line-32"></a><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-identifier">GHC.Natural</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">GHC</span><span>
-</span><a name="line-33"></a><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-identifier">GHC.Integer.GMP.Internals</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">GMP</span><span>
-</span><a name="line-34"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Foreign.ForeignPtr</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-var">withForeignPtr</span><span class="hs-special">)</span><span>
-</span><a name="line-35"></a><span>
-</span><a name="line-36"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Crypto.Random</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">MonadRandom</span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
-</span><a name="line-37"></a><span>
-</span><a name="line-38"></a><span>
-</span><a name="line-39"></a><span class="hs-keyword">class</span><span> </span><a name="Empty"><a href="Cardano.Crypto.Util.html#Empty"><span class="hs-identifier">Empty</span></a></a><span> </span><a name="local-6989586621679121110"><a href="#local-6989586621679121110"><span class="hs-identifier">a</span></a></a><span>
-</span><a name="line-40"></a><span class="hs-keyword">instance</span><span> </span><a href="Cardano.Crypto.Util.html#Empty"><span class="hs-identifier hs-type">Empty</span></a><span> </span><a href="#local-6989586621679121111"><span class="hs-identifier hs-type">a</span></a><span>
-</span><a name="line-41"></a><span>
-</span><a name="line-42"></a><span>
-</span><a name="line-43"></a><span>
-</span><a name="line-44"></a><span class="hs-comment">--</span><span>
-</span><a name="line-45"></a><span class="hs-comment">-- Signable</span><span>
-</span><a name="line-46"></a><span class="hs-comment">--</span><span>
-</span><a name="line-47"></a><span>
-</span><a name="line-48"></a><span class="hs-comment">-- | A class of types that have a representation in bytes that can be used</span><span>
-</span><a name="line-49"></a><span class="hs-comment">-- for signing and verifying.</span><span>
-</span><a name="line-50"></a><span class="hs-comment">--</span><span>
-</span><a name="line-51"></a><span class="hs-keyword">class</span><span> </span><a name="SignableRepresentation"><a href="Cardano.Crypto.Util.html#SignableRepresentation"><span class="hs-identifier">SignableRepresentation</span></a></a><span> </span><a name="local-6989586621679121109"><a href="#local-6989586621679121109"><span class="hs-identifier">a</span></a></a><span> </span><span class="hs-keyword">where</span><span>
-</span><a name="line-52"></a><span>    </span><a name="getSignableRepresentation"><a href="Cardano.Crypto.Util.html#getSignableRepresentation"><span class="hs-identifier">getSignableRepresentation</span></a></a><span> </span><span class="hs-glyph">::</span><span> </span><a href="#local-6989586621679121109"><span class="hs-identifier hs-type">a</span></a><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">ByteString</span><span>
-</span><a name="line-53"></a><span>
-</span><a name="line-54"></a><span class="hs-keyword">instance</span><span> </span><a href="Cardano.Crypto.Util.html#SignableRepresentation"><span class="hs-identifier hs-type">SignableRepresentation</span></a><span> </span><span class="hs-identifier hs-type">ByteString</span><span> </span><span class="hs-keyword">where</span><span>
-</span><a name="line-55"></a><span>    </span><a name="local-8214565720323896009"><a href="Cardano.Crypto.Util.html#getSignableRepresentation"><span class="hs-identifier">getSignableRepresentation</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-identifier hs-var">id</span><span>
-</span><a name="line-56"></a><span>
-</span><a name="line-57"></a><span>
-</span><a name="line-58"></a><span class="hs-comment">--</span><span>
-</span><a name="line-59"></a><span class="hs-comment">-- Random source used in some mock instances</span><span>
-</span><a name="line-60"></a><span class="hs-comment">--</span><span>
-</span><a name="line-61"></a><span>
-</span><a name="line-62"></a><span class="hs-identifier">getRandomWord64</span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">MonadRandom</span><span> </span><a href="#local-6989586621679121112"><span class="hs-identifier hs-type">m</span></a><span> </span><span class="hs-glyph">=&gt;</span><span> </span><a href="#local-6989586621679121112"><span class="hs-identifier hs-type">m</span></a><span> </span><span class="hs-identifier hs-type">Word64</span><span>
-</span><a name="line-63"></a><a name="getRandomWord64"><a href="Cardano.Crypto.Util.html#getRandomWord64"><span class="hs-identifier">getRandomWord64</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><a href="Cardano.Crypto.Util.html#readBinaryWord64"><span class="hs-identifier hs-var">readBinaryWord64</span></a><span> </span><span class="hs-operator hs-var">&lt;$&gt;</span><span> </span><span class="hs-identifier hs-var">getRandomBytes</span><span> </span><span class="hs-number">8</span><span>
-</span><a name="line-64"></a><span>
-</span><a name="line-65"></a><span>
-</span><a name="line-66"></a><span class="hs-comment">--</span><span>
-</span><a name="line-67"></a><span class="hs-comment">-- Really simple serialisation used in some mock instances</span><span>
-</span><a name="line-68"></a><span class="hs-comment">--</span><span>
-</span><a name="line-69"></a><span>
-</span><a name="line-70"></a><span class="hs-identifier">readBinaryWord64</span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">ByteString</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">Word64</span><span>
-</span><a name="line-71"></a><a name="readBinaryWord64"><a href="Cardano.Crypto.Util.html#readBinaryWord64"><span class="hs-identifier">readBinaryWord64</span></a></a><span> </span><span class="hs-glyph">=</span><span>
-</span><a name="line-72"></a><span>  </span><span class="hs-identifier hs-var">BS.foldl'</span><span> </span><span class="hs-special">(</span><span class="hs-glyph">\</span><a name="local-6989586621679121113"><a href="#local-6989586621679121113"><span class="hs-identifier">acc</span></a></a><span> </span><a name="local-6989586621679121114"><a href="#local-6989586621679121114"><span class="hs-identifier">w8</span></a></a><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-var">unsafeShiftL</span><span> </span><a href="#local-6989586621679121113"><span class="hs-identifier hs-var">acc</span></a><span> </span><span class="hs-number">8</span><span> </span><span class="hs-operator hs-var">+</span><span> </span><span class="hs-identifier hs-var">fromIntegral</span><span> </span><a href="#local-6989586621679121114"><span class="hs-identifier hs-var">w8</span></a><span class="hs-special">)</span><span> </span><span class="hs-number">0</span><span>
-</span><a name="line-73"></a><span>
-</span><a name="line-74"></a><span>
-</span><a name="line-75"></a><span class="hs-identifier">readBinaryNatural</span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">ByteString</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">Natural</span><span>
-</span><a name="line-76"></a><a name="readBinaryNatural"><a href="Cardano.Crypto.Util.html#readBinaryNatural"><span class="hs-identifier">readBinaryNatural</span></a></a><span> </span><span class="hs-glyph">=</span><span>
-</span><a name="line-77"></a><span>  </span><span class="hs-identifier hs-var">BS.foldl'</span><span> </span><span class="hs-special">(</span><span class="hs-glyph">\</span><a name="local-6989586621679121115"><a href="#local-6989586621679121115"><span class="hs-identifier">acc</span></a></a><span> </span><a name="local-6989586621679121116"><a href="#local-6989586621679121116"><span class="hs-identifier">w8</span></a></a><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-var">unsafeShiftL</span><span> </span><a href="#local-6989586621679121115"><span class="hs-identifier hs-var">acc</span></a><span> </span><span class="hs-number">8</span><span> </span><span class="hs-operator hs-var">+</span><span> </span><span class="hs-identifier hs-var">fromIntegral</span><span> </span><a href="#local-6989586621679121116"><span class="hs-identifier hs-var">w8</span></a><span class="hs-special">)</span><span> </span><span class="hs-number">0</span><span>
-</span><a name="line-78"></a><span>
-</span><a name="line-79"></a><span>
-</span><a name="line-80"></a><span class="hs-identifier">writeBinaryWord64</span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">Word64</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">ByteString</span><span>
-</span><a name="line-81"></a><a name="writeBinaryWord64"><a href="Cardano.Crypto.Util.html#writeBinaryWord64"><span class="hs-identifier">writeBinaryWord64</span></a></a><span> </span><span class="hs-glyph">=</span><span>
-</span><a name="line-82"></a><span>    </span><span class="hs-identifier hs-var">BS.reverse</span><span> </span><span class="hs-operator hs-var">.</span><span> </span><span class="hs-identifier hs-var">fst</span><span>
-</span><a name="line-83"></a><span>  </span><span class="hs-operator hs-var">.</span><span> </span><span class="hs-identifier hs-var">BS.unfoldrN</span><span> </span><span class="hs-number">8</span><span> </span><span class="hs-special">(</span><span class="hs-glyph">\</span><a name="local-6989586621679121132"><a href="#local-6989586621679121132"><span class="hs-identifier">w</span></a></a><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-var">Just</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-var">fromIntegral</span><span> </span><a href="#local-6989586621679121132"><span class="hs-identifier hs-var">w</span></a><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-var">unsafeShiftR</span><span> </span><a href="#local-6989586621679121132"><span class="hs-identifier hs-var">w</span></a><span> </span><span class="hs-number">8</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
-</span><a name="line-84"></a><span>
-</span><a name="line-85"></a><span class="hs-identifier">writeBinaryNatural</span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">Int</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">Natural</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">ByteString</span><span>
-</span><a name="line-86"></a><a name="writeBinaryNatural"><a href="Cardano.Crypto.Util.html#writeBinaryNatural"><span class="hs-identifier">writeBinaryNatural</span></a></a><span> </span><a name="local-6989586621679121133"><a href="#local-6989586621679121133"><span class="hs-identifier">bytes</span></a></a><span> </span><span class="hs-glyph">=</span><span>
-</span><a name="line-87"></a><span>    </span><span class="hs-identifier hs-var">BS.reverse</span><span> </span><span class="hs-operator hs-var">.</span><span> </span><span class="hs-identifier hs-var">fst</span><span>
-</span><a name="line-88"></a><span>  </span><span class="hs-operator hs-var">.</span><span> </span><span class="hs-identifier hs-var">BS.unfoldrN</span><span> </span><a href="#local-6989586621679121133"><span class="hs-identifier hs-var">bytes</span></a><span> </span><span class="hs-special">(</span><span class="hs-glyph">\</span><a name="local-6989586621679121134"><a href="#local-6989586621679121134"><span class="hs-identifier">w</span></a></a><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-var">Just</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-var">fromIntegral</span><span> </span><a href="#local-6989586621679121134"><span class="hs-identifier hs-var">w</span></a><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-var">unsafeShiftR</span><span> </span><a href="#local-6989586621679121134"><span class="hs-identifier hs-var">w</span></a><span> </span><span class="hs-number">8</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
-</span><a name="line-89"></a><span>
-</span><a name="line-90"></a><span class="hs-identifier">splitsAt</span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">[</span><span class="hs-identifier hs-type">Int</span><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">ByteString</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">[</span><span class="hs-identifier hs-type">ByteString</span><span class="hs-special">]</span><span>
-</span><a name="line-91"></a><a name="splitsAt"><a href="Cardano.Crypto.Util.html#splitsAt"><span class="hs-identifier">splitsAt</span></a></a><span> </span><a name="local-6989586621679121135"><a href="#local-6989586621679121135"><span class="hs-identifier">szs0</span></a></a><span> </span><a name="local-6989586621679121136"><a href="#local-6989586621679121136"><span class="hs-identifier">bs0</span></a></a><span> </span><span class="hs-glyph">=</span><span>
-</span><a name="line-92"></a><span>    </span><a href="#local-6989586621679121137"><span class="hs-identifier hs-var">go</span></a><span> </span><span class="hs-number">0</span><span> </span><a href="#local-6989586621679121135"><span class="hs-identifier hs-var">szs0</span></a><span> </span><a href="#local-6989586621679121136"><span class="hs-identifier hs-var">bs0</span></a><span>
-</span><a name="line-93"></a><span>  </span><span class="hs-keyword">where</span><span>
-</span><a name="line-94"></a><span>    </span><a name="local-6989586621679121137"><a href="#local-6989586621679121137"><span class="hs-identifier">go</span></a></a><span> </span><span class="hs-glyph">!</span><span class="hs-identifier">_</span><span>   </span><span class="hs-special">[</span><span class="hs-special">]</span><span> </span><a name="local-6989586621679121138"><a href="#local-6989586621679121138"><span class="hs-identifier">bs</span></a></a><span>
-</span><a name="line-95"></a><span>      </span><span class="hs-glyph">|</span><span> </span><span class="hs-identifier hs-var">BS.null</span><span> </span><a href="#local-6989586621679121138"><span class="hs-identifier hs-var">bs</span></a><span>         </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span>
-</span><a name="line-96"></a><span>      </span><span class="hs-glyph">|</span><span> </span><span class="hs-identifier hs-var">otherwise</span><span>          </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">[</span><a href="#local-6989586621679121138"><span class="hs-identifier hs-var">bs</span></a><span class="hs-special">]</span><span>
-</span><a name="line-97"></a><span>
-</span><a name="line-98"></a><span>    </span><span class="hs-identifier">go</span><span> </span><span class="hs-glyph">!</span><a name="local-6989586621679121139"><a href="#local-6989586621679121139"><span class="hs-identifier">off</span></a></a><span> </span><span class="hs-special">(</span><a name="local-6989586621679121140"><a href="#local-6989586621679121140"><span class="hs-identifier">sz</span></a></a><span class="hs-glyph">:</span><a name="local-6989586621679121141"><a href="#local-6989586621679121141"><span class="hs-identifier">szs</span></a></a><span class="hs-special">)</span><span> </span><a name="local-6989586621679121142"><a href="#local-6989586621679121142"><span class="hs-identifier">bs</span></a></a><span>
-</span><a name="line-99"></a><span>      </span><span class="hs-glyph">|</span><span> </span><span class="hs-identifier hs-var">BS.length</span><span> </span><a href="#local-6989586621679121142"><span class="hs-identifier hs-var">bs</span></a><span> </span><span class="hs-operator hs-var">&gt;=</span><span> </span><a href="#local-6989586621679121140"><span class="hs-identifier hs-var">sz</span></a><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-identifier hs-var">BS.take</span><span> </span><a href="#local-6989586621679121140"><span class="hs-identifier hs-var">sz</span></a><span> </span><a href="#local-6989586621679121142"><span class="hs-identifier hs-var">bs</span></a><span> </span><span class="hs-glyph">:</span><span> </span><a href="#local-6989586621679121137"><span class="hs-identifier hs-var">go</span></a><span> </span><span class="hs-special">(</span><a href="#local-6989586621679121139"><span class="hs-identifier hs-var">off</span></a><span class="hs-operator hs-var">+</span><a href="#local-6989586621679121140"><span class="hs-identifier hs-var">sz</span></a><span class="hs-special">)</span><span> </span><a href="#local-6989586621679121141"><span class="hs-identifier hs-var">szs</span></a><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-var">BS.drop</span><span> </span><a href="#local-6989586621679121140"><span class="hs-identifier hs-var">sz</span></a><span> </span><a href="#local-6989586621679121142"><span class="hs-identifier hs-var">bs</span></a><span class="hs-special">)</span><span>
-</span><a name="line-100"></a><span>      </span><span class="hs-glyph">|</span><span> </span><span class="hs-identifier hs-var">otherwise</span><span>          </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span>
-</span><a name="line-101"></a><span>
-</span><a name="line-102"></a><span class="hs-comment">-- | Create a 'Natural' out of a 'ByteString', in big endian.</span><span>
-</span><a name="line-103"></a><span class="hs-comment">--</span><span>
-</span><a name="line-104"></a><span class="hs-comment">-- This is fast enough to use in production.</span><span>
-</span><a name="line-105"></a><span class="hs-comment">--</span><span>
-</span><a name="line-106"></a><span class="hs-identifier">bytesToNatural</span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">ByteString</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">Natural</span><span>
-</span><a name="line-107"></a><a name="bytesToNatural"><a href="Cardano.Crypto.Util.html#bytesToNatural"><span class="hs-identifier">bytesToNatural</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-identifier hs-var">GHC.naturalFromInteger</span><span> </span><span class="hs-operator hs-var">.</span><span> </span><a href="Cardano.Crypto.Util.html#bytesToInteger"><span class="hs-identifier hs-var">bytesToInteger</span></a><span>
-</span><a name="line-108"></a><span>
-</span><a name="line-109"></a><span class="hs-comment">-- | The inverse of 'bytesToNatural'. Note that this is a naive implementation</span><span>
-</span><a name="line-110"></a><span class="hs-comment">-- and only suitable for tests.</span><span>
-</span><a name="line-111"></a><span class="hs-comment">--</span><span>
-</span><a name="line-112"></a><span class="hs-identifier">naturalToBytes</span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">Int</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">Natural</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">ByteString</span><span>
-</span><a name="line-113"></a><a name="naturalToBytes"><a href="Cardano.Crypto.Util.html#naturalToBytes"><span class="hs-identifier">naturalToBytes</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><a href="Cardano.Crypto.Util.html#writeBinaryNatural"><span class="hs-identifier hs-var">writeBinaryNatural</span></a><span>
-</span><a name="line-114"></a><span>
-</span><a name="line-115"></a><span class="hs-identifier">bytesToInteger</span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">ByteString</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">Integer</span><span>
-</span><a name="line-116"></a><a name="bytesToInteger"><a href="Cardano.Crypto.Util.html#bytesToInteger"><span class="hs-identifier">bytesToInteger</span></a></a><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-var">BS.PS</span><span> </span><a name="local-6989586621679121143"><a href="#local-6989586621679121143"><span class="hs-identifier">fp</span></a></a><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-var">GHC.I#</span><span> </span><a name="local-6989586621679121144"><a href="#local-6989586621679121144"><span class="hs-identifier">off#</span></a></a><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-var">GHC.I#</span><span> </span><a name="local-6989586621679121145"><a href="#local-6989586621679121145"><span class="hs-identifier">len#</span></a></a><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span>
-</span><a name="line-117"></a><span>    </span><span class="hs-comment">-- This should be safe since we're simply reading from ByteString (which is</span><span>
-</span><a name="line-118"></a><span>    </span><span class="hs-comment">-- immutable) and GMP allocates a new memory for the Integer, i.e., there is</span><span>
-</span><a name="line-119"></a><span>    </span><span class="hs-comment">-- no mutation involved.</span><span>
-</span><a name="line-120"></a><span>    </span><span class="hs-identifier hs-var">GHC.unsafeDupablePerformIO</span><span> </span><span class="hs-operator hs-var">$</span><span>
-</span><a name="line-121"></a><span>      </span><span class="hs-identifier hs-var">withForeignPtr</span><span> </span><a href="#local-6989586621679121143"><span class="hs-identifier hs-var">fp</span></a><span> </span><span class="hs-operator hs-var">$</span><span> </span><span class="hs-glyph">\</span><span class="hs-special">(</span><span class="hs-identifier hs-var">GHC.Ptr</span><span> </span><a name="local-6989586621679121165"><a href="#local-6989586621679121165"><span class="hs-identifier">addr#</span></a></a><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
-</span><a name="line-122"></a><span>        </span><span class="hs-keyword">let</span><span> </span><a name="local-6989586621679121166"><a href="#local-6989586621679121166"><span class="hs-identifier">addrOff#</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><a href="#local-6989586621679121165"><span class="hs-identifier hs-var">addr#</span></a><span> </span><span class="hs-special">`</span><span class="hs-identifier hs-var">GHC.plusAddr#</span><span class="hs-special">`</span><span> </span><a href="#local-6989586621679121144"><span class="hs-identifier hs-var">off#</span></a><span>
-</span><a name="line-123"></a><span>        </span><span class="hs-comment">-- The last parmaeter (`1#`) tells the import function to use big</span><span>
-</span><a name="line-124"></a><span>        </span><span class="hs-comment">-- endian encoding.</span><span>
-</span><a name="line-125"></a><span>        </span><span class="hs-keyword">in</span><span> </span><span class="hs-identifier hs-var">GMP.importIntegerFromAddr</span><span> </span><a href="#local-6989586621679121166"><span class="hs-identifier hs-var">addrOff#</span></a><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-var">GHC.int2Word#</span><span> </span><a href="#local-6989586621679121145"><span class="hs-identifier hs-var">len#</span></a><span class="hs-special">)</span><span> </span><span class="hs-number">1#</span><span>
-</span><a name="line-126"></a><span>
-</span><a name="line-127"></a></pre></body></html>
+</span><span id="line-2"></span><span class="hs-pragma">{-# LANGUAGE FlexibleInstances #-}</span><span>
+</span><span id="line-3"></span><span class="hs-pragma">{-# LANGUAGE MagicHash #-}</span><span>
+</span><span id="line-4"></span><span>
+</span><span id="line-5"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Cardano.Crypto.Util</span><span>
+</span><span id="line-6"></span><span>  </span><span class="hs-special">(</span><span> </span><span class="annot"><a href="Cardano.Crypto.Util.html#Empty"><span class="hs-identifier">Empty</span></a></span><span>
+</span><span id="line-7"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cardano.Crypto.Util.html#SignableRepresentation"><span class="hs-identifier">SignableRepresentation</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
+</span><span id="line-8"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cardano.Crypto.Util.html#getRandomWord64"><span class="hs-identifier">getRandomWord64</span></a></span><span>
+</span><span id="line-9"></span><span>
+</span><span id="line-10"></span><span>    </span><span class="annot"><span class="hs-comment">-- * Simple serialisation used in mock instances</span></span><span>
+</span><span id="line-11"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cardano.Crypto.Util.html#readBinaryWord64"><span class="hs-identifier">readBinaryWord64</span></a></span><span>
+</span><span id="line-12"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cardano.Crypto.Util.html#writeBinaryWord64"><span class="hs-identifier">writeBinaryWord64</span></a></span><span>
+</span><span id="line-13"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cardano.Crypto.Util.html#readBinaryNatural"><span class="hs-identifier">readBinaryNatural</span></a></span><span>
+</span><span id="line-14"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cardano.Crypto.Util.html#writeBinaryNatural"><span class="hs-identifier">writeBinaryNatural</span></a></span><span>
+</span><span id="line-15"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cardano.Crypto.Util.html#splitsAt"><span class="hs-identifier">splitsAt</span></a></span><span>
+</span><span id="line-16"></span><span>
+</span><span id="line-17"></span><span>  </span><span class="annot"><span class="hs-comment">-- * Low level conversions</span></span><span>
+</span><span id="line-18"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cardano.Crypto.Util.html#bytesToNatural"><span class="hs-identifier">bytesToNatural</span></a></span><span>
+</span><span id="line-19"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cardano.Crypto.Util.html#naturalToBytes"><span class="hs-identifier">naturalToBytes</span></a></span><span>
+</span><span id="line-20"></span><span>  </span><span class="hs-special">)</span><span>
+</span><span id="line-21"></span><span class="hs-keyword">where</span><span>
+</span><span id="line-22"></span><span>
+</span><span id="line-23"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><span class="hs-identifier">Data.Word</span></span><span>
+</span><span id="line-24"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><span class="hs-identifier">Numeric.Natural</span></span><span>
+</span><span id="line-25"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><span class="hs-identifier">Data.Bits</span></span><span>
+</span><span id="line-26"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Data.ByteString</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">BS</span></span><span>
+</span><span id="line-27"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Data.ByteString.Internal</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">BS</span></span><span>
+</span><span id="line-28"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><span class="hs-identifier">Data.ByteString</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">ByteString</span></span><span class="hs-special">)</span><span>
+</span><span id="line-29"></span><span>
+</span><span id="line-30"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">GHC.Exts</span></span><span>    </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">GHC</span></span><span>
+</span><span id="line-31"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">GHC.IO</span></span><span>      </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">GHC</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">unsafeDupablePerformIO</span></span><span class="hs-special">)</span><span>
+</span><span id="line-32"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">GHC.Natural</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">GHC</span></span><span>
+</span><span id="line-33"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">GHC.Integer.GMP.Internals</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">GMP</span></span><span>
+</span><span id="line-34"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><span class="hs-identifier">Foreign.ForeignPtr</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">withForeignPtr</span></span><span class="hs-special">)</span><span>
+</span><span id="line-35"></span><span>
+</span><span id="line-36"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><span class="hs-identifier">Crypto.Random</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">MonadRandom</span></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-37"></span><span>
+</span><span id="line-38"></span><span>
+</span><span id="line-39"></span><span class="hs-keyword">class</span><span> </span><span id="Empty"><span class="annot"><a href="Cardano.Crypto.Util.html#Empty"><span class="hs-identifier hs-var">Empty</span></a></span></span><span> </span><span id="local-6989586621679135383"><span class="annot"><a href="#local-6989586621679135383"><span class="hs-identifier hs-type">a</span></a></span></span><span>
+</span><span id="line-40"></span><span id="local-6989586621679135339"><span class="hs-keyword">instance</span><span> </span><span class="annot"><a href="Cardano.Crypto.Util.html#Empty"><span class="hs-identifier hs-type">Empty</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679135339"><span class="hs-identifier hs-type">a</span></a></span></span><span>
+</span><span id="line-41"></span><span>
+</span><span id="line-42"></span><span>
+</span><span id="line-43"></span><span>
+</span><span id="line-44"></span><span class="hs-comment">--</span><span>
+</span><span id="line-45"></span><span class="hs-comment">-- Signable</span><span>
+</span><span id="line-46"></span><span class="hs-comment">--</span><span>
+</span><span id="line-47"></span><span>
+</span><span id="line-48"></span><span class="hs-comment">-- | A class of types that have a representation in bytes that can be used</span><span>
+</span><span id="line-49"></span><span class="hs-comment">-- for signing and verifying.</span><span>
+</span><span id="line-50"></span><span class="hs-comment">--</span><span>
+</span><span id="line-51"></span><span class="hs-keyword">class</span><span> </span><span id="SignableRepresentation"><span class="annot"><a href="Cardano.Crypto.Util.html#SignableRepresentation"><span class="hs-identifier hs-var">SignableRepresentation</span></a></span></span><span> </span><span id="local-6989586621679135380"><span class="annot"><a href="#local-6989586621679135380"><span class="hs-identifier hs-type">a</span></a></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-52"></span><span>    </span><span id="getSignableRepresentation"><span class="annot"><a href="Cardano.Crypto.Util.html#getSignableRepresentation"><span class="hs-identifier hs-type">getSignableRepresentation</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="#local-6989586621679135380"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">ByteString</span></span><span>
+</span><span id="line-53"></span><span>
+</span><span id="line-54"></span><span class="hs-keyword">instance</span><span> </span><span class="annot"><a href="Cardano.Crypto.Util.html#SignableRepresentation"><span class="hs-identifier hs-type">SignableRepresentation</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">ByteString</span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-55"></span><span>    </span><span id="local-6989586621679135334"><span class="annot"><span class="annottext">getSignableRepresentation :: ByteString -&gt; ByteString
+</span><a href="#local-6989586621679135334"><span class="hs-identifier hs-var hs-var hs-var hs-var">getSignableRepresentation</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">ByteString -&gt; ByteString
+forall a. a -&gt; a
+</span><span class="hs-identifier hs-var">id</span></span><span>
+</span><span id="line-56"></span><span>
+</span><span id="line-57"></span><span>
+</span><span id="line-58"></span><span class="hs-comment">--</span><span>
+</span><span id="line-59"></span><span class="hs-comment">-- Random source used in some mock instances</span><span>
+</span><span id="line-60"></span><span class="hs-comment">--</span><span>
+</span><span id="line-61"></span><span>
+</span><span id="line-62"></span><span id="local-6989586621679135332"><span class="annot"><a href="Cardano.Crypto.Util.html#getRandomWord64"><span class="hs-identifier hs-type">getRandomWord64</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">MonadRandom</span></span><span> </span><span class="annot"><a href="#local-6989586621679135332"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679135332"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Word64</span></span></span><span>
+</span><span id="line-63"></span><span id="getRandomWord64"><span class="annot"><span class="annottext">getRandomWord64 :: m Word64
+</span><a href="Cardano.Crypto.Util.html#getRandomWord64"><span class="hs-identifier hs-var hs-var">getRandomWord64</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">ByteString -&gt; Word64
+</span><a href="Cardano.Crypto.Util.html#readBinaryWord64"><span class="hs-identifier hs-var">readBinaryWord64</span></a></span><span> </span><span class="annot"><span class="annottext">(ByteString -&gt; Word64) -&gt; m ByteString -&gt; m Word64
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; m ByteString
+forall (m :: * -&gt; *) byteArray.
+(MonadRandom m, ByteArray byteArray) =&gt;
+Int -&gt; m byteArray
+</span><span class="hs-identifier hs-var">getRandomBytes</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">8</span></span><span>
+</span><span id="line-64"></span><span>
+</span><span id="line-65"></span><span>
+</span><span id="line-66"></span><span class="hs-comment">--</span><span>
+</span><span id="line-67"></span><span class="hs-comment">-- Really simple serialisation used in some mock instances</span><span>
+</span><span id="line-68"></span><span class="hs-comment">--</span><span>
+</span><span id="line-69"></span><span>
+</span><span id="line-70"></span><span class="annot"><a href="Cardano.Crypto.Util.html#readBinaryWord64"><span class="hs-identifier hs-type">readBinaryWord64</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">ByteString</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Word64</span></span><span>
+</span><span id="line-71"></span><span id="readBinaryWord64"><span class="annot"><span class="annottext">readBinaryWord64 :: ByteString -&gt; Word64
+</span><a href="Cardano.Crypto.Util.html#readBinaryWord64"><span class="hs-identifier hs-var hs-var">readBinaryWord64</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-72"></span><span>  </span><span class="annot"><span class="annottext">(Word64 -&gt; Word8 -&gt; Word64) -&gt; Word64 -&gt; ByteString -&gt; Word64
+forall a. (a -&gt; Word8 -&gt; a) -&gt; a -&gt; ByteString -&gt; a
+</span><span class="hs-identifier hs-var">BS.foldl'</span></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">\</span><span id="local-6989586621679135328"><span class="annot"><span class="annottext">Word64
+</span><a href="#local-6989586621679135328"><span class="hs-identifier hs-var">acc</span></a></span></span><span> </span><span id="local-6989586621679135327"><span class="annot"><span class="annottext">Word8
+</span><a href="#local-6989586621679135327"><span class="hs-identifier hs-var">w8</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Word64 -&gt; Int -&gt; Word64
+forall a. Bits a =&gt; a -&gt; Int -&gt; a
+</span><span class="hs-identifier hs-var">unsafeShiftL</span></span><span> </span><span class="annot"><span class="annottext">Word64
+</span><a href="#local-6989586621679135328"><span class="hs-identifier hs-var">acc</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">8</span></span><span> </span><span class="annot"><span class="annottext">Word64 -&gt; Word64 -&gt; Word64
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="annottext">Word8 -&gt; Word64
+forall a b. (Integral a, Num b) =&gt; a -&gt; b
+</span><span class="hs-identifier hs-var">fromIntegral</span></span><span> </span><span class="annot"><span class="annottext">Word8
+</span><a href="#local-6989586621679135327"><span class="hs-identifier hs-var">w8</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Word64
+</span><span class="hs-number">0</span></span><span>
+</span><span id="line-73"></span><span>
+</span><span id="line-74"></span><span>
+</span><span id="line-75"></span><span class="annot"><a href="Cardano.Crypto.Util.html#readBinaryNatural"><span class="hs-identifier hs-type">readBinaryNatural</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">ByteString</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Natural</span></span><span>
+</span><span id="line-76"></span><span id="readBinaryNatural"><span class="annot"><span class="annottext">readBinaryNatural :: ByteString -&gt; Natural
+</span><a href="Cardano.Crypto.Util.html#readBinaryNatural"><span class="hs-identifier hs-var hs-var">readBinaryNatural</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-77"></span><span>  </span><span class="annot"><span class="annottext">(Natural -&gt; Word8 -&gt; Natural) -&gt; Natural -&gt; ByteString -&gt; Natural
+forall a. (a -&gt; Word8 -&gt; a) -&gt; a -&gt; ByteString -&gt; a
+</span><span class="hs-identifier hs-var">BS.foldl'</span></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">\</span><span id="local-6989586621679135324"><span class="annot"><span class="annottext">Natural
+</span><a href="#local-6989586621679135324"><span class="hs-identifier hs-var">acc</span></a></span></span><span> </span><span id="local-6989586621679135323"><span class="annot"><span class="annottext">Word8
+</span><a href="#local-6989586621679135323"><span class="hs-identifier hs-var">w8</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Natural -&gt; Int -&gt; Natural
+forall a. Bits a =&gt; a -&gt; Int -&gt; a
+</span><span class="hs-identifier hs-var">unsafeShiftL</span></span><span> </span><span class="annot"><span class="annottext">Natural
+</span><a href="#local-6989586621679135324"><span class="hs-identifier hs-var">acc</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">8</span></span><span> </span><span class="annot"><span class="annottext">Natural -&gt; Natural -&gt; Natural
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="annottext">Word8 -&gt; Natural
+forall a b. (Integral a, Num b) =&gt; a -&gt; b
+</span><span class="hs-identifier hs-var">fromIntegral</span></span><span> </span><span class="annot"><span class="annottext">Word8
+</span><a href="#local-6989586621679135323"><span class="hs-identifier hs-var">w8</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Natural
+</span><span class="hs-number">0</span></span><span>
+</span><span id="line-78"></span><span>
+</span><span id="line-79"></span><span>
+</span><span id="line-80"></span><span class="annot"><a href="Cardano.Crypto.Util.html#writeBinaryWord64"><span class="hs-identifier hs-type">writeBinaryWord64</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Word64</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">ByteString</span></span><span>
+</span><span id="line-81"></span><span id="writeBinaryWord64"><span class="annot"><span class="annottext">writeBinaryWord64 :: Word64 -&gt; ByteString
+</span><a href="Cardano.Crypto.Util.html#writeBinaryWord64"><span class="hs-identifier hs-var hs-var">writeBinaryWord64</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-82"></span><span>    </span><span class="annot"><span class="annottext">ByteString -&gt; ByteString
+</span><span class="hs-identifier hs-var">BS.reverse</span></span><span> </span><span class="annot"><span class="annottext">(ByteString -&gt; ByteString)
+-&gt; (Word64 -&gt; ByteString) -&gt; Word64 -&gt; ByteString
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">(ByteString, Maybe Word64) -&gt; ByteString
+forall a b. (a, b) -&gt; a
+</span><span class="hs-identifier hs-var">fst</span></span><span>
+</span><span id="line-83"></span><span>  </span><span class="annot"><span class="annottext">((ByteString, Maybe Word64) -&gt; ByteString)
+-&gt; (Word64 -&gt; (ByteString, Maybe Word64)) -&gt; Word64 -&gt; ByteString
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Int
+-&gt; (Word64 -&gt; Maybe (Word8, Word64))
+-&gt; Word64
+-&gt; (ByteString, Maybe Word64)
+forall a.
+Int -&gt; (a -&gt; Maybe (Word8, a)) -&gt; a -&gt; (ByteString, Maybe a)
+</span><span class="hs-identifier hs-var">BS.unfoldrN</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">8</span></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">\</span><span id="local-6989586621679135319"><span class="annot"><span class="annottext">Word64
+</span><a href="#local-6989586621679135319"><span class="hs-identifier hs-var">w</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">(Word8, Word64) -&gt; Maybe (Word8, Word64)
+forall a. a -&gt; Maybe a
+</span><span class="hs-identifier hs-var">Just</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Word64 -&gt; Word8
+forall a b. (Integral a, Num b) =&gt; a -&gt; b
+</span><span class="hs-identifier hs-var">fromIntegral</span></span><span> </span><span class="annot"><span class="annottext">Word64
+</span><a href="#local-6989586621679135319"><span class="hs-identifier hs-var">w</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Word64 -&gt; Int -&gt; Word64
+forall a. Bits a =&gt; a -&gt; Int -&gt; a
+</span><span class="hs-identifier hs-var">unsafeShiftR</span></span><span> </span><span class="annot"><span class="annottext">Word64
+</span><a href="#local-6989586621679135319"><span class="hs-identifier hs-var">w</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">8</span></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-84"></span><span>
+</span><span id="line-85"></span><span class="annot"><a href="Cardano.Crypto.Util.html#writeBinaryNatural"><span class="hs-identifier hs-type">writeBinaryNatural</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Natural</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">ByteString</span></span><span>
+</span><span id="line-86"></span><span id="writeBinaryNatural"><span class="annot"><span class="annottext">writeBinaryNatural :: Int -&gt; Natural -&gt; ByteString
+</span><a href="Cardano.Crypto.Util.html#writeBinaryNatural"><span class="hs-identifier hs-var hs-var">writeBinaryNatural</span></a></span></span><span> </span><span id="local-6989586621679135317"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679135317"><span class="hs-identifier hs-var">bytes</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-87"></span><span>    </span><span class="annot"><span class="annottext">ByteString -&gt; ByteString
+</span><span class="hs-identifier hs-var">BS.reverse</span></span><span> </span><span class="annot"><span class="annottext">(ByteString -&gt; ByteString)
+-&gt; (Natural -&gt; ByteString) -&gt; Natural -&gt; ByteString
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">(ByteString, Maybe Natural) -&gt; ByteString
+forall a b. (a, b) -&gt; a
+</span><span class="hs-identifier hs-var">fst</span></span><span>
+</span><span id="line-88"></span><span>  </span><span class="annot"><span class="annottext">((ByteString, Maybe Natural) -&gt; ByteString)
+-&gt; (Natural -&gt; (ByteString, Maybe Natural))
+-&gt; Natural
+-&gt; ByteString
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Int
+-&gt; (Natural -&gt; Maybe (Word8, Natural))
+-&gt; Natural
+-&gt; (ByteString, Maybe Natural)
+forall a.
+Int -&gt; (a -&gt; Maybe (Word8, a)) -&gt; a -&gt; (ByteString, Maybe a)
+</span><span class="hs-identifier hs-var">BS.unfoldrN</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679135317"><span class="hs-identifier hs-var">bytes</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">\</span><span id="local-6989586621679135316"><span class="annot"><span class="annottext">Natural
+</span><a href="#local-6989586621679135316"><span class="hs-identifier hs-var">w</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">(Word8, Natural) -&gt; Maybe (Word8, Natural)
+forall a. a -&gt; Maybe a
+</span><span class="hs-identifier hs-var">Just</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Natural -&gt; Word8
+forall a b. (Integral a, Num b) =&gt; a -&gt; b
+</span><span class="hs-identifier hs-var">fromIntegral</span></span><span> </span><span class="annot"><span class="annottext">Natural
+</span><a href="#local-6989586621679135316"><span class="hs-identifier hs-var">w</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Natural -&gt; Int -&gt; Natural
+forall a. Bits a =&gt; a -&gt; Int -&gt; a
+</span><span class="hs-identifier hs-var">unsafeShiftR</span></span><span> </span><span class="annot"><span class="annottext">Natural
+</span><a href="#local-6989586621679135316"><span class="hs-identifier hs-var">w</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">8</span></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-89"></span><span>
+</span><span id="line-90"></span><span class="annot"><a href="Cardano.Crypto.Util.html#splitsAt"><span class="hs-identifier hs-type">splitsAt</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">[</span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">ByteString</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">[</span><span class="annot"><span class="hs-identifier hs-type">ByteString</span></span><span class="hs-special">]</span><span>
+</span><span id="line-91"></span><span id="splitsAt"><span class="annot"><span class="annottext">splitsAt :: [Int] -&gt; ByteString -&gt; [ByteString]
+</span><a href="Cardano.Crypto.Util.html#splitsAt"><span class="hs-identifier hs-var hs-var">splitsAt</span></a></span></span><span> </span><span id="local-6989586621679135315"><span class="annot"><span class="annottext">[Int]
+</span><a href="#local-6989586621679135315"><span class="hs-identifier hs-var">szs0</span></a></span></span><span> </span><span id="local-6989586621679135314"><span class="annot"><span class="annottext">ByteString
+</span><a href="#local-6989586621679135314"><span class="hs-identifier hs-var">bs0</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-92"></span><span>    </span><span class="annot"><span class="annottext">Int -&gt; [Int] -&gt; ByteString -&gt; [ByteString]
+</span><a href="#local-6989586621679135313"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span> </span><span class="annot"><span class="annottext">[Int]
+</span><a href="#local-6989586621679135315"><span class="hs-identifier hs-var">szs0</span></a></span><span> </span><span class="annot"><span class="annottext">ByteString
+</span><a href="#local-6989586621679135314"><span class="hs-identifier hs-var">bs0</span></a></span><span>
+</span><span id="line-93"></span><span>  </span><span class="hs-keyword">where</span><span>
+</span><span id="line-94"></span><span>    </span><span id="local-6989586621679135313"><span class="annot"><span class="annottext">go :: Int -&gt; [Int] -&gt; ByteString -&gt; [ByteString]
+</span><a href="#local-6989586621679135313"><span class="hs-identifier hs-var hs-var">go</span></a></span></span><span> </span><span class="hs-glyph">!</span><span class="annot"><span class="annottext">Int
+</span><span class="hs-identifier">_</span></span><span>   </span><span class="hs-special">[</span><span class="hs-special">]</span><span> </span><span id="local-6989586621679135312"><span class="annot"><span class="annottext">ByteString
+</span><a href="#local-6989586621679135312"><span class="hs-identifier hs-var">bs</span></a></span></span><span>
+</span><span id="line-95"></span><span>      </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">ByteString -&gt; Bool
+</span><span class="hs-identifier hs-var">BS.null</span></span><span> </span><span class="annot"><span class="annottext">ByteString
+</span><a href="#local-6989586621679135312"><span class="hs-identifier hs-var">bs</span></a></span><span>         </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span>
+</span><span id="line-96"></span><span>      </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">otherwise</span></span><span>          </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">[</span><span class="annot"><span class="annottext">ByteString
+</span><a href="#local-6989586621679135312"><span class="hs-identifier hs-var">bs</span></a></span><span class="hs-special">]</span><span>
+</span><span id="line-97"></span><span>
+</span><span id="line-98"></span><span>    </span><span class="annot"><a href="#local-6989586621679135313"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="hs-glyph">!</span><span id="local-6989586621679135310"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679135310"><span class="hs-identifier hs-var">off</span></a></span></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679135309"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679135309"><span class="hs-identifier hs-var">sz</span></a></span></span><span class="annot"><span class="hs-glyph hs-type">:</span></span><span id="local-6989586621679135308"><span class="annot"><span class="annottext">[Int]
+</span><a href="#local-6989586621679135308"><span class="hs-identifier hs-var">szs</span></a></span></span><span class="hs-special">)</span><span> </span><span id="local-6989586621679135307"><span class="annot"><span class="annottext">ByteString
+</span><a href="#local-6989586621679135307"><span class="hs-identifier hs-var">bs</span></a></span></span><span>
+</span><span id="line-99"></span><span>      </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">ByteString -&gt; Int
+</span><span class="hs-identifier hs-var">BS.length</span></span><span> </span><span class="annot"><span class="annottext">ByteString
+</span><a href="#local-6989586621679135307"><span class="hs-identifier hs-var">bs</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">&gt;=</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679135309"><span class="hs-identifier hs-var">sz</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; ByteString -&gt; ByteString
+</span><span class="hs-identifier hs-var">BS.take</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679135309"><span class="hs-identifier hs-var">sz</span></a></span><span> </span><span class="annot"><span class="annottext">ByteString
+</span><a href="#local-6989586621679135307"><span class="hs-identifier hs-var">bs</span></a></span><span> </span><span class="annot"><span class="annottext">ByteString -&gt; [ByteString] -&gt; [ByteString]
+forall a. a -&gt; [a] -&gt; [a]
+</span><span class="hs-glyph hs-var">:</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; [Int] -&gt; ByteString -&gt; [ByteString]
+</span><a href="#local-6989586621679135313"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679135310"><span class="hs-identifier hs-var">off</span></a></span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679135309"><span class="hs-identifier hs-var">sz</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">[Int]
+</span><a href="#local-6989586621679135308"><span class="hs-identifier hs-var">szs</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; ByteString -&gt; ByteString
+</span><span class="hs-identifier hs-var">BS.drop</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679135309"><span class="hs-identifier hs-var">sz</span></a></span><span> </span><span class="annot"><span class="annottext">ByteString
+</span><a href="#local-6989586621679135307"><span class="hs-identifier hs-var">bs</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-100"></span><span>      </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">otherwise</span></span><span>          </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span>
+</span><span id="line-101"></span><span>
+</span><span id="line-102"></span><span class="hs-comment">-- | Create a 'Natural' out of a 'ByteString', in big endian.</span><span>
+</span><span id="line-103"></span><span class="hs-comment">--</span><span>
+</span><span id="line-104"></span><span class="hs-comment">-- This is fast enough to use in production.</span><span>
+</span><span id="line-105"></span><span class="hs-comment">--</span><span>
+</span><span id="line-106"></span><span class="annot"><a href="Cardano.Crypto.Util.html#bytesToNatural"><span class="hs-identifier hs-type">bytesToNatural</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">ByteString</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Natural</span></span><span>
+</span><span id="line-107"></span><span id="bytesToNatural"><span class="annot"><span class="annottext">bytesToNatural :: ByteString -&gt; Natural
+</span><a href="Cardano.Crypto.Util.html#bytesToNatural"><span class="hs-identifier hs-var hs-var">bytesToNatural</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Natural
+</span><span class="hs-identifier hs-var">GHC.naturalFromInteger</span></span><span> </span><span class="annot"><span class="annottext">(Integer -&gt; Natural)
+-&gt; (ByteString -&gt; Integer) -&gt; ByteString -&gt; Natural
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">ByteString -&gt; Integer
+</span><a href="Cardano.Crypto.Util.html#bytesToInteger"><span class="hs-identifier hs-var">bytesToInteger</span></a></span><span>
+</span><span id="line-108"></span><span>
+</span><span id="line-109"></span><span class="hs-comment">-- | The inverse of 'bytesToNatural'. Note that this is a naive implementation</span><span>
+</span><span id="line-110"></span><span class="hs-comment">-- and only suitable for tests.</span><span>
+</span><span id="line-111"></span><span class="hs-comment">--</span><span>
+</span><span id="line-112"></span><span class="annot"><a href="Cardano.Crypto.Util.html#naturalToBytes"><span class="hs-identifier hs-type">naturalToBytes</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Natural</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">ByteString</span></span><span>
+</span><span id="line-113"></span><span id="naturalToBytes"><span class="annot"><span class="annottext">naturalToBytes :: Int -&gt; Natural -&gt; ByteString
+</span><a href="Cardano.Crypto.Util.html#naturalToBytes"><span class="hs-identifier hs-var hs-var">naturalToBytes</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Natural -&gt; ByteString
+</span><a href="Cardano.Crypto.Util.html#writeBinaryNatural"><span class="hs-identifier hs-var">writeBinaryNatural</span></a></span><span>
+</span><span id="line-114"></span><span>
+</span><span id="line-115"></span><span class="annot"><a href="Cardano.Crypto.Util.html#bytesToInteger"><span class="hs-identifier hs-type">bytesToInteger</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">ByteString</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Integer</span></span><span>
+</span><span id="line-116"></span><span id="bytesToInteger"><span class="annot"><span class="annottext">bytesToInteger :: ByteString -&gt; Integer
+</span><a href="Cardano.Crypto.Util.html#bytesToInteger"><span class="hs-identifier hs-var hs-var">bytesToInteger</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">BS.PS</span></span><span> </span><span id="local-6989586621679135301"><span class="annot"><span class="annottext">ForeignPtr Word8
+</span><a href="#local-6989586621679135301"><span class="hs-identifier hs-var">fp</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">GHC.I#</span></span><span> </span><span id="local-6989586621679135300"><span class="annot"><span class="annottext">Int#
+</span><a href="#local-6989586621679135300"><span class="hs-identifier hs-var">off#</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">GHC.I#</span></span><span> </span><span id="local-6989586621679135299"><span class="annot"><span class="annottext">Int#
+</span><a href="#local-6989586621679135299"><span class="hs-identifier hs-var">len#</span></a></span></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-117"></span><span>    </span><span class="hs-comment">-- This should be safe since we're simply reading from ByteString (which is</span><span>
+</span><span id="line-118"></span><span>    </span><span class="hs-comment">-- immutable) and GMP allocates a new memory for the Integer, i.e., there is</span><span>
+</span><span id="line-119"></span><span>    </span><span class="hs-comment">-- no mutation involved.</span><span>
+</span><span id="line-120"></span><span>    </span><span class="annot"><span class="annottext">IO Integer -&gt; Integer
+forall a. IO a -&gt; a
+</span><span class="hs-identifier hs-var">GHC.unsafeDupablePerformIO</span></span><span> </span><span class="annot"><span class="annottext">(IO Integer -&gt; Integer) -&gt; IO Integer -&gt; Integer
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span>
+</span><span id="line-121"></span><span>      </span><span class="annot"><span class="annottext">ForeignPtr Word8 -&gt; (Ptr Word8 -&gt; IO Integer) -&gt; IO Integer
+forall a b. ForeignPtr a -&gt; (Ptr a -&gt; IO b) -&gt; IO b
+</span><span class="hs-identifier hs-var">withForeignPtr</span></span><span> </span><span class="annot"><span class="annottext">ForeignPtr Word8
+</span><a href="#local-6989586621679135301"><span class="hs-identifier hs-var">fp</span></a></span><span> </span><span class="annot"><span class="annottext">((Ptr Word8 -&gt; IO Integer) -&gt; IO Integer)
+-&gt; (Ptr Word8 -&gt; IO Integer) -&gt; IO Integer
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-glyph">\</span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">GHC.Ptr</span></span><span> </span><span id="local-6989586621679135297"><span class="annot"><span class="annottext">Addr#
+</span><a href="#local-6989586621679135297"><span class="hs-identifier hs-var">addr#</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-122"></span><span>        </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679135296"><span class="annot"><span class="annottext">addrOff# :: Addr#
+</span><a href="#local-6989586621679135296"><span class="hs-identifier hs-var hs-var">addrOff#</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Addr#
+</span><a href="#local-6989586621679135297"><span class="hs-identifier hs-var">addr#</span></a></span><span> </span><span class="annot"><span class="annottext">Addr# -&gt; Int# -&gt; Addr#
+</span><span class="hs-operator hs-var">`GHC.plusAddr#`</span></span><span> </span><span class="annot"><span class="annottext">Int#
+</span><a href="#local-6989586621679135300"><span class="hs-identifier hs-var">off#</span></a></span><span>
+</span><span id="line-123"></span><span>        </span><span class="hs-comment">-- The last parmaeter (`1#`) tells the import function to use big</span><span>
+</span><span id="line-124"></span><span>        </span><span class="hs-comment">-- endian encoding.</span><span>
+</span><span id="line-125"></span><span>        </span><span class="hs-keyword">in</span><span> </span><span class="annot"><span class="annottext">Addr# -&gt; Word# -&gt; Int# -&gt; IO Integer
+</span><span class="hs-identifier hs-var">GMP.importIntegerFromAddr</span></span><span> </span><span class="annot"><span class="annottext">Addr#
+</span><a href="#local-6989586621679135296"><span class="hs-identifier hs-var">addrOff#</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int# -&gt; Word#
+</span><span class="hs-identifier hs-var">GHC.int2Word#</span></span><span> </span><span class="annot"><span class="annottext">Int#
+</span><a href="#local-6989586621679135299"><span class="hs-identifier hs-var">len#</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Int#
+</span><span class="hs-number">1#</span></span><span>
+</span><span id="line-126"></span><span>
+</span><span id="line-127"></span></pre></body></html>

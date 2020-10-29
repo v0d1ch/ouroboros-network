@@ -1,0 +1,426 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-pragma">{-# LANGUAGE DataKinds #-}</span><span>
+</span><span id="line-2"></span><span class="hs-pragma">{-# LANGUAGE FlexibleInstances #-}</span><span>
+</span><span id="line-3"></span><span class="hs-pragma">{-# LANGUAGE MultiParamTypeClasses #-}</span><span>
+</span><span id="line-4"></span><span class="hs-pragma">{-# LANGUAGE TypeFamilies #-}</span><span>
+</span><span id="line-5"></span><span class="hs-pragma">{-# OPTIONS_GHC -Wno-orphans #-}</span><span>
+</span><span id="line-6"></span><span>
+</span><span id="line-7"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Cardano.Ledger.Mary.Translation</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-8"></span><span>
+</span><span id="line-9"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Cardano.Ledger.Allegra.html"><span class="hs-identifier">Cardano.Ledger.Allegra</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cardano.Ledger.Allegra.html#AllegraEra"><span class="hs-identifier">AllegraEra</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-10"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/shelley-spec-ledger-0.1.0.0/noopt/doc/html/shelley-spec-ledger/src"><span class="hs-identifier">Cardano.Ledger.Crypto</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/shelley-spec-ledger-0.1.0.0/noopt/doc/html/shelley-spec-ledger/src"><span class="hs-identifier">Crypto</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-11"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/shelley-spec-ledger-0.1.0.0/noopt/doc/html/shelley-spec-ledger/src"><span class="hs-identifier">Cardano.Ledger.Era</span></a></span><span> </span><span class="hs-keyword">hiding</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/shelley-spec-ledger-0.1.0.0/noopt/doc/html/shelley-spec-ledger/src"><span class="hs-identifier">Crypto</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-12"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Cardano.Ledger.Mary.html"><span class="hs-identifier">Cardano.Ledger.Mary</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cardano.Ledger.Mary.html#MaryEra"><span class="hs-identifier">MaryEra</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-13"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Functor.Identity</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Identity</span></span><span class="hs-special">)</span><span>
+</span><span id="line-14"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Data.Map.Strict</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Map</span></span><span>
+</span><span id="line-15"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/shelley-spec-ledger-0.1.0.0/noopt/doc/html/shelley-spec-ledger/src"><span class="hs-identifier">Shelley.Spec.Ledger.API</span></a></span><span>
+</span><span id="line-16"></span><span>
+</span><span id="line-17"></span><span class="hs-comment">--------------------------------------------------------------------------------</span><span>
+</span><span id="line-18"></span><span class="hs-comment">-- Translation from Allegra to Mary</span><span>
+</span><span id="line-19"></span><span class="hs-comment">--</span><span>
+</span><span id="line-20"></span><span class="hs-comment">-- The instances below are needed by the consensus layer. Do not remove any of</span><span>
+</span><span id="line-21"></span><span class="hs-comment">-- them without coordinating with consensus.</span><span>
+</span><span id="line-22"></span><span class="hs-comment">--</span><span>
+</span><span id="line-23"></span><span class="hs-comment">-- Please add auxiliary instances and other declarations at the bottom of this</span><span>
+</span><span id="line-24"></span><span class="hs-comment">-- module, not in the list below so that it remains clear which instances the</span><span>
+</span><span id="line-25"></span><span class="hs-comment">-- consensus layer needs.</span><span>
+</span><span id="line-26"></span><span class="hs-comment">--</span><span>
+</span><span id="line-27"></span><span class="hs-comment">-- WARNING: when a translation instance currently uses the default</span><span>
+</span><span id="line-28"></span><span class="hs-comment">-- 'TranslationError', i.e., 'Void', it means the consensus layer relies on it</span><span>
+</span><span id="line-29"></span><span class="hs-comment">-- being total. Do not change it!</span><span>
+</span><span id="line-30"></span><span class="hs-comment">--------------------------------------------------------------------------------</span><span>
+</span><span id="line-31"></span><span>
+</span><span id="line-32"></span><span class="hs-keyword">type</span><span> </span><span class="hs-keyword">instance</span><span> </span><span id="PreviousEra"><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/shelley-spec-ledger-0.1.0.0/noopt/doc/html/shelley-spec-ledger/src"><span class="hs-identifier hs-var">PreviousEra</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cardano.Ledger.Mary.html#MaryEra"><span class="hs-identifier hs-type">MaryEra</span></a></span><span> </span><span id="local-6989586621679148565"><span class="annot"><a href="#local-6989586621679148565"><span class="hs-identifier hs-type hs-type">c</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><a href="Cardano.Ledger.Allegra.html#AllegraEra"><span class="hs-identifier hs-type">AllegraEra</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679148565"><span class="hs-identifier hs-type">c</span></a></span><span>
+</span><span id="line-33"></span><span>
+</span><span id="line-34"></span><span class="hs-comment">-- | Currently no context is needed to translate from Allegra to Mary.</span><span>
+</span><span id="line-35"></span><span class="hs-comment">--</span><span>
+</span><span id="line-36"></span><span class="hs-comment">-- Note: if context is needed, please coordinate with consensus, who will have</span><span>
+</span><span id="line-37"></span><span class="hs-comment">-- to provide the context in the right place.</span><span>
+</span><span id="line-38"></span><span class="hs-keyword">type</span><span> </span><span class="hs-keyword">instance</span><span> </span><span id="TranslationContext"><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/shelley-spec-ledger-0.1.0.0/noopt/doc/html/shelley-spec-ledger/src"><span class="hs-identifier hs-var">TranslationContext</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cardano.Ledger.Mary.html#MaryEra"><span class="hs-identifier hs-type">MaryEra</span></a></span><span> </span><span id="local-6989586621679148564"><span class="annot"><a href="#local-6989586621679148564"><span class="hs-identifier hs-type hs-type">c</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
+</span><span id="line-39"></span><span>
+</span><span id="line-40"></span><span id="local-6989586621679148563"><span class="hs-keyword">instance</span><span> </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/shelley-spec-ledger-0.1.0.0/noopt/doc/html/shelley-spec-ledger/src"><span class="hs-identifier hs-type">Crypto</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679148563"><span class="hs-identifier hs-type">c</span></a></span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/shelley-spec-ledger-0.1.0.0/noopt/doc/html/shelley-spec-ledger/src"><span class="hs-identifier hs-type">TranslateEra</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cardano.Ledger.Mary.html#MaryEra"><span class="hs-identifier hs-type">MaryEra</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679148563"><span class="hs-identifier hs-type">c</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/shelley-spec-ledger-0.1.0.0/noopt/doc/html/shelley-spec-ledger/src"><span class="hs-identifier hs-type">NewEpochState</span></a></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-41"></span><span>  </span><span id="local-6989586621679148558"><span class="annot"><span class="annottext">translateEra :: TranslationContext (MaryEra c)
+-&gt; NewEpochState (PreviousEra (MaryEra c))
+-&gt; Except
+     (TranslationError (MaryEra c) NewEpochState)
+     (NewEpochState (MaryEra c))
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/shelley-spec-ledger-0.1.0.0/noopt/doc/html/shelley-spec-ledger/src"><span class="hs-identifier hs-var hs-var hs-var hs-var">translateEra</span></a></span></span><span> </span><span class="annot"><span class="annottext">TranslationContext (MaryEra c)
+</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[Char]
+-&gt; NewEpochState (AllegraEra c)
+-&gt; Except Void (NewEpochState (MaryEra c))
+forall a. HasCallStack =&gt; [Char] -&gt; a
+</span><span class="hs-identifier hs-var">error</span></span><span> </span><span class="annot"><span class="annottext">[Char]
+</span><span class="hs-string">&quot;TODO Allegra to Mary translation&quot;</span></span></span><span>
+</span><span id="line-42"></span><span>
+</span><span id="line-43"></span><span id="local-6989586621679148555"><span class="hs-keyword">instance</span><span> </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/shelley-spec-ledger-0.1.0.0/noopt/doc/html/shelley-spec-ledger/src"><span class="hs-identifier hs-type">Crypto</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679148555"><span class="hs-identifier hs-type">c</span></a></span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/shelley-spec-ledger-0.1.0.0/noopt/doc/html/shelley-spec-ledger/src"><span class="hs-identifier hs-type">TranslateEra</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cardano.Ledger.Mary.html#MaryEra"><span class="hs-identifier hs-type">MaryEra</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679148555"><span class="hs-identifier hs-type">c</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/shelley-spec-ledger-0.1.0.0/noopt/doc/html/shelley-spec-ledger/src"><span class="hs-identifier hs-type">Tx</span></a></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-44"></span><span>  </span><span class="hs-keyword">type</span><span> </span><span id="TranslationError"><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/shelley-spec-ledger-0.1.0.0/noopt/doc/html/shelley-spec-ledger/src"><span class="hs-identifier hs-var">TranslationError</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cardano.Ledger.Mary.html#MaryEra"><span class="hs-identifier hs-type">MaryEra</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679148555"><span class="hs-identifier hs-type">c</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/shelley-spec-ledger-0.1.0.0/noopt/doc/html/shelley-spec-ledger/src"><span class="hs-identifier hs-type">Tx</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
+</span><span id="line-45"></span><span>  </span><span id="local-6989586621679148551"><span class="annot"><span class="annottext">translateEra :: TranslationContext (MaryEra c)
+-&gt; Tx (PreviousEra (MaryEra c))
+-&gt; Except (TranslationError (MaryEra c) Tx) (Tx (MaryEra c))
+</span><a href="#local-6989586621679148551"><span class="hs-identifier hs-var hs-var hs-var hs-var">translateEra</span></a></span></span><span> </span><span class="annot"><span class="annottext">TranslationContext (MaryEra c)
+</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[Char] -&gt; Tx (AllegraEra c) -&gt; Except () (Tx (MaryEra c))
+forall a. HasCallStack =&gt; [Char] -&gt; a
+</span><span class="hs-identifier hs-var">error</span></span><span> </span><span class="annot"><span class="annottext">[Char]
+</span><span class="hs-string">&quot;TODO Allegra to Mary translation&quot;</span></span></span><span>
+</span><span id="line-46"></span><span>
+</span><span id="line-47"></span><span class="hs-comment">-- TODO when a genesis has been introduced for Mary, this instance can be</span><span>
+</span><span id="line-48"></span><span class="hs-comment">-- removed.</span><span>
+</span><span id="line-49"></span><span id="local-6989586621679148550"><span class="hs-keyword">instance</span><span> </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/shelley-spec-ledger-0.1.0.0/noopt/doc/html/shelley-spec-ledger/src"><span class="hs-identifier hs-type">Crypto</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679148550"><span class="hs-identifier hs-type">c</span></a></span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/shelley-spec-ledger-0.1.0.0/noopt/doc/html/shelley-spec-ledger/src"><span class="hs-identifier hs-type">TranslateEra</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cardano.Ledger.Mary.html#MaryEra"><span class="hs-identifier hs-type">MaryEra</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679148550"><span class="hs-identifier hs-type">c</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/shelley-spec-ledger-0.1.0.0/noopt/doc/html/shelley-spec-ledger/src"><span class="hs-identifier hs-type">ShelleyGenesis</span></a></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-50"></span><span>  </span><span id="local-6989586621679148546"><span class="annot"><span class="annottext">translateEra :: TranslationContext (MaryEra c)
+-&gt; ShelleyGenesis (PreviousEra (MaryEra c))
+-&gt; Except
+     (TranslationError (MaryEra c) ShelleyGenesis)
+     (ShelleyGenesis (MaryEra c))
+</span><a href="#local-6989586621679148546"><span class="hs-identifier hs-var hs-var hs-var hs-var">translateEra</span></a></span></span><span> </span><span id="local-6989586621679148545"><span class="annot"><span class="annottext">TranslationContext (MaryEra c)
+</span><a href="#local-6989586621679148545"><span class="hs-identifier hs-var">ctxt</span></a></span></span><span> </span><span id="local-6989586621679148544"><span class="annot"><span class="annottext">ShelleyGenesis (PreviousEra (MaryEra c))
+</span><a href="#local-6989586621679148544"><span class="hs-identifier hs-var">genesis</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-51"></span><span>    </span><span class="annot"><span class="annottext">ShelleyGenesis (MaryEra c)
+-&gt; ExceptT Void Identity (ShelleyGenesis (MaryEra c))
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span>
+</span><span id="line-52"></span><span>      </span><span class="annot"><span class="annottext">ShelleyGenesis :: forall era.
+UTCTime
+-&gt; Word32
+-&gt; Network
+-&gt; Rational
+-&gt; Word64
+-&gt; EpochSize
+-&gt; Word64
+-&gt; Word64
+-&gt; NominalDiffTime
+-&gt; Word64
+-&gt; Word64
+-&gt; PParams era
+-&gt; Map (KeyHash 'Genesis (Crypto era)) (GenDelegPair (Crypto era))
+-&gt; Map (Addr era) Coin
+-&gt; ShelleyGenesisStaking era
+-&gt; ShelleyGenesis era
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/shelley-spec-ledger-0.1.0.0/noopt/doc/html/shelley-spec-ledger/src"><span class="hs-identifier hs-type">ShelleyGenesis</span></a></span><span>
+</span><span id="line-53"></span><span>        </span><span class="hs-special">{</span><span> </span><span class="annot"><span class="annottext">sgSystemStart :: UTCTime
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/shelley-spec-ledger-0.1.0.0/noopt/doc/html/shelley-spec-ledger/src"><span class="hs-identifier hs-var">sgSystemStart</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">ShelleyGenesis (AllegraEra c) -&gt; UTCTime
+forall era. ShelleyGenesis era -&gt; UTCTime
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/shelley-spec-ledger-0.1.0.0/noopt/doc/html/shelley-spec-ledger/src"><span class="hs-identifier hs-var hs-var">sgSystemStart</span></a></span><span> </span><span class="annot"><span class="annottext">ShelleyGenesis (PreviousEra (MaryEra c))
+ShelleyGenesis (AllegraEra c)
+</span><a href="#local-6989586621679148544"><span class="hs-identifier hs-var">genesis</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-54"></span><span>          </span><span class="annot"><span class="annottext">sgNetworkMagic :: Word32
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/shelley-spec-ledger-0.1.0.0/noopt/doc/html/shelley-spec-ledger/src"><span class="hs-identifier hs-var">sgNetworkMagic</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">ShelleyGenesis (AllegraEra c) -&gt; Word32
+forall era. ShelleyGenesis era -&gt; Word32
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/shelley-spec-ledger-0.1.0.0/noopt/doc/html/shelley-spec-ledger/src"><span class="hs-identifier hs-var hs-var">sgNetworkMagic</span></a></span><span> </span><span class="annot"><span class="annottext">ShelleyGenesis (PreviousEra (MaryEra c))
+ShelleyGenesis (AllegraEra c)
+</span><a href="#local-6989586621679148544"><span class="hs-identifier hs-var">genesis</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-55"></span><span>          </span><span class="annot"><span class="annottext">sgNetworkId :: Network
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/shelley-spec-ledger-0.1.0.0/noopt/doc/html/shelley-spec-ledger/src"><span class="hs-identifier hs-var">sgNetworkId</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">ShelleyGenesis (AllegraEra c) -&gt; Network
+forall era. ShelleyGenesis era -&gt; Network
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/shelley-spec-ledger-0.1.0.0/noopt/doc/html/shelley-spec-ledger/src"><span class="hs-identifier hs-var hs-var">sgNetworkId</span></a></span><span> </span><span class="annot"><span class="annottext">ShelleyGenesis (PreviousEra (MaryEra c))
+ShelleyGenesis (AllegraEra c)
+</span><a href="#local-6989586621679148544"><span class="hs-identifier hs-var">genesis</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-56"></span><span>          </span><span class="annot"><span class="annottext">sgActiveSlotsCoeff :: Rational
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/shelley-spec-ledger-0.1.0.0/noopt/doc/html/shelley-spec-ledger/src"><span class="hs-identifier hs-var">sgActiveSlotsCoeff</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">ShelleyGenesis (AllegraEra c) -&gt; Rational
+forall era. ShelleyGenesis era -&gt; Rational
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/shelley-spec-ledger-0.1.0.0/noopt/doc/html/shelley-spec-ledger/src"><span class="hs-identifier hs-var hs-var">sgActiveSlotsCoeff</span></a></span><span> </span><span class="annot"><span class="annottext">ShelleyGenesis (PreviousEra (MaryEra c))
+ShelleyGenesis (AllegraEra c)
+</span><a href="#local-6989586621679148544"><span class="hs-identifier hs-var">genesis</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-57"></span><span>          </span><span class="annot"><span class="annottext">sgSecurityParam :: Word64
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/shelley-spec-ledger-0.1.0.0/noopt/doc/html/shelley-spec-ledger/src"><span class="hs-identifier hs-var">sgSecurityParam</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">ShelleyGenesis (AllegraEra c) -&gt; Word64
+forall era. ShelleyGenesis era -&gt; Word64
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/shelley-spec-ledger-0.1.0.0/noopt/doc/html/shelley-spec-ledger/src"><span class="hs-identifier hs-var hs-var">sgSecurityParam</span></a></span><span> </span><span class="annot"><span class="annottext">ShelleyGenesis (PreviousEra (MaryEra c))
+ShelleyGenesis (AllegraEra c)
+</span><a href="#local-6989586621679148544"><span class="hs-identifier hs-var">genesis</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-58"></span><span>          </span><span class="annot"><span class="annottext">sgEpochLength :: EpochSize
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/shelley-spec-ledger-0.1.0.0/noopt/doc/html/shelley-spec-ledger/src"><span class="hs-identifier hs-var">sgEpochLength</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">ShelleyGenesis (AllegraEra c) -&gt; EpochSize
+forall era. ShelleyGenesis era -&gt; EpochSize
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/shelley-spec-ledger-0.1.0.0/noopt/doc/html/shelley-spec-ledger/src"><span class="hs-identifier hs-var hs-var">sgEpochLength</span></a></span><span> </span><span class="annot"><span class="annottext">ShelleyGenesis (PreviousEra (MaryEra c))
+ShelleyGenesis (AllegraEra c)
+</span><a href="#local-6989586621679148544"><span class="hs-identifier hs-var">genesis</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-59"></span><span>          </span><span class="annot"><span class="annottext">sgSlotsPerKESPeriod :: Word64
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/shelley-spec-ledger-0.1.0.0/noopt/doc/html/shelley-spec-ledger/src"><span class="hs-identifier hs-var">sgSlotsPerKESPeriod</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">ShelleyGenesis (AllegraEra c) -&gt; Word64
+forall era. ShelleyGenesis era -&gt; Word64
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/shelley-spec-ledger-0.1.0.0/noopt/doc/html/shelley-spec-ledger/src"><span class="hs-identifier hs-var hs-var">sgSlotsPerKESPeriod</span></a></span><span> </span><span class="annot"><span class="annottext">ShelleyGenesis (PreviousEra (MaryEra c))
+ShelleyGenesis (AllegraEra c)
+</span><a href="#local-6989586621679148544"><span class="hs-identifier hs-var">genesis</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-60"></span><span>          </span><span class="annot"><span class="annottext">sgMaxKESEvolutions :: Word64
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/shelley-spec-ledger-0.1.0.0/noopt/doc/html/shelley-spec-ledger/src"><span class="hs-identifier hs-var">sgMaxKESEvolutions</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">ShelleyGenesis (AllegraEra c) -&gt; Word64
+forall era. ShelleyGenesis era -&gt; Word64
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/shelley-spec-ledger-0.1.0.0/noopt/doc/html/shelley-spec-ledger/src"><span class="hs-identifier hs-var hs-var">sgMaxKESEvolutions</span></a></span><span> </span><span class="annot"><span class="annottext">ShelleyGenesis (PreviousEra (MaryEra c))
+ShelleyGenesis (AllegraEra c)
+</span><a href="#local-6989586621679148544"><span class="hs-identifier hs-var">genesis</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-61"></span><span>          </span><span class="annot"><span class="annottext">sgSlotLength :: NominalDiffTime
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/shelley-spec-ledger-0.1.0.0/noopt/doc/html/shelley-spec-ledger/src"><span class="hs-identifier hs-var">sgSlotLength</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">ShelleyGenesis (AllegraEra c) -&gt; NominalDiffTime
+forall era. ShelleyGenesis era -&gt; NominalDiffTime
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/shelley-spec-ledger-0.1.0.0/noopt/doc/html/shelley-spec-ledger/src"><span class="hs-identifier hs-var hs-var">sgSlotLength</span></a></span><span> </span><span class="annot"><span class="annottext">ShelleyGenesis (PreviousEra (MaryEra c))
+ShelleyGenesis (AllegraEra c)
+</span><a href="#local-6989586621679148544"><span class="hs-identifier hs-var">genesis</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-62"></span><span>          </span><span class="annot"><span class="annottext">sgUpdateQuorum :: Word64
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/shelley-spec-ledger-0.1.0.0/noopt/doc/html/shelley-spec-ledger/src"><span class="hs-identifier hs-var">sgUpdateQuorum</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">ShelleyGenesis (AllegraEra c) -&gt; Word64
+forall era. ShelleyGenesis era -&gt; Word64
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/shelley-spec-ledger-0.1.0.0/noopt/doc/html/shelley-spec-ledger/src"><span class="hs-identifier hs-var hs-var">sgUpdateQuorum</span></a></span><span> </span><span class="annot"><span class="annottext">ShelleyGenesis (PreviousEra (MaryEra c))
+ShelleyGenesis (AllegraEra c)
+</span><a href="#local-6989586621679148544"><span class="hs-identifier hs-var">genesis</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-63"></span><span>          </span><span class="annot"><span class="annottext">sgMaxLovelaceSupply :: Word64
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/shelley-spec-ledger-0.1.0.0/noopt/doc/html/shelley-spec-ledger/src"><span class="hs-identifier hs-var">sgMaxLovelaceSupply</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">ShelleyGenesis (AllegraEra c) -&gt; Word64
+forall era. ShelleyGenesis era -&gt; Word64
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/shelley-spec-ledger-0.1.0.0/noopt/doc/html/shelley-spec-ledger/src"><span class="hs-identifier hs-var hs-var">sgMaxLovelaceSupply</span></a></span><span> </span><span class="annot"><span class="annottext">ShelleyGenesis (PreviousEra (MaryEra c))
+ShelleyGenesis (AllegraEra c)
+</span><a href="#local-6989586621679148544"><span class="hs-identifier hs-var">genesis</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-64"></span><span>          </span><span class="annot"><span class="annottext">sgProtocolParams :: PParams (MaryEra c)
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/shelley-spec-ledger-0.1.0.0/noopt/doc/html/shelley-spec-ledger/src"><span class="hs-identifier hs-var">sgProtocolParams</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">TranslationContext (MaryEra c)
+-&gt; PParams' Identity (PreviousEra (MaryEra c))
+-&gt; PParams (MaryEra c)
+forall era (f :: * -&gt; *).
+(TranslateEra era f, TranslationError era f ~ Void) =&gt;
+TranslationContext era -&gt; f (PreviousEra era) -&gt; f era
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/shelley-spec-ledger-0.1.0.0/noopt/doc/html/shelley-spec-ledger/src"><span class="hs-identifier hs-var">translateEra'</span></a></span><span> </span><span class="annot"><span class="annottext">TranslationContext (MaryEra c)
+</span><a href="#local-6989586621679148545"><span class="hs-identifier hs-var">ctxt</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">ShelleyGenesis (AllegraEra c) -&gt; PParams (AllegraEra c)
+forall era. ShelleyGenesis era -&gt; PParams era
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/shelley-spec-ledger-0.1.0.0/noopt/doc/html/shelley-spec-ledger/src"><span class="hs-identifier hs-var hs-var">sgProtocolParams</span></a></span><span> </span><span class="annot"><span class="annottext">ShelleyGenesis (PreviousEra (MaryEra c))
+ShelleyGenesis (AllegraEra c)
+</span><a href="#local-6989586621679148544"><span class="hs-identifier hs-var">genesis</span></a></span><span class="hs-special">)</span><span class="hs-special">,</span><span>
+</span><span id="line-65"></span><span>          </span><span class="annot"><span class="annottext">sgGenDelegs :: Map
+  (KeyHash 'Genesis (Crypto (MaryEra c)))
+  (GenDelegPair (Crypto (MaryEra c)))
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/shelley-spec-ledger-0.1.0.0/noopt/doc/html/shelley-spec-ledger/src"><span class="hs-identifier hs-var">sgGenDelegs</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">ShelleyGenesis (AllegraEra c)
+-&gt; Map
+     (KeyHash 'Genesis (Crypto (AllegraEra c)))
+     (GenDelegPair (Crypto (AllegraEra c)))
+forall era.
+ShelleyGenesis era
+-&gt; Map (KeyHash 'Genesis (Crypto era)) (GenDelegPair (Crypto era))
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/shelley-spec-ledger-0.1.0.0/noopt/doc/html/shelley-spec-ledger/src"><span class="hs-identifier hs-var hs-var">sgGenDelegs</span></a></span><span> </span><span class="annot"><span class="annottext">ShelleyGenesis (PreviousEra (MaryEra c))
+ShelleyGenesis (AllegraEra c)
+</span><a href="#local-6989586621679148544"><span class="hs-identifier hs-var">genesis</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-66"></span><span>          </span><span class="annot"><span class="annottext">sgInitialFunds :: Map (Addr (MaryEra c)) Coin
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/shelley-spec-ledger-0.1.0.0/noopt/doc/html/shelley-spec-ledger/src"><span class="hs-identifier hs-var">sgInitialFunds</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(Addr (AllegraEra c) -&gt; Addr (MaryEra c))
+-&gt; Map (Addr (AllegraEra c)) Coin -&gt; Map (Addr (MaryEra c)) Coin
+forall k2 k1 a. Ord k2 =&gt; (k1 -&gt; k2) -&gt; Map k1 a -&gt; Map k2 a
+</span><span class="hs-identifier hs-var">Map.mapKeys</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">TranslationContext (MaryEra c)
+-&gt; Addr (PreviousEra (MaryEra c)) -&gt; Addr (MaryEra c)
+forall era (f :: * -&gt; *).
+(TranslateEra era f, TranslationError era f ~ Void) =&gt;
+TranslationContext era -&gt; f (PreviousEra era) -&gt; f era
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/shelley-spec-ledger-0.1.0.0/noopt/doc/html/shelley-spec-ledger/src"><span class="hs-identifier hs-var">translateEra'</span></a></span><span> </span><span class="annot"><span class="annottext">TranslationContext (MaryEra c)
+</span><a href="#local-6989586621679148545"><span class="hs-identifier hs-var">ctxt</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(Map (Addr (AllegraEra c)) Coin -&gt; Map (Addr (MaryEra c)) Coin)
+-&gt; Map (Addr (AllegraEra c)) Coin -&gt; Map (Addr (MaryEra c)) Coin
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">ShelleyGenesis (AllegraEra c) -&gt; Map (Addr (AllegraEra c)) Coin
+forall era. ShelleyGenesis era -&gt; Map (Addr era) Coin
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/shelley-spec-ledger-0.1.0.0/noopt/doc/html/shelley-spec-ledger/src"><span class="hs-identifier hs-var hs-var">sgInitialFunds</span></a></span><span> </span><span class="annot"><span class="annottext">ShelleyGenesis (PreviousEra (MaryEra c))
+ShelleyGenesis (AllegraEra c)
+</span><a href="#local-6989586621679148544"><span class="hs-identifier hs-var">genesis</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-67"></span><span>          </span><span class="annot"><span class="annottext">sgStaking :: ShelleyGenesisStaking (MaryEra c)
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/shelley-spec-ledger-0.1.0.0/noopt/doc/html/shelley-spec-ledger/src"><span class="hs-identifier hs-var">sgStaking</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">TranslationContext (MaryEra c)
+-&gt; ShelleyGenesisStaking (PreviousEra (MaryEra c))
+-&gt; ShelleyGenesisStaking (MaryEra c)
+forall era (f :: * -&gt; *).
+(TranslateEra era f, TranslationError era f ~ Void) =&gt;
+TranslationContext era -&gt; f (PreviousEra era) -&gt; f era
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/shelley-spec-ledger-0.1.0.0/noopt/doc/html/shelley-spec-ledger/src"><span class="hs-identifier hs-var">translateEra'</span></a></span><span> </span><span class="annot"><span class="annottext">TranslationContext (MaryEra c)
+</span><a href="#local-6989586621679148545"><span class="hs-identifier hs-var">ctxt</span></a></span><span> </span><span class="annot"><span class="annottext">(ShelleyGenesisStaking (PreviousEra (MaryEra c))
+ -&gt; ShelleyGenesisStaking (MaryEra c))
+-&gt; ShelleyGenesisStaking (PreviousEra (MaryEra c))
+-&gt; ShelleyGenesisStaking (MaryEra c)
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">ShelleyGenesis (AllegraEra c)
+-&gt; ShelleyGenesisStaking (AllegraEra c)
+forall era. ShelleyGenesis era -&gt; ShelleyGenesisStaking era
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/shelley-spec-ledger-0.1.0.0/noopt/doc/html/shelley-spec-ledger/src"><span class="hs-identifier hs-var hs-var">sgStaking</span></a></span><span> </span><span class="annot"><span class="annottext">ShelleyGenesis (PreviousEra (MaryEra c))
+ShelleyGenesis (AllegraEra c)
+</span><a href="#local-6989586621679148544"><span class="hs-identifier hs-var">genesis</span></a></span><span>
+</span><span id="line-68"></span><span>        </span><span class="hs-special">}</span></span><span>
+</span><span id="line-69"></span><span>
+</span><span id="line-70"></span><span class="hs-comment">--------------------------------------------------------------------------------</span><span>
+</span><span id="line-71"></span><span class="hs-comment">-- Auxiliary instances and functions</span><span>
+</span><span id="line-72"></span><span class="hs-comment">--------------------------------------------------------------------------------</span><span>
+</span><span id="line-73"></span><span>
+</span><span id="line-74"></span><span id="local-6989586621679148525"><span class="hs-keyword">instance</span><span> </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/shelley-spec-ledger-0.1.0.0/noopt/doc/html/shelley-spec-ledger/src"><span class="hs-identifier hs-type">Crypto</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679148525"><span class="hs-identifier hs-type">c</span></a></span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/shelley-spec-ledger-0.1.0.0/noopt/doc/html/shelley-spec-ledger/src"><span class="hs-identifier hs-type">TranslateEra</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cardano.Ledger.Mary.html#MaryEra"><span class="hs-identifier hs-type">MaryEra</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679148525"><span class="hs-identifier hs-type">c</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/shelley-spec-ledger-0.1.0.0/noopt/doc/html/shelley-spec-ledger/src"><span class="hs-identifier hs-type">PParams'</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Identity</span></span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-75"></span><span>  </span><span id="local-6989586621679148521"><span class="annot"><span class="annottext">translateEra :: TranslationContext (MaryEra c)
+-&gt; PParams' Identity (PreviousEra (MaryEra c))
+-&gt; Except
+     (TranslationError (MaryEra c) (PParams' Identity))
+     (PParams' Identity (MaryEra c))
+</span><a href="#local-6989586621679148521"><span class="hs-identifier hs-var hs-var hs-var hs-var">translateEra</span></a></span></span><span> </span><span class="annot"><span class="annottext">TranslationContext (MaryEra c)
+</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[Char]
+-&gt; PParams' Identity (AllegraEra c)
+-&gt; Except Void (PParams' Identity (MaryEra c))
+forall a. HasCallStack =&gt; [Char] -&gt; a
+</span><span class="hs-identifier hs-var">error</span></span><span> </span><span class="annot"><span class="annottext">[Char]
+</span><span class="hs-string">&quot;TODO Allegra to Mary translation&quot;</span></span></span><span>
+</span><span id="line-76"></span><span>
+</span><span id="line-77"></span><span id="local-6989586621679148520"><span class="hs-keyword">instance</span><span> </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/shelley-spec-ledger-0.1.0.0/noopt/doc/html/shelley-spec-ledger/src"><span class="hs-identifier hs-type">Crypto</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679148520"><span class="hs-identifier hs-type">c</span></a></span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/shelley-spec-ledger-0.1.0.0/noopt/doc/html/shelley-spec-ledger/src"><span class="hs-identifier hs-type">TranslateEra</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cardano.Ledger.Mary.html#MaryEra"><span class="hs-identifier hs-type">MaryEra</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679148520"><span class="hs-identifier hs-type">c</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/shelley-spec-ledger-0.1.0.0/noopt/doc/html/shelley-spec-ledger/src"><span class="hs-identifier hs-type">RewardAcnt</span></a></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-78"></span><span>  </span><span id="local-6989586621679148516"><span class="annot"><span class="annottext">translateEra :: TranslationContext (MaryEra c)
+-&gt; RewardAcnt (PreviousEra (MaryEra c))
+-&gt; Except
+     (TranslationError (MaryEra c) RewardAcnt) (RewardAcnt (MaryEra c))
+</span><a href="#local-6989586621679148516"><span class="hs-identifier hs-var hs-var hs-var hs-var">translateEra</span></a></span></span><span> </span><span class="annot"><span class="annottext">TranslationContext (MaryEra c)
+</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[Char]
+-&gt; RewardAcnt (AllegraEra c)
+-&gt; Except Void (RewardAcnt (MaryEra c))
+forall a. HasCallStack =&gt; [Char] -&gt; a
+</span><span class="hs-identifier hs-var">error</span></span><span> </span><span class="annot"><span class="annottext">[Char]
+</span><span class="hs-string">&quot;TODO Allegra to Mary translation&quot;</span></span></span><span>
+</span><span id="line-79"></span><span>
+</span><span id="line-80"></span><span id="local-6989586621679148515"><span class="hs-keyword">instance</span><span> </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/shelley-spec-ledger-0.1.0.0/noopt/doc/html/shelley-spec-ledger/src"><span class="hs-identifier hs-type">Crypto</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679148515"><span class="hs-identifier hs-type">c</span></a></span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/shelley-spec-ledger-0.1.0.0/noopt/doc/html/shelley-spec-ledger/src"><span class="hs-identifier hs-type">TranslateEra</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cardano.Ledger.Mary.html#MaryEra"><span class="hs-identifier hs-type">MaryEra</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679148515"><span class="hs-identifier hs-type">c</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/shelley-spec-ledger-0.1.0.0/noopt/doc/html/shelley-spec-ledger/src"><span class="hs-identifier hs-type">PoolParams</span></a></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-81"></span><span>  </span><span id="local-6989586621679148511"><span class="annot"><span class="annottext">translateEra :: TranslationContext (MaryEra c)
+-&gt; PoolParams (PreviousEra (MaryEra c))
+-&gt; Except
+     (TranslationError (MaryEra c) PoolParams) (PoolParams (MaryEra c))
+</span><a href="#local-6989586621679148511"><span class="hs-identifier hs-var hs-var hs-var hs-var">translateEra</span></a></span></span><span> </span><span id="local-6989586621679148510"><span class="annot"><span class="annottext">TranslationContext (MaryEra c)
+</span><a href="#local-6989586621679148510"><span class="hs-identifier hs-var">ctxt</span></a></span></span><span> </span><span id="local-6989586621679148509"><span class="annot"><span class="annottext">PoolParams (PreviousEra (MaryEra c))
+</span><a href="#local-6989586621679148509"><span class="hs-identifier hs-var">poolParams</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-82"></span><span>    </span><span class="annot"><span class="annottext">PoolParams (MaryEra c)
+-&gt; ExceptT Void Identity (PoolParams (MaryEra c))
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">(PoolParams (MaryEra c)
+ -&gt; ExceptT Void Identity (PoolParams (MaryEra c)))
+-&gt; PoolParams (MaryEra c)
+-&gt; ExceptT Void Identity (PoolParams (MaryEra c))
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span>
+</span><span id="line-83"></span><span>      </span><span class="annot"><span class="annottext">PoolParams :: forall era.
+KeyHash 'StakePool (Crypto era)
+-&gt; Hash (Crypto era) (VerKeyVRF (Crypto era))
+-&gt; Coin
+-&gt; Coin
+-&gt; UnitInterval
+-&gt; RewardAcnt era
+-&gt; Set (KeyHash 'Staking (Crypto era))
+-&gt; StrictSeq StakePoolRelay
+-&gt; StrictMaybe PoolMetaData
+-&gt; PoolParams era
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/shelley-spec-ledger-0.1.0.0/noopt/doc/html/shelley-spec-ledger/src"><span class="hs-identifier hs-type">PoolParams</span></a></span><span>
+</span><span id="line-84"></span><span>        </span><span class="hs-special">{</span><span> </span><span class="annot"><span class="annottext">_poolId :: KeyHash 'StakePool (Crypto (MaryEra c))
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/shelley-spec-ledger-0.1.0.0/noopt/doc/html/shelley-spec-ledger/src"><span class="hs-identifier hs-var">_poolId</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">PoolParams (AllegraEra c)
+-&gt; KeyHash 'StakePool (Crypto (AllegraEra c))
+forall era. PoolParams era -&gt; KeyHash 'StakePool (Crypto era)
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/shelley-spec-ledger-0.1.0.0/noopt/doc/html/shelley-spec-ledger/src"><span class="hs-identifier hs-var hs-var">_poolId</span></a></span><span> </span><span class="annot"><span class="annottext">PoolParams (PreviousEra (MaryEra c))
+PoolParams (AllegraEra c)
+</span><a href="#local-6989586621679148509"><span class="hs-identifier hs-var">poolParams</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-85"></span><span>          </span><span class="annot"><span class="annottext">_poolVrf :: Hash (Crypto (MaryEra c)) (VerKeyVRF (Crypto (MaryEra c)))
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/shelley-spec-ledger-0.1.0.0/noopt/doc/html/shelley-spec-ledger/src"><span class="hs-identifier hs-var">_poolVrf</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">PoolParams (AllegraEra c)
+-&gt; Hash (Crypto (AllegraEra c)) (VerKeyVRF (Crypto (AllegraEra c)))
+forall era.
+PoolParams era -&gt; Hash (Crypto era) (VerKeyVRF (Crypto era))
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/shelley-spec-ledger-0.1.0.0/noopt/doc/html/shelley-spec-ledger/src"><span class="hs-identifier hs-var hs-var">_poolVrf</span></a></span><span> </span><span class="annot"><span class="annottext">PoolParams (PreviousEra (MaryEra c))
+PoolParams (AllegraEra c)
+</span><a href="#local-6989586621679148509"><span class="hs-identifier hs-var">poolParams</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-86"></span><span>          </span><span class="annot"><span class="annottext">_poolPledge :: Coin
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/shelley-spec-ledger-0.1.0.0/noopt/doc/html/shelley-spec-ledger/src"><span class="hs-identifier hs-var">_poolPledge</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">PoolParams (AllegraEra c) -&gt; Coin
+forall era. PoolParams era -&gt; Coin
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/shelley-spec-ledger-0.1.0.0/noopt/doc/html/shelley-spec-ledger/src"><span class="hs-identifier hs-var hs-var">_poolPledge</span></a></span><span> </span><span class="annot"><span class="annottext">PoolParams (PreviousEra (MaryEra c))
+PoolParams (AllegraEra c)
+</span><a href="#local-6989586621679148509"><span class="hs-identifier hs-var">poolParams</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-87"></span><span>          </span><span class="annot"><span class="annottext">_poolCost :: Coin
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/shelley-spec-ledger-0.1.0.0/noopt/doc/html/shelley-spec-ledger/src"><span class="hs-identifier hs-var">_poolCost</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">PoolParams (AllegraEra c) -&gt; Coin
+forall era. PoolParams era -&gt; Coin
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/shelley-spec-ledger-0.1.0.0/noopt/doc/html/shelley-spec-ledger/src"><span class="hs-identifier hs-var hs-var">_poolCost</span></a></span><span> </span><span class="annot"><span class="annottext">PoolParams (PreviousEra (MaryEra c))
+PoolParams (AllegraEra c)
+</span><a href="#local-6989586621679148509"><span class="hs-identifier hs-var">poolParams</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-88"></span><span>          </span><span class="annot"><span class="annottext">_poolMargin :: UnitInterval
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/shelley-spec-ledger-0.1.0.0/noopt/doc/html/shelley-spec-ledger/src"><span class="hs-identifier hs-var">_poolMargin</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">PoolParams (AllegraEra c) -&gt; UnitInterval
+forall era. PoolParams era -&gt; UnitInterval
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/shelley-spec-ledger-0.1.0.0/noopt/doc/html/shelley-spec-ledger/src"><span class="hs-identifier hs-var hs-var">_poolMargin</span></a></span><span> </span><span class="annot"><span class="annottext">PoolParams (PreviousEra (MaryEra c))
+PoolParams (AllegraEra c)
+</span><a href="#local-6989586621679148509"><span class="hs-identifier hs-var">poolParams</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-89"></span><span>          </span><span class="annot"><span class="annottext">_poolRAcnt :: RewardAcnt (MaryEra c)
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/shelley-spec-ledger-0.1.0.0/noopt/doc/html/shelley-spec-ledger/src"><span class="hs-identifier hs-var">_poolRAcnt</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">TranslationContext (MaryEra c)
+-&gt; RewardAcnt (PreviousEra (MaryEra c)) -&gt; RewardAcnt (MaryEra c)
+forall era (f :: * -&gt; *).
+(TranslateEra era f, TranslationError era f ~ Void) =&gt;
+TranslationContext era -&gt; f (PreviousEra era) -&gt; f era
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/shelley-spec-ledger-0.1.0.0/noopt/doc/html/shelley-spec-ledger/src"><span class="hs-identifier hs-var">translateEra'</span></a></span><span> </span><span class="annot"><span class="annottext">TranslationContext (MaryEra c)
+</span><a href="#local-6989586621679148510"><span class="hs-identifier hs-var">ctxt</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">PoolParams (AllegraEra c) -&gt; RewardAcnt (AllegraEra c)
+forall era. PoolParams era -&gt; RewardAcnt era
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/shelley-spec-ledger-0.1.0.0/noopt/doc/html/shelley-spec-ledger/src"><span class="hs-identifier hs-var hs-var">_poolRAcnt</span></a></span><span> </span><span class="annot"><span class="annottext">PoolParams (PreviousEra (MaryEra c))
+PoolParams (AllegraEra c)
+</span><a href="#local-6989586621679148509"><span class="hs-identifier hs-var">poolParams</span></a></span><span class="hs-special">)</span><span class="hs-special">,</span><span>
+</span><span id="line-90"></span><span>          </span><span class="annot"><span class="annottext">_poolOwners :: Set (KeyHash 'Staking (Crypto (MaryEra c)))
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/shelley-spec-ledger-0.1.0.0/noopt/doc/html/shelley-spec-ledger/src"><span class="hs-identifier hs-var">_poolOwners</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">PoolParams (AllegraEra c)
+-&gt; Set (KeyHash 'Staking (Crypto (AllegraEra c)))
+forall era. PoolParams era -&gt; Set (KeyHash 'Staking (Crypto era))
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/shelley-spec-ledger-0.1.0.0/noopt/doc/html/shelley-spec-ledger/src"><span class="hs-identifier hs-var hs-var">_poolOwners</span></a></span><span> </span><span class="annot"><span class="annottext">PoolParams (PreviousEra (MaryEra c))
+PoolParams (AllegraEra c)
+</span><a href="#local-6989586621679148509"><span class="hs-identifier hs-var">poolParams</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-91"></span><span>          </span><span class="annot"><span class="annottext">_poolRelays :: StrictSeq StakePoolRelay
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/shelley-spec-ledger-0.1.0.0/noopt/doc/html/shelley-spec-ledger/src"><span class="hs-identifier hs-var">_poolRelays</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">PoolParams (AllegraEra c) -&gt; StrictSeq StakePoolRelay
+forall era. PoolParams era -&gt; StrictSeq StakePoolRelay
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/shelley-spec-ledger-0.1.0.0/noopt/doc/html/shelley-spec-ledger/src"><span class="hs-identifier hs-var hs-var">_poolRelays</span></a></span><span> </span><span class="annot"><span class="annottext">PoolParams (PreviousEra (MaryEra c))
+PoolParams (AllegraEra c)
+</span><a href="#local-6989586621679148509"><span class="hs-identifier hs-var">poolParams</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-92"></span><span>          </span><span class="annot"><span class="annottext">_poolMD :: StrictMaybe PoolMetaData
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/shelley-spec-ledger-0.1.0.0/noopt/doc/html/shelley-spec-ledger/src"><span class="hs-identifier hs-var">_poolMD</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">PoolParams (AllegraEra c) -&gt; StrictMaybe PoolMetaData
+forall era. PoolParams era -&gt; StrictMaybe PoolMetaData
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/shelley-spec-ledger-0.1.0.0/noopt/doc/html/shelley-spec-ledger/src"><span class="hs-identifier hs-var hs-var">_poolMD</span></a></span><span> </span><span class="annot"><span class="annottext">PoolParams (PreviousEra (MaryEra c))
+PoolParams (AllegraEra c)
+</span><a href="#local-6989586621679148509"><span class="hs-identifier hs-var">poolParams</span></a></span><span>
+</span><span id="line-93"></span><span>        </span><span class="hs-special">}</span></span><span>
+</span><span id="line-94"></span><span>
+</span><span id="line-95"></span><span id="local-6989586621679148498"><span class="hs-keyword">instance</span><span> </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/shelley-spec-ledger-0.1.0.0/noopt/doc/html/shelley-spec-ledger/src"><span class="hs-identifier hs-type">Crypto</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679148498"><span class="hs-identifier hs-type">c</span></a></span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/shelley-spec-ledger-0.1.0.0/noopt/doc/html/shelley-spec-ledger/src"><span class="hs-identifier hs-type">TranslateEra</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cardano.Ledger.Mary.html#MaryEra"><span class="hs-identifier hs-type">MaryEra</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679148498"><span class="hs-identifier hs-type">c</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/shelley-spec-ledger-0.1.0.0/noopt/doc/html/shelley-spec-ledger/src"><span class="hs-identifier hs-type">ShelleyGenesisStaking</span></a></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-96"></span><span>  </span><span id="local-6989586621679148494"><span class="annot"><span class="annottext">translateEra :: TranslationContext (MaryEra c)
+-&gt; ShelleyGenesisStaking (PreviousEra (MaryEra c))
+-&gt; Except
+     (TranslationError (MaryEra c) ShelleyGenesisStaking)
+     (ShelleyGenesisStaking (MaryEra c))
+</span><a href="#local-6989586621679148494"><span class="hs-identifier hs-var hs-var hs-var hs-var">translateEra</span></a></span></span><span> </span><span id="local-6989586621679148493"><span class="annot"><span class="annottext">TranslationContext (MaryEra c)
+</span><a href="#local-6989586621679148493"><span class="hs-identifier hs-var">ctxt</span></a></span></span><span> </span><span id="local-6989586621679148492"><span class="annot"><span class="annottext">ShelleyGenesisStaking (PreviousEra (MaryEra c))
+</span><a href="#local-6989586621679148492"><span class="hs-identifier hs-var">sgs</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-97"></span><span>    </span><span class="annot"><span class="annottext">ShelleyGenesisStaking (MaryEra c)
+-&gt; ExceptT Void Identity (ShelleyGenesisStaking (MaryEra c))
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">(ShelleyGenesisStaking (MaryEra c)
+ -&gt; ExceptT Void Identity (ShelleyGenesisStaking (MaryEra c)))
+-&gt; ShelleyGenesisStaking (MaryEra c)
+-&gt; ExceptT Void Identity (ShelleyGenesisStaking (MaryEra c))
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span>
+</span><span id="line-98"></span><span>      </span><span class="annot"><span class="annottext">ShelleyGenesisStaking :: forall era.
+Map (KeyHash 'StakePool (Crypto era)) (PoolParams era)
+-&gt; Map
+     (KeyHash 'Staking (Crypto era)) (KeyHash 'StakePool (Crypto era))
+-&gt; ShelleyGenesisStaking era
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/shelley-spec-ledger-0.1.0.0/noopt/doc/html/shelley-spec-ledger/src"><span class="hs-identifier hs-type">ShelleyGenesisStaking</span></a></span><span>
+</span><span id="line-99"></span><span>        </span><span class="hs-special">{</span><span> </span><span class="annot"><span class="annottext">sgsPools :: Map
+  (KeyHash 'StakePool (Crypto (MaryEra c))) (PoolParams (MaryEra c))
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/shelley-spec-ledger-0.1.0.0/noopt/doc/html/shelley-spec-ledger/src"><span class="hs-identifier hs-var">sgsPools</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(PoolParams (AllegraEra c) -&gt; PoolParams (MaryEra c))
+-&gt; Map (KeyHash 'StakePool c) (PoolParams (AllegraEra c))
+-&gt; Map (KeyHash 'StakePool c) (PoolParams (MaryEra c))
+forall a b k. (a -&gt; b) -&gt; Map k a -&gt; Map k b
+</span><span class="hs-identifier hs-var">Map.map</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">TranslationContext (MaryEra c)
+-&gt; PoolParams (PreviousEra (MaryEra c)) -&gt; PoolParams (MaryEra c)
+forall era (f :: * -&gt; *).
+(TranslateEra era f, TranslationError era f ~ Void) =&gt;
+TranslationContext era -&gt; f (PreviousEra era) -&gt; f era
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/shelley-spec-ledger-0.1.0.0/noopt/doc/html/shelley-spec-ledger/src"><span class="hs-identifier hs-var">translateEra'</span></a></span><span> </span><span class="annot"><span class="annottext">TranslationContext (MaryEra c)
+</span><a href="#local-6989586621679148493"><span class="hs-identifier hs-var">ctxt</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">ShelleyGenesisStaking (AllegraEra c)
+-&gt; Map
+     (KeyHash 'StakePool (Crypto (AllegraEra c)))
+     (PoolParams (AllegraEra c))
+forall era.
+ShelleyGenesisStaking era
+-&gt; Map (KeyHash 'StakePool (Crypto era)) (PoolParams era)
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/shelley-spec-ledger-0.1.0.0/noopt/doc/html/shelley-spec-ledger/src"><span class="hs-identifier hs-var hs-var">sgsPools</span></a></span><span> </span><span class="annot"><span class="annottext">ShelleyGenesisStaking (PreviousEra (MaryEra c))
+ShelleyGenesisStaking (AllegraEra c)
+</span><a href="#local-6989586621679148492"><span class="hs-identifier hs-var">sgs</span></a></span><span class="hs-special">)</span><span class="hs-special">,</span><span>
+</span><span id="line-100"></span><span>          </span><span class="annot"><span class="annottext">sgsStake :: Map
+  (KeyHash 'Staking (Crypto (MaryEra c)))
+  (KeyHash 'StakePool (Crypto (MaryEra c)))
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/shelley-spec-ledger-0.1.0.0/noopt/doc/html/shelley-spec-ledger/src"><span class="hs-identifier hs-var">sgsStake</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">ShelleyGenesisStaking (AllegraEra c)
+-&gt; Map
+     (KeyHash 'Staking (Crypto (AllegraEra c)))
+     (KeyHash 'StakePool (Crypto (AllegraEra c)))
+forall era.
+ShelleyGenesisStaking era
+-&gt; Map
+     (KeyHash 'Staking (Crypto era)) (KeyHash 'StakePool (Crypto era))
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/shelley-spec-ledger-0.1.0.0/noopt/doc/html/shelley-spec-ledger/src"><span class="hs-identifier hs-var hs-var">sgsStake</span></a></span><span> </span><span class="annot"><span class="annottext">ShelleyGenesisStaking (PreviousEra (MaryEra c))
+ShelleyGenesisStaking (AllegraEra c)
+</span><a href="#local-6989586621679148492"><span class="hs-identifier hs-var">sgs</span></a></span><span>
+</span><span id="line-101"></span><span>        </span><span class="hs-special">}</span></span><span>
+</span><span id="line-102"></span><span>
+</span><span id="line-103"></span><span id="local-6989586621679148487"><span class="hs-keyword">instance</span><span> </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/shelley-spec-ledger-0.1.0.0/noopt/doc/html/shelley-spec-ledger/src"><span class="hs-identifier hs-type">Crypto</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679148487"><span class="hs-identifier hs-type">c</span></a></span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/shelley-spec-ledger-0.1.0.0/noopt/doc/html/shelley-spec-ledger/src"><span class="hs-identifier hs-type">TranslateEra</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cardano.Ledger.Mary.html#MaryEra"><span class="hs-identifier hs-type">MaryEra</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679148487"><span class="hs-identifier hs-type">c</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/shelley-spec-ledger-0.1.0.0/noopt/doc/html/shelley-spec-ledger/src"><span class="hs-identifier hs-type">Addr</span></a></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-104"></span><span>  </span><span id="local-6989586621679148483"><span class="annot"><span class="annottext">translateEra :: TranslationContext (MaryEra c)
+-&gt; Addr (PreviousEra (MaryEra c))
+-&gt; Except (TranslationError (MaryEra c) Addr) (Addr (MaryEra c))
+</span><a href="#local-6989586621679148483"><span class="hs-identifier hs-var hs-var hs-var hs-var">translateEra</span></a></span></span><span> </span><span class="annot"><span class="annottext">TranslationContext (MaryEra c)
+</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[Char] -&gt; Addr (AllegraEra c) -&gt; Except Void (Addr (MaryEra c))
+forall a. HasCallStack =&gt; [Char] -&gt; a
+</span><span class="hs-identifier hs-var">error</span></span><span> </span><span class="annot"><span class="annottext">[Char]
+</span><span class="hs-string">&quot;TODO Allegra to Mary translation&quot;</span></span></span><span>
+</span><span id="line-105"></span></pre></body></html>

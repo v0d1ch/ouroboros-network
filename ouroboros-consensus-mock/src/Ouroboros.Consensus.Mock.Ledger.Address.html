@@ -1,48 +1,178 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-pragma">{-# LANGUAGE GeneralizedNewtypeDeriving #-}</span><span>
-</span><a name="line-2"></a><span>
-</span><a name="line-3"></a><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Ouroboros.Consensus.Mock.Ledger.Address</span><span> </span><span class="hs-special">(</span><span>
-</span><a name="line-4"></a><span>    </span><a href="Ouroboros.Consensus.Mock.Ledger.Address.html#Addr"><span class="hs-identifier hs-type">Addr</span></a><span>
-</span><a name="line-5"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Ouroboros.Consensus.Mock.Ledger.Address.html#AddrDist"><span class="hs-identifier hs-type">AddrDist</span></a><span>
-</span><a name="line-6"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Ouroboros.Consensus.Mock.Ledger.Address.html#mkAddrDist"><span class="hs-identifier hs-var">mkAddrDist</span></a><span>
-</span><a name="line-7"></a><span>  </span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
-</span><a name="line-8"></a><span>
-</span><a name="line-9"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Codec.Serialise</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Serialise</span><span class="hs-special">)</span><span>
-</span><a name="line-10"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Control.DeepSeq</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">NFData</span><span class="hs-special">)</span><span>
-</span><a name="line-11"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data.Map.Strict</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Map</span><span class="hs-special">)</span><span>
-</span><a name="line-12"></a><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-identifier">Data.Map.Strict</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">Map</span><span>
-</span><a name="line-13"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data.String</span><span>
-</span><a name="line-14"></a><span>
-</span><a name="line-15"></a><span class="hs-keyword">import</span><span>           </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-prelude-0.1.0.0/noopt/doc/html/cardano-prelude/src/Cardano.Prelude.html"><span class="hs-identifier">Cardano.Prelude</span></a><span> </span><span class="hs-special">(</span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-prelude-0.1.0.0/noopt/doc/html/cardano-prelude/src/Cardano.Prelude.GHC.Heap.NormalForm.Classy.html#NoUnexpectedThunks"><span class="hs-identifier hs-type">NoUnexpectedThunks</span></a><span class="hs-special">)</span><span>
-</span><a name="line-16"></a><span>
-</span><a name="line-17"></a><span class="hs-keyword">import</span><span>           </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src/Ouroboros.Consensus.Node.ProtocolInfo.html"><span class="hs-identifier">Ouroboros.Consensus.Node.ProtocolInfo</span></a><span>
-</span><a name="line-18"></a><span class="hs-keyword">import</span><span>           </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src/Ouroboros.Consensus.NodeId.html"><span class="hs-identifier">Ouroboros.Consensus.NodeId</span></a><span> </span><span class="hs-special">(</span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src/Ouroboros.Consensus.NodeId.html#NodeId"><span class="hs-identifier hs-type">NodeId</span></a><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
-</span><a name="line-19"></a><span class="hs-keyword">import</span><span>           </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src/Ouroboros.Consensus.Util.Condense.html"><span class="hs-identifier">Ouroboros.Consensus.Util.Condense</span></a><span>
-</span><a name="line-20"></a><span>
-</span><a name="line-21"></a><span class="hs-comment">-- | Mock address</span><span>
-</span><a name="line-22"></a><span class="hs-keyword">newtype</span><span> </span><a name="Addr"><a href="Ouroboros.Consensus.Mock.Ledger.Address.html#Addr"><span class="hs-identifier">Addr</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><a name="Addr"><a href="Ouroboros.Consensus.Mock.Ledger.Address.html#Addr"><span class="hs-identifier">Addr</span></a></a><span> </span><span class="hs-identifier hs-type">String</span><span>
-</span><a name="line-23"></a><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span>
-</span><a name="line-24"></a><span>      </span><span class="hs-identifier hs-type">Show</span><span>
-</span><a name="line-25"></a><span>    </span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Eq</span><span>
-</span><a name="line-26"></a><span>    </span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Ord</span><span>
-</span><a name="line-27"></a><span>    </span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">IsString</span><span>
-</span><a name="line-28"></a><span>    </span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Serialise</span><span>
-</span><a name="line-29"></a><span>    </span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">NFData</span><span>
-</span><a name="line-30"></a><span>    </span><span class="hs-special">,</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-prelude-0.1.0.0/noopt/doc/html/cardano-prelude/src/Cardano.Prelude.GHC.Heap.NormalForm.Classy.html#NoUnexpectedThunks"><span class="hs-identifier hs-type">NoUnexpectedThunks</span></a><span>
-</span><a name="line-31"></a><span>    </span><span class="hs-special">)</span><span>
-</span><a name="line-32"></a><span>
-</span><a name="line-33"></a><span class="hs-keyword">instance</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src/Ouroboros.Consensus.Util.Condense.html#Condense"><span class="hs-identifier hs-type">Condense</span></a><span> </span><a href="Ouroboros.Consensus.Mock.Ledger.Address.html#Addr"><span class="hs-identifier hs-type">Addr</span></a><span> </span><span class="hs-keyword">where</span><span>
-</span><a name="line-34"></a><span>  </span><a name="local-8214565720323800607"><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src/Ouroboros.Consensus.Util.Condense.html#condense"><span class="hs-identifier">condense</span></a></a><span> </span><span class="hs-special">(</span><a href="Ouroboros.Consensus.Mock.Ledger.Address.html#Addr"><span class="hs-identifier hs-var">Addr</span></a><span> </span><a name="local-6989586621679047112"><a href="#local-6989586621679047112"><span class="hs-identifier">addr</span></a></a><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><a href="#local-6989586621679047112"><span class="hs-identifier hs-var">addr</span></a><span>
-</span><a name="line-35"></a><span>
-</span><a name="line-36"></a><span class="hs-comment">-- | Mapping from addresses to node IDs</span><span>
-</span><a name="line-37"></a><span class="hs-comment">--</span><span>
-</span><a name="line-38"></a><span class="hs-comment">-- This is needed in order to assign stake to nodes.</span><span>
-</span><a name="line-39"></a><span class="hs-keyword">type</span><span> </span><a name="AddrDist"><a href="Ouroboros.Consensus.Mock.Ledger.Address.html#AddrDist"><span class="hs-identifier">AddrDist</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-identifier hs-type">Map</span><span> </span><a href="Ouroboros.Consensus.Mock.Ledger.Address.html#Addr"><span class="hs-identifier hs-type">Addr</span></a><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src/Ouroboros.Consensus.NodeId.html#NodeId"><span class="hs-identifier hs-type">NodeId</span></a><span>
-</span><a name="line-40"></a><span>
-</span><a name="line-41"></a><span class="hs-comment">-- | Construct address to node ID mapping</span><span>
-</span><a name="line-42"></a><span class="hs-identifier">mkAddrDist</span><span> </span><span class="hs-glyph">::</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src/Ouroboros.Consensus.Node.ProtocolInfo.html#NumCoreNodes"><span class="hs-identifier hs-type">NumCoreNodes</span></a><span> </span><span class="hs-glyph">-&gt;</span><span> </span><a href="Ouroboros.Consensus.Mock.Ledger.Address.html#AddrDist"><span class="hs-identifier hs-type">AddrDist</span></a><span>
-</span><a name="line-43"></a><a name="mkAddrDist"><a href="Ouroboros.Consensus.Mock.Ledger.Address.html#mkAddrDist"><span class="hs-identifier">mkAddrDist</span></a></a><span> </span><a name="local-6989586621679047113"><a href="#local-6989586621679047113"><span class="hs-identifier">numCoreNodes</span></a></a><span> </span><span class="hs-glyph">=</span><span>
-</span><a name="line-44"></a><span>    </span><span class="hs-identifier hs-var">Map.fromList</span><span> </span><span class="hs-operator hs-var">$</span><span> </span><span class="hs-identifier hs-var">zip</span><span> </span><span class="hs-special">[</span><span> </span><span class="hs-identifier hs-var">fromString</span><span> </span><span class="hs-special">[</span><a href="#local-6989586621679047407"><span class="hs-identifier hs-var">addr</span></a><span class="hs-special">]</span><span> </span><span class="hs-glyph">|</span><span> </span><a name="local-6989586621679047407"><a href="#local-6989586621679047407"><span class="hs-identifier">addr</span></a></a><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="hs-special">[</span><span class="hs-char">'a'</span><span class="hs-glyph">..</span><span class="hs-special">]</span><span> </span><span class="hs-special">]</span><span>
-</span><a name="line-45"></a><span>                       </span><span class="hs-special">[</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src/Ouroboros.Consensus.NodeId.html#CoreId"><span class="hs-identifier hs-var">CoreId</span></a><span> </span><a href="#local-6989586621679047408"><span class="hs-identifier hs-var">nid</span></a><span>
-</span><a name="line-46"></a><span>                       </span><span class="hs-glyph">|</span><span> </span><a name="local-6989586621679047408"><a href="#local-6989586621679047408"><span class="hs-identifier">nid</span></a></a><span> </span><span class="hs-glyph">&lt;-</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src/Ouroboros.Consensus.Node.ProtocolInfo.html#enumCoreNodes"><span class="hs-identifier hs-var">enumCoreNodes</span></a><span> </span><a href="#local-6989586621679047113"><span class="hs-identifier hs-var">numCoreNodes</span></a><span>
-</span><a name="line-47"></a><span>                       </span><span class="hs-special">]</span><span>
-</span><a name="line-48"></a></pre></body></html>
+</span><span id="line-2"></span><span>
+</span><span id="line-3"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Ouroboros.Consensus.Mock.Ledger.Address</span><span> </span><span class="hs-special">(</span><span>
+</span><span id="line-4"></span><span>    </span><span class="annot"><a href="Ouroboros.Consensus.Mock.Ledger.Address.html#Addr"><span class="hs-identifier">Addr</span></a></span><span>
+</span><span id="line-5"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Mock.Ledger.Address.html#AddrDist"><span class="hs-identifier">AddrDist</span></a></span><span>
+</span><span id="line-6"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Mock.Ledger.Address.html#mkAddrDist"><span class="hs-identifier">mkAddrDist</span></a></span><span>
+</span><span id="line-7"></span><span>  </span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-8"></span><span>
+</span><span id="line-9"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><span class="hs-identifier">Codec.Serialise</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Serialise</span></span><span class="hs-special">)</span><span>
+</span><span id="line-10"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><span class="hs-identifier">Control.DeepSeq</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">NFData</span></span><span class="hs-special">)</span><span>
+</span><span id="line-11"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><span class="hs-identifier">Data.Map.Strict</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Map</span></span><span class="hs-special">)</span><span>
+</span><span id="line-12"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Data.Map.Strict</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Map</span></span><span>
+</span><span id="line-13"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><span class="hs-identifier">Data.String</span></span><span>
+</span><span id="line-14"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><span class="hs-identifier">NoThunks.Class</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">NoThunks</span></span><span class="hs-special">)</span><span>
+</span><span id="line-15"></span><span>
+</span><span id="line-16"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier">Ouroboros.Consensus.Node.ProtocolInfo</span></a></span><span>
+</span><span id="line-17"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier">Ouroboros.Consensus.NodeId</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier">NodeId</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-18"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier">Ouroboros.Consensus.Util.Condense</span></a></span><span>
+</span><span id="line-19"></span><span>
+</span><span id="line-20"></span><span class="hs-comment">-- | Mock address</span><span>
+</span><span id="line-21"></span><span class="hs-keyword">newtype</span><span> </span><span id="Addr"><span class="annot"><a href="Ouroboros.Consensus.Mock.Ledger.Address.html#Addr"><span class="hs-identifier hs-var">Addr</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="Addr"><span class="annot"><a href="Ouroboros.Consensus.Mock.Ledger.Address.html#Addr"><span class="hs-identifier hs-var">Addr</span></a></span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">String</span></span><span>
+</span><span id="line-22"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span>
+</span><span id="line-23"></span><span>      </span><span id="local-6989586621679157788"><span id="local-6989586621679157790"><span id="local-6989586621679157792"><span class="annot"><span class="annottext">Int -&gt; Addr -&gt; ShowS
+[Addr] -&gt; ShowS
+Addr -&gt; String
+(Int -&gt; Addr -&gt; ShowS)
+-&gt; (Addr -&gt; String) -&gt; ([Addr] -&gt; ShowS) -&gt; Show Addr
+forall a.
+(Int -&gt; a -&gt; ShowS) -&gt; (a -&gt; String) -&gt; ([a] -&gt; ShowS) -&gt; Show a
+showList :: [Addr] -&gt; ShowS
+$cshowList :: [Addr] -&gt; ShowS
+show :: Addr -&gt; String
+$cshow :: Addr -&gt; String
+showsPrec :: Int -&gt; Addr -&gt; ShowS
+$cshowsPrec :: Int -&gt; Addr -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span>
+</span><span id="line-24"></span><span>    </span><span class="hs-special">,</span><span> </span><span id="local-6989586621679157783"><span id="local-6989586621679157785"><span class="annot"><span class="annottext">Addr -&gt; Addr -&gt; Bool
+(Addr -&gt; Addr -&gt; Bool) -&gt; (Addr -&gt; Addr -&gt; Bool) -&gt; Eq Addr
+forall a. (a -&gt; a -&gt; Bool) -&gt; (a -&gt; a -&gt; Bool) -&gt; Eq a
+/= :: Addr -&gt; Addr -&gt; Bool
+$c/= :: Addr -&gt; Addr -&gt; Bool
+== :: Addr -&gt; Addr -&gt; Bool
+$c== :: Addr -&gt; Addr -&gt; Bool
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span>
+</span><span id="line-25"></span><span>    </span><span class="hs-special">,</span><span> </span><span id="local-6989586621679157767"><span id="local-6989586621679157769"><span id="local-6989586621679157771"><span id="local-6989586621679157773"><span id="local-6989586621679157775"><span id="local-6989586621679157777"><span id="local-6989586621679157779"><span class="annot"><span class="annottext">Eq Addr
+Eq Addr
+-&gt; (Addr -&gt; Addr -&gt; Ordering)
+-&gt; (Addr -&gt; Addr -&gt; Bool)
+-&gt; (Addr -&gt; Addr -&gt; Bool)
+-&gt; (Addr -&gt; Addr -&gt; Bool)
+-&gt; (Addr -&gt; Addr -&gt; Bool)
+-&gt; (Addr -&gt; Addr -&gt; Addr)
+-&gt; (Addr -&gt; Addr -&gt; Addr)
+-&gt; Ord Addr
+Addr -&gt; Addr -&gt; Bool
+Addr -&gt; Addr -&gt; Ordering
+Addr -&gt; Addr -&gt; Addr
+forall a.
+Eq a
+-&gt; (a -&gt; a -&gt; Ordering)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; a)
+-&gt; (a -&gt; a -&gt; a)
+-&gt; Ord a
+min :: Addr -&gt; Addr -&gt; Addr
+$cmin :: Addr -&gt; Addr -&gt; Addr
+max :: Addr -&gt; Addr -&gt; Addr
+$cmax :: Addr -&gt; Addr -&gt; Addr
+&gt;= :: Addr -&gt; Addr -&gt; Bool
+$c&gt;= :: Addr -&gt; Addr -&gt; Bool
+&gt; :: Addr -&gt; Addr -&gt; Bool
+$c&gt; :: Addr -&gt; Addr -&gt; Bool
+&lt;= :: Addr -&gt; Addr -&gt; Bool
+$c&lt;= :: Addr -&gt; Addr -&gt; Bool
+&lt; :: Addr -&gt; Addr -&gt; Bool
+$c&lt; :: Addr -&gt; Addr -&gt; Bool
+compare :: Addr -&gt; Addr -&gt; Ordering
+$ccompare :: Addr -&gt; Addr -&gt; Ordering
+$cp1Ord :: Eq Addr
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Ord</span></span></span></span></span></span></span></span></span><span>
+</span><span id="line-26"></span><span>    </span><span class="hs-special">,</span><span> </span><span id="local-6989586621679157764"><span class="annot"><span class="annottext">String -&gt; Addr
+(String -&gt; Addr) -&gt; IsString Addr
+forall a. (String -&gt; a) -&gt; IsString a
+fromString :: String -&gt; Addr
+$cfromString :: String -&gt; Addr
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">IsString</span></span></span><span>
+</span><span id="line-27"></span><span>    </span><span class="hs-special">,</span><span> </span><span id="local-6989586621679157755"><span id="local-6989586621679157757"><span id="local-6989586621679157759"><span id="local-6989586621679157761"><span class="annot"><span class="annottext">Decoder s Addr
+Decoder s [Addr]
+[Addr] -&gt; Encoding
+Addr -&gt; Encoding
+(Addr -&gt; Encoding)
+-&gt; (forall s. Decoder s Addr)
+-&gt; ([Addr] -&gt; Encoding)
+-&gt; (forall s. Decoder s [Addr])
+-&gt; Serialise Addr
+forall s. Decoder s [Addr]
+forall s. Decoder s Addr
+forall a.
+(a -&gt; Encoding)
+-&gt; (forall s. Decoder s a)
+-&gt; ([a] -&gt; Encoding)
+-&gt; (forall s. Decoder s [a])
+-&gt; Serialise a
+decodeList :: Decoder s [Addr]
+$cdecodeList :: forall s. Decoder s [Addr]
+encodeList :: [Addr] -&gt; Encoding
+$cencodeList :: [Addr] -&gt; Encoding
+decode :: Decoder s Addr
+$cdecode :: forall s. Decoder s Addr
+encode :: Addr -&gt; Encoding
+$cencode :: Addr -&gt; Encoding
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Serialise</span></span></span></span></span></span><span>
+</span><span id="line-28"></span><span>    </span><span class="hs-special">,</span><span> </span><span id="local-6989586621679157752"><span class="annot"><span class="annottext">Addr -&gt; ()
+(Addr -&gt; ()) -&gt; NFData Addr
+forall a. (a -&gt; ()) -&gt; NFData a
+rnf :: Addr -&gt; ()
+$crnf :: Addr -&gt; ()
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">NFData</span></span></span><span>
+</span><span id="line-29"></span><span>    </span><span class="hs-special">,</span><span> </span><span id="local-6989586621679157745"><span id="local-6989586621679157747"><span id="local-6989586621679157749"><span class="annot"><span class="annottext">Context -&gt; Addr -&gt; IO (Maybe ThunkInfo)
+Proxy Addr -&gt; String
+(Context -&gt; Addr -&gt; IO (Maybe ThunkInfo))
+-&gt; (Context -&gt; Addr -&gt; IO (Maybe ThunkInfo))
+-&gt; (Proxy Addr -&gt; String)
+-&gt; NoThunks Addr
+forall a.
+(Context -&gt; a -&gt; IO (Maybe ThunkInfo))
+-&gt; (Context -&gt; a -&gt; IO (Maybe ThunkInfo))
+-&gt; (Proxy a -&gt; String)
+-&gt; NoThunks a
+showTypeOf :: Proxy Addr -&gt; String
+$cshowTypeOf :: Proxy Addr -&gt; String
+wNoThunks :: Context -&gt; Addr -&gt; IO (Maybe ThunkInfo)
+$cwNoThunks :: Context -&gt; Addr -&gt; IO (Maybe ThunkInfo)
+noThunks :: Context -&gt; Addr -&gt; IO (Maybe ThunkInfo)
+$cnoThunks :: Context -&gt; Addr -&gt; IO (Maybe ThunkInfo)
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">NoThunks</span></span></span></span></span><span>
+</span><span id="line-30"></span><span>    </span><span class="hs-special">)</span><span>
+</span><span id="line-31"></span><span>
+</span><span id="line-32"></span><span class="hs-keyword">instance</span><span> </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier hs-type">Condense</span></a></span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Mock.Ledger.Address.html#Addr"><span class="hs-identifier hs-type">Addr</span></a></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-33"></span><span>  </span><span id="local-6989586621679157741"><span class="annot"><span class="annottext">condense :: Addr -&gt; String
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier hs-var hs-var hs-var hs-var">condense</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Consensus.Mock.Ledger.Address.html#Addr"><span class="hs-identifier hs-type">Addr</span></a></span><span> </span><span id="local-6989586621679157739"><span class="annot"><span class="annottext">String
+</span><a href="#local-6989586621679157739"><span class="hs-identifier hs-var">addr</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">String
+</span><a href="#local-6989586621679157739"><span class="hs-identifier hs-var">addr</span></a></span><span>
+</span><span id="line-34"></span><span>
+</span><span id="line-35"></span><span class="hs-comment">-- | Mapping from addresses to node IDs</span><span>
+</span><span id="line-36"></span><span class="hs-comment">--</span><span>
+</span><span id="line-37"></span><span class="hs-comment">-- This is needed in order to assign stake to nodes.</span><span>
+</span><span id="line-38"></span><span class="hs-keyword">type</span><span> </span><span id="AddrDist"><span class="annot"><a href="Ouroboros.Consensus.Mock.Ledger.Address.html#AddrDist"><span class="hs-identifier hs-var">AddrDist</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Map</span></span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Mock.Ledger.Address.html#Addr"><span class="hs-identifier hs-type">Addr</span></a></span><span> </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier hs-type">NodeId</span></a></span><span>
+</span><span id="line-39"></span><span>
+</span><span id="line-40"></span><span class="hs-comment">-- | Construct address to node ID mapping</span><span>
+</span><span id="line-41"></span><span class="annot"><a href="Ouroboros.Consensus.Mock.Ledger.Address.html#mkAddrDist"><span class="hs-identifier hs-type">mkAddrDist</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier hs-type">NumCoreNodes</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Mock.Ledger.Address.html#AddrDist"><span class="hs-identifier hs-type">AddrDist</span></a></span><span>
+</span><span id="line-42"></span><span id="mkAddrDist"><span class="annot"><span class="annottext">mkAddrDist :: NumCoreNodes -&gt; AddrDist
+</span><a href="Ouroboros.Consensus.Mock.Ledger.Address.html#mkAddrDist"><span class="hs-identifier hs-var hs-var">mkAddrDist</span></a></span></span><span> </span><span id="local-6989586621679157738"><span class="annot"><span class="annottext">NumCoreNodes
+</span><a href="#local-6989586621679157738"><span class="hs-identifier hs-var">numCoreNodes</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-43"></span><span>    </span><span class="annot"><span class="annottext">[(Addr, NodeId)] -&gt; AddrDist
+forall k a. Ord k =&gt; [(k, a)] -&gt; Map k a
+</span><span class="hs-identifier hs-var">Map.fromList</span></span><span> </span><span class="annot"><span class="annottext">([(Addr, NodeId)] -&gt; AddrDist) -&gt; [(Addr, NodeId)] -&gt; AddrDist
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">[Addr] -&gt; [NodeId] -&gt; [(Addr, NodeId)]
+forall a b. [a] -&gt; [b] -&gt; [(a, b)]
+</span><span class="hs-identifier hs-var">zip</span></span><span> </span><span class="hs-special">[</span><span> </span><span class="annot"><span class="annottext">String -&gt; Addr
+forall a. IsString a =&gt; String -&gt; a
+</span><span class="hs-identifier hs-var">fromString</span></span><span> </span><span class="hs-special">[</span><span class="annot"><span class="annottext">Char
+</span><a href="#local-6989586621679157736"><span class="hs-identifier hs-var">addr</span></a></span><span class="hs-special">]</span><span> </span><span class="hs-glyph">|</span><span> </span><span id="local-6989586621679157736"><span class="annot"><span class="annottext">Char
+</span><a href="#local-6989586621679157736"><span class="hs-identifier hs-var">addr</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="hs-special">[</span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">'a'</span></span><span class="hs-glyph">..</span><span class="hs-special">]</span><span> </span><span class="hs-special">]</span><span>
+</span><span id="line-44"></span><span>                       </span><span class="hs-special">[</span><span> </span><span class="annot"><span class="annottext">CoreNodeId -&gt; NodeId
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier hs-var">CoreId</span></a></span><span> </span><span class="annot"><span class="annottext">CoreNodeId
+</span><a href="#local-6989586621679157734"><span class="hs-identifier hs-var">nid</span></a></span><span>
+</span><span id="line-45"></span><span>                       </span><span class="hs-glyph">|</span><span> </span><span id="local-6989586621679157734"><span class="annot"><span class="annottext">CoreNodeId
+</span><a href="#local-6989586621679157734"><span class="hs-identifier hs-var">nid</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">NumCoreNodes -&gt; [CoreNodeId]
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier hs-var">enumCoreNodes</span></a></span><span> </span><span class="annot"><span class="annottext">NumCoreNodes
+</span><a href="#local-6989586621679157738"><span class="hs-identifier hs-var">numCoreNodes</span></a></span><span>
+</span><span id="line-46"></span><span>                       </span><span class="hs-special">]</span><span>
+</span><span id="line-47"></span></pre></body></html>

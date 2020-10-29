@@ -1,59 +1,307 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-pragma">{-# LANGUAGE BangPatterns      #-}</span><span>
-</span><a name="line-2"></a><span class="hs-pragma">{-# LANGUAGE OverloadedStrings #-}</span><span>
-</span><a name="line-3"></a><span class="hs-pragma">{-# LANGUAGE TemplateHaskell   #-}</span><span>
-</span><a name="line-4"></a><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Test.Cardano.Binary.Drop</span><span>
-</span><a name="line-5"></a><span>  </span><span class="hs-special">(</span><a href="Test.Cardano.Binary.Drop.html#tests"><span class="hs-identifier hs-var">tests</span></a><span class="hs-special">)</span><span>
-</span><a name="line-6"></a><span>  </span><span class="hs-keyword">where</span><span>
-</span><a name="line-7"></a><span>
-</span><a name="line-8"></a><span class="hs-keyword">import</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.html"><span class="hs-identifier">Cardano.Binary</span></a><span>
-</span><a name="line-9"></a><span>
-</span><a name="line-10"></a><span class="hs-keyword">import</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-prelude-0.1.0.0/noopt/doc/html/cardano-prelude/src/Cardano.Prelude.html"><span class="hs-identifier">Cardano.Prelude</span></a><span>
-</span><a name="line-11"></a><span>
-</span><a name="line-12"></a><span class="hs-keyword">import</span><span> </span><span class="hs-identifier">Hedgehog</span><span>
-</span><a name="line-13"></a><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-identifier">Hedgehog.Gen</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">Gen</span><span>
-</span><a name="line-14"></a><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-identifier">Hedgehog.Range</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">Range</span><span>
-</span><a name="line-15"></a><span>
-</span><a name="line-16"></a><span>
-</span><a name="line-17"></a><span class="hs-identifier">tests</span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">IO</span><span> </span><span class="hs-identifier hs-type">Bool</span><span>
-</span><a name="line-18"></a><a name="tests"><a href="Test.Cardano.Binary.Drop.html#tests"><span class="hs-identifier">tests</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-identifier hs-var">checkParallel</span><span> </span><span class="hs-special">$$(</span><span class="hs-identifier hs-var">discover</span><span class="hs-special">)</span><span>
-</span><a name="line-19"></a><span>
-</span><a name="line-20"></a><span class="hs-comment">------------------------------------------------------------------------------</span><span>
-</span><a name="line-21"></a><span class="hs-comment">-- Properties testing whether dropping elements actully removes it or not</span><span>
-</span><a name="line-22"></a><span>
-</span><a name="line-23"></a><span class="hs-identifier">genInt32</span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">Gen</span><span> </span><span class="hs-identifier hs-type">Int32</span><span>
-</span><a name="line-24"></a><a name="genInt32"><a href="Test.Cardano.Binary.Drop.html#genInt32"><span class="hs-identifier">genInt32</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-identifier hs-var">Gen.int32</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-var">Range.exponentialBounded</span><span class="hs-special">)</span><span>
-</span><a name="line-25"></a><span>
-</span><a name="line-26"></a><span class="hs-identifier">genBytes</span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">Gen</span><span> </span><span class="hs-identifier hs-type">ByteString</span><span>
-</span><a name="line-27"></a><a name="genBytes"><a href="Test.Cardano.Binary.Drop.html#genBytes"><span class="hs-identifier">genBytes</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-identifier hs-var">Gen.bytes</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-var">Range.linear</span><span> </span><span class="hs-number">0</span><span> </span><span class="hs-number">1000</span><span class="hs-special">)</span><span>
-</span><a name="line-28"></a><span>
-</span><a name="line-29"></a><span class="hs-identifier">genWord8</span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">Gen</span><span> </span><span class="hs-identifier hs-type">Word8</span><span>
-</span><a name="line-30"></a><a name="genWord8"><a href="Test.Cardano.Binary.Drop.html#genWord8"><span class="hs-identifier">genWord8</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-identifier hs-var">Gen.word8</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-var">Range.exponentialBounded</span><span class="hs-special">)</span><span>
-</span><a name="line-31"></a><span>
-</span><a name="line-32"></a><span class="hs-identifier">genWord64</span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">Gen</span><span> </span><span class="hs-identifier hs-type">Word64</span><span>
-</span><a name="line-33"></a><a name="genWord64"><a href="Test.Cardano.Binary.Drop.html#genWord64"><span class="hs-identifier">genWord64</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-identifier hs-var">Gen.word64</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-var">Range.exponentialBounded</span><span class="hs-special">)</span><span>
-</span><a name="line-34"></a><span>
-</span><a name="line-35"></a><span class="hs-identifier">prop_dropMap</span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">Property</span><span>
-</span><a name="line-36"></a><a name="prop_dropMap"><a href="Test.Cardano.Binary.Drop.html#prop_dropMap"><span class="hs-identifier">prop_dropMap</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-identifier hs-var">property</span><span> </span><span class="hs-operator hs-var">$</span><span> </span><span class="hs-keyword">do</span><span>
-</span><a name="line-37"></a><span>  </span><a name="local-6989586621679065992"><a href="#local-6989586621679065992"><span class="hs-identifier">mp</span></a></a><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="hs-identifier hs-var">forAll</span><span> </span><span class="hs-operator hs-var">$</span><span> </span><span class="hs-special">(</span><span> </span><span class="hs-identifier hs-var">Gen.map</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-var">Range.constant</span><span> </span><span class="hs-number">0</span><span> </span><span class="hs-number">10</span><span class="hs-special">)</span><span>
-</span><a name="line-38"></a><span>      </span><span class="hs-special">(</span><span class="hs-special">(</span><span class="hs-special">,</span><span class="hs-special">)</span><span> </span><span class="hs-operator hs-var">&lt;$&gt;</span><span> </span><a href="Test.Cardano.Binary.Drop.html#genInt32"><span class="hs-identifier hs-var">genInt32</span></a><span>
-</span><a name="line-39"></a><span>           </span><span class="hs-operator hs-var">&lt;*&gt;</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-var">Gen.list</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-var">Range.constant</span><span> </span><span class="hs-number">0</span><span> </span><span class="hs-number">10</span><span class="hs-special">)</span><span> </span><a href="Test.Cardano.Binary.Drop.html#genWord8"><span class="hs-identifier hs-var">genWord8</span></a><span class="hs-special">)</span><span>
-</span><a name="line-40"></a><span>      </span><span class="hs-special">)</span><span class="hs-special">)</span><span>
-</span><a name="line-41"></a><span>  </span><span class="hs-keyword">let</span><span> </span><a name="local-6989586621679065993"><a href="#local-6989586621679065993"><span class="hs-identifier">encodedBs</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.Serialize.html#serialize"><span class="hs-identifier hs-var">serialize</span></a><span> </span><a href="#local-6989586621679065992"><span class="hs-identifier hs-var">mp</span></a><span>
-</span><a name="line-42"></a><span>  </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.Deserialize.html#decodeFull"><span class="hs-identifier hs-var">decodeFull</span></a><span> </span><a href="#local-6989586621679065993"><span class="hs-identifier hs-var">encodedBs</span></a><span> </span><span class="hs-operator hs-var">===</span><span> </span><span class="hs-identifier hs-var">Right</span><span> </span><a href="#local-6989586621679065992"><span class="hs-identifier hs-var">mp</span></a><span>
-</span><a name="line-43"></a><span>  </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.Deserialize.html#decodeFullDecoder"><span class="hs-identifier hs-var">decodeFullDecoder</span></a><span> </span><span class="hs-string">&quot;Drop Test Failed&quot;</span><span> </span><span class="hs-special">(</span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.Drop.html#dropMap"><span class="hs-identifier hs-var">dropMap</span></a><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.Drop.html#dropInt32"><span class="hs-identifier hs-var">dropInt32</span></a><span> </span><span class="hs-special">(</span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.Drop.html#dropList"><span class="hs-identifier hs-var">dropList</span></a><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.Drop.html#dropWord8"><span class="hs-identifier hs-var">dropWord8</span></a><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><a href="#local-6989586621679065993"><span class="hs-identifier hs-var">encodedBs</span></a><span> </span><span class="hs-operator hs-var">===</span><span> </span><span class="hs-identifier hs-var">Right</span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
-</span><a name="line-44"></a><span>
-</span><a name="line-45"></a><span class="hs-identifier">prop_dropTuple</span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">Property</span><span>
-</span><a name="line-46"></a><a name="prop_dropTuple"><a href="Test.Cardano.Binary.Drop.html#prop_dropTuple"><span class="hs-identifier">prop_dropTuple</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-identifier hs-var">property</span><span> </span><span class="hs-operator hs-var">$</span><span> </span><span class="hs-keyword">do</span><span>
-</span><a name="line-47"></a><span>  </span><span class="hs-special">(</span><a name="local-6989586621679066167"><a href="#local-6989586621679066167"><span class="hs-identifier">set</span></a></a><span class="hs-special">,</span><span> </span><a name="local-6989586621679066168"><a href="#local-6989586621679066168"><span class="hs-identifier">bs</span></a></a><span class="hs-special">)</span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="hs-identifier hs-var">forAll</span><span> </span><span class="hs-operator hs-var">$</span><span> </span><span class="hs-special">(</span><span class="hs-special">(</span><span class="hs-special">,</span><span class="hs-special">)</span><span> </span><span class="hs-operator hs-var">&lt;$&gt;</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-var">Gen.set</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-var">Range.constant</span><span> </span><span class="hs-number">0</span><span> </span><span class="hs-number">10</span><span class="hs-special">)</span><span> </span><a href="Test.Cardano.Binary.Drop.html#genInt32"><span class="hs-identifier hs-var">genInt32</span></a><span class="hs-special">)</span><span>
-</span><a name="line-48"></a><span>                             </span><span class="hs-operator hs-var">&lt;*&gt;</span><span> </span><a href="Test.Cardano.Binary.Drop.html#genBytes"><span class="hs-identifier hs-var">genBytes</span></a><span> </span><span class="hs-special">)</span><span>
-</span><a name="line-49"></a><span>  </span><span class="hs-keyword">let</span><span> </span><a name="local-6989586621679066169"><a href="#local-6989586621679066169"><span class="hs-identifier">encodedBs</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.Serialize.html#serialize"><span class="hs-identifier hs-var">serialize</span></a><span> </span><span class="hs-special">(</span><a href="#local-6989586621679066167"><span class="hs-identifier hs-var">set</span></a><span class="hs-special">,</span><span> </span><a href="#local-6989586621679066168"><span class="hs-identifier hs-var">bs</span></a><span class="hs-special">)</span><span>
-</span><a name="line-50"></a><span>  </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.Deserialize.html#decodeFull"><span class="hs-identifier hs-var">decodeFull</span></a><span> </span><a href="#local-6989586621679066169"><span class="hs-identifier hs-var">encodedBs</span></a><span> </span><span class="hs-operator hs-var">===</span><span> </span><span class="hs-identifier hs-var">Right</span><span> </span><span class="hs-special">(</span><a href="#local-6989586621679066167"><span class="hs-identifier hs-var">set</span></a><span class="hs-special">,</span><span> </span><a href="#local-6989586621679066168"><span class="hs-identifier hs-var">bs</span></a><span class="hs-special">)</span><span>
-</span><a name="line-51"></a><span>  </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.Deserialize.html#decodeFullDecoder"><span class="hs-identifier hs-var">decodeFullDecoder</span></a><span> </span><span class="hs-string">&quot;Drop Test Failed&quot;</span><span> </span><span class="hs-special">(</span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.Drop.html#dropTuple"><span class="hs-identifier hs-var">dropTuple</span></a><span> </span><span class="hs-special">(</span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.Drop.html#dropSet"><span class="hs-identifier hs-var">dropSet</span></a><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.Drop.html#dropInt32"><span class="hs-identifier hs-var">dropInt32</span></a><span class="hs-special">)</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.Drop.html#dropBytes"><span class="hs-identifier hs-var">dropBytes</span></a><span class="hs-special">)</span><span> </span><a href="#local-6989586621679066169"><span class="hs-identifier hs-var">encodedBs</span></a><span> </span><span class="hs-operator hs-var">===</span><span> </span><span class="hs-identifier hs-var">Right</span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
-</span><a name="line-52"></a><span>
-</span><a name="line-53"></a><span class="hs-identifier">prop_dropTriple</span><span> </span><span class="hs-glyph">::</span><span class="hs-identifier hs-type">Property</span><span>
-</span><a name="line-54"></a><a name="prop_dropTriple"><a href="Test.Cardano.Binary.Drop.html#prop_dropTriple"><span class="hs-identifier">prop_dropTriple</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-identifier hs-var">property</span><span> </span><span class="hs-operator hs-var">$</span><span> </span><span class="hs-keyword">do</span><span>
-</span><a name="line-55"></a><span>  </span><a name="local-6989586621679066170"><a href="#local-6989586621679066170"><span class="hs-identifier">tri</span></a></a><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="hs-identifier hs-var">forAll</span><span> </span><span class="hs-operator hs-var">$</span><span> </span><span class="hs-special">(</span><span class="hs-special">(</span><span class="hs-special">,</span><span class="hs-special">,</span><span class="hs-special">)</span><span> </span><span class="hs-operator hs-var">&lt;$&gt;</span><span> </span><a href="Test.Cardano.Binary.Drop.html#genInt32"><span class="hs-identifier hs-var">genInt32</span></a><span> </span><span class="hs-operator hs-var">&lt;*&gt;</span><span> </span><a href="Test.Cardano.Binary.Drop.html#genWord8"><span class="hs-identifier hs-var">genWord8</span></a><span> </span><span class="hs-operator hs-var">&lt;*&gt;</span><span> </span><a href="Test.Cardano.Binary.Drop.html#genWord64"><span class="hs-identifier hs-var">genWord64</span></a><span> </span><span class="hs-special">)</span><span>
-</span><a name="line-56"></a><span>  </span><span class="hs-keyword">let</span><span> </span><a name="local-6989586621679066171"><a href="#local-6989586621679066171"><span class="hs-identifier">encodedBs</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.Serialize.html#serialize"><span class="hs-identifier hs-var">serialize</span></a><span> </span><a href="#local-6989586621679066170"><span class="hs-identifier hs-var">tri</span></a><span>
-</span><a name="line-57"></a><span>  </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.Deserialize.html#decodeFull"><span class="hs-identifier hs-var">decodeFull</span></a><span> </span><a href="#local-6989586621679066171"><span class="hs-identifier hs-var">encodedBs</span></a><span> </span><span class="hs-operator hs-var">===</span><span> </span><span class="hs-identifier hs-var">Right</span><span> </span><a href="#local-6989586621679066170"><span class="hs-identifier hs-var">tri</span></a><span>
-</span><a name="line-58"></a><span>  </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.Deserialize.html#decodeFullDecoder"><span class="hs-identifier hs-var">decodeFullDecoder</span></a><span> </span><span class="hs-string">&quot;Drop Test Failed&quot;</span><span> </span><span class="hs-special">(</span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.Drop.html#dropTriple"><span class="hs-identifier hs-var">dropTriple</span></a><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.Drop.html#dropInt32"><span class="hs-identifier hs-var">dropInt32</span></a><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.Drop.html#dropWord8"><span class="hs-identifier hs-var">dropWord8</span></a><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.Drop.html#dropWord64"><span class="hs-identifier hs-var">dropWord64</span></a><span class="hs-special">)</span><span> </span><a href="#local-6989586621679066171"><span class="hs-identifier hs-var">encodedBs</span></a><span> </span><span class="hs-operator hs-var">===</span><span> </span><span class="hs-identifier hs-var">Right</span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
-</span><a name="line-59"></a></pre></body></html>
+</span><span id="line-2"></span><span class="hs-pragma">{-# LANGUAGE OverloadedStrings #-}</span><span>
+</span><span id="line-3"></span><span class="hs-pragma">{-# LANGUAGE TemplateHaskell   #-}</span><span>
+</span><span id="line-4"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Test.Cardano.Binary.Drop</span><span>
+</span><span id="line-5"></span><span>  </span><span class="hs-special">(</span><span class="annot"><a href="Test.Cardano.Binary.Drop.html#tests"><span class="hs-identifier">tests</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-6"></span><span>  </span><span class="hs-keyword">where</span><span>
+</span><span id="line-7"></span><span>
+</span><span id="line-8"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src"><span class="hs-identifier">Cardano.Binary</span></a></span><span>
+</span><span id="line-9"></span><span>
+</span><span id="line-10"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-prelude-0.1.0.0/noopt/doc/html/cardano-prelude/src"><span class="hs-identifier">Cardano.Prelude</span></a></span><span>
+</span><span id="line-11"></span><span>
+</span><span id="line-12"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Hedgehog</span></span><span> </span><span>
+</span><span id="line-13"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Hedgehog.Gen</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Gen</span></span><span>
+</span><span id="line-14"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Hedgehog.Range</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Range</span></span><span>
+</span><span id="line-15"></span><span>
+</span><span id="line-16"></span><span>
+</span><span id="line-17"></span><span class="annot"><a href="Test.Cardano.Binary.Drop.html#tests"><span class="hs-identifier hs-type">tests</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">IO</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span><span>
+</span><span id="line-18"></span><span id="tests"><span class="annot"><span class="annottext">tests :: IO Bool
+</span><a href="Test.Cardano.Binary.Drop.html#tests"><span class="hs-identifier hs-var hs-var">tests</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Group -&gt; IO Bool
+forall (m :: * -&gt; *). MonadIO m =&gt; Group -&gt; m Bool
+</span><span class="hs-identifier hs-var">checkParallel</span></span><span> </span><span class="hs-special">$$(</span><span class="annot"><span class="annottext">String
+[(PropertyName, Property)]
+Property
+String -&gt; GroupName
+String -&gt; PropertyName
+GroupName -&gt; [(PropertyName, Property)] -&gt; Group
+prop_dropTriple :: Property
+prop_dropTuple :: Property
+prop_dropMap :: Property
+</span><a href="Test.Cardano.Binary.Drop.html#prop_dropTriple"><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var">discover</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-19"></span><span>
+</span><span id="line-20"></span><span class="hs-comment">------------------------------------------------------------------------------</span><span>
+</span><span id="line-21"></span><span class="hs-comment">-- Properties testing whether dropping elements actully removes it or not</span><span>
+</span><span id="line-22"></span><span>
+</span><span id="line-23"></span><span class="annot"><a href="Test.Cardano.Binary.Drop.html#genInt32"><span class="hs-identifier hs-type">genInt32</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Gen</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int32</span></span><span>
+</span><span id="line-24"></span><span id="genInt32"><span class="annot"><span class="annottext">genInt32 :: Gen Int32
+</span><a href="Test.Cardano.Binary.Drop.html#genInt32"><span class="hs-identifier hs-var hs-var">genInt32</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Range Int32 -&gt; Gen Int32
+forall (m :: * -&gt; *). MonadGen m =&gt; Range Int32 -&gt; m Int32
+</span><span class="hs-identifier hs-var">Gen.int32</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Range Int32
+forall a. (Bounded a, Integral a) =&gt; Range a
+</span><span class="hs-identifier hs-var">Range.exponentialBounded</span></span><span class="hs-special">)</span><span>
+</span><span id="line-25"></span><span>
+</span><span id="line-26"></span><span class="annot"><a href="Test.Cardano.Binary.Drop.html#genBytes"><span class="hs-identifier hs-type">genBytes</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Gen</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">ByteString</span></span><span>
+</span><span id="line-27"></span><span id="genBytes"><span class="annot"><span class="annottext">genBytes :: Gen ByteString
+</span><a href="Test.Cardano.Binary.Drop.html#genBytes"><span class="hs-identifier hs-var hs-var">genBytes</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Range Int -&gt; Gen ByteString
+forall (m :: * -&gt; *). MonadGen m =&gt; Range Int -&gt; m ByteString
+</span><span class="hs-identifier hs-var">Gen.bytes</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Range Int
+forall a. Integral a =&gt; a -&gt; a -&gt; Range a
+</span><span class="hs-identifier hs-var">Range.linear</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">1000</span></span><span class="hs-special">)</span><span>
+</span><span id="line-28"></span><span>
+</span><span id="line-29"></span><span class="annot"><a href="Test.Cardano.Binary.Drop.html#genWord8"><span class="hs-identifier hs-type">genWord8</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Gen</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Word8</span></span><span>
+</span><span id="line-30"></span><span id="genWord8"><span class="annot"><span class="annottext">genWord8 :: Gen Word8
+</span><a href="Test.Cardano.Binary.Drop.html#genWord8"><span class="hs-identifier hs-var hs-var">genWord8</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Range Word8 -&gt; Gen Word8
+forall (m :: * -&gt; *). MonadGen m =&gt; Range Word8 -&gt; m Word8
+</span><span class="hs-identifier hs-var">Gen.word8</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Range Word8
+forall a. (Bounded a, Integral a) =&gt; Range a
+</span><span class="hs-identifier hs-var">Range.exponentialBounded</span></span><span class="hs-special">)</span><span>
+</span><span id="line-31"></span><span>
+</span><span id="line-32"></span><span class="annot"><a href="Test.Cardano.Binary.Drop.html#genWord64"><span class="hs-identifier hs-type">genWord64</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Gen</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Word64</span></span><span>
+</span><span id="line-33"></span><span id="genWord64"><span class="annot"><span class="annottext">genWord64 :: Gen Word64
+</span><a href="Test.Cardano.Binary.Drop.html#genWord64"><span class="hs-identifier hs-var hs-var">genWord64</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Range Word64 -&gt; Gen Word64
+forall (m :: * -&gt; *). MonadGen m =&gt; Range Word64 -&gt; m Word64
+</span><span class="hs-identifier hs-var">Gen.word64</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Range Word64
+forall a. (Bounded a, Integral a) =&gt; Range a
+</span><span class="hs-identifier hs-var">Range.exponentialBounded</span></span><span class="hs-special">)</span><span>
+</span><span id="line-34"></span><span>
+</span><span id="line-35"></span><span class="annot"><a href="Test.Cardano.Binary.Drop.html#prop_dropMap"><span class="hs-identifier hs-type">prop_dropMap</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Property</span></span><span>
+</span><span id="line-36"></span><span id="prop_dropMap"><span class="annot"><span class="annottext">prop_dropMap :: Property
+</span><a href="Test.Cardano.Binary.Drop.html#prop_dropMap"><span class="hs-identifier hs-var hs-var">prop_dropMap</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">HasCallStack =&gt; PropertyT IO () -&gt; Property
+PropertyT IO () -&gt; Property
+</span><span class="hs-identifier hs-var">property</span></span><span> </span><span class="annot"><span class="annottext">(PropertyT IO () -&gt; Property) -&gt; PropertyT IO () -&gt; Property
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-37"></span><span>  </span><span id="local-6989586621679136931"><span class="annot"><span class="annottext">Map Int32 [Word8]
+</span><a href="#local-6989586621679136931"><span class="hs-identifier hs-var">mp</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Gen (Map Int32 [Word8]) -&gt; PropertyT IO (Map Int32 [Word8])
+forall (m :: * -&gt; *) a.
+(Monad m, Show a, HasCallStack) =&gt;
+Gen a -&gt; PropertyT m a
+</span><span class="hs-identifier hs-var">forAll</span></span><span> </span><span class="annot"><span class="annottext">(Gen (Map Int32 [Word8]) -&gt; PropertyT IO (Map Int32 [Word8]))
+-&gt; Gen (Map Int32 [Word8]) -&gt; PropertyT IO (Map Int32 [Word8])
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-special">(</span><span> </span><span class="annot"><span class="annottext">Range Int
+-&gt; GenT Identity (Int32, [Word8]) -&gt; Gen (Map Int32 [Word8])
+forall (m :: * -&gt; *) k v.
+(MonadGen m, Ord k) =&gt;
+Range Int -&gt; m (k, v) -&gt; m (Map k v)
+</span><span class="hs-identifier hs-var">Gen.map</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Range Int
+forall a. a -&gt; a -&gt; Range a
+</span><span class="hs-identifier hs-var">Range.constant</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">10</span></span><span class="hs-special">)</span><span>
+</span><span id="line-38"></span><span>      </span><span class="hs-special">(</span><span class="hs-special">(</span><span class="hs-special">,</span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(Int32 -&gt; [Word8] -&gt; (Int32, [Word8]))
+-&gt; Gen Int32 -&gt; GenT Identity ([Word8] -&gt; (Int32, [Word8]))
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">Gen Int32
+</span><a href="Test.Cardano.Binary.Drop.html#genInt32"><span class="hs-identifier hs-var">genInt32</span></a></span><span> </span><span>
+</span><span id="line-39"></span><span>           </span><span class="annot"><span class="annottext">GenT Identity ([Word8] -&gt; (Int32, [Word8]))
+-&gt; GenT Identity [Word8] -&gt; GenT Identity (Int32, [Word8])
+forall (f :: * -&gt; *) a b. Applicative f =&gt; f (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;*&gt;</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Range Int -&gt; Gen Word8 -&gt; GenT Identity [Word8]
+forall (m :: * -&gt; *) a. MonadGen m =&gt; Range Int -&gt; m a -&gt; m [a]
+</span><span class="hs-identifier hs-var">Gen.list</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Range Int
+forall a. a -&gt; a -&gt; Range a
+</span><span class="hs-identifier hs-var">Range.constant</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">10</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Gen Word8
+</span><a href="Test.Cardano.Binary.Drop.html#genWord8"><span class="hs-identifier hs-var">genWord8</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-40"></span><span>      </span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-41"></span><span>  </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679136925"><span class="annot"><span class="annottext">encodedBs :: LByteString
+</span><a href="#local-6989586621679136925"><span class="hs-identifier hs-var hs-var">encodedBs</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Map Int32 [Word8] -&gt; LByteString
+forall a. ToCBOR a =&gt; a -&gt; LByteString
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src"><span class="hs-identifier hs-var">serialize</span></a></span><span> </span><span class="annot"><span class="annottext">Map Int32 [Word8]
+</span><a href="#local-6989586621679136931"><span class="hs-identifier hs-var">mp</span></a></span><span>
+</span><span id="line-42"></span><span>  </span><span class="annot"><span class="annottext">LByteString -&gt; Either DecoderError (Map Int32 [Word8])
+forall a. FromCBOR a =&gt; LByteString -&gt; Either DecoderError a
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src"><span class="hs-identifier hs-var">decodeFull</span></a></span><span> </span><span class="annot"><span class="annottext">LByteString
+</span><a href="#local-6989586621679136925"><span class="hs-identifier hs-var">encodedBs</span></a></span><span> </span><span class="annot"><span class="annottext">Either DecoderError (Map Int32 [Word8])
+-&gt; Either DecoderError (Map Int32 [Word8]) -&gt; PropertyT IO ()
+forall (m :: * -&gt; *) a.
+(MonadTest m, Eq a, Show a, HasCallStack) =&gt;
+a -&gt; a -&gt; m ()
+</span><span class="hs-operator hs-var">===</span></span><span> </span><span class="annot"><span class="annottext">Map Int32 [Word8] -&gt; Either DecoderError (Map Int32 [Word8])
+forall a b. b -&gt; Either a b
+</span><span class="hs-identifier hs-var">Right</span></span><span> </span><span class="annot"><span class="annottext">Map Int32 [Word8]
+</span><a href="#local-6989586621679136931"><span class="hs-identifier hs-var">mp</span></a></span><span>
+</span><span id="line-43"></span><span>  </span><span class="annot"><span class="annottext">Text
+-&gt; (forall s. Decoder s ())
+-&gt; LByteString
+-&gt; Either DecoderError ()
+forall a.
+Text
+-&gt; (forall s. Decoder s a) -&gt; LByteString -&gt; Either DecoderError a
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src"><span class="hs-identifier hs-var">decodeFullDecoder</span></a></span><span> </span><span class="annot"><span class="annottext">Text
+</span><span class="hs-string">&quot;Drop Test Failed&quot;</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Dropper s -&gt; Dropper s -&gt; Dropper s
+forall s. Dropper s -&gt; Dropper s -&gt; Dropper s
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src"><span class="hs-identifier hs-var">dropMap</span></a></span><span> </span><span class="annot"><span class="annottext">Dropper s
+forall s. Decoder s ()
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src"><span class="hs-identifier hs-var">dropInt32</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Dropper s -&gt; Dropper s
+forall s. Dropper s -&gt; Dropper s
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src"><span class="hs-identifier hs-var">dropList</span></a></span><span> </span><span class="annot"><span class="annottext">Dropper s
+forall s. Decoder s ()
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src"><span class="hs-identifier hs-var">dropWord8</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">LByteString
+</span><a href="#local-6989586621679136925"><span class="hs-identifier hs-var">encodedBs</span></a></span><span> </span><span class="annot"><span class="annottext">Either DecoderError () -&gt; Either DecoderError () -&gt; PropertyT IO ()
+forall (m :: * -&gt; *) a.
+(MonadTest m, Eq a, Show a, HasCallStack) =&gt;
+a -&gt; a -&gt; m ()
+</span><span class="hs-operator hs-var">===</span></span><span> </span><span class="annot"><span class="annottext">() -&gt; Either DecoderError ()
+forall a b. b -&gt; Either a b
+</span><span class="hs-identifier hs-var">Right</span></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
+</span><span id="line-44"></span><span>
+</span><span id="line-45"></span><span class="annot"><a href="Test.Cardano.Binary.Drop.html#prop_dropTuple"><span class="hs-identifier hs-type">prop_dropTuple</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Property</span></span><span>
+</span><span id="line-46"></span><span id="prop_dropTuple"><span class="annot"><span class="annottext">prop_dropTuple :: Property
+</span><a href="Test.Cardano.Binary.Drop.html#prop_dropTuple"><span class="hs-identifier hs-var hs-var">prop_dropTuple</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">HasCallStack =&gt; PropertyT IO () -&gt; Property
+PropertyT IO () -&gt; Property
+</span><span class="hs-identifier hs-var">property</span></span><span> </span><span class="annot"><span class="annottext">(PropertyT IO () -&gt; Property) -&gt; PropertyT IO () -&gt; Property
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-47"></span><span>  </span><span class="hs-special">(</span><span id="local-6989586621679136916"><span class="annot"><span class="annottext">Set Int32
+</span><a href="#local-6989586621679136916"><span class="hs-identifier hs-var">set</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679136915"><span class="annot"><span class="annottext">ByteString
+</span><a href="#local-6989586621679136915"><span class="hs-identifier hs-var">bs</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Gen (Set Int32, ByteString) -&gt; PropertyT IO (Set Int32, ByteString)
+forall (m :: * -&gt; *) a.
+(Monad m, Show a, HasCallStack) =&gt;
+Gen a -&gt; PropertyT m a
+</span><span class="hs-identifier hs-var">forAll</span></span><span> </span><span class="annot"><span class="annottext">(Gen (Set Int32, ByteString)
+ -&gt; PropertyT IO (Set Int32, ByteString))
+-&gt; Gen (Set Int32, ByteString)
+-&gt; PropertyT IO (Set Int32, ByteString)
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-special">(</span><span class="hs-special">(</span><span class="hs-special">,</span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(Set Int32 -&gt; ByteString -&gt; (Set Int32, ByteString))
+-&gt; GenT Identity (Set Int32)
+-&gt; GenT Identity (ByteString -&gt; (Set Int32, ByteString))
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Range Int -&gt; Gen Int32 -&gt; GenT Identity (Set Int32)
+forall (m :: * -&gt; *) a.
+(MonadGen m, Ord a) =&gt;
+Range Int -&gt; m a -&gt; m (Set a)
+</span><span class="hs-identifier hs-var">Gen.set</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Range Int
+forall a. a -&gt; a -&gt; Range a
+</span><span class="hs-identifier hs-var">Range.constant</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">10</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Gen Int32
+</span><a href="Test.Cardano.Binary.Drop.html#genInt32"><span class="hs-identifier hs-var">genInt32</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-48"></span><span>                             </span><span class="annot"><span class="annottext">GenT Identity (ByteString -&gt; (Set Int32, ByteString))
+-&gt; Gen ByteString -&gt; Gen (Set Int32, ByteString)
+forall (f :: * -&gt; *) a b. Applicative f =&gt; f (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;*&gt;</span></span><span> </span><span class="annot"><span class="annottext">Gen ByteString
+</span><a href="Test.Cardano.Binary.Drop.html#genBytes"><span class="hs-identifier hs-var">genBytes</span></a></span><span> </span><span class="hs-special">)</span><span>
+</span><span id="line-49"></span><span>  </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679136913"><span class="annot"><span class="annottext">encodedBs :: LByteString
+</span><a href="#local-6989586621679136913"><span class="hs-identifier hs-var hs-var">encodedBs</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(Set Int32, ByteString) -&gt; LByteString
+forall a. ToCBOR a =&gt; a -&gt; LByteString
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src"><span class="hs-identifier hs-var">serialize</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Set Int32
+</span><a href="#local-6989586621679136916"><span class="hs-identifier hs-var">set</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">ByteString
+</span><a href="#local-6989586621679136915"><span class="hs-identifier hs-var">bs</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-50"></span><span>  </span><span class="annot"><span class="annottext">LByteString -&gt; Either DecoderError (Set Int32, ByteString)
+forall a. FromCBOR a =&gt; LByteString -&gt; Either DecoderError a
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src"><span class="hs-identifier hs-var">decodeFull</span></a></span><span> </span><span class="annot"><span class="annottext">LByteString
+</span><a href="#local-6989586621679136913"><span class="hs-identifier hs-var">encodedBs</span></a></span><span> </span><span class="annot"><span class="annottext">Either DecoderError (Set Int32, ByteString)
+-&gt; Either DecoderError (Set Int32, ByteString) -&gt; PropertyT IO ()
+forall (m :: * -&gt; *) a.
+(MonadTest m, Eq a, Show a, HasCallStack) =&gt;
+a -&gt; a -&gt; m ()
+</span><span class="hs-operator hs-var">===</span></span><span> </span><span class="annot"><span class="annottext">(Set Int32, ByteString)
+-&gt; Either DecoderError (Set Int32, ByteString)
+forall a b. b -&gt; Either a b
+</span><span class="hs-identifier hs-var">Right</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Set Int32
+</span><a href="#local-6989586621679136916"><span class="hs-identifier hs-var">set</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">ByteString
+</span><a href="#local-6989586621679136915"><span class="hs-identifier hs-var">bs</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-51"></span><span>  </span><span class="annot"><span class="annottext">Text
+-&gt; (forall s. Decoder s ())
+-&gt; LByteString
+-&gt; Either DecoderError ()
+forall a.
+Text
+-&gt; (forall s. Decoder s a) -&gt; LByteString -&gt; Either DecoderError a
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src"><span class="hs-identifier hs-var">decodeFullDecoder</span></a></span><span> </span><span class="annot"><span class="annottext">Text
+</span><span class="hs-string">&quot;Drop Test Failed&quot;</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Dropper s -&gt; Dropper s -&gt; Dropper s
+forall s. Dropper s -&gt; Dropper s -&gt; Dropper s
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src"><span class="hs-identifier hs-var">dropTuple</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Dropper s -&gt; Dropper s
+forall s. Dropper s -&gt; Dropper s
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src"><span class="hs-identifier hs-var">dropSet</span></a></span><span> </span><span class="annot"><span class="annottext">Dropper s
+forall s. Decoder s ()
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src"><span class="hs-identifier hs-var">dropInt32</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Dropper s
+forall s. Decoder s ()
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src"><span class="hs-identifier hs-var">dropBytes</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">LByteString
+</span><a href="#local-6989586621679136913"><span class="hs-identifier hs-var">encodedBs</span></a></span><span> </span><span class="annot"><span class="annottext">Either DecoderError () -&gt; Either DecoderError () -&gt; PropertyT IO ()
+forall (m :: * -&gt; *) a.
+(MonadTest m, Eq a, Show a, HasCallStack) =&gt;
+a -&gt; a -&gt; m ()
+</span><span class="hs-operator hs-var">===</span></span><span> </span><span class="annot"><span class="annottext">() -&gt; Either DecoderError ()
+forall a b. b -&gt; Either a b
+</span><span class="hs-identifier hs-var">Right</span></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
+</span><span id="line-52"></span><span>
+</span><span id="line-53"></span><span class="annot"><a href="Test.Cardano.Binary.Drop.html#prop_dropTriple"><span class="hs-identifier hs-type">prop_dropTriple</span></a></span><span> </span><span class="hs-glyph">::</span><span class="annot"><span class="hs-identifier hs-type">Property</span></span><span>
+</span><span id="line-54"></span><span id="prop_dropTriple"><span class="annot"><span class="annottext">prop_dropTriple :: Property
+</span><a href="Test.Cardano.Binary.Drop.html#prop_dropTriple"><span class="hs-identifier hs-var hs-var">prop_dropTriple</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">HasCallStack =&gt; PropertyT IO () -&gt; Property
+PropertyT IO () -&gt; Property
+</span><span class="hs-identifier hs-var">property</span></span><span> </span><span class="annot"><span class="annottext">(PropertyT IO () -&gt; Property) -&gt; PropertyT IO () -&gt; Property
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-55"></span><span>  </span><span id="local-6989586621679136909"><span class="annot"><span class="annottext">(Int32, Word8, Word64)
+</span><a href="#local-6989586621679136909"><span class="hs-identifier hs-var">tri</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Gen (Int32, Word8, Word64) -&gt; PropertyT IO (Int32, Word8, Word64)
+forall (m :: * -&gt; *) a.
+(Monad m, Show a, HasCallStack) =&gt;
+Gen a -&gt; PropertyT m a
+</span><span class="hs-identifier hs-var">forAll</span></span><span> </span><span class="annot"><span class="annottext">(Gen (Int32, Word8, Word64) -&gt; PropertyT IO (Int32, Word8, Word64))
+-&gt; Gen (Int32, Word8, Word64)
+-&gt; PropertyT IO (Int32, Word8, Word64)
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-special">(</span><span class="hs-special">(</span><span class="hs-special">,</span><span class="hs-special">,</span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(Int32 -&gt; Word8 -&gt; Word64 -&gt; (Int32, Word8, Word64))
+-&gt; Gen Int32
+-&gt; GenT Identity (Word8 -&gt; Word64 -&gt; (Int32, Word8, Word64))
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">Gen Int32
+</span><a href="Test.Cardano.Binary.Drop.html#genInt32"><span class="hs-identifier hs-var">genInt32</span></a></span><span> </span><span class="annot"><span class="annottext">GenT Identity (Word8 -&gt; Word64 -&gt; (Int32, Word8, Word64))
+-&gt; Gen Word8 -&gt; GenT Identity (Word64 -&gt; (Int32, Word8, Word64))
+forall (f :: * -&gt; *) a b. Applicative f =&gt; f (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;*&gt;</span></span><span> </span><span class="annot"><span class="annottext">Gen Word8
+</span><a href="Test.Cardano.Binary.Drop.html#genWord8"><span class="hs-identifier hs-var">genWord8</span></a></span><span> </span><span class="annot"><span class="annottext">GenT Identity (Word64 -&gt; (Int32, Word8, Word64))
+-&gt; Gen Word64 -&gt; Gen (Int32, Word8, Word64)
+forall (f :: * -&gt; *) a b. Applicative f =&gt; f (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;*&gt;</span></span><span> </span><span class="annot"><span class="annottext">Gen Word64
+</span><a href="Test.Cardano.Binary.Drop.html#genWord64"><span class="hs-identifier hs-var">genWord64</span></a></span><span> </span><span class="hs-special">)</span><span>
+</span><span id="line-56"></span><span>  </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679136908"><span class="annot"><span class="annottext">encodedBs :: LByteString
+</span><a href="#local-6989586621679136908"><span class="hs-identifier hs-var hs-var">encodedBs</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(Int32, Word8, Word64) -&gt; LByteString
+forall a. ToCBOR a =&gt; a -&gt; LByteString
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src"><span class="hs-identifier hs-var">serialize</span></a></span><span> </span><span class="annot"><span class="annottext">(Int32, Word8, Word64)
+</span><a href="#local-6989586621679136909"><span class="hs-identifier hs-var">tri</span></a></span><span>
+</span><span id="line-57"></span><span>  </span><span class="annot"><span class="annottext">LByteString -&gt; Either DecoderError (Int32, Word8, Word64)
+forall a. FromCBOR a =&gt; LByteString -&gt; Either DecoderError a
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src"><span class="hs-identifier hs-var">decodeFull</span></a></span><span> </span><span class="annot"><span class="annottext">LByteString
+</span><a href="#local-6989586621679136908"><span class="hs-identifier hs-var">encodedBs</span></a></span><span> </span><span class="annot"><span class="annottext">Either DecoderError (Int32, Word8, Word64)
+-&gt; Either DecoderError (Int32, Word8, Word64) -&gt; PropertyT IO ()
+forall (m :: * -&gt; *) a.
+(MonadTest m, Eq a, Show a, HasCallStack) =&gt;
+a -&gt; a -&gt; m ()
+</span><span class="hs-operator hs-var">===</span></span><span> </span><span class="annot"><span class="annottext">(Int32, Word8, Word64)
+-&gt; Either DecoderError (Int32, Word8, Word64)
+forall a b. b -&gt; Either a b
+</span><span class="hs-identifier hs-var">Right</span></span><span> </span><span class="annot"><span class="annottext">(Int32, Word8, Word64)
+</span><a href="#local-6989586621679136909"><span class="hs-identifier hs-var">tri</span></a></span><span>
+</span><span id="line-58"></span><span>  </span><span class="annot"><span class="annottext">Text
+-&gt; (forall s. Decoder s ())
+-&gt; LByteString
+-&gt; Either DecoderError ()
+forall a.
+Text
+-&gt; (forall s. Decoder s a) -&gt; LByteString -&gt; Either DecoderError a
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src"><span class="hs-identifier hs-var">decodeFullDecoder</span></a></span><span> </span><span class="annot"><span class="annottext">Text
+</span><span class="hs-string">&quot;Drop Test Failed&quot;</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Dropper s -&gt; Dropper s -&gt; Dropper s -&gt; Dropper s
+forall s. Dropper s -&gt; Dropper s -&gt; Dropper s -&gt; Dropper s
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src"><span class="hs-identifier hs-var">dropTriple</span></a></span><span> </span><span class="annot"><span class="annottext">Dropper s
+forall s. Decoder s ()
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src"><span class="hs-identifier hs-var">dropInt32</span></a></span><span> </span><span class="annot"><span class="annottext">Dropper s
+forall s. Decoder s ()
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src"><span class="hs-identifier hs-var">dropWord8</span></a></span><span> </span><span class="annot"><span class="annottext">Dropper s
+forall s. Decoder s ()
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src"><span class="hs-identifier hs-var">dropWord64</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">LByteString
+</span><a href="#local-6989586621679136908"><span class="hs-identifier hs-var">encodedBs</span></a></span><span> </span><span class="annot"><span class="annottext">Either DecoderError () -&gt; Either DecoderError () -&gt; PropertyT IO ()
+forall (m :: * -&gt; *) a.
+(MonadTest m, Eq a, Show a, HasCallStack) =&gt;
+a -&gt; a -&gt; m ()
+</span><span class="hs-operator hs-var">===</span></span><span> </span><span class="annot"><span class="annottext">() -&gt; Either DecoderError ()
+forall a b. b -&gt; Either a b
+</span><span class="hs-identifier hs-var">Right</span></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
+</span><span id="line-59"></span></pre></body></html>

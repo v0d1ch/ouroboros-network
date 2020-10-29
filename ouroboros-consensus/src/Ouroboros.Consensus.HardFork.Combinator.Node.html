@@ -1,47 +1,133 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-pragma">{-# LANGUAGE FlexibleContexts     #-}</span><span>
-</span><a name="line-2"></a><span class="hs-pragma">{-# LANGUAGE RankNTypes           #-}</span><span>
-</span><a name="line-3"></a><span class="hs-pragma">{-# LANGUAGE ScopedTypeVariables  #-}</span><span>
-</span><a name="line-4"></a><span class="hs-pragma">{-# LANGUAGE TypeApplications     #-}</span><span>
-</span><a name="line-5"></a><span class="hs-pragma">{-# LANGUAGE UndecidableInstances #-}</span><span>
-</span><a name="line-6"></a><span class="hs-pragma">{-# OPTIONS_GHC -Wno-orphans #-}</span><span>
-</span><a name="line-7"></a><span>
-</span><a name="line-8"></a><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Ouroboros.Consensus.HardFork.Combinator.Node</span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
-</span><a name="line-9"></a><span>
-</span><a name="line-10"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data.Proxy</span><span>
-</span><a name="line-11"></a><span class="hs-keyword">import</span><span>           </span><a href="Data.SOP.Strict.html"><span class="hs-identifier">Data.SOP.Strict</span></a><span>
-</span><a name="line-12"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">GHC.Stack</span><span>
-</span><a name="line-13"></a><span>
-</span><a name="line-14"></a><span class="hs-keyword">import</span><span>           </span><a href="Ouroboros.Consensus.Config.SupportsNode.html"><span class="hs-identifier">Ouroboros.Consensus.Config.SupportsNode</span></a><span>
-</span><a name="line-15"></a><span>
-</span><a name="line-16"></a><span class="hs-keyword">import</span><span>           </span><a href="Ouroboros.Consensus.HardFork.Combinator.Abstract.html"><span class="hs-identifier">Ouroboros.Consensus.HardFork.Combinator.Abstract</span></a><span>
-</span><a name="line-17"></a><span class="hs-keyword">import</span><span>           </span><a href="Ouroboros.Consensus.HardFork.Combinator.AcrossEras.html"><span class="hs-identifier">Ouroboros.Consensus.HardFork.Combinator.AcrossEras</span></a><span>
-</span><a name="line-18"></a><span class="hs-keyword">import</span><span>           </span><a href="Ouroboros.Consensus.HardFork.Combinator.Basics.html"><span class="hs-identifier">Ouroboros.Consensus.HardFork.Combinator.Basics</span></a><span>
-</span><a name="line-19"></a><span>
-</span><a name="line-20"></a><span class="hs-comment">{-------------------------------------------------------------------------------
+</span><span id="line-2"></span><span class="hs-pragma">{-# LANGUAGE RankNTypes           #-}</span><span>
+</span><span id="line-3"></span><span class="hs-pragma">{-# LANGUAGE ScopedTypeVariables  #-}</span><span>
+</span><span id="line-4"></span><span class="hs-pragma">{-# LANGUAGE TypeApplications     #-}</span><span>
+</span><span id="line-5"></span><span class="hs-pragma">{-# LANGUAGE UndecidableInstances #-}</span><span>
+</span><span id="line-6"></span><span class="hs-pragma">{-# OPTIONS_GHC -Wno-orphans #-}</span><span>
+</span><span id="line-7"></span><span>
+</span><span id="line-8"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Ouroboros.Consensus.HardFork.Combinator.Node</span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-9"></span><span>
+</span><span id="line-10"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><span class="hs-identifier">Data.Proxy</span></span><span>
+</span><span id="line-11"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="Data.SOP.Strict.html"><span class="hs-identifier">Data.SOP.Strict</span></a></span><span>
+</span><span id="line-12"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><span class="hs-identifier">GHC.Stack</span></span><span>
+</span><span id="line-13"></span><span>
+</span><span id="line-14"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="Ouroboros.Consensus.Config.SupportsNode.html"><span class="hs-identifier">Ouroboros.Consensus.Config.SupportsNode</span></a></span><span>
+</span><span id="line-15"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="Ouroboros.Consensus.Node.NetworkProtocolVersion.html"><span class="hs-identifier">Ouroboros.Consensus.Node.NetworkProtocolVersion</span></a></span><span>
+</span><span id="line-16"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="Ouroboros.Consensus.Node.Run.html"><span class="hs-identifier">Ouroboros.Consensus.Node.Run</span></a></span><span>
+</span><span id="line-17"></span><span>
+</span><span id="line-18"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="Ouroboros.Consensus.HardFork.Combinator.Abstract.html"><span class="hs-identifier">Ouroboros.Consensus.HardFork.Combinator.Abstract</span></a></span><span>
+</span><span id="line-19"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="Ouroboros.Consensus.HardFork.Combinator.AcrossEras.html"><span class="hs-identifier">Ouroboros.Consensus.HardFork.Combinator.AcrossEras</span></a></span><span>
+</span><span id="line-20"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="Ouroboros.Consensus.HardFork.Combinator.Basics.html"><span class="hs-identifier">Ouroboros.Consensus.HardFork.Combinator.Basics</span></a></span><span>
+</span><span id="line-21"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="Ouroboros.Consensus.HardFork.Combinator.Forging.html"><span class="hs-identifier">Ouroboros.Consensus.HardFork.Combinator.Forging</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
+</span><span id="line-22"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="Ouroboros.Consensus.HardFork.Combinator.Ledger.CommonProtocolParams.html"><span class="hs-identifier">Ouroboros.Consensus.HardFork.Combinator.Ledger.CommonProtocolParams</span></a></span><span>
+</span><span id="line-23"></span><span>                     </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
+</span><span id="line-24"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="Ouroboros.Consensus.HardFork.Combinator.Node.InitStorage.html"><span class="hs-identifier">Ouroboros.Consensus.HardFork.Combinator.Node.InitStorage</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
+</span><span id="line-25"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="Ouroboros.Consensus.HardFork.Combinator.Serialisation.html"><span class="hs-identifier">Ouroboros.Consensus.HardFork.Combinator.Serialisation</span></a></span><span>
+</span><span id="line-26"></span><span>
+</span><span id="line-27"></span><span class="hs-comment">{-------------------------------------------------------------------------------
   ConfigSupportsNode
 -------------------------------------------------------------------------------}</span><span>
-</span><a name="line-23"></a><span>
-</span><a name="line-24"></a><span class="hs-keyword">instance</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">All</span><span> </span><a href="Ouroboros.Consensus.Config.SupportsNode.html#ConfigSupportsNode"><span class="hs-identifier hs-type">ConfigSupportsNode</span></a><span> </span><a href="#local-6989586621680267612"><span class="hs-identifier hs-type">xs</span></a><span class="hs-special">,</span><span> </span><a href="Ouroboros.Consensus.Util.SOP.html#IsNonEmpty"><span class="hs-identifier hs-type">IsNonEmpty</span></a><span> </span><a href="#local-6989586621680267612"><span class="hs-identifier hs-type">xs</span></a><span class="hs-special">)</span><span>
-</span><a name="line-25"></a><span>      </span><span class="hs-glyph">=&gt;</span><span> </span><a href="Ouroboros.Consensus.Config.SupportsNode.html#ConfigSupportsNode"><span class="hs-identifier hs-type">ConfigSupportsNode</span></a><span> </span><span class="hs-special">(</span><a href="Ouroboros.Consensus.HardFork.Combinator.Basics.html#HardForkBlock"><span class="hs-identifier hs-type">HardForkBlock</span></a><span> </span><a href="#local-6989586621680267612"><span class="hs-identifier hs-type">xs</span></a><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
-</span><a name="line-26"></a><span>  </span><a name="local-8214565720324939665"><a href="Ouroboros.Consensus.Config.SupportsNode.html#getSystemStart"><span class="hs-identifier">getSystemStart</span></a></a><span>  </span><span class="hs-glyph">=</span><span> </span><a href="Ouroboros.Consensus.HardFork.Combinator.Node.html#getSameConfigValue"><span class="hs-identifier hs-var">getSameConfigValue</span></a><span> </span><a href="Ouroboros.Consensus.Config.SupportsNode.html#getSystemStart"><span class="hs-identifier hs-var">getSystemStart</span></a><span>
-</span><a name="line-27"></a><span>  </span><a name="local-8214565720324939666"><a href="Ouroboros.Consensus.Config.SupportsNode.html#getNetworkMagic"><span class="hs-identifier">getNetworkMagic</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><a href="Ouroboros.Consensus.HardFork.Combinator.Node.html#getSameConfigValue"><span class="hs-identifier hs-var">getSameConfigValue</span></a><span> </span><a href="Ouroboros.Consensus.Config.SupportsNode.html#getNetworkMagic"><span class="hs-identifier hs-var">getNetworkMagic</span></a><span>
-</span><a name="line-28"></a><span>
-</span><a name="line-29"></a><span class="hs-comment">{-------------------------------------------------------------------------------
+</span><span id="line-30"></span><span>
+</span><span id="line-31"></span><span id="local-6989586621680052791"><span class="hs-keyword">instance</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.HardFork.Combinator.Abstract.CanHardFork.html#CanHardFork"><span class="hs-identifier hs-type">CanHardFork</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680052791"><span class="hs-identifier hs-type">xs</span></a></span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Config.SupportsNode.html#ConfigSupportsNode"><span class="hs-identifier hs-type">ConfigSupportsNode</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Consensus.HardFork.Combinator.Basics.html#HardForkBlock"><span class="hs-identifier hs-type">HardForkBlock</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680052791"><span class="hs-identifier hs-type">xs</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-32"></span><span>  </span><span id="local-6989586621680052787"><span class="annot"><span class="annottext">getSystemStart :: BlockConfig (HardForkBlock xs) -&gt; SystemStart
+</span><a href="Ouroboros.Consensus.Config.SupportsNode.html#getSystemStart"><span class="hs-identifier hs-var hs-var hs-var hs-var">getSystemStart</span></a></span></span><span>  </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(forall blk.
+ ConfigSupportsNode blk =&gt;
+ BlockConfig blk -&gt; SystemStart)
+-&gt; BlockConfig (HardForkBlock xs) -&gt; SystemStart
+forall (xs :: [*]) a.
+(CanHardFork xs, Eq a, HasCallStack) =&gt;
+(forall blk. ConfigSupportsNode blk =&gt; BlockConfig blk -&gt; a)
+-&gt; BlockConfig (HardForkBlock xs) -&gt; a
+</span><a href="Ouroboros.Consensus.HardFork.Combinator.Node.html#getSameConfigValue"><span class="hs-identifier hs-var">getSameConfigValue</span></a></span><span> </span><span class="annot"><span class="annottext">forall blk.
+ConfigSupportsNode blk =&gt;
+BlockConfig blk -&gt; SystemStart
+</span><a href="Ouroboros.Consensus.Config.SupportsNode.html#getSystemStart"><span class="hs-identifier hs-var">getSystemStart</span></a></span><span>
+</span><span id="line-33"></span><span>  </span><span id="local-6989586621680052784"><span class="annot"><span class="annottext">getNetworkMagic :: BlockConfig (HardForkBlock xs) -&gt; NetworkMagic
+</span><a href="Ouroboros.Consensus.Config.SupportsNode.html#getNetworkMagic"><span class="hs-identifier hs-var hs-var hs-var hs-var">getNetworkMagic</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(forall blk.
+ ConfigSupportsNode blk =&gt;
+ BlockConfig blk -&gt; NetworkMagic)
+-&gt; BlockConfig (HardForkBlock xs) -&gt; NetworkMagic
+forall (xs :: [*]) a.
+(CanHardFork xs, Eq a, HasCallStack) =&gt;
+(forall blk. ConfigSupportsNode blk =&gt; BlockConfig blk -&gt; a)
+-&gt; BlockConfig (HardForkBlock xs) -&gt; a
+</span><a href="Ouroboros.Consensus.HardFork.Combinator.Node.html#getSameConfigValue"><span class="hs-identifier hs-var">getSameConfigValue</span></a></span><span> </span><span class="annot"><span class="annottext">forall blk.
+ConfigSupportsNode blk =&gt;
+BlockConfig blk -&gt; NetworkMagic
+</span><a href="Ouroboros.Consensus.Config.SupportsNode.html#getNetworkMagic"><span class="hs-identifier hs-var">getNetworkMagic</span></a></span></span><span>
+</span><span id="line-34"></span><span>
+</span><span id="line-35"></span><span class="hs-comment">{-------------------------------------------------------------------------------
   Auxiliary
 -------------------------------------------------------------------------------}</span><span>
-</span><a name="line-32"></a><span>
-</span><a name="line-33"></a><span class="hs-identifier">getSameConfigValue</span><span>
-</span><a name="line-34"></a><span>  </span><span class="hs-glyph">::</span><span> </span><span class="hs-keyword">forall</span><span> </span><a name="local-6989586621680267613"><a href="#local-6989586621680267613"><span class="hs-identifier">xs</span></a></a><span> </span><a name="local-6989586621680267614"><a href="#local-6989586621680267614"><span class="hs-identifier">a</span></a></a><span class="hs-operator">.</span><span>
-</span><a name="line-35"></a><span>     </span><span class="hs-special">(</span><span class="hs-identifier hs-type">All</span><span> </span><a href="Ouroboros.Consensus.Config.SupportsNode.html#ConfigSupportsNode"><span class="hs-identifier hs-type">ConfigSupportsNode</span></a><span> </span><a href="#local-6989586621680267613"><span class="hs-identifier hs-type">xs</span></a><span class="hs-special">,</span><span> </span><a href="Ouroboros.Consensus.Util.SOP.html#IsNonEmpty"><span class="hs-identifier hs-type">IsNonEmpty</span></a><span> </span><a href="#local-6989586621680267613"><span class="hs-identifier hs-type">xs</span></a><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Eq</span><span> </span><a href="#local-6989586621680267614"><span class="hs-identifier hs-type">a</span></a><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">HasCallStack</span><span class="hs-special">)</span><span>
-</span><a name="line-36"></a><span>  </span><span class="hs-glyph">=&gt;</span><span> </span><span class="hs-special">(</span><span class="hs-keyword">forall</span><span> </span><a name="local-6989586621680267615"><a href="#local-6989586621680267615"><span class="hs-identifier">blk</span></a></a><span class="hs-operator">.</span><span> </span><a href="Ouroboros.Consensus.Config.SupportsNode.html#ConfigSupportsNode"><span class="hs-identifier hs-type">ConfigSupportsNode</span></a><span> </span><a href="#local-6989586621680267615"><span class="hs-identifier hs-type">blk</span></a><span> </span><span class="hs-glyph">=&gt;</span><span> </span><a href="Ouroboros.Consensus.Block.Abstract.html#BlockConfig"><span class="hs-identifier hs-type">BlockConfig</span></a><span> </span><a href="#local-6989586621680267615"><span class="hs-identifier hs-type">blk</span></a><span> </span><span class="hs-glyph">-&gt;</span><span> </span><a href="#local-6989586621680267614"><span class="hs-identifier hs-type">a</span></a><span class="hs-special">)</span><span>
-</span><a name="line-37"></a><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><a href="Ouroboros.Consensus.Block.Abstract.html#BlockConfig"><span class="hs-identifier hs-type">BlockConfig</span></a><span> </span><span class="hs-special">(</span><a href="Ouroboros.Consensus.HardFork.Combinator.Basics.html#HardForkBlock"><span class="hs-identifier hs-type">HardForkBlock</span></a><span> </span><a href="#local-6989586621680267613"><span class="hs-identifier hs-type">xs</span></a><span class="hs-special">)</span><span>
-</span><a name="line-38"></a><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><a href="#local-6989586621680267614"><span class="hs-identifier hs-type">a</span></a><span>
-</span><a name="line-39"></a><a name="getSameConfigValue"><a href="Ouroboros.Consensus.HardFork.Combinator.Node.html#getSameConfigValue"><span class="hs-identifier">getSameConfigValue</span></a></a><span> </span><a name="local-6989586621680267616"><a href="#local-6989586621680267616"><span class="hs-identifier">getValue</span></a></a><span> </span><a name="local-6989586621680267617"><a href="#local-6989586621680267617"><span class="hs-identifier">blockConfig</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><a href="Ouroboros.Consensus.HardFork.Combinator.AcrossEras.html#getSameValue"><span class="hs-identifier hs-var">getSameValue</span></a><span> </span><a href="#local-6989586621680267618"><span class="hs-identifier hs-var">values</span></a><span>
-</span><a name="line-40"></a><span>  </span><span class="hs-keyword">where</span><span>
-</span><a name="line-41"></a><span>    </span><span class="hs-identifier">values</span><span> </span><span class="hs-glyph">::</span><span> </span><a href="Data.SOP.Strict.html#NP"><span class="hs-identifier hs-type">NP</span></a><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">K</span><span> </span><a href="#local-6989586621680267614"><span class="hs-identifier hs-type">a</span></a><span class="hs-special">)</span><span> </span><a href="#local-6989586621680267613"><span class="hs-identifier hs-type">xs</span></a><span>
-</span><a name="line-42"></a><span>    </span><a name="local-6989586621680267618"><a href="#local-6989586621680267618"><span class="hs-identifier">values</span></a></a><span> </span><span class="hs-glyph">=</span><span>
-</span><a name="line-43"></a><span>          </span><span class="hs-identifier hs-var">hcmap</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-var">Proxy</span><span> </span><span class="hs-glyph">@</span><a href="Ouroboros.Consensus.Config.SupportsNode.html#ConfigSupportsNode"><span class="hs-identifier hs-type">ConfigSupportsNode</span></a><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-var">K</span><span> </span><span class="hs-operator hs-var">.</span><span> </span><a href="#local-6989586621680267616"><span class="hs-identifier hs-var">getValue</span></a><span class="hs-special">)</span><span>
-</span><a name="line-44"></a><span>        </span><span class="hs-operator hs-var">.</span><span> </span><span class="hs-identifier">getPerEraBlockConfig</span><span>
-</span><a name="line-45"></a><span>        </span><span class="hs-operator hs-var">.</span><span> </span><span class="hs-identifier">hardForkBlockConfigPerEra</span><span>
-</span><a name="line-46"></a><span>        </span><span class="hs-operator hs-var">$</span><span> </span><a href="#local-6989586621680267617"><span class="hs-identifier hs-var">blockConfig</span></a><span>
-</span><a name="line-47"></a></pre></body></html>
+</span><span id="line-38"></span><span>
+</span><span id="line-39"></span><span class="annot"><a href="Ouroboros.Consensus.HardFork.Combinator.Node.html#getSameConfigValue"><span class="hs-identifier hs-type">getSameConfigValue</span></a></span><span>
+</span><span id="line-40"></span><span>  </span><span class="hs-glyph">::</span><span> </span><span class="hs-keyword">forall</span><span> </span><span id="local-6989586621680052858"><span class="annot"><a href="#local-6989586621680052858"><span class="hs-identifier hs-type">xs</span></a></span></span><span> </span><span id="local-6989586621680052857"><span class="annot"><a href="#local-6989586621680052857"><span class="hs-identifier hs-type">a</span></a></span></span><span class="hs-operator">.</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Consensus.HardFork.Combinator.Abstract.CanHardFork.html#CanHardFork"><span class="hs-identifier hs-type">CanHardFork</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680052858"><span class="hs-identifier hs-type">xs</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Eq</span></span><span> </span><span class="annot"><a href="#local-6989586621680052857"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">HasCallStack</span></span><span class="hs-special">)</span><span>
+</span><span id="line-41"></span><span>  </span><span class="hs-glyph">=&gt;</span><span> </span><span class="hs-special">(</span><span class="hs-keyword">forall</span><span> </span><span id="local-6989586621680052859"><span class="annot"><a href="#local-6989586621680052859"><span class="hs-identifier hs-type">blk</span></a></span></span><span class="hs-operator">.</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Config.SupportsNode.html#ConfigSupportsNode"><span class="hs-identifier hs-type">ConfigSupportsNode</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680052859"><span class="hs-identifier hs-type">blk</span></a></span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Block.Abstract.html#BlockConfig"><span class="hs-identifier hs-type">BlockConfig</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680052859"><span class="hs-identifier hs-type">blk</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621680052857"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-42"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Block.Abstract.html#BlockConfig"><span class="hs-identifier hs-type">BlockConfig</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Consensus.HardFork.Combinator.Basics.html#HardForkBlock"><span class="hs-identifier hs-type">HardForkBlock</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680052858"><span class="hs-identifier hs-type">xs</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-43"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621680052857"><span class="hs-identifier hs-type">a</span></a></span><span>
+</span><span id="line-44"></span><span id="getSameConfigValue"><span class="annot"><span class="annottext">getSameConfigValue :: (forall blk. ConfigSupportsNode blk =&gt; BlockConfig blk -&gt; a)
+-&gt; BlockConfig (HardForkBlock xs) -&gt; a
+</span><a href="Ouroboros.Consensus.HardFork.Combinator.Node.html#getSameConfigValue"><span class="hs-identifier hs-var hs-var">getSameConfigValue</span></a></span></span><span> </span><span id="local-6989586621680052782"><span class="annot"><span class="annottext">forall blk. ConfigSupportsNode blk =&gt; BlockConfig blk -&gt; a
+</span><a href="#local-6989586621680052782"><span class="hs-identifier hs-var">getValue</span></a></span></span><span> </span><span id="local-6989586621680052781"><span class="annot"><span class="annottext">BlockConfig (HardForkBlock xs)
+</span><a href="#local-6989586621680052781"><span class="hs-identifier hs-var">blockConfig</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">NP (K a) xs -&gt; a
+forall (xs :: [*]) a.
+(IsNonEmpty xs, Eq a, SListI xs, HasCallStack) =&gt;
+NP (K a) xs -&gt; a
+</span><a href="Ouroboros.Consensus.HardFork.Combinator.AcrossEras.html#getSameValue"><span class="hs-identifier hs-var">getSameValue</span></a></span><span> </span><span class="annot"><span class="annottext">NP (K a) xs
+</span><a href="#local-6989586621680052779"><span class="hs-identifier hs-var">values</span></a></span><span>
+</span><span id="line-45"></span><span>  </span><span class="hs-keyword">where</span><span>
+</span><span id="line-46"></span><span>    </span><span class="annot"><a href="#local-6989586621680052779"><span class="hs-identifier hs-type">values</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Data.SOP.Strict.html#NP"><span class="hs-identifier hs-type">NP</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">K</span></span><span> </span><span class="annot"><a href="#local-6989586621680052857"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><a href="#local-6989586621680052858"><span class="hs-identifier hs-type">xs</span></a></span><span>
+</span><span id="line-47"></span><span>    </span><span id="local-6989586621680052779"><span class="annot"><span class="annottext">values :: NP (K a) xs
+</span><a href="#local-6989586621680052779"><span class="hs-identifier hs-var hs-var">values</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-48"></span><span>          </span><span class="annot"><span class="annottext">Proxy SingleEraBlock
+-&gt; (forall a. SingleEraBlock a =&gt; BlockConfig a -&gt; K a a)
+-&gt; NP BlockConfig xs
+-&gt; NP (K a) xs
+forall k l (h :: (k -&gt; *) -&gt; l -&gt; *) (c :: k -&gt; Constraint)
+       (xs :: l) (proxy :: (k -&gt; Constraint) -&gt; *) (f :: k -&gt; *)
+       (f' :: k -&gt; *).
+(AllN (Prod h) c xs, HAp h) =&gt;
+proxy c
+-&gt; (forall (a :: k). c a =&gt; f a -&gt; f' a) -&gt; h f xs -&gt; h f' xs
+</span><span class="hs-identifier hs-var">hcmap</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Proxy SingleEraBlock
+forall k (t :: k). Proxy t
+</span><span class="hs-identifier hs-var">Proxy</span></span><span> </span><span class="hs-glyph">@</span><span class="annot"><a href="Ouroboros.Consensus.HardFork.Combinator.Abstract.SingleEraBlock.html#SingleEraBlock"><span class="hs-identifier hs-type">SingleEraBlock</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">a -&gt; K a a
+forall k a (b :: k). a -&gt; K a b
+</span><span class="hs-identifier hs-var">K</span></span><span> </span><span class="annot"><span class="annottext">(a -&gt; K a a) -&gt; (BlockConfig a -&gt; a) -&gt; BlockConfig a -&gt; K a a
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">BlockConfig a -&gt; a
+forall blk. ConfigSupportsNode blk =&gt; BlockConfig blk -&gt; a
+</span><a href="#local-6989586621680052782"><span class="hs-identifier hs-var">getValue</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-49"></span><span>        </span><span class="annot"><span class="annottext">(NP BlockConfig xs -&gt; NP (K a) xs)
+-&gt; (BlockConfig (HardForkBlock xs) -&gt; NP BlockConfig xs)
+-&gt; BlockConfig (HardForkBlock xs)
+-&gt; NP (K a) xs
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">PerEraBlockConfig xs -&gt; NP BlockConfig xs
+forall (xs :: [*]). PerEraBlockConfig xs -&gt; NP BlockConfig xs
+</span><a href="Ouroboros.Consensus.HardFork.Combinator.AcrossEras.html#getPerEraBlockConfig"><span class="hs-identifier hs-var hs-var">getPerEraBlockConfig</span></a></span><span>
+</span><span id="line-50"></span><span>        </span><span class="annot"><span class="annottext">(PerEraBlockConfig xs -&gt; NP BlockConfig xs)
+-&gt; (BlockConfig (HardForkBlock xs) -&gt; PerEraBlockConfig xs)
+-&gt; BlockConfig (HardForkBlock xs)
+-&gt; NP BlockConfig xs
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">BlockConfig (HardForkBlock xs) -&gt; PerEraBlockConfig xs
+forall (xs :: [*]).
+BlockConfig (HardForkBlock xs) -&gt; PerEraBlockConfig xs
+</span><a href="Ouroboros.Consensus.HardFork.Combinator.Basics.html#hardForkBlockConfigPerEra"><span class="hs-identifier hs-var hs-var">hardForkBlockConfigPerEra</span></a></span><span>
+</span><span id="line-51"></span><span>        </span><span class="annot"><span class="annottext">(BlockConfig (HardForkBlock xs) -&gt; NP (K a) xs)
+-&gt; BlockConfig (HardForkBlock xs) -&gt; NP (K a) xs
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">BlockConfig (HardForkBlock xs)
+</span><a href="#local-6989586621680052781"><span class="hs-identifier hs-var">blockConfig</span></a></span><span>
+</span><span id="line-52"></span><span>
+</span><span id="line-53"></span><span class="hs-comment">{-------------------------------------------------------------------------------
+  RunNode
+-------------------------------------------------------------------------------}</span><span>
+</span><span id="line-56"></span><span>
+</span><span id="line-57"></span><span id="local-6989586621680052772"><span class="hs-keyword">instance</span><span> </span><span class="hs-special">(</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.HardFork.Combinator.Abstract.CanHardFork.html#CanHardFork"><span class="hs-identifier hs-type">CanHardFork</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680052772"><span class="hs-identifier hs-type">xs</span></a></span><span>
+</span><span id="line-58"></span><span>           </span><span class="hs-comment">-- Instances that must be defined for specific values of @b@:</span><span>
+</span><span id="line-59"></span><span>         </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Node.NetworkProtocolVersion.html#SupportedNetworkProtocolVersion"><span class="hs-identifier hs-type">SupportedNetworkProtocolVersion</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Consensus.HardFork.Combinator.Basics.html#HardForkBlock"><span class="hs-identifier hs-type">HardForkBlock</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680052772"><span class="hs-identifier hs-type">xs</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-60"></span><span>         </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.HardFork.Combinator.Serialisation.Common.html#SerialiseHFC"><span class="hs-identifier hs-type">SerialiseHFC</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680052772"><span class="hs-identifier hs-type">xs</span></a></span><span>
+</span><span id="line-61"></span><span>         </span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Node.Run.html#RunNode"><span class="hs-identifier hs-type">RunNode</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Consensus.HardFork.Combinator.Basics.html#HardForkBlock"><span class="hs-identifier hs-type">HardForkBlock</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680052772"><span class="hs-identifier hs-type">xs</span></a></span><span class="hs-special">)</span></span><span>
+</span><span id="line-62"></span></pre></body></html>

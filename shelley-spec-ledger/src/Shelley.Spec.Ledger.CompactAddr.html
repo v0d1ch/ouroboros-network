@@ -1,0 +1,881 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-pragma">{-# LANGUAGE DeriveFunctor #-}</span><span>
+</span><span id="line-2"></span><span class="hs-pragma">{-# LANGUAGE OverloadedStrings #-}</span><span>
+</span><span id="line-3"></span><span class="hs-pragma">{-# LANGUAGE ScopedTypeVariables #-}</span><span>
+</span><span id="line-4"></span><span class="hs-pragma">{-# LANGUAGE TypeApplications #-}</span><span>
+</span><span id="line-5"></span><span>
+</span><span id="line-6"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Shelley.Spec.Ledger.CompactAddr</span><span>
+</span><span id="line-7"></span><span>  </span><span class="hs-special">(</span><span> </span><span class="annot"><a href="Shelley.Spec.Ledger.CompactAddr.html#compactAddr"><span class="hs-identifier">compactAddr</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-8"></span><span>    </span><span class="annot"><a href="Shelley.Spec.Ledger.CompactAddr.html#decompactAddr"><span class="hs-identifier">decompactAddr</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-9"></span><span>    </span><span class="annot"><a href="Shelley.Spec.Ledger.CompactAddr.html#CompactAddr"><span class="hs-identifier">CompactAddr</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span>
+</span><span id="line-10"></span><span>    </span><span class="annot"><a href="Shelley.Spec.Ledger.CompactAddr.html#substring"><span class="hs-identifier">substring</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-11"></span><span>  </span><span class="hs-special">)</span><span>
+</span><span id="line-12"></span><span class="hs-keyword">where</span><span>
+</span><span id="line-13"></span><span>
+</span><span id="line-14"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src"><span class="hs-identifier">Cardano.Binary</span></a></span><span>
+</span><span id="line-15"></span><span>  </span><span class="hs-special">(</span><span> </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src"><span class="hs-identifier">DecoderError</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span>
+</span><span id="line-16"></span><span>    </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src"><span class="hs-identifier">FromCBOR</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span>
+</span><span id="line-17"></span><span>    </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src"><span class="hs-identifier">ToCBOR</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span>
+</span><span id="line-18"></span><span>    </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src"><span class="hs-identifier">decodeFull'</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-19"></span><span>  </span><span class="hs-special">)</span><span>
+</span><span id="line-20"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-crypto-class-2.0.0/noopt/doc/html/cardano-crypto-class/src"><span class="hs-identifier">Cardano.Crypto.Hash.Class</span></a></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Hash</span></span><span>
+</span><span id="line-21"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Cardano.Ledger.Crypto.html"><span class="hs-identifier">Cardano.Ledger.Crypto</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cardano.Ledger.Crypto.html#ADDRHASH"><span class="hs-identifier">ADDRHASH</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-22"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Cardano.Ledger.Era.html"><span class="hs-identifier">Cardano.Ledger.Era</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cardano.Ledger.Era.html#Crypto"><span class="hs-identifier">Crypto</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-23"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-prelude-0.1.0.0/noopt/doc/html/cardano-prelude/src"><span class="hs-identifier">Cardano.Prelude</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Text</span></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-prelude-0.1.0.0/noopt/doc/html/cardano-prelude/src"><span class="hs-identifier">cborError</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">panic</span></span><span class="hs-special">)</span><span>
+</span><span id="line-24"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Control.Monad</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">ap</span></span><span class="hs-special">)</span><span>
+</span><span id="line-25"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Control.Monad.Fail</span></span><span>
+</span><span id="line-26"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Bits</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">testBit</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-operator">(.&amp;.)</span></span><span class="hs-special">)</span><span>
+</span><span id="line-27"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.ByteString</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">ByteString</span></span><span class="hs-special">)</span><span>
+</span><span id="line-28"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.ByteString.Short</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">SBS</span></span><span>
+</span><span id="line-29"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.ByteString.Short.Internal</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">ShortByteString</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">SBS</span></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-30"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Maybe</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">fromMaybe</span></span><span class="hs-special">)</span><span>
+</span><span id="line-31"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Data.Primitive.ByteArray</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">BA</span></span><span>
+</span><span id="line-32"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Word</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Word8</span></span><span class="hs-special">)</span><span>
+</span><span id="line-33"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Numeric.Natural</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Natural</span></span><span class="hs-special">)</span><span>
+</span><span id="line-34"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Shelley.Spec.Ledger.Address.html"><span class="hs-identifier">Shelley.Spec.Ledger.Address</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Shelley.Spec.Ledger.Address.html#Addr"><span class="hs-identifier">Addr</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Shelley.Spec.Ledger.Address.html#BootstrapAddress"><span class="hs-identifier">BootstrapAddress</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Shelley.Spec.Ledger.Address.html#Word7"><span class="hs-identifier">Word7</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Shelley.Spec.Ledger.Address.html#byron"><span class="hs-identifier">byron</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Shelley.Spec.Ledger.Address.html#isEnterpriseAddr"><span class="hs-identifier">isEnterpriseAddr</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Shelley.Spec.Ledger.Address.html#notBaseAddr"><span class="hs-identifier">notBaseAddr</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Shelley.Spec.Ledger.Address.html#payCredIsScript"><span class="hs-identifier">payCredIsScript</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Shelley.Spec.Ledger.Address.html#serialiseAddr"><span class="hs-identifier">serialiseAddr</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Shelley.Spec.Ledger.Address.html#stakeCredIsScript"><span class="hs-identifier">stakeCredIsScript</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Shelley.Spec.Ledger.Address.html#toWord7"><span class="hs-identifier">toWord7</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Shelley.Spec.Ledger.Address.html#word7sToNat"><span class="hs-identifier">word7sToNat</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-35"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Shelley.Spec.Ledger.BaseTypes.html"><span class="hs-identifier">Shelley.Spec.Ledger.BaseTypes</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Shelley.Spec.Ledger.BaseTypes.html#word8ToNetwork"><span class="hs-identifier">word8ToNetwork</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-36"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Shelley.Spec.Ledger.Credential.html"><span class="hs-identifier">Shelley.Spec.Ledger.Credential</span></a></span><span>
+</span><span id="line-37"></span><span>  </span><span class="hs-special">(</span><span> </span><span class="annot"><a href="Shelley.Spec.Ledger.Credential.html#Credential"><span class="hs-identifier">Credential</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Shelley.Spec.Ledger.Credential.html#KeyHashObj"><span class="hs-identifier">KeyHashObj</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Shelley.Spec.Ledger.Credential.html#ScriptHashObj"><span class="hs-identifier">ScriptHashObj</span></a></span><span class="hs-special">)</span><span class="hs-special">,</span><span>
+</span><span id="line-38"></span><span>    </span><span class="annot"><a href="Shelley.Spec.Ledger.Credential.html#PaymentCredential"><span class="hs-identifier">PaymentCredential</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-39"></span><span>    </span><span class="annot"><a href="Shelley.Spec.Ledger.Credential.html#Ptr"><span class="hs-identifier">Ptr</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span>
+</span><span id="line-40"></span><span>    </span><span class="annot"><a href="Shelley.Spec.Ledger.Credential.html#StakeReference"><span class="hs-identifier">StakeReference</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span>
+</span><span id="line-41"></span><span>  </span><span class="hs-special">)</span><span>
+</span><span id="line-42"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Shelley.Spec.Ledger.Keys.html"><span class="hs-identifier">Shelley.Spec.Ledger.Keys</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Shelley.Spec.Ledger.Keys.html#KeyHash"><span class="hs-identifier">KeyHash</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-43"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Shelley.Spec.Ledger.Scripts.html"><span class="hs-identifier">Shelley.Spec.Ledger.Scripts</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Shelley.Spec.Ledger.Scripts.html#ScriptHash"><span class="hs-identifier">ScriptHash</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-44"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Shelley.Spec.Ledger.Slot.html"><span class="hs-identifier">Shelley.Spec.Ledger.Slot</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-slotting-0.1.0.0/noopt/doc/html/cardano-slotting/src"><span class="hs-identifier">SlotNo</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-45"></span><span>
+</span><span id="line-46"></span><span class="hs-keyword">newtype</span><span> </span><span id="CompactAddr"><span class="annot"><a href="Shelley.Spec.Ledger.CompactAddr.html#CompactAddr"><span class="hs-identifier hs-var">CompactAddr</span></a></span></span><span> </span><span id="local-6989586621680016638"><span class="annot"><a href="#local-6989586621680016638"><span class="hs-identifier hs-type">era</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="UnsafeCompactAddr"><span class="annot"><a href="Shelley.Spec.Ledger.CompactAddr.html#UnsafeCompactAddr"><span class="hs-identifier hs-var">UnsafeCompactAddr</span></a></span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">ShortByteString</span></span><span>
+</span><span id="line-47"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621680016451"><span id="local-6989586621680016453"><span class="annot"><span class="annottext">CompactAddr era -&gt; CompactAddr era -&gt; Bool
+(CompactAddr era -&gt; CompactAddr era -&gt; Bool)
+-&gt; (CompactAddr era -&gt; CompactAddr era -&gt; Bool)
+-&gt; Eq (CompactAddr era)
+forall era. CompactAddr era -&gt; CompactAddr era -&gt; Bool
+forall a. (a -&gt; a -&gt; Bool) -&gt; (a -&gt; a -&gt; Bool) -&gt; Eq a
+/= :: CompactAddr era -&gt; CompactAddr era -&gt; Bool
+$c/= :: forall era. CompactAddr era -&gt; CompactAddr era -&gt; Bool
+== :: CompactAddr era -&gt; CompactAddr era -&gt; Bool
+$c== :: forall era. CompactAddr era -&gt; CompactAddr era -&gt; Bool
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621680016435"><span id="local-6989586621680016437"><span id="local-6989586621680016439"><span id="local-6989586621680016441"><span id="local-6989586621680016443"><span id="local-6989586621680016445"><span id="local-6989586621680016447"><span class="annot"><span class="annottext">Eq (CompactAddr era)
+Eq (CompactAddr era)
+-&gt; (CompactAddr era -&gt; CompactAddr era -&gt; Ordering)
+-&gt; (CompactAddr era -&gt; CompactAddr era -&gt; Bool)
+-&gt; (CompactAddr era -&gt; CompactAddr era -&gt; Bool)
+-&gt; (CompactAddr era -&gt; CompactAddr era -&gt; Bool)
+-&gt; (CompactAddr era -&gt; CompactAddr era -&gt; Bool)
+-&gt; (CompactAddr era -&gt; CompactAddr era -&gt; CompactAddr era)
+-&gt; (CompactAddr era -&gt; CompactAddr era -&gt; CompactAddr era)
+-&gt; Ord (CompactAddr era)
+CompactAddr era -&gt; CompactAddr era -&gt; Bool
+CompactAddr era -&gt; CompactAddr era -&gt; Ordering
+CompactAddr era -&gt; CompactAddr era -&gt; CompactAddr era
+forall era. Eq (CompactAddr era)
+forall a.
+Eq a
+-&gt; (a -&gt; a -&gt; Ordering)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; a)
+-&gt; (a -&gt; a -&gt; a)
+-&gt; Ord a
+forall era. CompactAddr era -&gt; CompactAddr era -&gt; Bool
+forall era. CompactAddr era -&gt; CompactAddr era -&gt; Ordering
+forall era. CompactAddr era -&gt; CompactAddr era -&gt; CompactAddr era
+min :: CompactAddr era -&gt; CompactAddr era -&gt; CompactAddr era
+$cmin :: forall era. CompactAddr era -&gt; CompactAddr era -&gt; CompactAddr era
+max :: CompactAddr era -&gt; CompactAddr era -&gt; CompactAddr era
+$cmax :: forall era. CompactAddr era -&gt; CompactAddr era -&gt; CompactAddr era
+&gt;= :: CompactAddr era -&gt; CompactAddr era -&gt; Bool
+$c&gt;= :: forall era. CompactAddr era -&gt; CompactAddr era -&gt; Bool
+&gt; :: CompactAddr era -&gt; CompactAddr era -&gt; Bool
+$c&gt; :: forall era. CompactAddr era -&gt; CompactAddr era -&gt; Bool
+&lt;= :: CompactAddr era -&gt; CompactAddr era -&gt; Bool
+$c&lt;= :: forall era. CompactAddr era -&gt; CompactAddr era -&gt; Bool
+&lt; :: CompactAddr era -&gt; CompactAddr era -&gt; Bool
+$c&lt; :: forall era. CompactAddr era -&gt; CompactAddr era -&gt; Bool
+compare :: CompactAddr era -&gt; CompactAddr era -&gt; Ordering
+$ccompare :: forall era. CompactAddr era -&gt; CompactAddr era -&gt; Ordering
+$cp1Ord :: forall era. Eq (CompactAddr era)
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Ord</span></span></span></span></span></span></span></span></span><span class="hs-special">)</span><span>
+</span><span id="line-48"></span><span>
+</span><span id="line-49"></span><span id="local-6989586621680016433"><span class="annot"><a href="Shelley.Spec.Ledger.CompactAddr.html#compactAddr"><span class="hs-identifier hs-type">compactAddr</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Shelley.Spec.Ledger.Address.html#Addr"><span class="hs-identifier hs-type">Addr</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680016433"><span class="hs-identifier hs-type">era</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Shelley.Spec.Ledger.CompactAddr.html#CompactAddr"><span class="hs-identifier hs-type">CompactAddr</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680016433"><span class="hs-identifier hs-type">era</span></a></span></span><span>
+</span><span id="line-50"></span><span id="compactAddr"><span class="annot"><span class="annottext">compactAddr :: Addr era -&gt; CompactAddr era
+</span><a href="Shelley.Spec.Ledger.CompactAddr.html#compactAddr"><span class="hs-identifier hs-var hs-var">compactAddr</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">ShortByteString -&gt; CompactAddr era
+forall era. ShortByteString -&gt; CompactAddr era
+</span><a href="Shelley.Spec.Ledger.CompactAddr.html#UnsafeCompactAddr"><span class="hs-identifier hs-var">UnsafeCompactAddr</span></a></span><span> </span><span class="annot"><span class="annottext">(ShortByteString -&gt; CompactAddr era)
+-&gt; (Addr era -&gt; ShortByteString) -&gt; Addr era -&gt; CompactAddr era
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">ByteString -&gt; ShortByteString
+</span><span class="hs-identifier hs-var">SBS.toShort</span></span><span> </span><span class="annot"><span class="annottext">(ByteString -&gt; ShortByteString)
+-&gt; (Addr era -&gt; ByteString) -&gt; Addr era -&gt; ShortByteString
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Addr era -&gt; ByteString
+forall era. Addr era -&gt; ByteString
+</span><a href="Shelley.Spec.Ledger.Address.html#serialiseAddr"><span class="hs-identifier hs-var">serialiseAddr</span></a></span><span>
+</span><span id="line-51"></span><span>
+</span><span id="line-52"></span><span class="annot"><a href="Shelley.Spec.Ledger.CompactAddr.html#decompactAddr"><span class="hs-identifier hs-type">decompactAddr</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-keyword">forall</span><span> </span><span id="local-6989586621680016430"><span class="annot"><a href="#local-6989586621680016430"><span class="hs-identifier hs-type">era</span></a></span></span><span class="hs-operator">.</span><span> </span><span class="annot"><a href="Cardano.Ledger.Era.html#Era"><span class="hs-identifier hs-type">Era</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680016430"><span class="hs-identifier hs-type">era</span></a></span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Shelley.Spec.Ledger.CompactAddr.html#CompactAddr"><span class="hs-identifier hs-type">CompactAddr</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680016430"><span class="hs-identifier hs-type">era</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Shelley.Spec.Ledger.Address.html#Addr"><span class="hs-identifier hs-type">Addr</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680016430"><span class="hs-identifier hs-type">era</span></a></span><span>
+</span><span id="line-53"></span><span id="decompactAddr"><span class="annot"><span class="annottext">decompactAddr :: CompactAddr era -&gt; Addr era
+</span><a href="Shelley.Spec.Ledger.CompactAddr.html#decompactAddr"><span class="hs-identifier hs-var hs-var">decompactAddr</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Shelley.Spec.Ledger.CompactAddr.html#UnsafeCompactAddr"><span class="hs-identifier hs-type">UnsafeCompactAddr</span></a></span><span> </span><span id="local-6989586621680016429"><span class="annot"><span class="annottext">ShortByteString
+</span><a href="#local-6989586621680016429"><span class="hs-identifier hs-var">bytes</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-54"></span><span>  </span><span class="hs-keyword">if</span><span> </span><span class="annot"><span class="annottext">Word8 -&gt; Int -&gt; Bool
+forall a. Bits a =&gt; a -&gt; Int -&gt; Bool
+</span><span class="hs-identifier hs-var">testBit</span></span><span> </span><span class="annot"><span class="annottext">Word8
+</span><a href="#local-6989586621680016428"><span class="hs-identifier hs-var">header</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="Shelley.Spec.Ledger.Address.html#byron"><span class="hs-identifier hs-var">byron</span></a></span><span>
+</span><span id="line-55"></span><span>    </span><span class="hs-keyword">then</span><span> </span><span class="annot"><span class="annottext">BootstrapAddress era -&gt; Addr era
+forall era. BootstrapAddress era -&gt; Addr era
+</span><a href="Shelley.Spec.Ledger.Address.html#AddrBootstrap"><span class="hs-identifier hs-var">AddrBootstrap</span></a></span><span> </span><span class="annot"><span class="annottext">(BootstrapAddress era -&gt; Addr era)
+-&gt; BootstrapAddress era -&gt; Addr era
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Text
+-&gt; Int
+-&gt; ShortByteString
+-&gt; GetShort (BootstrapAddress era)
+-&gt; BootstrapAddress era
+forall a. Text -&gt; Int -&gt; ShortByteString -&gt; GetShort a -&gt; a
+</span><a href="#local-6989586621680016426"><span class="hs-identifier hs-var">run</span></a></span><span> </span><span class="annot"><span class="annottext">Text
+</span><span class="hs-string">&quot;byron address&quot;</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span> </span><span class="annot"><span class="annottext">ShortByteString
+</span><a href="#local-6989586621680016429"><span class="hs-identifier hs-var">bytes</span></a></span><span> </span><span class="annot"><span class="annottext">GetShort (BootstrapAddress era)
+forall era. GetShort (BootstrapAddress era)
+</span><a href="Shelley.Spec.Ledger.CompactAddr.html#getBootstrapAddress"><span class="hs-identifier hs-var">getBootstrapAddress</span></a></span><span>
+</span><span id="line-56"></span><span>    </span><span class="hs-keyword">else</span><span> </span><span class="annot"><span class="annottext">Network -&gt; PaymentCredential era -&gt; StakeReference era -&gt; Addr era
+forall era.
+Network -&gt; PaymentCredential era -&gt; StakeReference era -&gt; Addr era
+</span><a href="Shelley.Spec.Ledger.Address.html#Addr"><span class="hs-identifier hs-var">Addr</span></a></span><span> </span><span class="annot"><span class="annottext">Network
+</span><a href="#local-6989586621680016423"><span class="hs-identifier hs-var">addrNetId</span></a></span><span> </span><span class="annot"><span class="annottext">PaymentCredential era
+</span><a href="#local-6989586621680016422"><span class="hs-identifier hs-var">paycred</span></a></span><span> </span><span class="annot"><span class="annottext">StakeReference era
+</span><a href="#local-6989586621680016421"><span class="hs-identifier hs-var">stakecred</span></a></span><span>
+</span><span id="line-57"></span><span>  </span><span class="hs-keyword">where</span><span>
+</span><span id="line-58"></span><span>    </span><span class="annot"><a href="#local-6989586621680016426"><span class="hs-identifier hs-type">run</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-keyword">forall</span><span> </span><span id="local-6989586621680016622"><span class="annot"><a href="#local-6989586621680016622"><span class="hs-identifier hs-type">a</span></a></span></span><span class="hs-operator">.</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Text</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">ShortByteString</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Shelley.Spec.Ledger.CompactAddr.html#GetShort"><span class="hs-identifier hs-type">GetShort</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680016622"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621680016622"><span class="hs-identifier hs-type">a</span></a></span><span>
+</span><span id="line-59"></span><span>    </span><span id="local-6989586621680016426"><span class="annot"><span class="annottext">run :: Text -&gt; Int -&gt; ShortByteString -&gt; GetShort a -&gt; a
+</span><a href="#local-6989586621680016426"><span class="hs-identifier hs-var hs-var">run</span></a></span></span><span> </span><span id="local-6989586621680016420"><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621680016420"><span class="hs-identifier hs-var">name</span></a></span></span><span> </span><span id="local-6989586621680016419"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621680016419"><span class="hs-identifier hs-var">i</span></a></span></span><span> </span><span id="local-6989586621680016418"><span class="annot"><span class="annottext">ShortByteString
+</span><a href="#local-6989586621680016418"><span class="hs-identifier hs-var">sbs</span></a></span></span><span> </span><span id="local-6989586621680016417"><span class="annot"><span class="annottext">GetShort a
+</span><a href="#local-6989586621680016417"><span class="hs-identifier hs-var">g</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(Int, a) -&gt; a
+forall a b. (a, b) -&gt; b
+</span><span class="hs-identifier hs-var">snd</span></span><span> </span><span class="annot"><span class="annottext">((Int, a) -&gt; a)
+-&gt; (Maybe (Int, a) -&gt; (Int, a)) -&gt; Maybe (Int, a) -&gt; a
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Text -&gt; Maybe (Int, a) -&gt; (Int, a)
+forall a. Text -&gt; Maybe a -&gt; a
+</span><a href="#local-6989586621680016416"><span class="hs-identifier hs-var">unwrap</span></a></span><span> </span><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621680016420"><span class="hs-identifier hs-var">name</span></a></span><span> </span><span class="annot"><span class="annottext">(Maybe (Int, a) -&gt; a) -&gt; Maybe (Int, a) -&gt; a
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">GetShort a -&gt; Int -&gt; ShortByteString -&gt; Maybe (Int, a)
+forall a. GetShort a -&gt; Int -&gt; ShortByteString -&gt; Maybe (Int, a)
+</span><a href="Shelley.Spec.Ledger.CompactAddr.html#runGetShort"><span class="hs-identifier hs-var hs-var">runGetShort</span></a></span><span> </span><span class="annot"><span class="annottext">GetShort a
+</span><a href="#local-6989586621680016417"><span class="hs-identifier hs-var">g</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621680016419"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="annot"><span class="annottext">ShortByteString
+</span><a href="#local-6989586621680016418"><span class="hs-identifier hs-var">sbs</span></a></span><span>
+</span><span id="line-60"></span><span>    </span><span class="hs-comment">-- The reason failure is impossible here is that the only way to call this code</span><span>
+</span><span id="line-61"></span><span>    </span><span class="hs-comment">-- is using a CompactAddr, which can only be constructed using compactAddr.</span><span>
+</span><span id="line-62"></span><span>    </span><span class="hs-comment">-- compactAddr serializes an Addr, so this is guaranteed to work.</span><span>
+</span><span id="line-63"></span><span>    </span><span class="annot"><a href="#local-6989586621680016416"><span class="hs-identifier hs-type">unwrap</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-keyword">forall</span><span> </span><span id="local-6989586621680016614"><span class="annot"><a href="#local-6989586621680016614"><span class="hs-identifier hs-type">a</span></a></span></span><span class="hs-operator">.</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Text</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><a href="#local-6989586621680016614"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621680016614"><span class="hs-identifier hs-type">a</span></a></span><span>
+</span><span id="line-64"></span><span>    </span><span id="local-6989586621680016416"><span class="annot"><span class="annottext">unwrap :: Text -&gt; Maybe a -&gt; a
+</span><a href="#local-6989586621680016416"><span class="hs-identifier hs-var hs-var">unwrap</span></a></span></span><span> </span><span id="local-6989586621680016414"><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621680016414"><span class="hs-identifier hs-var">name</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">a -&gt; Maybe a -&gt; a
+forall a. a -&gt; Maybe a -&gt; a
+</span><span class="hs-identifier hs-var">fromMaybe</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Text -&gt; a
+forall a. HasCallStack =&gt; Text -&gt; a
+</span><span class="hs-identifier hs-var">panic</span></span><span> </span><span class="annot"><span class="annottext">(Text -&gt; a) -&gt; Text -&gt; a
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Text
+</span><span class="hs-string">&quot;Impossible failure when decoding &quot;</span></span><span> </span><span class="annot"><span class="annottext">Text -&gt; Text -&gt; Text
+forall a. Semigroup a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">&lt;&gt;</span></span><span> </span><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621680016414"><span class="hs-identifier hs-var">name</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-65"></span><span>    </span><span id="local-6989586621680016428"><span class="annot"><span class="annottext">header :: Word8
+</span><a href="#local-6989586621680016428"><span class="hs-identifier hs-var hs-var">header</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Text -&gt; Int -&gt; ShortByteString -&gt; GetShort Word8 -&gt; Word8
+forall a. Text -&gt; Int -&gt; ShortByteString -&gt; GetShort a -&gt; a
+</span><a href="#local-6989586621680016426"><span class="hs-identifier hs-var">run</span></a></span><span> </span><span class="annot"><span class="annottext">Text
+</span><span class="hs-string">&quot;address header&quot;</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span> </span><span class="annot"><span class="annottext">ShortByteString
+</span><a href="#local-6989586621680016429"><span class="hs-identifier hs-var">bytes</span></a></span><span> </span><span class="annot"><span class="annottext">GetShort Word8
+</span><a href="Shelley.Spec.Ledger.CompactAddr.html#getWord"><span class="hs-identifier hs-var">getWord</span></a></span><span>
+</span><span id="line-66"></span><span>    </span><span id="local-6989586621680016423"><span class="annot"><span class="annottext">addrNetId :: Network
+</span><a href="#local-6989586621680016423"><span class="hs-identifier hs-var hs-var">addrNetId</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-67"></span><span>      </span><span class="annot"><span class="annottext">Text -&gt; Maybe Network -&gt; Network
+forall a. Text -&gt; Maybe a -&gt; a
+</span><a href="#local-6989586621680016416"><span class="hs-identifier hs-var">unwrap</span></a></span><span> </span><span class="annot"><span class="annottext">Text
+</span><span class="hs-string">&quot;address network id&quot;</span></span><span> </span><span class="annot"><span class="annottext">(Maybe Network -&gt; Network) -&gt; Maybe Network -&gt; Network
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span>
+</span><span id="line-68"></span><span>        </span><span class="annot"><span class="annottext">Word8 -&gt; Maybe Network
+</span><a href="Shelley.Spec.Ledger.BaseTypes.html#word8ToNetwork"><span class="hs-identifier hs-var">word8ToNetwork</span></a></span><span> </span><span class="annot"><span class="annottext">(Word8 -&gt; Maybe Network) -&gt; Word8 -&gt; Maybe Network
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Word8
+</span><a href="#local-6989586621680016428"><span class="hs-identifier hs-var">header</span></a></span><span> </span><span class="annot"><span class="annottext">Word8 -&gt; Word8 -&gt; Word8
+forall a. Bits a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">.&amp;.</span></span><span> </span><span class="annot"><span class="annottext">Word8
+</span><span class="hs-number">0x0F</span></span><span> </span><span class="hs-comment">-- 0b00001111 is the mask for the network id</span><span>
+</span><span id="line-69"></span><span>        </span><span class="hs-comment">-- The address format is</span><span>
+</span><span id="line-70"></span><span>        </span><span class="hs-comment">-- header | pay cred | stake cred</span><span>
+</span><span id="line-71"></span><span>        </span><span class="hs-comment">-- where the header is 1 byte</span><span>
+</span><span id="line-72"></span><span>        </span><span class="hs-comment">-- the pay cred is (sizeHash (ADDRHASH (Crypto era))) bytes</span><span>
+</span><span id="line-73"></span><span>        </span><span class="hs-comment">-- and the stake cred can vary</span><span>
+</span><span id="line-74"></span><span>    </span><span id="local-6989586621680016422"><span class="annot"><span class="annottext">paycred :: PaymentCredential era
+</span><a href="#local-6989586621680016422"><span class="hs-identifier hs-var hs-var">paycred</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Text
+-&gt; Int
+-&gt; ShortByteString
+-&gt; GetShort (PaymentCredential era)
+-&gt; PaymentCredential era
+forall a. Text -&gt; Int -&gt; ShortByteString -&gt; GetShort a -&gt; a
+</span><a href="#local-6989586621680016426"><span class="hs-identifier hs-var">run</span></a></span><span> </span><span class="annot"><span class="annottext">Text
+</span><span class="hs-string">&quot;payment credential&quot;</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">1</span></span><span> </span><span class="annot"><span class="annottext">ShortByteString
+</span><a href="#local-6989586621680016429"><span class="hs-identifier hs-var">bytes</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Word8 -&gt; GetShort (PaymentCredential era)
+forall era. Era era =&gt; Word8 -&gt; GetShort (PaymentCredential era)
+</span><a href="Shelley.Spec.Ledger.CompactAddr.html#getPayCred"><span class="hs-identifier hs-var">getPayCred</span></a></span><span> </span><span class="annot"><span class="annottext">Word8
+</span><a href="#local-6989586621680016428"><span class="hs-identifier hs-var">header</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-75"></span><span>    </span><span id="local-6989586621680016421"><span class="annot"><span class="annottext">stakecred :: StakeReference era
+</span><a href="#local-6989586621680016421"><span class="hs-identifier hs-var hs-var">stakecred</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Text
+-&gt; Int
+-&gt; ShortByteString
+-&gt; GetShort (StakeReference era)
+-&gt; StakeReference era
+forall a. Text -&gt; Int -&gt; ShortByteString -&gt; GetShort a -&gt; a
+</span><a href="#local-6989586621680016426"><span class="hs-identifier hs-var">run</span></a></span><span> </span><span class="annot"><span class="annottext">Text
+</span><span class="hs-string">&quot;staking credential&quot;</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">1</span></span><span> </span><span class="annot"><span class="annottext">ShortByteString
+</span><a href="#local-6989586621680016429"><span class="hs-identifier hs-var">bytes</span></a></span><span> </span><span class="annot"><span class="annottext">(GetShort (StakeReference era) -&gt; StakeReference era)
+-&gt; GetShort (StakeReference era) -&gt; StakeReference era
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-76"></span><span>      </span><span class="annot"><span class="annottext">[ADDRHASH (Crypto era)] -&gt; GetShort ()
+forall (proxy :: * -&gt; *) h.
+HashAlgorithm h =&gt;
+proxy h -&gt; GetShort ()
+</span><a href="Shelley.Spec.Ledger.CompactAddr.html#skipHash"><span class="hs-identifier hs-var">skipHash</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">[</span><span class="hs-special">]</span><span> </span><span class="hs-glyph">@</span><span class="hs-special">(</span><span class="annot"><a href="Cardano.Ledger.Crypto.html#ADDRHASH"><span class="hs-identifier hs-type">ADDRHASH</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cardano.Ledger.Era.html#Crypto"><span class="hs-identifier hs-type">Crypto</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680016430"><span class="hs-identifier hs-type">era</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-77"></span><span>      </span><span class="annot"><span class="annottext">Word8 -&gt; GetShort (StakeReference era)
+forall era. Era era =&gt; Word8 -&gt; GetShort (StakeReference era)
+</span><a href="Shelley.Spec.Ledger.CompactAddr.html#getStakeReference"><span class="hs-identifier hs-var">getStakeReference</span></a></span><span> </span><span class="annot"><span class="annottext">Word8
+</span><a href="#local-6989586621680016428"><span class="hs-identifier hs-var">header</span></a></span><span>
+</span><span id="line-78"></span><span>
+</span><span id="line-79"></span><span id="local-6989586621680016409"><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621680016403"><span id="local-6989586621680016405"><span class="annot"><a href="Cardano.Ledger.Era.html#Era"><span class="hs-identifier hs-type">Era</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680016409"><span class="hs-identifier hs-type">era</span></a></span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src"><span class="hs-identifier hs-type">ToCBOR</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Shelley.Spec.Ledger.CompactAddr.html#CompactAddr"><span class="hs-identifier hs-type">CompactAddr</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680016409"><span class="hs-identifier hs-type">era</span></a></span><span class="hs-special">)</span></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-80"></span><span>  </span><span id="local-6989586621680016401"><span class="annot"><span class="annottext">toCBOR :: CompactAddr era -&gt; Encoding
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src"><span class="hs-identifier hs-var hs-var hs-var hs-var">toCBOR</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Shelley.Spec.Ledger.CompactAddr.html#UnsafeCompactAddr"><span class="hs-identifier hs-type">UnsafeCompactAddr</span></a></span><span> </span><span id="local-6989586621680016399"><span class="annot"><span class="annottext">ShortByteString
+</span><a href="#local-6989586621680016399"><span class="hs-identifier hs-var">bytes</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">ShortByteString -&gt; Encoding
+forall a. ToCBOR a =&gt; a -&gt; Encoding
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src"><span class="hs-identifier hs-var">toCBOR</span></a></span><span> </span><span class="annot"><span class="annottext">ShortByteString
+</span><a href="#local-6989586621680016399"><span class="hs-identifier hs-var">bytes</span></a></span></span><span>
+</span><span id="line-81"></span><span>
+</span><span id="line-82"></span><span id="local-6989586621680016398"><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621680016394"><span class="annot"><a href="Cardano.Ledger.Era.html#Era"><span class="hs-identifier hs-type">Era</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680016398"><span class="hs-identifier hs-type">era</span></a></span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src"><span class="hs-identifier hs-type">FromCBOR</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Shelley.Spec.Ledger.CompactAddr.html#CompactAddr"><span class="hs-identifier hs-type">CompactAddr</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680016398"><span class="hs-identifier hs-type">era</span></a></span><span class="hs-special">)</span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-83"></span><span>  </span><span id="local-6989586621680016392"><span class="annot"><span class="annottext">fromCBOR :: Decoder s (CompactAddr era)
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src"><span class="hs-identifier hs-var hs-var hs-var hs-var">fromCBOR</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-84"></span><span>    </span><span id="local-6989586621680016390"><span class="annot"><span class="annottext">ShortByteString
+</span><a href="#local-6989586621680016390"><span class="hs-identifier hs-var">sbs</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Decoder s ShortByteString
+forall a s. FromCBOR a =&gt; Decoder s a
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src"><span class="hs-identifier hs-var">fromCBOR</span></a></span><span>
+</span><span id="line-85"></span><span>    </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">ShortByteString -&gt; Maybe (Addr era)
+forall era. Era era =&gt; ShortByteString -&gt; Maybe (Addr era)
+</span><a href="Shelley.Spec.Ledger.CompactAddr.html#deserializeShortAddr"><span class="hs-identifier hs-var">deserializeShortAddr</span></a></span><span> </span><span class="hs-glyph">@</span><span class="annot"><a href="#local-6989586621680016398"><span class="hs-identifier hs-type">era</span></a></span><span> </span><span class="annot"><span class="annottext">ShortByteString
+</span><a href="#local-6989586621680016390"><span class="hs-identifier hs-var">sbs</span></a></span><span> </span><span class="hs-keyword">of</span><span>
+</span><span id="line-86"></span><span>      </span><span class="annot"><span class="hs-identifier hs-type">Just</span></span><span> </span><span class="annot"><span class="annottext">Addr era
+</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">CompactAddr era -&gt; Decoder s (CompactAddr era)
+forall (f :: * -&gt; *) a. Applicative f =&gt; a -&gt; f a
+</span><span class="hs-identifier hs-var">pure</span></span><span> </span><span class="annot"><span class="annottext">(CompactAddr era -&gt; Decoder s (CompactAddr era))
+-&gt; CompactAddr era -&gt; Decoder s (CompactAddr era)
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">ShortByteString -&gt; CompactAddr era
+forall era. ShortByteString -&gt; CompactAddr era
+</span><a href="Shelley.Spec.Ledger.CompactAddr.html#UnsafeCompactAddr"><span class="hs-identifier hs-var">UnsafeCompactAddr</span></a></span><span> </span><span class="annot"><span class="annottext">ShortByteString
+</span><a href="#local-6989586621680016390"><span class="hs-identifier hs-var">sbs</span></a></span><span>
+</span><span id="line-87"></span><span>      </span><span class="annot"><span class="annottext">Maybe (Addr era)
+</span><span class="hs-identifier hs-var">Nothing</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">DecoderError -&gt; Decoder s (CompactAddr era)
+forall e s a. Buildable e =&gt; e -&gt; Decoder s a
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-prelude-0.1.0.0/noopt/doc/html/cardano-prelude/src"><span class="hs-identifier hs-var">cborError</span></a></span><span> </span><span class="annot"><span class="annottext">(DecoderError -&gt; Decoder s (CompactAddr era))
+-&gt; DecoderError -&gt; Decoder s (CompactAddr era)
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Text -&gt; Text -&gt; DecoderError
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src"><span class="hs-identifier hs-var">DecoderErrorCustom</span></a></span><span> </span><span class="annot"><span class="annottext">Text
+</span><span class="hs-string">&quot;Addr&quot;</span></span><span> </span><span class="annot"><span class="annottext">Text
+</span><span class="hs-string">&quot;invalid address&quot;</span></span></span><span>
+</span><span id="line-88"></span><span>
+</span><span id="line-89"></span><span class="hs-keyword">newtype</span><span> </span><span id="GetShort"><span class="annot"><a href="Shelley.Spec.Ledger.CompactAddr.html#GetShort"><span class="hs-identifier hs-var">GetShort</span></a></span></span><span> </span><span id="local-6989586621680016613"><span class="annot"><a href="#local-6989586621680016613"><span class="hs-identifier hs-type">a</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="GetShort"><span class="annot"><a href="Shelley.Spec.Ledger.CompactAddr.html#GetShort"><span class="hs-identifier hs-var">GetShort</span></a></span></span><span> </span><span class="hs-special">{</span><span id="runGetShort"><span class="annot"><span class="annottext">GetShort a -&gt; Int -&gt; ShortByteString -&gt; Maybe (Int, a)
+</span><a href="Shelley.Spec.Ledger.CompactAddr.html#runGetShort"><span class="hs-identifier hs-var hs-var">runGetShort</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">ShortByteString</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="#local-6989586621680016613"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span class="hs-special">}</span><span>
+</span><span id="line-90"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621680016383"><span id="local-6989586621680016385"><span class="annot"><span class="annottext">a -&gt; GetShort b -&gt; GetShort a
+(a -&gt; b) -&gt; GetShort a -&gt; GetShort b
+(forall a b. (a -&gt; b) -&gt; GetShort a -&gt; GetShort b)
+-&gt; (forall a b. a -&gt; GetShort b -&gt; GetShort a) -&gt; Functor GetShort
+forall a b. a -&gt; GetShort b -&gt; GetShort a
+forall a b. (a -&gt; b) -&gt; GetShort a -&gt; GetShort b
+forall (f :: * -&gt; *).
+(forall a b. (a -&gt; b) -&gt; f a -&gt; f b)
+-&gt; (forall a b. a -&gt; f b -&gt; f a) -&gt; Functor f
+&lt;$ :: a -&gt; GetShort b -&gt; GetShort a
+$c&lt;$ :: forall a b. a -&gt; GetShort b -&gt; GetShort a
+fmap :: (a -&gt; b) -&gt; GetShort a -&gt; GetShort b
+$cfmap :: forall a b. (a -&gt; b) -&gt; GetShort a -&gt; GetShort b
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Functor</span></span></span></span><span class="hs-special">)</span><span>
+</span><span id="line-91"></span><span>
+</span><span id="line-92"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621680016373"><span id="local-6989586621680016375"><span id="local-6989586621680016377"><span class="annot"><span class="hs-identifier hs-type">Applicative</span></span><span> </span><span class="annot"><a href="Shelley.Spec.Ledger.CompactAddr.html#GetShort"><span class="hs-identifier hs-type">GetShort</span></a></span></span></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-93"></span><span>  </span><span id="local-6989586621680016371"><span class="annot"><span class="annottext">pure :: a -&gt; GetShort a
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">pure</span></span></span><span> </span><span id="local-6989586621680016370"><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621680016370"><span class="hs-identifier hs-var">a</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(Int -&gt; ShortByteString -&gt; Maybe (Int, a)) -&gt; GetShort a
+forall a. (Int -&gt; ShortByteString -&gt; Maybe (Int, a)) -&gt; GetShort a
+</span><a href="Shelley.Spec.Ledger.CompactAddr.html#GetShort"><span class="hs-identifier hs-var">GetShort</span></a></span><span> </span><span class="annot"><span class="annottext">((Int -&gt; ShortByteString -&gt; Maybe (Int, a)) -&gt; GetShort a)
+-&gt; (Int -&gt; ShortByteString -&gt; Maybe (Int, a)) -&gt; GetShort a
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621680016369"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621680016369"><span class="hs-identifier hs-var">i</span></a></span></span><span> </span><span id="local-6989586621680016368"><span class="annot"><span class="annottext">ShortByteString
+</span><a href="#local-6989586621680016368"><span class="hs-identifier hs-var">_sbs</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">(Int, a) -&gt; Maybe (Int, a)
+forall a. a -&gt; Maybe a
+</span><span class="hs-identifier hs-var">Just</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621680016369"><span class="hs-identifier hs-var">i</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621680016370"><span class="hs-identifier hs-var">a</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-94"></span><span>  </span><span id="local-6989586621680016367"><span class="annot"><span class="annottext">&lt;*&gt; :: GetShort (a -&gt; b) -&gt; GetShort a -&gt; GetShort b
+</span><span class="hs-operator hs-var hs-var hs-var hs-var">(&lt;*&gt;)</span></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">GetShort (a -&gt; b) -&gt; GetShort a -&gt; GetShort b
+forall (m :: * -&gt; *) a b. Monad m =&gt; m (a -&gt; b) -&gt; m a -&gt; m b
+</span><span class="hs-identifier hs-var">ap</span></span><span>
+</span><span id="line-95"></span><span>
+</span><span id="line-96"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621680016361"><span id="local-6989586621680016363"><span class="annot"><span class="hs-identifier hs-type">Monad</span></span><span> </span><span class="annot"><a href="Shelley.Spec.Ledger.CompactAddr.html#GetShort"><span class="hs-identifier hs-type">GetShort</span></a></span></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-97"></span><span>  </span><span class="hs-special">(</span><span class="annot"><a href="Shelley.Spec.Ledger.CompactAddr.html#GetShort"><span class="hs-identifier hs-type">GetShort</span></a></span><span> </span><span id="local-6989586621680016359"><span class="annot"><span class="annottext">Int -&gt; ShortByteString -&gt; Maybe (Int, a)
+</span><a href="#local-6989586621680016359"><span class="hs-identifier hs-var">g</span></a></span></span><span class="hs-special">)</span><span> </span><span id="local-6989586621680016358"><span class="annot"><span class="annottext">&gt;&gt;= :: GetShort a -&gt; (a -&gt; GetShort b) -&gt; GetShort b
+</span><span class="hs-operator hs-var hs-var hs-var hs-var">&gt;&gt;=</span></span></span><span> </span><span id="local-6989586621680016357"><span class="annot"><span class="annottext">a -&gt; GetShort b
+</span><a href="#local-6989586621680016357"><span class="hs-identifier hs-var">f</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(Int -&gt; ShortByteString -&gt; Maybe (Int, b)) -&gt; GetShort b
+forall a. (Int -&gt; ShortByteString -&gt; Maybe (Int, a)) -&gt; GetShort a
+</span><a href="Shelley.Spec.Ledger.CompactAddr.html#GetShort"><span class="hs-identifier hs-var">GetShort</span></a></span><span> </span><span class="annot"><span class="annottext">((Int -&gt; ShortByteString -&gt; Maybe (Int, b)) -&gt; GetShort b)
+-&gt; (Int -&gt; ShortByteString -&gt; Maybe (Int, b)) -&gt; GetShort b
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621680016356"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621680016356"><span class="hs-identifier hs-var">i</span></a></span></span><span> </span><span id="local-6989586621680016355"><span class="annot"><span class="annottext">ShortByteString
+</span><a href="#local-6989586621680016355"><span class="hs-identifier hs-var">sbs</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-98"></span><span>    </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">Int -&gt; ShortByteString -&gt; Maybe (Int, a)
+</span><a href="#local-6989586621680016359"><span class="hs-identifier hs-var">g</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621680016356"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="annot"><span class="annottext">ShortByteString
+</span><a href="#local-6989586621680016355"><span class="hs-identifier hs-var">sbs</span></a></span><span> </span><span class="hs-keyword">of</span><span>
+</span><span id="line-99"></span><span>      </span><span class="annot"><span class="annottext">Maybe (Int, a)
+</span><span class="hs-identifier hs-var">Nothing</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Maybe (Int, b)
+forall a. Maybe a
+</span><span class="hs-identifier hs-var">Nothing</span></span><span>
+</span><span id="line-100"></span><span>      </span><span class="annot"><span class="hs-identifier hs-type">Just</span></span><span> </span><span class="hs-special">(</span><span id="local-6989586621680016354"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621680016354"><span class="hs-identifier hs-var">i'</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621680016353"><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621680016353"><span class="hs-identifier hs-var">x</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">GetShort b -&gt; Int -&gt; ShortByteString -&gt; Maybe (Int, b)
+forall a. GetShort a -&gt; Int -&gt; ShortByteString -&gt; Maybe (Int, a)
+</span><a href="Shelley.Spec.Ledger.CompactAddr.html#runGetShort"><span class="hs-identifier hs-var hs-var">runGetShort</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">a -&gt; GetShort b
+</span><a href="#local-6989586621680016357"><span class="hs-identifier hs-var">f</span></a></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621680016353"><span class="hs-identifier hs-var">x</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621680016354"><span class="hs-identifier hs-var">i'</span></a></span><span> </span><span class="annot"><span class="annottext">ShortByteString
+</span><a href="#local-6989586621680016355"><span class="hs-identifier hs-var">sbs</span></a></span><span>
+</span><span id="line-101"></span><span>
+</span><span id="line-102"></span><span class="hs-keyword">instance</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Control.Monad.Fail.MonadFail</span></span><span> </span><span class="annot"><a href="Shelley.Spec.Ledger.CompactAddr.html#GetShort"><span class="hs-identifier hs-type">GetShort</span></a></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-103"></span><span>  </span><span id="local-6989586621680016349"><span class="annot"><span class="annottext">fail :: String -&gt; GetShort a
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">fail</span></span></span><span> </span><span class="annot"><span class="annottext">String
+</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(Int -&gt; ShortByteString -&gt; Maybe (Int, a)) -&gt; GetShort a
+forall a. (Int -&gt; ShortByteString -&gt; Maybe (Int, a)) -&gt; GetShort a
+</span><a href="Shelley.Spec.Ledger.CompactAddr.html#GetShort"><span class="hs-identifier hs-var">GetShort</span></a></span><span> </span><span class="annot"><span class="annottext">((Int -&gt; ShortByteString -&gt; Maybe (Int, a)) -&gt; GetShort a)
+-&gt; (Int -&gt; ShortByteString -&gt; Maybe (Int, a)) -&gt; GetShort a
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-glyph">\</span><span class="annot"><span class="annottext">Int
+</span><span class="hs-identifier">_</span></span><span> </span><span class="annot"><span class="annottext">ShortByteString
+</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Maybe (Int, a)
+forall a. Maybe a
+</span><span class="hs-identifier hs-var">Nothing</span></span><span>
+</span><span id="line-104"></span><span>
+</span><span id="line-105"></span><span id="local-6989586621680016585"><span class="annot"><a href="Shelley.Spec.Ledger.CompactAddr.html#deserializeShortAddr"><span class="hs-identifier hs-type">deserializeShortAddr</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cardano.Ledger.Era.html#Era"><span class="hs-identifier hs-type">Era</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680016585"><span class="hs-identifier hs-type">era</span></a></span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">ShortByteString</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Shelley.Spec.Ledger.Address.html#Addr"><span class="hs-identifier hs-type">Addr</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680016585"><span class="hs-identifier hs-type">era</span></a></span><span class="hs-special">)</span></span><span>
+</span><span id="line-106"></span><span id="deserializeShortAddr"><span class="annot"><span class="annottext">deserializeShortAddr :: ShortByteString -&gt; Maybe (Addr era)
+</span><a href="Shelley.Spec.Ledger.CompactAddr.html#deserializeShortAddr"><span class="hs-identifier hs-var hs-var">deserializeShortAddr</span></a></span></span><span> </span><span id="local-6989586621680016348"><span class="annot"><span class="annottext">ShortByteString
+</span><a href="#local-6989586621680016348"><span class="hs-identifier hs-var">short</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(Int, Addr era) -&gt; Addr era
+forall a b. (a, b) -&gt; b
+</span><span class="hs-identifier hs-var">snd</span></span><span> </span><span class="annot"><span class="annottext">((Int, Addr era) -&gt; Addr era)
+-&gt; Maybe (Int, Addr era) -&gt; Maybe (Addr era)
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">GetShort (Addr era)
+-&gt; Int -&gt; ShortByteString -&gt; Maybe (Int, Addr era)
+forall a. GetShort a -&gt; Int -&gt; ShortByteString -&gt; Maybe (Int, a)
+</span><a href="Shelley.Spec.Ledger.CompactAddr.html#runGetShort"><span class="hs-identifier hs-var hs-var">runGetShort</span></a></span><span> </span><span class="annot"><span class="annottext">GetShort (Addr era)
+forall era. Era era =&gt; GetShort (Addr era)
+</span><a href="Shelley.Spec.Ledger.CompactAddr.html#getShortAddr"><span class="hs-identifier hs-var">getShortAddr</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span> </span><span class="annot"><span class="annottext">ShortByteString
+</span><a href="#local-6989586621680016348"><span class="hs-identifier hs-var">short</span></a></span><span>
+</span><span id="line-107"></span><span>
+</span><span id="line-108"></span><span class="annot"><a href="Shelley.Spec.Ledger.CompactAddr.html#getShortAddr"><span class="hs-identifier hs-type">getShortAddr</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-keyword">forall</span><span> </span><span id="local-6989586621680016526"><span class="annot"><a href="#local-6989586621680016526"><span class="hs-identifier hs-type">era</span></a></span></span><span class="hs-operator">.</span><span> </span><span class="annot"><a href="Cardano.Ledger.Era.html#Era"><span class="hs-identifier hs-type">Era</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680016526"><span class="hs-identifier hs-type">era</span></a></span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Shelley.Spec.Ledger.CompactAddr.html#GetShort"><span class="hs-identifier hs-type">GetShort</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Shelley.Spec.Ledger.Address.html#Addr"><span class="hs-identifier hs-type">Addr</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680016526"><span class="hs-identifier hs-type">era</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-109"></span><span id="getShortAddr"><span class="annot"><span class="annottext">getShortAddr :: GetShort (Addr era)
+</span><a href="Shelley.Spec.Ledger.CompactAddr.html#getShortAddr"><span class="hs-identifier hs-var hs-var">getShortAddr</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-110"></span><span>  </span><span id="local-6989586621680016345"><span class="annot"><span class="annottext">Word8
+</span><a href="#local-6989586621680016345"><span class="hs-identifier hs-var">header</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">GetShort Word8
+</span><a href="Shelley.Spec.Ledger.CompactAddr.html#peekWord8"><span class="hs-identifier hs-var">peekWord8</span></a></span><span>
+</span><span id="line-111"></span><span>  </span><span class="hs-keyword">if</span><span> </span><span class="annot"><span class="annottext">Word8 -&gt; Int -&gt; Bool
+forall a. Bits a =&gt; a -&gt; Int -&gt; Bool
+</span><span class="hs-identifier hs-var">testBit</span></span><span> </span><span class="annot"><span class="annottext">Word8
+</span><a href="#local-6989586621680016345"><span class="hs-identifier hs-var">header</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="Shelley.Spec.Ledger.Address.html#byron"><span class="hs-identifier hs-var">byron</span></a></span><span>
+</span><span id="line-112"></span><span>    </span><span class="hs-keyword">then</span><span> </span><span class="annot"><span class="annottext">BootstrapAddress era -&gt; Addr era
+forall era. BootstrapAddress era -&gt; Addr era
+</span><a href="Shelley.Spec.Ledger.Address.html#AddrBootstrap"><span class="hs-identifier hs-var">AddrBootstrap</span></a></span><span> </span><span class="annot"><span class="annottext">(BootstrapAddress era -&gt; Addr era)
+-&gt; GetShort (BootstrapAddress era) -&gt; GetShort (Addr era)
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">GetShort (BootstrapAddress era)
+forall era. GetShort (BootstrapAddress era)
+</span><a href="Shelley.Spec.Ledger.CompactAddr.html#getBootstrapAddress"><span class="hs-identifier hs-var">getBootstrapAddress</span></a></span><span>
+</span><span id="line-113"></span><span>    </span><span class="hs-keyword">else</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-114"></span><span>      </span><span class="annot"><span class="annottext">Word8
+</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">GetShort Word8
+</span><a href="Shelley.Spec.Ledger.CompactAddr.html#getWord"><span class="hs-identifier hs-var">getWord</span></a></span><span> </span><span class="hs-comment">-- read past the header byte</span><span>
+</span><span id="line-115"></span><span>      </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621680016343"><span class="annot"><span class="annottext">addrNetId :: Word8
+</span><a href="#local-6989586621680016343"><span class="hs-identifier hs-var hs-var">addrNetId</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Word8
+</span><a href="#local-6989586621680016345"><span class="hs-identifier hs-var">header</span></a></span><span> </span><span class="annot"><span class="annottext">Word8 -&gt; Word8 -&gt; Word8
+forall a. Bits a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">.&amp;.</span></span><span> </span><span class="annot"><span class="annottext">Word8
+</span><span class="hs-number">0x0F</span></span><span> </span><span class="hs-comment">-- 0b00001111 is the mask for the network id</span><span>
+</span><span id="line-116"></span><span>      </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">Word8 -&gt; Maybe Network
+</span><a href="Shelley.Spec.Ledger.BaseTypes.html#word8ToNetwork"><span class="hs-identifier hs-var">word8ToNetwork</span></a></span><span> </span><span class="annot"><span class="annottext">Word8
+</span><a href="#local-6989586621680016343"><span class="hs-identifier hs-var">addrNetId</span></a></span><span> </span><span class="hs-keyword">of</span><span>
+</span><span id="line-117"></span><span>        </span><span class="annot"><span class="hs-identifier hs-type">Just</span></span><span> </span><span id="local-6989586621680016342"><span class="annot"><span class="annottext">Network
+</span><a href="#local-6989586621680016342"><span class="hs-identifier hs-var">n</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-118"></span><span>          </span><span id="local-6989586621680016341"><span class="annot"><span class="annottext">PaymentCredential era
+</span><a href="#local-6989586621680016341"><span class="hs-identifier hs-var">c</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Word8 -&gt; GetShort (PaymentCredential era)
+forall era. Era era =&gt; Word8 -&gt; GetShort (PaymentCredential era)
+</span><a href="Shelley.Spec.Ledger.CompactAddr.html#getPayCred"><span class="hs-identifier hs-var">getPayCred</span></a></span><span> </span><span class="annot"><span class="annottext">Word8
+</span><a href="#local-6989586621680016345"><span class="hs-identifier hs-var">header</span></a></span><span>
+</span><span id="line-119"></span><span>          </span><span id="local-6989586621680016340"><span class="annot"><span class="annottext">StakeReference era
+</span><a href="#local-6989586621680016340"><span class="hs-identifier hs-var">h</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Word8 -&gt; GetShort (StakeReference era)
+forall era. Era era =&gt; Word8 -&gt; GetShort (StakeReference era)
+</span><a href="Shelley.Spec.Ledger.CompactAddr.html#getStakeReference"><span class="hs-identifier hs-var">getStakeReference</span></a></span><span> </span><span class="annot"><span class="annottext">Word8
+</span><a href="#local-6989586621680016345"><span class="hs-identifier hs-var">header</span></a></span><span>
+</span><span id="line-120"></span><span>          </span><span class="annot"><span class="annottext">Addr era -&gt; GetShort (Addr era)
+forall (f :: * -&gt; *) a. Applicative f =&gt; a -&gt; f a
+</span><span class="hs-identifier hs-var">pure</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Network -&gt; PaymentCredential era -&gt; StakeReference era -&gt; Addr era
+forall era.
+Network -&gt; PaymentCredential era -&gt; StakeReference era -&gt; Addr era
+</span><a href="Shelley.Spec.Ledger.Address.html#Addr"><span class="hs-identifier hs-var">Addr</span></a></span><span> </span><span class="annot"><span class="annottext">Network
+</span><a href="#local-6989586621680016342"><span class="hs-identifier hs-var">n</span></a></span><span> </span><span class="annot"><span class="annottext">PaymentCredential era
+</span><a href="#local-6989586621680016341"><span class="hs-identifier hs-var">c</span></a></span><span> </span><span class="annot"><span class="annottext">StakeReference era
+</span><a href="#local-6989586621680016340"><span class="hs-identifier hs-var">h</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-121"></span><span>        </span><span class="annot"><span class="annottext">Maybe Network
+</span><span class="hs-identifier hs-var">Nothing</span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-122"></span><span>          </span><span class="annot"><span class="annottext">String -&gt; GetShort (Addr era)
+forall (m :: * -&gt; *) a. MonadFail m =&gt; String -&gt; m a
+</span><span class="hs-identifier hs-var">fail</span></span><span> </span><span class="annot"><span class="annottext">(String -&gt; GetShort (Addr era)) -&gt; String -&gt; GetShort (Addr era)
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span>
+</span><span id="line-123"></span><span>            </span><span class="annot"><span class="annottext">[String] -&gt; String
+forall (t :: * -&gt; *) a. Foldable t =&gt; t [a] -&gt; [a]
+</span><span class="hs-identifier hs-var">concat</span></span><span>
+</span><span id="line-124"></span><span>              </span><span class="hs-special">[</span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;Address with unknown network Id. (&quot;</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Word8 -&gt; String
+forall a. Show a =&gt; a -&gt; String
+</span><span class="hs-identifier hs-var">show</span></span><span> </span><span class="annot"><span class="annottext">Word8
+</span><a href="#local-6989586621680016343"><span class="hs-identifier hs-var">addrNetId</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;)&quot;</span></span><span class="hs-special">]</span><span>
+</span><span id="line-125"></span><span>
+</span><span id="line-126"></span><span id="local-6989586621680016621"><span class="annot"><a href="Shelley.Spec.Ledger.CompactAddr.html#getBootstrapAddress"><span class="hs-identifier hs-type">getBootstrapAddress</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Shelley.Spec.Ledger.CompactAddr.html#GetShort"><span class="hs-identifier hs-type">GetShort</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Shelley.Spec.Ledger.Address.html#BootstrapAddress"><span class="hs-identifier hs-type">BootstrapAddress</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680016621"><span class="hs-identifier hs-type">era</span></a></span><span class="hs-special">)</span></span><span>
+</span><span id="line-127"></span><span id="getBootstrapAddress"><span class="annot"><span class="annottext">getBootstrapAddress :: GetShort (BootstrapAddress era)
+</span><a href="Shelley.Spec.Ledger.CompactAddr.html#getBootstrapAddress"><span class="hs-identifier hs-var hs-var">getBootstrapAddress</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-128"></span><span>  </span><span id="local-6989586621680016337"><span class="annot"><span class="annottext">ByteString
+</span><a href="#local-6989586621680016337"><span class="hs-identifier hs-var">bs</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">GetShort ByteString
+</span><a href="Shelley.Spec.Ledger.CompactAddr.html#getRemainingAsByteString"><span class="hs-identifier hs-var">getRemainingAsByteString</span></a></span><span>
+</span><span id="line-129"></span><span>  </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">ByteString -&gt; Either DecoderError Address
+forall a. FromCBOR a =&gt; ByteString -&gt; Either DecoderError a
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src"><span class="hs-identifier hs-var">decodeFull'</span></a></span><span> </span><span class="annot"><span class="annottext">ByteString
+</span><a href="#local-6989586621680016337"><span class="hs-identifier hs-var">bs</span></a></span><span> </span><span class="hs-keyword">of</span><span>
+</span><span id="line-130"></span><span>    </span><span class="annot"><span class="hs-identifier hs-type">Left</span></span><span> </span><span id="local-6989586621680016335"><span class="annot"><span class="annottext">DecoderError
+</span><a href="#local-6989586621680016335"><span class="hs-identifier hs-var">e</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">String -&gt; GetShort (BootstrapAddress era)
+forall (m :: * -&gt; *) a. MonadFail m =&gt; String -&gt; m a
+</span><span class="hs-identifier hs-var">fail</span></span><span> </span><span class="annot"><span class="annottext">(String -&gt; GetShort (BootstrapAddress era))
+-&gt; String -&gt; GetShort (BootstrapAddress era)
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">DecoderError -&gt; String
+forall a. Show a =&gt; a -&gt; String
+</span><span class="hs-identifier hs-var">show</span></span><span> </span><span class="annot"><span class="annottext">DecoderError
+</span><a href="#local-6989586621680016335"><span class="hs-identifier hs-var">e</span></a></span><span>
+</span><span id="line-131"></span><span>    </span><span class="annot"><span class="hs-identifier hs-type">Right</span></span><span> </span><span id="local-6989586621680016334"><span class="annot"><span class="annottext">Address
+</span><a href="#local-6989586621680016334"><span class="hs-identifier hs-var">r</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">BootstrapAddress era -&gt; GetShort (BootstrapAddress era)
+forall (f :: * -&gt; *) a. Applicative f =&gt; a -&gt; f a
+</span><span class="hs-identifier hs-var">pure</span></span><span> </span><span class="annot"><span class="annottext">(BootstrapAddress era -&gt; GetShort (BootstrapAddress era))
+-&gt; BootstrapAddress era -&gt; GetShort (BootstrapAddress era)
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Address -&gt; BootstrapAddress era
+forall era. Address -&gt; BootstrapAddress era
+</span><a href="Shelley.Spec.Ledger.Address.html#BootstrapAddress"><span class="hs-identifier hs-var">BootstrapAddress</span></a></span><span> </span><span class="annot"><span class="annottext">Address
+</span><a href="#local-6989586621680016334"><span class="hs-identifier hs-var">r</span></a></span><span>
+</span><span id="line-132"></span><span>
+</span><span id="line-133"></span><span class="annot"><a href="Shelley.Spec.Ledger.CompactAddr.html#getWord"><span class="hs-identifier hs-type">getWord</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Shelley.Spec.Ledger.CompactAddr.html#GetShort"><span class="hs-identifier hs-type">GetShort</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Word8</span></span><span>
+</span><span id="line-134"></span><span id="getWord"><span class="annot"><span class="annottext">getWord :: GetShort Word8
+</span><a href="Shelley.Spec.Ledger.CompactAddr.html#getWord"><span class="hs-identifier hs-var hs-var">getWord</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(Int -&gt; ShortByteString -&gt; Maybe (Int, Word8)) -&gt; GetShort Word8
+forall a. (Int -&gt; ShortByteString -&gt; Maybe (Int, a)) -&gt; GetShort a
+</span><a href="Shelley.Spec.Ledger.CompactAddr.html#GetShort"><span class="hs-identifier hs-var">GetShort</span></a></span><span> </span><span class="annot"><span class="annottext">((Int -&gt; ShortByteString -&gt; Maybe (Int, Word8)) -&gt; GetShort Word8)
+-&gt; (Int -&gt; ShortByteString -&gt; Maybe (Int, Word8)) -&gt; GetShort Word8
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621680016332"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621680016332"><span class="hs-identifier hs-var">i</span></a></span></span><span> </span><span id="local-6989586621680016331"><span class="annot"><span class="annottext">ShortByteString
+</span><a href="#local-6989586621680016331"><span class="hs-identifier hs-var">sbs</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-135"></span><span>  </span><span class="hs-keyword">if</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621680016332"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">&lt;</span></span><span> </span><span class="annot"><span class="annottext">ShortByteString -&gt; Int
+</span><span class="hs-identifier hs-var">SBS.length</span></span><span> </span><span class="annot"><span class="annottext">ShortByteString
+</span><a href="#local-6989586621680016331"><span class="hs-identifier hs-var">sbs</span></a></span><span>
+</span><span id="line-136"></span><span>    </span><span class="hs-keyword">then</span><span> </span><span class="annot"><span class="annottext">(Int, Word8) -&gt; Maybe (Int, Word8)
+forall a. a -&gt; Maybe a
+</span><span class="hs-identifier hs-var">Just</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621680016332"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">1</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">ShortByteString -&gt; Int -&gt; Word8
+</span><span class="hs-identifier hs-var">SBS.index</span></span><span> </span><span class="annot"><span class="annottext">ShortByteString
+</span><a href="#local-6989586621680016331"><span class="hs-identifier hs-var">sbs</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621680016332"><span class="hs-identifier hs-var">i</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-137"></span><span>    </span><span class="hs-keyword">else</span><span> </span><span class="annot"><span class="annottext">Maybe (Int, Word8)
+forall a. Maybe a
+</span><span class="hs-identifier hs-var">Nothing</span></span><span>
+</span><span id="line-138"></span><span>
+</span><span id="line-139"></span><span class="annot"><a href="Shelley.Spec.Ledger.CompactAddr.html#peekWord8"><span class="hs-identifier hs-type">peekWord8</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Shelley.Spec.Ledger.CompactAddr.html#GetShort"><span class="hs-identifier hs-type">GetShort</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Word8</span></span><span>
+</span><span id="line-140"></span><span id="peekWord8"><span class="annot"><span class="annottext">peekWord8 :: GetShort Word8
+</span><a href="Shelley.Spec.Ledger.CompactAddr.html#peekWord8"><span class="hs-identifier hs-var hs-var">peekWord8</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(Int -&gt; ShortByteString -&gt; Maybe (Int, Word8)) -&gt; GetShort Word8
+forall a. (Int -&gt; ShortByteString -&gt; Maybe (Int, a)) -&gt; GetShort a
+</span><a href="Shelley.Spec.Ledger.CompactAddr.html#GetShort"><span class="hs-identifier hs-var">GetShort</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; ShortByteString -&gt; Maybe (Int, Word8)
+</span><a href="#local-6989586621680016326"><span class="hs-identifier hs-var">peek</span></a></span><span>
+</span><span id="line-141"></span><span>  </span><span class="hs-keyword">where</span><span>
+</span><span id="line-142"></span><span>    </span><span id="local-6989586621680016326"><span class="annot"><span class="annottext">peek :: Int -&gt; ShortByteString -&gt; Maybe (Int, Word8)
+</span><a href="#local-6989586621680016326"><span class="hs-identifier hs-var hs-var">peek</span></a></span></span><span> </span><span id="local-6989586621680016325"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621680016325"><span class="hs-identifier hs-var">i</span></a></span></span><span> </span><span id="local-6989586621680016324"><span class="annot"><span class="annottext">ShortByteString
+</span><a href="#local-6989586621680016324"><span class="hs-identifier hs-var">sbs</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">if</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621680016325"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">&lt;</span></span><span> </span><span class="annot"><span class="annottext">ShortByteString -&gt; Int
+</span><span class="hs-identifier hs-var">SBS.length</span></span><span> </span><span class="annot"><span class="annottext">ShortByteString
+</span><a href="#local-6989586621680016324"><span class="hs-identifier hs-var">sbs</span></a></span><span> </span><span class="hs-keyword">then</span><span> </span><span class="annot"><span class="annottext">(Int, Word8) -&gt; Maybe (Int, Word8)
+forall a. a -&gt; Maybe a
+</span><span class="hs-identifier hs-var">Just</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621680016325"><span class="hs-identifier hs-var">i</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">ShortByteString -&gt; Int -&gt; Word8
+</span><span class="hs-identifier hs-var">SBS.index</span></span><span> </span><span class="annot"><span class="annottext">ShortByteString
+</span><a href="#local-6989586621680016324"><span class="hs-identifier hs-var">sbs</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621680016325"><span class="hs-identifier hs-var">i</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-keyword">else</span><span> </span><span class="annot"><span class="annottext">Maybe (Int, Word8)
+forall a. Maybe a
+</span><span class="hs-identifier hs-var">Nothing</span></span><span>
+</span><span id="line-143"></span><span>
+</span><span id="line-144"></span><span class="annot"><a href="Shelley.Spec.Ledger.CompactAddr.html#getRemainingAsByteString"><span class="hs-identifier hs-type">getRemainingAsByteString</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Shelley.Spec.Ledger.CompactAddr.html#GetShort"><span class="hs-identifier hs-type">GetShort</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">ByteString</span></span><span>
+</span><span id="line-145"></span><span id="getRemainingAsByteString"><span class="annot"><span class="annottext">getRemainingAsByteString :: GetShort ByteString
+</span><a href="Shelley.Spec.Ledger.CompactAddr.html#getRemainingAsByteString"><span class="hs-identifier hs-var hs-var">getRemainingAsByteString</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(Int -&gt; ShortByteString -&gt; Maybe (Int, ByteString))
+-&gt; GetShort ByteString
+forall a. (Int -&gt; ShortByteString -&gt; Maybe (Int, a)) -&gt; GetShort a
+</span><a href="Shelley.Spec.Ledger.CompactAddr.html#GetShort"><span class="hs-identifier hs-var">GetShort</span></a></span><span> </span><span class="annot"><span class="annottext">((Int -&gt; ShortByteString -&gt; Maybe (Int, ByteString))
+ -&gt; GetShort ByteString)
+-&gt; (Int -&gt; ShortByteString -&gt; Maybe (Int, ByteString))
+-&gt; GetShort ByteString
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621680016323"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621680016323"><span class="hs-identifier hs-var">i</span></a></span></span><span> </span><span id="local-6989586621680016322"><span class="annot"><span class="annottext">ShortByteString
+</span><a href="#local-6989586621680016322"><span class="hs-identifier hs-var">sbs</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-146"></span><span>  </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621680016321"><span class="annot"><span class="annottext">l :: Int
+</span><a href="#local-6989586621680016321"><span class="hs-identifier hs-var hs-var">l</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">ShortByteString -&gt; Int
+</span><span class="hs-identifier hs-var">SBS.length</span></span><span> </span><span class="annot"><span class="annottext">ShortByteString
+</span><a href="#local-6989586621680016322"><span class="hs-identifier hs-var">sbs</span></a></span><span>
+</span><span id="line-147"></span><span>   </span><span class="hs-keyword">in</span><span> </span><span class="hs-keyword">if</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621680016323"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">&lt;</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621680016321"><span class="hs-identifier hs-var">l</span></a></span><span>
+</span><span id="line-148"></span><span>        </span><span class="hs-keyword">then</span><span> </span><span class="annot"><span class="annottext">(Int, ByteString) -&gt; Maybe (Int, ByteString)
+forall a. a -&gt; Maybe a
+</span><span class="hs-identifier hs-var">Just</span></span><span> </span><span class="annot"><span class="annottext">((Int, ByteString) -&gt; Maybe (Int, ByteString))
+-&gt; (Int, ByteString) -&gt; Maybe (Int, ByteString)
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621680016321"><span class="hs-identifier hs-var">l</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">ShortByteString -&gt; ByteString
+</span><span class="hs-identifier hs-var">SBS.fromShort</span></span><span> </span><span class="annot"><span class="annottext">(ShortByteString -&gt; ByteString) -&gt; ShortByteString -&gt; ByteString
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">ShortByteString -&gt; Int -&gt; Int -&gt; ShortByteString
+</span><a href="Shelley.Spec.Ledger.CompactAddr.html#substring"><span class="hs-identifier hs-var">substring</span></a></span><span> </span><span class="annot"><span class="annottext">ShortByteString
+</span><a href="#local-6989586621680016322"><span class="hs-identifier hs-var">sbs</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621680016323"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621680016321"><span class="hs-identifier hs-var">l</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-149"></span><span>        </span><span class="hs-keyword">else</span><span> </span><span class="annot"><span class="annottext">Maybe (Int, ByteString)
+forall a. Maybe a
+</span><span class="hs-identifier hs-var">Nothing</span></span><span>
+</span><span id="line-150"></span><span>
+</span><span id="line-151"></span><span class="annot"><a href="Shelley.Spec.Ledger.CompactAddr.html#skipHash"><span class="hs-identifier hs-type">skipHash</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-keyword">forall</span><span> </span><span id="local-6989586621680016601"><span class="annot"><a href="#local-6989586621680016601"><span class="hs-identifier hs-type">proxy</span></a></span></span><span> </span><span id="local-6989586621680016603"><span class="annot"><a href="#local-6989586621680016603"><span class="hs-identifier hs-type">h</span></a></span></span><span class="hs-operator">.</span><span> </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-crypto-class-2.0.0/noopt/doc/html/cardano-crypto-class/src"><span class="hs-identifier hs-type">Hash.HashAlgorithm</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680016603"><span class="hs-identifier hs-type">h</span></a></span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="#local-6989586621680016601"><span class="hs-identifier hs-type">proxy</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680016603"><span class="hs-identifier hs-type">h</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Shelley.Spec.Ledger.CompactAddr.html#GetShort"><span class="hs-identifier hs-type">GetShort</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
+</span><span id="line-152"></span><span id="skipHash"><span class="annot"><span class="annottext">skipHash :: proxy h -&gt; GetShort ()
+</span><a href="Shelley.Spec.Ledger.CompactAddr.html#skipHash"><span class="hs-identifier hs-var hs-var">skipHash</span></a></span></span><span> </span><span id="local-6989586621680016319"><span class="annot"><span class="annottext">proxy h
+</span><a href="#local-6989586621680016319"><span class="hs-identifier hs-var">p</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; GetShort ()
+</span><a href="Shelley.Spec.Ledger.CompactAddr.html#skip"><span class="hs-identifier hs-var">skip</span></a></span><span> </span><span class="annot"><span class="annottext">(Int -&gt; GetShort ()) -&gt; (Word -&gt; Int) -&gt; Word -&gt; GetShort ()
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Word -&gt; Int
+forall a b. (Integral a, Num b) =&gt; a -&gt; b
+</span><span class="hs-identifier hs-var">fromIntegral</span></span><span> </span><span class="annot"><span class="annottext">(Word -&gt; GetShort ()) -&gt; Word -&gt; GetShort ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">proxy h -&gt; Word
+forall h (proxy :: * -&gt; *). HashAlgorithm h =&gt; proxy h -&gt; Word
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-crypto-class-2.0.0/noopt/doc/html/cardano-crypto-class/src"><span class="hs-identifier hs-var">Hash.sizeHash</span></a></span><span> </span><span class="annot"><span class="annottext">proxy h
+</span><a href="#local-6989586621680016319"><span class="hs-identifier hs-var">p</span></a></span><span>
+</span><span id="line-153"></span><span>
+</span><span id="line-154"></span><span class="annot"><a href="Shelley.Spec.Ledger.CompactAddr.html#getHash"><span class="hs-identifier hs-type">getHash</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-keyword">forall</span><span> </span><span id="local-6989586621680016489"><span class="annot"><a href="#local-6989586621680016489"><span class="hs-identifier hs-type">a</span></a></span></span><span> </span><span id="local-6989586621680016490"><span class="annot"><a href="#local-6989586621680016490"><span class="hs-identifier hs-type">h</span></a></span></span><span class="hs-operator">.</span><span> </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-crypto-class-2.0.0/noopt/doc/html/cardano-crypto-class/src"><span class="hs-identifier hs-type">Hash.HashAlgorithm</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680016490"><span class="hs-identifier hs-type">h</span></a></span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Shelley.Spec.Ledger.CompactAddr.html#GetShort"><span class="hs-identifier hs-type">GetShort</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-crypto-class-2.0.0/noopt/doc/html/cardano-crypto-class/src"><span class="hs-identifier hs-type">Hash.Hash</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680016490"><span class="hs-identifier hs-type">h</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680016489"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-155"></span><span id="getHash"><span class="annot"><span class="annottext">getHash :: GetShort (Hash h a)
+</span><a href="Shelley.Spec.Ledger.CompactAddr.html#getHash"><span class="hs-identifier hs-var hs-var">getHash</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(Int -&gt; ShortByteString -&gt; Maybe (Int, Hash h a))
+-&gt; GetShort (Hash h a)
+forall a. (Int -&gt; ShortByteString -&gt; Maybe (Int, a)) -&gt; GetShort a
+</span><a href="Shelley.Spec.Ledger.CompactAddr.html#GetShort"><span class="hs-identifier hs-var">GetShort</span></a></span><span> </span><span class="annot"><span class="annottext">((Int -&gt; ShortByteString -&gt; Maybe (Int, Hash h a))
+ -&gt; GetShort (Hash h a))
+-&gt; (Int -&gt; ShortByteString -&gt; Maybe (Int, Hash h a))
+-&gt; GetShort (Hash h a)
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621680016315"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621680016315"><span class="hs-identifier hs-var">i</span></a></span></span><span> </span><span id="local-6989586621680016314"><span class="annot"><span class="annottext">ShortByteString
+</span><a href="#local-6989586621680016314"><span class="hs-identifier hs-var">sbs</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-156"></span><span>  </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621680016313"><span class="annot"><span class="annottext">hashLen :: Word
+</span><a href="#local-6989586621680016313"><span class="hs-identifier hs-var hs-var">hashLen</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[h] -&gt; Word
+forall h (proxy :: * -&gt; *). HashAlgorithm h =&gt; proxy h -&gt; Word
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-crypto-class-2.0.0/noopt/doc/html/cardano-crypto-class/src"><span class="hs-identifier hs-var">Hash.sizeHash</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">[</span><span class="hs-special">]</span><span> </span><span class="hs-glyph">@</span><span class="annot"><a href="#local-6989586621680016490"><span class="hs-identifier hs-type">h</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-157"></span><span>      </span><span id="local-6989586621680016312"><span class="annot"><span class="annottext">offsetStop :: Int
+</span><a href="#local-6989586621680016312"><span class="hs-identifier hs-var hs-var">offsetStop</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621680016315"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="annottext">Word -&gt; Int
+forall a b. (Integral a, Num b) =&gt; a -&gt; b
+</span><span class="hs-identifier hs-var">fromIntegral</span></span><span> </span><span class="annot"><span class="annottext">Word
+</span><a href="#local-6989586621680016313"><span class="hs-identifier hs-var">hashLen</span></a></span><span>
+</span><span id="line-158"></span><span>   </span><span class="hs-keyword">in</span><span> </span><span class="hs-keyword">if</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621680016312"><span class="hs-identifier hs-var">offsetStop</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">&lt;=</span></span><span> </span><span class="annot"><span class="annottext">ShortByteString -&gt; Int
+</span><span class="hs-identifier hs-var">SBS.length</span></span><span> </span><span class="annot"><span class="annottext">ShortByteString
+</span><a href="#local-6989586621680016314"><span class="hs-identifier hs-var">sbs</span></a></span><span>
+</span><span id="line-159"></span><span>        </span><span class="hs-keyword">then</span><span> </span><span class="annot"><span class="annottext">(Int, Hash h a) -&gt; Maybe (Int, Hash h a)
+forall a. a -&gt; Maybe a
+</span><span class="hs-identifier hs-var">Just</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621680016312"><span class="hs-identifier hs-var">offsetStop</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">ShortByteString -&gt; Hash h a
+forall h a. ShortByteString -&gt; Hash h a
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-crypto-class-2.0.0/noopt/doc/html/cardano-crypto-class/src"><span class="hs-identifier hs-var">Hash.UnsafeHash</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">ShortByteString -&gt; Int -&gt; Int -&gt; ShortByteString
+</span><a href="Shelley.Spec.Ledger.CompactAddr.html#substring"><span class="hs-identifier hs-var">substring</span></a></span><span> </span><span class="annot"><span class="annottext">ShortByteString
+</span><a href="#local-6989586621680016314"><span class="hs-identifier hs-var">sbs</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621680016315"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621680016312"><span class="hs-identifier hs-var">offsetStop</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-160"></span><span>        </span><span class="hs-keyword">else</span><span> </span><span class="annot"><span class="annottext">Maybe (Int, Hash h a)
+forall a. Maybe a
+</span><span class="hs-identifier hs-var">Nothing</span></span><span>
+</span><span id="line-161"></span><span>
+</span><span id="line-162"></span><span class="hs-comment">-- start is the first index copied</span><span>
+</span><span id="line-163"></span><span class="hs-comment">-- stop is the index after the last index copied</span><span>
+</span><span id="line-164"></span><span class="annot"><a href="Shelley.Spec.Ledger.CompactAddr.html#substring"><span class="hs-identifier hs-type">substring</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">ShortByteString</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">ShortByteString</span></span><span>
+</span><span id="line-165"></span><span id="substring"><span class="annot"><span class="annottext">substring :: ShortByteString -&gt; Int -&gt; Int -&gt; ShortByteString
+</span><a href="Shelley.Spec.Ledger.CompactAddr.html#substring"><span class="hs-identifier hs-var hs-var">substring</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">SBS</span></span><span> </span><span id="local-6989586621680016309"><span class="annot"><span class="annottext">ByteArray#
+</span><a href="#local-6989586621680016309"><span class="hs-identifier hs-var">ba</span></a></span></span><span class="hs-special">)</span><span> </span><span id="local-6989586621680016308"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621680016308"><span class="hs-identifier hs-var">start</span></a></span></span><span> </span><span id="local-6989586621680016307"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621680016307"><span class="hs-identifier hs-var">stop</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-166"></span><span>  </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">ByteArray -&gt; Int -&gt; Int -&gt; ByteArray
+</span><span class="hs-identifier hs-var">BA.cloneByteArray</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">ByteArray# -&gt; ByteArray
+</span><span class="hs-identifier hs-var">BA.ByteArray</span></span><span> </span><span class="annot"><span class="annottext">ByteArray#
+</span><a href="#local-6989586621680016309"><span class="hs-identifier hs-var">ba</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621680016308"><span class="hs-identifier hs-var">start</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621680016307"><span class="hs-identifier hs-var">stop</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-glyph hs-var">-</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621680016308"><span class="hs-identifier hs-var">start</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-keyword">of</span><span>
+</span><span id="line-167"></span><span>    </span><span class="annot"><span class="hs-identifier hs-type">BA.ByteArray</span></span><span> </span><span id="local-6989586621680016304"><span class="annot"><span class="annottext">ByteArray#
+</span><a href="#local-6989586621680016304"><span class="hs-identifier hs-var">ba'</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">ByteArray# -&gt; ShortByteString
+</span><span class="hs-identifier hs-var">SBS</span></span><span> </span><span class="annot"><span class="annottext">ByteArray#
+</span><a href="#local-6989586621680016304"><span class="hs-identifier hs-var">ba'</span></a></span><span>
+</span><span id="line-168"></span><span>
+</span><span id="line-169"></span><span class="annot"><a href="Shelley.Spec.Ledger.CompactAddr.html#skip"><span class="hs-identifier hs-type">skip</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Shelley.Spec.Ledger.CompactAddr.html#GetShort"><span class="hs-identifier hs-type">GetShort</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
+</span><span id="line-170"></span><span id="skip"><span class="annot"><span class="annottext">skip :: Int -&gt; GetShort ()
+</span><a href="Shelley.Spec.Ledger.CompactAddr.html#skip"><span class="hs-identifier hs-var hs-var">skip</span></a></span></span><span> </span><span id="local-6989586621680016303"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621680016303"><span class="hs-identifier hs-var">n</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(Int -&gt; ShortByteString -&gt; Maybe (Int, ())) -&gt; GetShort ()
+forall a. (Int -&gt; ShortByteString -&gt; Maybe (Int, a)) -&gt; GetShort a
+</span><a href="Shelley.Spec.Ledger.CompactAddr.html#GetShort"><span class="hs-identifier hs-var">GetShort</span></a></span><span> </span><span class="annot"><span class="annottext">((Int -&gt; ShortByteString -&gt; Maybe (Int, ())) -&gt; GetShort ())
+-&gt; (Int -&gt; ShortByteString -&gt; Maybe (Int, ())) -&gt; GetShort ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621680016302"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621680016302"><span class="hs-identifier hs-var">i</span></a></span></span><span> </span><span id="local-6989586621680016301"><span class="annot"><span class="annottext">ShortByteString
+</span><a href="#local-6989586621680016301"><span class="hs-identifier hs-var">sbs</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-171"></span><span>  </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621680016300"><span class="annot"><span class="annottext">offsetStop :: Int
+</span><a href="#local-6989586621680016300"><span class="hs-identifier hs-var hs-var">offsetStop</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621680016302"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621680016303"><span class="hs-identifier hs-var">n</span></a></span><span>
+</span><span id="line-172"></span><span>   </span><span class="hs-keyword">in</span><span> </span><span class="hs-keyword">if</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621680016300"><span class="hs-identifier hs-var">offsetStop</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">&lt;=</span></span><span> </span><span class="annot"><span class="annottext">ShortByteString -&gt; Int
+</span><span class="hs-identifier hs-var">SBS.length</span></span><span> </span><span class="annot"><span class="annottext">ShortByteString
+</span><a href="#local-6989586621680016301"><span class="hs-identifier hs-var">sbs</span></a></span><span>
+</span><span id="line-173"></span><span>        </span><span class="hs-keyword">then</span><span> </span><span class="annot"><span class="annottext">(Int, ()) -&gt; Maybe (Int, ())
+forall a. a -&gt; Maybe a
+</span><span class="hs-identifier hs-var">Just</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621680016300"><span class="hs-identifier hs-var">offsetStop</span></a></span><span class="hs-special">,</span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-174"></span><span>        </span><span class="hs-keyword">else</span><span> </span><span class="annot"><span class="annottext">Maybe (Int, ())
+forall a. Maybe a
+</span><span class="hs-identifier hs-var">Nothing</span></span><span>
+</span><span id="line-175"></span><span>
+</span><span id="line-176"></span><span class="annot"><a href="Shelley.Spec.Ledger.CompactAddr.html#getWord7s"><span class="hs-identifier hs-type">getWord7s</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Shelley.Spec.Ledger.CompactAddr.html#GetShort"><span class="hs-identifier hs-type">GetShort</span></a></span><span> </span><span class="hs-special">[</span><span class="annot"><a href="Shelley.Spec.Ledger.Address.html#Word7"><span class="hs-identifier hs-type">Word7</span></a></span><span class="hs-special">]</span><span>
+</span><span id="line-177"></span><span id="getWord7s"><span class="annot"><span class="annottext">getWord7s :: GetShort [Word7]
+</span><a href="Shelley.Spec.Ledger.CompactAddr.html#getWord7s"><span class="hs-identifier hs-var hs-var">getWord7s</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-178"></span><span>  </span><span id="local-6989586621680016298"><span class="annot"><span class="annottext">Word8
+</span><a href="#local-6989586621680016298"><span class="hs-identifier hs-var">next</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">GetShort Word8
+</span><a href="Shelley.Spec.Ledger.CompactAddr.html#getWord"><span class="hs-identifier hs-var">getWord</span></a></span><span>
+</span><span id="line-179"></span><span>  </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">Word8
+</span><a href="#local-6989586621680016298"><span class="hs-identifier hs-var">next</span></a></span><span> </span><span class="annot"><span class="annottext">Word8 -&gt; Word8 -&gt; Word8
+forall a. Bits a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">.&amp;.</span></span><span> </span><span class="annot"><span class="annottext">Word8
+</span><span class="hs-number">0x80</span></span><span> </span><span class="hs-keyword">of</span><span> </span><span class="hs-comment">-- 0x80 ~ 0b10000000</span><span>
+</span><span id="line-180"></span><span>  </span><span class="hs-comment">-- is the high bit set?</span><span>
+</span><span id="line-181"></span><span>  </span><span class="hs-comment">-- if so, grab more words</span><span>
+</span><span id="line-182"></span><span>    </span><span class="annot"><span class="annottext">Word8
+</span><span class="hs-number">0x80</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">(</span><span class="hs-glyph">:</span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Word8 -&gt; Word7
+</span><a href="Shelley.Spec.Ledger.Address.html#toWord7"><span class="hs-identifier hs-var">toWord7</span></a></span><span> </span><span class="annot"><span class="annottext">Word8
+</span><a href="#local-6989586621680016298"><span class="hs-identifier hs-var">next</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">([Word7] -&gt; [Word7]) -&gt; GetShort [Word7] -&gt; GetShort [Word7]
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">GetShort [Word7]
+</span><a href="Shelley.Spec.Ledger.CompactAddr.html#getWord7s"><span class="hs-identifier hs-var">getWord7s</span></a></span><span>
+</span><span id="line-183"></span><span>    </span><span class="hs-comment">-- otherwise, this is the last one</span><span>
+</span><span id="line-184"></span><span>    </span><span class="annot"><span class="annottext">Word8
+</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">[Word7] -&gt; GetShort [Word7]
+forall (f :: * -&gt; *) a. Applicative f =&gt; a -&gt; f a
+</span><span class="hs-identifier hs-var">pure</span></span><span> </span><span class="hs-special">[</span><span class="annot"><span class="annottext">Word8 -&gt; Word7
+</span><a href="Shelley.Spec.Ledger.Address.html#Word7"><span class="hs-identifier hs-var">Word7</span></a></span><span> </span><span class="annot"><span class="annottext">Word8
+</span><a href="#local-6989586621680016298"><span class="hs-identifier hs-var">next</span></a></span><span class="hs-special">]</span><span>
+</span><span id="line-185"></span><span>
+</span><span id="line-186"></span><span class="annot"><a href="Shelley.Spec.Ledger.CompactAddr.html#getVariableLengthNat"><span class="hs-identifier hs-type">getVariableLengthNat</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Shelley.Spec.Ledger.CompactAddr.html#GetShort"><span class="hs-identifier hs-type">GetShort</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Natural</span></span><span>
+</span><span id="line-187"></span><span id="getVariableLengthNat"><span class="annot"><span class="annottext">getVariableLengthNat :: GetShort Natural
+</span><a href="Shelley.Spec.Ledger.CompactAddr.html#getVariableLengthNat"><span class="hs-identifier hs-var hs-var">getVariableLengthNat</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[Word7] -&gt; Natural
+</span><a href="Shelley.Spec.Ledger.Address.html#word7sToNat"><span class="hs-identifier hs-var">word7sToNat</span></a></span><span> </span><span class="annot"><span class="annottext">([Word7] -&gt; Natural) -&gt; GetShort [Word7] -&gt; GetShort Natural
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">GetShort [Word7]
+</span><a href="Shelley.Spec.Ledger.CompactAddr.html#getWord7s"><span class="hs-identifier hs-var">getWord7s</span></a></span><span>
+</span><span id="line-188"></span><span>
+</span><span id="line-189"></span><span class="annot"><a href="Shelley.Spec.Ledger.CompactAddr.html#getPtr"><span class="hs-identifier hs-type">getPtr</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Shelley.Spec.Ledger.CompactAddr.html#GetShort"><span class="hs-identifier hs-type">GetShort</span></a></span><span> </span><span class="annot"><a href="Shelley.Spec.Ledger.Credential.html#Ptr"><span class="hs-identifier hs-type">Ptr</span></a></span><span>
+</span><span id="line-190"></span><span id="getPtr"><span class="annot"><span class="annottext">getPtr :: GetShort Ptr
+</span><a href="Shelley.Spec.Ledger.CompactAddr.html#getPtr"><span class="hs-identifier hs-var hs-var">getPtr</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-191"></span><span>  </span><span class="annot"><span class="annottext">SlotNo -&gt; Natural -&gt; Natural -&gt; Ptr
+</span><a href="Shelley.Spec.Ledger.Credential.html#Ptr"><span class="hs-identifier hs-var">Ptr</span></a></span><span> </span><span class="annot"><span class="annottext">(SlotNo -&gt; Natural -&gt; Natural -&gt; Ptr)
+-&gt; GetShort SlotNo -&gt; GetShort (Natural -&gt; Natural -&gt; Ptr)
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Word64 -&gt; SlotNo
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-slotting-0.1.0.0/noopt/doc/html/cardano-slotting/src"><span class="hs-identifier hs-var">SlotNo</span></a></span><span> </span><span class="annot"><span class="annottext">(Word64 -&gt; SlotNo) -&gt; (Natural -&gt; Word64) -&gt; Natural -&gt; SlotNo
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Natural -&gt; Word64
+forall a b. (Integral a, Num b) =&gt; a -&gt; b
+</span><span class="hs-identifier hs-var">fromIntegral</span></span><span> </span><span class="annot"><span class="annottext">(Natural -&gt; SlotNo) -&gt; GetShort Natural -&gt; GetShort SlotNo
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">GetShort Natural
+</span><a href="Shelley.Spec.Ledger.CompactAddr.html#getVariableLengthNat"><span class="hs-identifier hs-var">getVariableLengthNat</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-192"></span><span>    </span><span class="annot"><span class="annottext">GetShort (Natural -&gt; Natural -&gt; Ptr)
+-&gt; GetShort Natural -&gt; GetShort (Natural -&gt; Ptr)
+forall (f :: * -&gt; *) a b. Applicative f =&gt; f (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;*&gt;</span></span><span> </span><span class="annot"><span class="annottext">GetShort Natural
+</span><a href="Shelley.Spec.Ledger.CompactAddr.html#getVariableLengthNat"><span class="hs-identifier hs-var">getVariableLengthNat</span></a></span><span>
+</span><span id="line-193"></span><span>    </span><span class="annot"><span class="annottext">GetShort (Natural -&gt; Ptr) -&gt; GetShort Natural -&gt; GetShort Ptr
+forall (f :: * -&gt; *) a b. Applicative f =&gt; f (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;*&gt;</span></span><span> </span><span class="annot"><span class="annottext">GetShort Natural
+</span><a href="Shelley.Spec.Ledger.CompactAddr.html#getVariableLengthNat"><span class="hs-identifier hs-var">getVariableLengthNat</span></a></span><span>
+</span><span id="line-194"></span><span>
+</span><span id="line-195"></span><span id="local-6989586621680016291"><span id="local-6989586621680016292"><span class="annot"><a href="Shelley.Spec.Ledger.CompactAddr.html#getKeyHash"><span class="hs-identifier hs-type">getKeyHash</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cardano.Ledger.Era.html#Era"><span class="hs-identifier hs-type">Era</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680016292"><span class="hs-identifier hs-type">era</span></a></span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Shelley.Spec.Ledger.CompactAddr.html#GetShort"><span class="hs-identifier hs-type">GetShort</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Shelley.Spec.Ledger.Credential.html#Credential"><span class="hs-identifier hs-type">Credential</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680016291"><span class="hs-identifier hs-type">kr</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680016292"><span class="hs-identifier hs-type">era</span></a></span><span class="hs-special">)</span></span></span><span>
+</span><span id="line-196"></span><span id="getKeyHash"><span class="annot"><span class="annottext">getKeyHash :: GetShort (Credential kr era)
+</span><a href="Shelley.Spec.Ledger.CompactAddr.html#getKeyHash"><span class="hs-identifier hs-var hs-var">getKeyHash</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">KeyHash kr (Crypto era) -&gt; Credential kr era
+forall (kr :: KeyRole) era.
+KeyHash kr (Crypto era) -&gt; Credential kr era
+</span><a href="Shelley.Spec.Ledger.Credential.html#KeyHashObj"><span class="hs-identifier hs-var">KeyHashObj</span></a></span><span> </span><span class="annot"><span class="annottext">(KeyHash kr (Crypto era) -&gt; Credential kr era)
+-&gt; (Hash (ADDRHASH (Crypto era)) (VerKeyDSIGN (DSIGN (Crypto era)))
+    -&gt; KeyHash kr (Crypto era))
+-&gt; Hash (ADDRHASH (Crypto era)) (VerKeyDSIGN (DSIGN (Crypto era)))
+-&gt; Credential kr era
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Hash (ADDRHASH (Crypto era)) (VerKeyDSIGN (DSIGN (Crypto era)))
+-&gt; KeyHash kr (Crypto era)
+forall (discriminator :: KeyRole) crypto.
+Hash (ADDRHASH crypto) (VerKeyDSIGN (DSIGN crypto))
+-&gt; KeyHash discriminator crypto
+</span><a href="Shelley.Spec.Ledger.Keys.html#KeyHash"><span class="hs-identifier hs-var">KeyHash</span></a></span><span> </span><span class="annot"><span class="annottext">(Hash (ADDRHASH (Crypto era)) (VerKeyDSIGN (DSIGN (Crypto era)))
+ -&gt; Credential kr era)
+-&gt; GetShort
+     (Hash (ADDRHASH (Crypto era)) (VerKeyDSIGN (DSIGN (Crypto era))))
+-&gt; GetShort (Credential kr era)
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">GetShort
+  (Hash (ADDRHASH (Crypto era)) (VerKeyDSIGN (DSIGN (Crypto era))))
+forall a h. HashAlgorithm h =&gt; GetShort (Hash h a)
+</span><a href="Shelley.Spec.Ledger.CompactAddr.html#getHash"><span class="hs-identifier hs-var">getHash</span></a></span><span>
+</span><span id="line-197"></span><span>
+</span><span id="line-198"></span><span id="local-6989586621680016479"><span id="local-6989586621680016480"><span class="annot"><a href="Shelley.Spec.Ledger.CompactAddr.html#getScriptHash"><span class="hs-identifier hs-type">getScriptHash</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cardano.Ledger.Era.html#Era"><span class="hs-identifier hs-type">Era</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680016480"><span class="hs-identifier hs-type">era</span></a></span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Shelley.Spec.Ledger.CompactAddr.html#GetShort"><span class="hs-identifier hs-type">GetShort</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Shelley.Spec.Ledger.Credential.html#Credential"><span class="hs-identifier hs-type">Credential</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680016479"><span class="hs-identifier hs-type">kr</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680016480"><span class="hs-identifier hs-type">era</span></a></span><span class="hs-special">)</span></span></span><span>
+</span><span id="line-199"></span><span id="getScriptHash"><span class="annot"><span class="annottext">getScriptHash :: GetShort (Credential kr era)
+</span><a href="Shelley.Spec.Ledger.CompactAddr.html#getScriptHash"><span class="hs-identifier hs-var hs-var">getScriptHash</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">ScriptHash era -&gt; Credential kr era
+forall (kr :: KeyRole) era. ScriptHash era -&gt; Credential kr era
+</span><a href="Shelley.Spec.Ledger.Credential.html#ScriptHashObj"><span class="hs-identifier hs-var">ScriptHashObj</span></a></span><span> </span><span class="annot"><span class="annottext">(ScriptHash era -&gt; Credential kr era)
+-&gt; (Hash (ADDRHASH (Crypto era)) (Script era) -&gt; ScriptHash era)
+-&gt; Hash (ADDRHASH (Crypto era)) (Script era)
+-&gt; Credential kr era
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Hash (ADDRHASH (Crypto era)) (Script era) -&gt; ScriptHash era
+forall era.
+Hash (ADDRHASH (Crypto era)) (Script era) -&gt; ScriptHash era
+</span><a href="Shelley.Spec.Ledger.Scripts.html#ScriptHash"><span class="hs-identifier hs-var">ScriptHash</span></a></span><span> </span><span class="annot"><span class="annottext">(Hash (ADDRHASH (Crypto era)) (Script era) -&gt; Credential kr era)
+-&gt; GetShort (Hash (ADDRHASH (Crypto era)) (Script era))
+-&gt; GetShort (Credential kr era)
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">GetShort (Hash (ADDRHASH (Crypto era)) (Script era))
+forall a h. HashAlgorithm h =&gt; GetShort (Hash h a)
+</span><a href="Shelley.Spec.Ledger.CompactAddr.html#getHash"><span class="hs-identifier hs-var">getHash</span></a></span><span>
+</span><span id="line-200"></span><span>
+</span><span id="line-201"></span><span id="local-6989586621680016599"><span class="annot"><a href="Shelley.Spec.Ledger.CompactAddr.html#getStakeReference"><span class="hs-identifier hs-type">getStakeReference</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cardano.Ledger.Era.html#Era"><span class="hs-identifier hs-type">Era</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680016599"><span class="hs-identifier hs-type">era</span></a></span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Word8</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Shelley.Spec.Ledger.CompactAddr.html#GetShort"><span class="hs-identifier hs-type">GetShort</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Shelley.Spec.Ledger.Credential.html#StakeReference"><span class="hs-identifier hs-type">StakeReference</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680016599"><span class="hs-identifier hs-type">era</span></a></span><span class="hs-special">)</span></span><span>
+</span><span id="line-202"></span><span id="getStakeReference"><span class="annot"><span class="annottext">getStakeReference :: Word8 -&gt; GetShort (StakeReference era)
+</span><a href="Shelley.Spec.Ledger.CompactAddr.html#getStakeReference"><span class="hs-identifier hs-var hs-var">getStakeReference</span></a></span></span><span> </span><span id="local-6989586621680016286"><span class="annot"><span class="annottext">Word8
+</span><a href="#local-6989586621680016286"><span class="hs-identifier hs-var">header</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">Word8 -&gt; Int -&gt; Bool
+forall a. Bits a =&gt; a -&gt; Int -&gt; Bool
+</span><span class="hs-identifier hs-var">testBit</span></span><span> </span><span class="annot"><span class="annottext">Word8
+</span><a href="#local-6989586621680016286"><span class="hs-identifier hs-var">header</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="Shelley.Spec.Ledger.Address.html#notBaseAddr"><span class="hs-identifier hs-var">notBaseAddr</span></a></span><span> </span><span class="hs-keyword">of</span><span>
+</span><span id="line-203"></span><span>  </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">True</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">Word8 -&gt; Int -&gt; Bool
+forall a. Bits a =&gt; a -&gt; Int -&gt; Bool
+</span><span class="hs-identifier hs-var">testBit</span></span><span> </span><span class="annot"><span class="annottext">Word8
+</span><a href="#local-6989586621680016286"><span class="hs-identifier hs-var">header</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="Shelley.Spec.Ledger.Address.html#isEnterpriseAddr"><span class="hs-identifier hs-var">isEnterpriseAddr</span></a></span><span> </span><span class="hs-keyword">of</span><span>
+</span><span id="line-204"></span><span>    </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">True</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">StakeReference era -&gt; GetShort (StakeReference era)
+forall (f :: * -&gt; *) a. Applicative f =&gt; a -&gt; f a
+</span><span class="hs-identifier hs-var">pure</span></span><span> </span><span class="annot"><span class="annottext">StakeReference era
+forall era. StakeReference era
+</span><a href="Shelley.Spec.Ledger.Credential.html#StakeRefNull"><span class="hs-identifier hs-var">StakeRefNull</span></a></span><span>
+</span><span id="line-205"></span><span>    </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">False</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Ptr -&gt; StakeReference era
+forall era. Ptr -&gt; StakeReference era
+</span><a href="Shelley.Spec.Ledger.Credential.html#StakeRefPtr"><span class="hs-identifier hs-var">StakeRefPtr</span></a></span><span> </span><span class="annot"><span class="annottext">(Ptr -&gt; StakeReference era)
+-&gt; GetShort Ptr -&gt; GetShort (StakeReference era)
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">GetShort Ptr
+</span><a href="Shelley.Spec.Ledger.CompactAddr.html#getPtr"><span class="hs-identifier hs-var">getPtr</span></a></span><span>
+</span><span id="line-206"></span><span>  </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">False</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">Word8 -&gt; Int -&gt; Bool
+forall a. Bits a =&gt; a -&gt; Int -&gt; Bool
+</span><span class="hs-identifier hs-var">testBit</span></span><span> </span><span class="annot"><span class="annottext">Word8
+</span><a href="#local-6989586621680016286"><span class="hs-identifier hs-var">header</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="Shelley.Spec.Ledger.Address.html#stakeCredIsScript"><span class="hs-identifier hs-var">stakeCredIsScript</span></a></span><span> </span><span class="hs-keyword">of</span><span>
+</span><span id="line-207"></span><span>    </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">True</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">StakeCredential era -&gt; StakeReference era
+forall era. StakeCredential era -&gt; StakeReference era
+</span><a href="Shelley.Spec.Ledger.Credential.html#StakeRefBase"><span class="hs-identifier hs-var">StakeRefBase</span></a></span><span> </span><span class="annot"><span class="annottext">(StakeCredential era -&gt; StakeReference era)
+-&gt; GetShort (StakeCredential era) -&gt; GetShort (StakeReference era)
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">GetShort (StakeCredential era)
+forall era (kr :: KeyRole). Era era =&gt; GetShort (Credential kr era)
+</span><a href="Shelley.Spec.Ledger.CompactAddr.html#getScriptHash"><span class="hs-identifier hs-var">getScriptHash</span></a></span><span>
+</span><span id="line-208"></span><span>    </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">False</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">StakeCredential era -&gt; StakeReference era
+forall era. StakeCredential era -&gt; StakeReference era
+</span><a href="Shelley.Spec.Ledger.Credential.html#StakeRefBase"><span class="hs-identifier hs-var">StakeRefBase</span></a></span><span> </span><span class="annot"><span class="annottext">(StakeCredential era -&gt; StakeReference era)
+-&gt; GetShort (StakeCredential era) -&gt; GetShort (StakeReference era)
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">GetShort (StakeCredential era)
+forall era (kr :: KeyRole). Era era =&gt; GetShort (Credential kr era)
+</span><a href="Shelley.Spec.Ledger.CompactAddr.html#getKeyHash"><span class="hs-identifier hs-var">getKeyHash</span></a></span><span>
+</span><span id="line-209"></span><span>
+</span><span id="line-210"></span><span id="local-6989586621680016607"><span class="annot"><a href="Shelley.Spec.Ledger.CompactAddr.html#getPayCred"><span class="hs-identifier hs-type">getPayCred</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cardano.Ledger.Era.html#Era"><span class="hs-identifier hs-type">Era</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680016607"><span class="hs-identifier hs-type">era</span></a></span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Word8</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Shelley.Spec.Ledger.CompactAddr.html#GetShort"><span class="hs-identifier hs-type">GetShort</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Shelley.Spec.Ledger.Credential.html#PaymentCredential"><span class="hs-identifier hs-type">PaymentCredential</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680016607"><span class="hs-identifier hs-type">era</span></a></span><span class="hs-special">)</span></span><span>
+</span><span id="line-211"></span><span id="getPayCred"><span class="annot"><span class="annottext">getPayCred :: Word8 -&gt; GetShort (PaymentCredential era)
+</span><a href="Shelley.Spec.Ledger.CompactAddr.html#getPayCred"><span class="hs-identifier hs-var hs-var">getPayCred</span></a></span></span><span> </span><span id="local-6989586621680016282"><span class="annot"><span class="annottext">Word8
+</span><a href="#local-6989586621680016282"><span class="hs-identifier hs-var">header</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">Word8 -&gt; Int -&gt; Bool
+forall a. Bits a =&gt; a -&gt; Int -&gt; Bool
+</span><span class="hs-identifier hs-var">testBit</span></span><span> </span><span class="annot"><span class="annottext">Word8
+</span><a href="#local-6989586621680016282"><span class="hs-identifier hs-var">header</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="Shelley.Spec.Ledger.Address.html#payCredIsScript"><span class="hs-identifier hs-var">payCredIsScript</span></a></span><span> </span><span class="hs-keyword">of</span><span>
+</span><span id="line-212"></span><span>  </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">True</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">GetShort (PaymentCredential era)
+forall era (kr :: KeyRole). Era era =&gt; GetShort (Credential kr era)
+</span><a href="Shelley.Spec.Ledger.CompactAddr.html#getScriptHash"><span class="hs-identifier hs-var">getScriptHash</span></a></span><span>
+</span><span id="line-213"></span><span>  </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">False</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">GetShort (PaymentCredential era)
+forall era (kr :: KeyRole). Era era =&gt; GetShort (Credential kr era)
+</span><a href="Shelley.Spec.Ledger.CompactAddr.html#getKeyHash"><span class="hs-identifier hs-var">getKeyHash</span></a></span><span>
+</span><span id="line-214"></span></pre></body></html>

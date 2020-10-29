@@ -1,101 +1,216 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-pragma">{-# LANGUAGE DeriveAnyClass #-}</span><span>
-</span><a name="line-2"></a><span class="hs-pragma">{-# LANGUAGE DeriveGeneric  #-}</span><span>
-</span><a name="line-3"></a><span>
-</span><a name="line-4"></a><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Ouroboros.Consensus.HardFork.Combinator.State.Types</span><span> </span><span class="hs-special">(</span><span>
-</span><a name="line-5"></a><span>    </span><span class="hs-comment">-- * Main types</span><span>
-</span><a name="line-6"></a><span>    </span><a href="Ouroboros.Consensus.HardFork.Combinator.State.Types.html#HardForkState"><span class="hs-identifier hs-type">HardForkState</span></a><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
-</span><a name="line-7"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Ouroboros.Consensus.HardFork.Combinator.State.Types.html#Current"><span class="hs-identifier hs-type">Current</span></a><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
-</span><a name="line-8"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Ouroboros.Consensus.HardFork.Combinator.State.Types.html#Past"><span class="hs-identifier hs-type">Past</span></a><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
-</span><a name="line-9"></a><span>    </span><span class="hs-comment">-- * Supporting types</span><span>
-</span><a name="line-10"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Ouroboros.Consensus.HardFork.Combinator.State.Types.html#Translate"><span class="hs-identifier hs-type">Translate</span></a><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
-</span><a name="line-11"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Ouroboros.Consensus.HardFork.Combinator.State.Types.html#TranslateForecast"><span class="hs-identifier hs-type">TranslateForecast</span></a><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
-</span><a name="line-12"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Ouroboros.Consensus.HardFork.Combinator.State.Types.html#TransitionInfo"><span class="hs-identifier hs-type">TransitionInfo</span></a><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
-</span><a name="line-13"></a><span>  </span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
-</span><a name="line-14"></a><span>
-</span><a name="line-15"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Prelude</span><span> </span><span class="hs-keyword">hiding</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-var">sequence</span><span class="hs-special">)</span><span>
-</span><a name="line-16"></a><span>
-</span><a name="line-17"></a><span class="hs-keyword">import</span><span>           </span><a href="Data.SOP.Strict.html"><span class="hs-identifier">Data.SOP.Strict</span></a><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">K</span><span class="hs-special">)</span><span>
-</span><a name="line-18"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">GHC.Generics</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Generic</span><span class="hs-special">)</span><span>
-</span><a name="line-19"></a><span>
-</span><a name="line-20"></a><span class="hs-keyword">import</span><span>           </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-prelude-0.1.0.0/noopt/doc/html/cardano-prelude/src/Cardano.Prelude.html"><span class="hs-identifier">Cardano.Prelude</span></a><span> </span><span class="hs-special">(</span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-prelude-0.1.0.0/noopt/doc/html/cardano-prelude/src/Cardano.Prelude.GHC.Heap.NormalForm.Classy.html#NoUnexpectedThunks"><span class="hs-identifier hs-type">NoUnexpectedThunks</span></a><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
-</span><a name="line-21"></a><span>
-</span><a name="line-22"></a><span class="hs-keyword">import</span><span>           </span><a href="Ouroboros.Consensus.Block.html"><span class="hs-identifier">Ouroboros.Consensus.Block</span></a><span>
-</span><a name="line-23"></a><span class="hs-keyword">import</span><span>           </span><a href="Ouroboros.Consensus.HardFork.History.html"><span class="hs-identifier">Ouroboros.Consensus.HardFork.History</span></a><span> </span><span class="hs-special">(</span><a href="Ouroboros.Consensus.HardFork.History.Summary.html#Bound"><span class="hs-identifier hs-type">Bound</span></a><span class="hs-special">)</span><span>
-</span><a name="line-24"></a><span class="hs-keyword">import</span><span>           </span><a href="Ouroboros.Consensus.Ticked.html"><span class="hs-identifier">Ouroboros.Consensus.Ticked</span></a><span>
-</span><a name="line-25"></a><span>
-</span><a name="line-26"></a><span class="hs-keyword">import</span><span>           </span><a href="Ouroboros.Consensus.HardFork.Combinator.Util.Telescope.html"><span class="hs-identifier">Ouroboros.Consensus.HardFork.Combinator.Util.Telescope</span></a><span>
-</span><a name="line-27"></a><span>                     </span><span class="hs-special">(</span><a href="Ouroboros.Consensus.HardFork.Combinator.Util.Telescope.html#Telescope"><span class="hs-identifier hs-type">Telescope</span></a><span class="hs-special">)</span><span>
-</span><a name="line-28"></a><span>
-</span><a name="line-29"></a><span class="hs-comment">{-------------------------------------------------------------------------------
+</span><span id="line-2"></span><span class="hs-pragma">{-# LANGUAGE DeriveGeneric  #-}</span><span>
+</span><span id="line-3"></span><span>
+</span><span id="line-4"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Ouroboros.Consensus.HardFork.Combinator.State.Types</span><span> </span><span class="hs-special">(</span><span>
+</span><span id="line-5"></span><span>    </span><span class="annot"><span class="hs-comment">-- * Main types</span></span><span>
+</span><span id="line-6"></span><span>    </span><span class="annot"><a href="Ouroboros.Consensus.HardFork.Combinator.State.Types.html#HardForkState"><span class="hs-identifier">HardForkState</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
+</span><span id="line-7"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.HardFork.Combinator.State.Types.html#Current"><span class="hs-identifier">Current</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
+</span><span id="line-8"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.HardFork.Combinator.State.Types.html#Past"><span class="hs-identifier">Past</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
+</span><span id="line-9"></span><span>    </span><span class="annot"><span class="hs-comment">-- * Supporting types</span></span><span>
+</span><span id="line-10"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.HardFork.Combinator.State.Types.html#Translate"><span class="hs-identifier">Translate</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
+</span><span id="line-11"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.HardFork.Combinator.State.Types.html#TranslateForecast"><span class="hs-identifier">TranslateForecast</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
+</span><span id="line-12"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.HardFork.Combinator.State.Types.html#TransitionInfo"><span class="hs-identifier">TransitionInfo</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
+</span><span id="line-13"></span><span>  </span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-14"></span><span>
+</span><span id="line-15"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><span class="hs-identifier">Prelude</span></span><span> </span><span class="hs-keyword">hiding</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">sequence</span></span><span class="hs-special">)</span><span>
+</span><span id="line-16"></span><span>
+</span><span id="line-17"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><span class="hs-identifier">Control.Monad.Except</span></span><span>
+</span><span id="line-18"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="Data.SOP.Strict.html"><span class="hs-identifier">Data.SOP.Strict</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">K</span></span><span class="hs-special">)</span><span>
+</span><span id="line-19"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><span class="hs-identifier">GHC.Generics</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Generic</span></span><span class="hs-special">)</span><span>
+</span><span id="line-20"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><span class="hs-identifier">NoThunks.Class</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">NoThunks</span></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-21"></span><span>
+</span><span id="line-22"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="Ouroboros.Consensus.Block.html"><span class="hs-identifier">Ouroboros.Consensus.Block</span></a></span><span>
+</span><span id="line-23"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="Ouroboros.Consensus.Forecast.html"><span class="hs-identifier">Ouroboros.Consensus.Forecast</span></a></span><span>
+</span><span id="line-24"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="Ouroboros.Consensus.HardFork.History.html"><span class="hs-identifier">Ouroboros.Consensus.HardFork.History</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Consensus.HardFork.History.Summary.html#Bound"><span class="hs-identifier">Bound</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-25"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="Ouroboros.Consensus.Ticked.html"><span class="hs-identifier">Ouroboros.Consensus.Ticked</span></a></span><span>
+</span><span id="line-26"></span><span>
+</span><span id="line-27"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="Ouroboros.Consensus.HardFork.Combinator.Util.Telescope.html"><span class="hs-identifier">Ouroboros.Consensus.HardFork.Combinator.Util.Telescope</span></a></span><span>
+</span><span id="line-28"></span><span>                     </span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Consensus.HardFork.Combinator.Util.Telescope.html#Telescope"><span class="hs-identifier">Telescope</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-29"></span><span>
+</span><span id="line-30"></span><span class="hs-comment">{-------------------------------------------------------------------------------
   Types
 -------------------------------------------------------------------------------}</span><span>
-</span><a name="line-32"></a><span>
-</span><a name="line-33"></a><span class="hs-comment">-- | Generic hard fork state</span><span>
-</span><a name="line-34"></a><span class="hs-comment">--</span><span>
-</span><a name="line-35"></a><span class="hs-comment">-- This is used both for the consensus state and the ledger state.</span><span>
-</span><a name="line-36"></a><span class="hs-keyword">newtype</span><span> </span><a name="HardForkState"><a href="Ouroboros.Consensus.HardFork.Combinator.State.Types.html#HardForkState"><span class="hs-identifier">HardForkState</span></a></a><span> </span><a name="local-6989586621679603255"><a href="#local-6989586621679603255"><span class="hs-identifier">f</span></a></a><span> </span><a name="local-6989586621679603256"><a href="#local-6989586621679603256"><span class="hs-identifier">xs</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><a name="HardForkState"><a href="Ouroboros.Consensus.HardFork.Combinator.State.Types.html#HardForkState"><span class="hs-identifier">HardForkState</span></a></a><span> </span><span class="hs-special">{</span><span>
-</span><a name="line-37"></a><span>      </span><a name="getHardForkState"><a href="Ouroboros.Consensus.HardFork.Combinator.State.Types.html#getHardForkState"><span class="hs-identifier">getHardForkState</span></a></a><span> </span><span class="hs-glyph">::</span><span> </span><a href="Ouroboros.Consensus.HardFork.Combinator.Util.Telescope.html#Telescope"><span class="hs-identifier hs-type">Telescope</span></a><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">K</span><span> </span><a href="Ouroboros.Consensus.HardFork.Combinator.State.Types.html#Past"><span class="hs-identifier hs-type">Past</span></a><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><a href="Ouroboros.Consensus.HardFork.Combinator.State.Types.html#Current"><span class="hs-identifier hs-type">Current</span></a><span> </span><a href="#local-6989586621679603255"><span class="hs-identifier hs-type">f</span></a><span class="hs-special">)</span><span> </span><a href="#local-6989586621679603256"><span class="hs-identifier hs-type">xs</span></a><span>
-</span><a name="line-38"></a><span>    </span><span class="hs-special">}</span><span>
-</span><a name="line-39"></a><span>
-</span><a name="line-40"></a><span class="hs-comment">-- | Information about the current era</span><span>
-</span><a name="line-41"></a><span class="hs-keyword">data</span><span> </span><a name="Current"><a href="Ouroboros.Consensus.HardFork.Combinator.State.Types.html#Current"><span class="hs-identifier">Current</span></a></a><span> </span><a name="local-6989586621679603253"><a href="#local-6989586621679603253"><span class="hs-identifier">f</span></a></a><span> </span><a name="local-6989586621679603254"><a href="#local-6989586621679603254"><span class="hs-identifier">blk</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><a name="Current"><a href="Ouroboros.Consensus.HardFork.Combinator.State.Types.html#Current"><span class="hs-identifier">Current</span></a></a><span> </span><span class="hs-special">{</span><span>
-</span><a name="line-42"></a><span>      </span><a name="currentStart"><a href="Ouroboros.Consensus.HardFork.Combinator.State.Types.html#currentStart"><span class="hs-identifier">currentStart</span></a></a><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-glyph">!</span><a href="Ouroboros.Consensus.HardFork.History.Summary.html#Bound"><span class="hs-identifier hs-type">Bound</span></a><span>
-</span><a name="line-43"></a><span>    </span><span class="hs-special">,</span><span> </span><a name="currentState"><a href="Ouroboros.Consensus.HardFork.Combinator.State.Types.html#currentState"><span class="hs-identifier">currentState</span></a></a><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-glyph">!</span><span class="hs-special">(</span><a href="#local-6989586621679603253"><span class="hs-identifier hs-type">f</span></a><span> </span><a href="#local-6989586621679603254"><span class="hs-identifier hs-type">blk</span></a><span class="hs-special">)</span><span>
-</span><a name="line-44"></a><span>    </span><span class="hs-special">}</span><span>
-</span><a name="line-45"></a><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Generic</span><span class="hs-special">)</span><span>
-</span><a name="line-46"></a><span>
-</span><a name="line-47"></a><span class="hs-comment">-- | Information about a past era</span><span>
-</span><a name="line-48"></a><span class="hs-keyword">data</span><span> </span><a name="Past"><a href="Ouroboros.Consensus.HardFork.Combinator.State.Types.html#Past"><span class="hs-identifier">Past</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><a name="Past"><a href="Ouroboros.Consensus.HardFork.Combinator.State.Types.html#Past"><span class="hs-identifier">Past</span></a></a><span> </span><span class="hs-special">{</span><span>
-</span><a name="line-49"></a><span>      </span><a name="pastStart"><a href="Ouroboros.Consensus.HardFork.Combinator.State.Types.html#pastStart"><span class="hs-identifier">pastStart</span></a></a><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-glyph">!</span><a href="Ouroboros.Consensus.HardFork.History.Summary.html#Bound"><span class="hs-identifier hs-type">Bound</span></a><span>
-</span><a name="line-50"></a><span>    </span><span class="hs-special">,</span><span> </span><a name="pastEnd"><a href="Ouroboros.Consensus.HardFork.Combinator.State.Types.html#pastEnd"><span class="hs-identifier">pastEnd</span></a></a><span>   </span><span class="hs-glyph">::</span><span> </span><span class="hs-glyph">!</span><a href="Ouroboros.Consensus.HardFork.History.Summary.html#Bound"><span class="hs-identifier hs-type">Bound</span></a><span>
-</span><a name="line-51"></a><span>    </span><span class="hs-special">}</span><span>
-</span><a name="line-52"></a><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Eq</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Show</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Generic</span><span class="hs-special">,</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-prelude-0.1.0.0/noopt/doc/html/cardano-prelude/src/Cardano.Prelude.GHC.Heap.NormalForm.Classy.html#NoUnexpectedThunks"><span class="hs-identifier hs-type">NoUnexpectedThunks</span></a><span class="hs-special">)</span><span>
-</span><a name="line-53"></a><span>
-</span><a name="line-54"></a><span class="hs-comment">{-------------------------------------------------------------------------------
+</span><span id="line-33"></span><span>
+</span><span id="line-34"></span><span class="hs-comment">-- | Generic hard fork state</span><span>
+</span><span id="line-35"></span><span class="hs-comment">--</span><span>
+</span><span id="line-36"></span><span class="hs-comment">-- This is used both for the consensus state and the ledger state.</span><span>
+</span><span id="line-37"></span><span class="hs-keyword">newtype</span><span> </span><span id="HardForkState"><span class="annot"><a href="Ouroboros.Consensus.HardFork.Combinator.State.Types.html#HardForkState"><span class="hs-identifier hs-var">HardForkState</span></a></span></span><span> </span><span id="local-6989586621680027922"><span class="annot"><a href="#local-6989586621680027922"><span class="hs-identifier hs-type">f</span></a></span></span><span> </span><span id="local-6989586621680027921"><span class="annot"><a href="#local-6989586621680027921"><span class="hs-identifier hs-type">xs</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="HardForkState"><span class="annot"><a href="Ouroboros.Consensus.HardFork.Combinator.State.Types.html#HardForkState"><span class="hs-identifier hs-var">HardForkState</span></a></span></span><span> </span><span class="hs-special">{</span><span>
+</span><span id="line-38"></span><span>      </span><span id="getHardForkState"><span class="annot"><span class="annottext">HardForkState f xs -&gt; Telescope (K Past) (Current f) xs
+</span><a href="Ouroboros.Consensus.HardFork.Combinator.State.Types.html#getHardForkState"><span class="hs-identifier hs-var hs-var">getHardForkState</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.HardFork.Combinator.Util.Telescope.html#Telescope"><span class="hs-identifier hs-type">Telescope</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">K</span></span><span> </span><span class="annot"><a href="Ouroboros.Consensus.HardFork.Combinator.State.Types.html#Past"><span class="hs-identifier hs-type">Past</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Consensus.HardFork.Combinator.State.Types.html#Current"><span class="hs-identifier hs-type">Current</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680027922"><span class="hs-identifier hs-type">f</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><a href="#local-6989586621680027921"><span class="hs-identifier hs-type">xs</span></a></span><span>
+</span><span id="line-39"></span><span>    </span><span class="hs-special">}</span><span>
+</span><span id="line-40"></span><span>
+</span><span id="line-41"></span><span class="hs-comment">-- | Information about the current era</span><span>
+</span><span id="line-42"></span><span id="local-6989586621680027917"><span id="local-6989586621680027918"></span></span><span class="hs-keyword">data</span><span> </span><span id="Current"><span class="annot"><a href="Ouroboros.Consensus.HardFork.Combinator.State.Types.html#Current"><span class="hs-identifier hs-var">Current</span></a></span></span><span> </span><span id="local-6989586621680027916"><span class="annot"><a href="#local-6989586621680027916"><span class="hs-identifier hs-type">f</span></a></span></span><span> </span><span id="local-6989586621680027915"><span class="annot"><a href="#local-6989586621680027915"><span class="hs-identifier hs-type">blk</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="Current"><span class="annot"><a href="Ouroboros.Consensus.HardFork.Combinator.State.Types.html#Current"><span class="hs-identifier hs-var">Current</span></a></span></span><span> </span><span class="hs-special">{</span><span>
+</span><span id="line-43"></span><span>      </span><span id="currentStart"><span class="annot"><span class="annottext">Current f blk -&gt; Bound
+</span><a href="Ouroboros.Consensus.HardFork.Combinator.State.Types.html#currentStart"><span class="hs-identifier hs-var hs-var">currentStart</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-glyph">!</span><span class="annot"><a href="Ouroboros.Consensus.HardFork.History.Summary.html#Bound"><span class="hs-identifier hs-type">Bound</span></a></span><span>
+</span><span id="line-44"></span><span>    </span><span class="hs-special">,</span><span> </span><span id="currentState"><span class="annot"><span class="annottext">Current f blk -&gt; f blk
+</span><a href="Ouroboros.Consensus.HardFork.Combinator.State.Types.html#currentState"><span class="hs-identifier hs-var hs-var">currentState</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-glyph">!</span><span class="hs-special">(</span><span class="annot"><a href="#local-6989586621680027916"><span class="hs-identifier hs-type">f</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680027915"><span class="hs-identifier hs-type">blk</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-45"></span><span>    </span><span class="hs-special">}</span><span>
+</span><span id="line-46"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">(forall x. Current f blk -&gt; Rep (Current f blk) x)
+-&gt; (forall x. Rep (Current f blk) x -&gt; Current f blk)
+-&gt; Generic (Current f blk)
+forall x. Rep (Current f blk) x -&gt; Current f blk
+forall x. Current f blk -&gt; Rep (Current f blk) x
+forall a.
+(forall x. a -&gt; Rep a x) -&gt; (forall x. Rep a x -&gt; a) -&gt; Generic a
+forall (f :: * -&gt; *) blk x. Rep (Current f blk) x -&gt; Current f blk
+forall (f :: * -&gt; *) blk x. Current f blk -&gt; Rep (Current f blk) x
+$cto :: forall (f :: * -&gt; *) blk x. Rep (Current f blk) x -&gt; Current f blk
+$cfrom :: forall (f :: * -&gt; *) blk x. Current f blk -&gt; Rep (Current f blk) x
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">Generic</span></span><span class="hs-special">)</span><span>
+</span><span id="line-47"></span><span>
+</span><span id="line-48"></span><span class="hs-comment">-- | Information about a past era</span><span>
+</span><span id="line-49"></span><span id="local-6989586621680027907"><span id="local-6989586621680027908"></span></span><span class="hs-keyword">data</span><span> </span><span id="Past"><span class="annot"><a href="Ouroboros.Consensus.HardFork.Combinator.State.Types.html#Past"><span class="hs-identifier hs-var">Past</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="Past"><span class="annot"><a href="Ouroboros.Consensus.HardFork.Combinator.State.Types.html#Past"><span class="hs-identifier hs-var">Past</span></a></span></span><span> </span><span class="hs-special">{</span><span>
+</span><span id="line-50"></span><span>      </span><span id="pastStart"><span class="annot"><span class="annottext">Past -&gt; Bound
+</span><a href="Ouroboros.Consensus.HardFork.Combinator.State.Types.html#pastStart"><span class="hs-identifier hs-var hs-var">pastStart</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-glyph">!</span><span class="annot"><a href="Ouroboros.Consensus.HardFork.History.Summary.html#Bound"><span class="hs-identifier hs-type">Bound</span></a></span><span>
+</span><span id="line-51"></span><span>    </span><span class="hs-special">,</span><span> </span><span id="pastEnd"><span class="annot"><span class="annottext">Past -&gt; Bound
+</span><a href="Ouroboros.Consensus.HardFork.Combinator.State.Types.html#pastEnd"><span class="hs-identifier hs-var hs-var">pastEnd</span></a></span></span><span>   </span><span class="hs-glyph">::</span><span> </span><span class="hs-glyph">!</span><span class="annot"><a href="Ouroboros.Consensus.HardFork.History.Summary.html#Bound"><span class="hs-identifier hs-type">Bound</span></a></span><span>
+</span><span id="line-52"></span><span>    </span><span class="hs-special">}</span><span>
+</span><span id="line-53"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621680027900"><span id="local-6989586621680027902"><span class="annot"><span class="annottext">Past -&gt; Past -&gt; Bool
+(Past -&gt; Past -&gt; Bool) -&gt; (Past -&gt; Past -&gt; Bool) -&gt; Eq Past
+forall a. (a -&gt; a -&gt; Bool) -&gt; (a -&gt; a -&gt; Bool) -&gt; Eq a
+/= :: Past -&gt; Past -&gt; Bool
+$c/= :: Past -&gt; Past -&gt; Bool
+== :: Past -&gt; Past -&gt; Bool
+$c== :: Past -&gt; Past -&gt; Bool
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621680027893"><span id="local-6989586621680027895"><span id="local-6989586621680027897"><span class="annot"><span class="annottext">Int -&gt; Past -&gt; ShowS
+[Past] -&gt; ShowS
+Past -&gt; String
+(Int -&gt; Past -&gt; ShowS)
+-&gt; (Past -&gt; String) -&gt; ([Past] -&gt; ShowS) -&gt; Show Past
+forall a.
+(Int -&gt; a -&gt; ShowS) -&gt; (a -&gt; String) -&gt; ([a] -&gt; ShowS) -&gt; Show a
+showList :: [Past] -&gt; ShowS
+$cshowList :: [Past] -&gt; ShowS
+show :: Past -&gt; String
+$cshow :: Past -&gt; String
+showsPrec :: Int -&gt; Past -&gt; ShowS
+$cshowsPrec :: Int -&gt; Past -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">(forall x. Past -&gt; Rep Past x)
+-&gt; (forall x. Rep Past x -&gt; Past) -&gt; Generic Past
+forall x. Rep Past x -&gt; Past
+forall x. Past -&gt; Rep Past x
+forall a.
+(forall x. a -&gt; Rep a x) -&gt; (forall x. Rep a x -&gt; a) -&gt; Generic a
+$cto :: forall x. Rep Past x -&gt; Past
+$cfrom :: forall x. Past -&gt; Rep Past x
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">Generic</span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621680027884"><span id="local-6989586621680027886"><span id="local-6989586621680027888"><span class="annot"><span class="annottext">Context -&gt; Past -&gt; IO (Maybe ThunkInfo)
+Proxy Past -&gt; String
+(Context -&gt; Past -&gt; IO (Maybe ThunkInfo))
+-&gt; (Context -&gt; Past -&gt; IO (Maybe ThunkInfo))
+-&gt; (Proxy Past -&gt; String)
+-&gt; NoThunks Past
+forall a.
+(Context -&gt; a -&gt; IO (Maybe ThunkInfo))
+-&gt; (Context -&gt; a -&gt; IO (Maybe ThunkInfo))
+-&gt; (Proxy a -&gt; String)
+-&gt; NoThunks a
+showTypeOf :: Proxy Past -&gt; String
+$cshowTypeOf :: Proxy Past -&gt; String
+wNoThunks :: Context -&gt; Past -&gt; IO (Maybe ThunkInfo)
+$cwNoThunks :: Context -&gt; Past -&gt; IO (Maybe ThunkInfo)
+noThunks :: Context -&gt; Past -&gt; IO (Maybe ThunkInfo)
+$cnoThunks :: Context -&gt; Past -&gt; IO (Maybe ThunkInfo)
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">NoThunks</span></span></span></span></span><span class="hs-special">)</span><span>
+</span><span id="line-54"></span><span>
+</span><span id="line-55"></span><span class="hs-comment">{-------------------------------------------------------------------------------
   Supporting types
 -------------------------------------------------------------------------------}</span><span>
-</span><a name="line-57"></a><span>
-</span><a name="line-58"></a><span class="hs-comment">-- | Translate @f x@ to @f y@ across an era transition</span><span>
-</span><a name="line-59"></a><span class="hs-comment">--</span><span>
-</span><a name="line-60"></a><span class="hs-comment">-- Typically @f@ will be 'LedgerState' or 'WrapChainDepState'.</span><span>
-</span><a name="line-61"></a><span class="hs-keyword">newtype</span><span> </span><a name="Translate"><a href="Ouroboros.Consensus.HardFork.Combinator.State.Types.html#Translate"><span class="hs-identifier">Translate</span></a></a><span> </span><a name="local-6989586621679603250"><a href="#local-6989586621679603250"><span class="hs-identifier">f</span></a></a><span> </span><a name="local-6989586621679603251"><a href="#local-6989586621679603251"><span class="hs-identifier">x</span></a></a><span> </span><a name="local-6989586621679603252"><a href="#local-6989586621679603252"><span class="hs-identifier">y</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><a name="Translate"><a href="Ouroboros.Consensus.HardFork.Combinator.State.Types.html#Translate"><span class="hs-identifier">Translate</span></a></a><span> </span><span class="hs-special">{</span><span>
-</span><a name="line-62"></a><span>      </span><a name="translateWith"><a href="Ouroboros.Consensus.HardFork.Combinator.State.Types.html#translateWith"><span class="hs-identifier">translateWith</span></a></a><span> </span><span class="hs-glyph">::</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-slotting-0.1.0.0/noopt/doc/html/cardano-slotting/src/Cardano.Slotting.Slot.html#EpochNo"><span class="hs-identifier hs-type">EpochNo</span></a><span> </span><span class="hs-glyph">-&gt;</span><span> </span><a href="#local-6989586621679603250"><span class="hs-identifier hs-type">f</span></a><span> </span><a href="#local-6989586621679603251"><span class="hs-identifier hs-type">x</span></a><span> </span><span class="hs-glyph">-&gt;</span><span> </span><a href="#local-6989586621679603250"><span class="hs-identifier hs-type">f</span></a><span> </span><a href="#local-6989586621679603252"><span class="hs-identifier hs-type">y</span></a><span>
-</span><a name="line-63"></a><span>    </span><span class="hs-special">}</span><span>
-</span><a name="line-64"></a><span>
-</span><a name="line-65"></a><span class="hs-comment">-- | Translate (a forecast of) @f x@ to (a forecast of) @f y@</span><span>
-</span><a name="line-66"></a><span class="hs-comment">-- across an era transition.</span><span>
-</span><a name="line-67"></a><span class="hs-comment">--</span><span>
-</span><a name="line-68"></a><span class="hs-comment">-- Typically @f@ will be 'WrapLedgerView'.</span><span>
-</span><a name="line-69"></a><span class="hs-comment">--</span><span>
-</span><a name="line-70"></a><span class="hs-comment">-- In addition to the 'EpochNo' of the transition, this is also told the</span><span>
-</span><a name="line-71"></a><span class="hs-comment">-- 'SlotNo' we're constructing a forecast for. This enables the translation</span><span>
-</span><a name="line-72"></a><span class="hs-comment">-- function to take into account any scheduled changes that the final ledger</span><span>
-</span><a name="line-73"></a><span class="hs-comment">-- view in the preceding era might have.</span><span>
-</span><a name="line-74"></a><span class="hs-keyword">newtype</span><span> </span><a name="TranslateForecast"><a href="Ouroboros.Consensus.HardFork.Combinator.State.Types.html#TranslateForecast"><span class="hs-identifier">TranslateForecast</span></a></a><span> </span><a name="local-6989586621679603247"><a href="#local-6989586621679603247"><span class="hs-identifier">f</span></a></a><span> </span><a name="local-6989586621679603248"><a href="#local-6989586621679603248"><span class="hs-identifier">x</span></a></a><span> </span><a name="local-6989586621679603249"><a href="#local-6989586621679603249"><span class="hs-identifier">y</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><a name="TranslateForecast"><a href="Ouroboros.Consensus.HardFork.Combinator.State.Types.html#TranslateForecast"><span class="hs-identifier">TranslateForecast</span></a></a><span> </span><span class="hs-special">{</span><span>
-</span><a name="line-75"></a><span>      </span><a name="translateForecastWith"><a href="Ouroboros.Consensus.HardFork.Combinator.State.Types.html#translateForecastWith"><span class="hs-identifier">translateForecastWith</span></a></a><span> </span><span class="hs-glyph">::</span><span>
-</span><a name="line-76"></a><span>           </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-slotting-0.1.0.0/noopt/doc/html/cardano-slotting/src/Cardano.Slotting.Slot.html#EpochNo"><span class="hs-identifier hs-type">EpochNo</span></a><span>  </span><span class="hs-comment">-- 'EpochNo' of the transition</span><span>
-</span><a name="line-77"></a><span>        </span><span class="hs-glyph">-&gt;</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-slotting-0.1.0.0/noopt/doc/html/cardano-slotting/src/Cardano.Slotting.Slot.html#SlotNo"><span class="hs-identifier hs-type">SlotNo</span></a><span>   </span><span class="hs-comment">-- 'SlotNo' we're constructing a forecast for</span><span>
-</span><a name="line-78"></a><span>        </span><span class="hs-glyph">-&gt;</span><span> </span><a href="Ouroboros.Consensus.Ticked.html#Ticked"><span class="hs-identifier hs-type">Ticked</span></a><span> </span><span class="hs-special">(</span><a href="#local-6989586621679603247"><span class="hs-identifier hs-type">f</span></a><span> </span><a href="#local-6989586621679603248"><span class="hs-identifier hs-type">x</span></a><span class="hs-special">)</span><span>
-</span><a name="line-79"></a><span>        </span><span class="hs-glyph">-&gt;</span><span> </span><a href="Ouroboros.Consensus.Ticked.html#Ticked"><span class="hs-identifier hs-type">Ticked</span></a><span> </span><span class="hs-special">(</span><a href="#local-6989586621679603247"><span class="hs-identifier hs-type">f</span></a><span> </span><a href="#local-6989586621679603249"><span class="hs-identifier hs-type">y</span></a><span class="hs-special">)</span><span>
-</span><a name="line-80"></a><span>    </span><span class="hs-special">}</span><span>
-</span><a name="line-81"></a><span>
-</span><a name="line-82"></a><span class="hs-comment">-- | Knowledge in a particular era of the transition to the next era</span><span>
-</span><a name="line-83"></a><span class="hs-keyword">data</span><span> </span><a name="TransitionInfo"><a href="Ouroboros.Consensus.HardFork.Combinator.State.Types.html#TransitionInfo"><span class="hs-identifier">TransitionInfo</span></a></a><span> </span><span class="hs-glyph">=</span><span>
-</span><a name="line-84"></a><span>    </span><span class="hs-comment">-- | No transition is yet known for this era</span><span>
-</span><a name="line-85"></a><span>    </span><span class="hs-comment">-- We instead record the ledger tip (which must be in /this/ era)</span><span>
-</span><a name="line-86"></a><span>    </span><a name="TransitionUnknown"><a href="Ouroboros.Consensus.HardFork.Combinator.State.Types.html#TransitionUnknown"><span class="hs-identifier">TransitionUnknown</span></a></a><span> </span><span class="hs-glyph">!</span><span class="hs-special">(</span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-slotting-0.1.0.0/noopt/doc/html/cardano-slotting/src/Cardano.Slotting.Slot.html#WithOrigin"><span class="hs-identifier hs-type">WithOrigin</span></a><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-slotting-0.1.0.0/noopt/doc/html/cardano-slotting/src/Cardano.Slotting.Slot.html#SlotNo"><span class="hs-identifier hs-type">SlotNo</span></a><span class="hs-special">)</span><span>
-</span><a name="line-87"></a><span>
-</span><a name="line-88"></a><span>    </span><span class="hs-comment">-- | Transition to the next era is known to happen at this 'EpochNo'</span><span>
-</span><a name="line-89"></a><span>  </span><span class="hs-glyph">|</span><span> </span><a name="TransitionKnown"><a href="Ouroboros.Consensus.HardFork.Combinator.State.Types.html#TransitionKnown"><span class="hs-identifier">TransitionKnown</span></a></a><span> </span><span class="hs-glyph">!</span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-slotting-0.1.0.0/noopt/doc/html/cardano-slotting/src/Cardano.Slotting.Slot.html#EpochNo"><span class="hs-identifier hs-type">EpochNo</span></a><span>
-</span><a name="line-90"></a><span>
-</span><a name="line-91"></a><span>    </span><span class="hs-comment">-- | The transition is impossible</span><span>
-</span><a name="line-92"></a><span>    </span><span class="hs-comment">--</span><span>
-</span><a name="line-93"></a><span>    </span><span class="hs-comment">-- This can be due to one of two reasons:</span><span>
-</span><a name="line-94"></a><span>    </span><span class="hs-comment">--</span><span>
-</span><a name="line-95"></a><span>    </span><span class="hs-comment">-- * We are in the final era</span><span>
-</span><a name="line-96"></a><span>    </span><span class="hs-comment">-- * This era has not actually begun yet (we are forecasting). In this case,</span><span>
-</span><a name="line-97"></a><span>    </span><span class="hs-comment">--   we cannot look past the safe zone of this era and hence, by definition,</span><span>
-</span><a name="line-98"></a><span>    </span><span class="hs-comment">--   the transition to the /next/ era cannot happen.</span><span>
-</span><a name="line-99"></a><span>  </span><span class="hs-glyph">|</span><span> </span><a name="TransitionImpossible"><a href="Ouroboros.Consensus.HardFork.Combinator.State.Types.html#TransitionImpossible"><span class="hs-identifier">TransitionImpossible</span></a></a><span>
-</span><a name="line-100"></a><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Show</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Generic</span><span class="hs-special">,</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-prelude-0.1.0.0/noopt/doc/html/cardano-prelude/src/Cardano.Prelude.GHC.Heap.NormalForm.Classy.html#NoUnexpectedThunks"><span class="hs-identifier hs-type">NoUnexpectedThunks</span></a><span class="hs-special">)</span><span>
-</span><a name="line-101"></a></pre></body></html>
+</span><span id="line-58"></span><span>
+</span><span id="line-59"></span><span class="hs-comment">-- | Translate @f x@ to @f y@ across an era transition</span><span>
+</span><span id="line-60"></span><span class="hs-comment">--</span><span>
+</span><span id="line-61"></span><span class="hs-comment">-- Typically @f@ will be 'LedgerState' or 'WrapChainDepState'.</span><span>
+</span><span id="line-62"></span><span class="hs-keyword">newtype</span><span> </span><span id="Translate"><span class="annot"><a href="Ouroboros.Consensus.HardFork.Combinator.State.Types.html#Translate"><span class="hs-identifier hs-var">Translate</span></a></span></span><span> </span><span id="local-6989586621680027882"><span class="annot"><a href="#local-6989586621680027882"><span class="hs-identifier hs-type">f</span></a></span></span><span> </span><span id="local-6989586621680027881"><span class="annot"><a href="#local-6989586621680027881"><span class="hs-identifier hs-type">x</span></a></span></span><span> </span><span id="local-6989586621680027880"><span class="annot"><a href="#local-6989586621680027880"><span class="hs-identifier hs-type">y</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="Translate"><span class="annot"><a href="Ouroboros.Consensus.HardFork.Combinator.State.Types.html#Translate"><span class="hs-identifier hs-var">Translate</span></a></span></span><span> </span><span class="hs-special">{</span><span>
+</span><span id="line-63"></span><span>      </span><span id="translateWith"><span class="annot"><span class="annottext">Translate f x y -&gt; EpochNo -&gt; f x -&gt; f y
+</span><a href="Ouroboros.Consensus.HardFork.Combinator.State.Types.html#translateWith"><span class="hs-identifier hs-var hs-var">translateWith</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-slotting-0.1.0.0/noopt/doc/html/cardano-slotting/src"><span class="hs-identifier hs-type">EpochNo</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621680027882"><span class="hs-identifier hs-type">f</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680027881"><span class="hs-identifier hs-type">x</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621680027882"><span class="hs-identifier hs-type">f</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680027880"><span class="hs-identifier hs-type">y</span></a></span><span>
+</span><span id="line-64"></span><span>    </span><span class="hs-special">}</span><span>
+</span><span id="line-65"></span><span>
+</span><span id="line-66"></span><span class="hs-comment">-- | Translate (a forecast of) @f x@ to (a forecast of) @f y@</span><span>
+</span><span id="line-67"></span><span class="hs-comment">-- across an era transition.</span><span>
+</span><span id="line-68"></span><span class="hs-comment">--</span><span>
+</span><span id="line-69"></span><span class="hs-comment">-- Typically @f@ will be 'WrapLedgerView'.</span><span>
+</span><span id="line-70"></span><span class="hs-comment">--</span><span>
+</span><span id="line-71"></span><span class="hs-comment">-- In addition to the 'Bound' of the transition, this is also told the</span><span>
+</span><span id="line-72"></span><span class="hs-comment">-- 'SlotNo' we're constructing a forecast for. This enables the translation</span><span>
+</span><span id="line-73"></span><span class="hs-comment">-- function to take into account any scheduled changes that the final ledger</span><span>
+</span><span id="line-74"></span><span class="hs-comment">-- view in the preceding era might have.</span><span>
+</span><span id="line-75"></span><span class="hs-keyword">newtype</span><span> </span><span id="TranslateForecast"><span class="annot"><a href="Ouroboros.Consensus.HardFork.Combinator.State.Types.html#TranslateForecast"><span class="hs-identifier hs-var">TranslateForecast</span></a></span></span><span> </span><span id="local-6989586621680027877"><span class="annot"><a href="#local-6989586621680027877"><span class="hs-identifier hs-type">f</span></a></span></span><span> </span><span id="local-6989586621680027876"><span class="annot"><a href="#local-6989586621680027876"><span class="hs-identifier hs-type">g</span></a></span></span><span> </span><span id="local-6989586621680027875"><span class="annot"><a href="#local-6989586621680027875"><span class="hs-identifier hs-type">x</span></a></span></span><span> </span><span id="local-6989586621680027874"><span class="annot"><a href="#local-6989586621680027874"><span class="hs-identifier hs-type">y</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="TranslateForecast"><span class="annot"><a href="Ouroboros.Consensus.HardFork.Combinator.State.Types.html#TranslateForecast"><span class="hs-identifier hs-var">TranslateForecast</span></a></span></span><span> </span><span class="hs-special">{</span><span>
+</span><span id="line-76"></span><span>      </span><span id="translateForecastWith"><span class="annot"><span class="annottext">TranslateForecast f g x y
+-&gt; Bound
+-&gt; SlotNo
+-&gt; f x
+-&gt; Except OutsideForecastRange (Ticked (g y))
+</span><a href="Ouroboros.Consensus.HardFork.Combinator.State.Types.html#translateForecastWith"><span class="hs-identifier hs-var hs-var">translateForecastWith</span></a></span></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-77"></span><span>           </span><span class="annot"><a href="Ouroboros.Consensus.HardFork.History.Summary.html#Bound"><span class="hs-identifier hs-type">Bound</span></a></span><span>    </span><span class="hs-comment">-- 'Bound' of the transition (start of the new era)</span><span>
+</span><span id="line-78"></span><span>        </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-slotting-0.1.0.0/noopt/doc/html/cardano-slotting/src"><span class="hs-identifier hs-type">SlotNo</span></a></span><span>   </span><span class="hs-comment">-- 'SlotNo' we're constructing a forecast for</span><span>
+</span><span id="line-79"></span><span>        </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621680027877"><span class="hs-identifier hs-type">f</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680027875"><span class="hs-identifier hs-type">x</span></a></span><span>
+</span><span id="line-80"></span><span>        </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Except</span></span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Forecast.html#OutsideForecastRange"><span class="hs-identifier hs-type">OutsideForecastRange</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Consensus.Ticked.html#Ticked"><span class="hs-identifier hs-type">Ticked</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="#local-6989586621680027876"><span class="hs-identifier hs-type">g</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680027874"><span class="hs-identifier hs-type">y</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-81"></span><span>    </span><span class="hs-special">}</span><span>
+</span><span id="line-82"></span><span>
+</span><span id="line-83"></span><span class="hs-comment">-- | Knowledge in a particular era of the transition to the next era</span><span>
+</span><span id="line-84"></span><span id="local-6989586621680027870"><span id="local-6989586621680027871"></span></span><span class="hs-keyword">data</span><span> </span><span id="TransitionInfo"><span class="annot"><a href="Ouroboros.Consensus.HardFork.Combinator.State.Types.html#TransitionInfo"><span class="hs-identifier hs-var">TransitionInfo</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-85"></span><span>    </span><span class="hs-comment">-- | No transition is yet known for this era</span><span>
+</span><span id="line-86"></span><span>    </span><span class="hs-comment">-- We instead record the ledger tip (which must be in /this/ era)</span><span>
+</span><span id="line-87"></span><span>    </span><span class="hs-comment">--</span><span>
+</span><span id="line-88"></span><span>    </span><span class="hs-comment">-- NOTE: If we are forecasting, this will be set to the slot number of the</span><span>
+</span><span id="line-89"></span><span>    </span><span class="hs-comment">-- (past) ledger state in which the forecast was created. This means that</span><span>
+</span><span id="line-90"></span><span>    </span><span class="hs-comment">-- when we construct an 'EpochInfo' using a 'HardForkLedgerView', the</span><span>
+</span><span id="line-91"></span><span>    </span><span class="hs-comment">-- range of that 'EpochInfo' will extend a safe zone from that /past/</span><span>
+</span><span id="line-92"></span><span>    </span><span class="hs-comment">-- ledger state.</span><span>
+</span><span id="line-93"></span><span>    </span><span id="TransitionUnknown"><span class="annot"><a href="Ouroboros.Consensus.HardFork.Combinator.State.Types.html#TransitionUnknown"><span class="hs-identifier hs-var">TransitionUnknown</span></a></span></span><span> </span><span class="hs-glyph">!</span><span class="hs-special">(</span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-slotting-0.1.0.0/noopt/doc/html/cardano-slotting/src"><span class="hs-identifier hs-type">WithOrigin</span></a></span><span> </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-slotting-0.1.0.0/noopt/doc/html/cardano-slotting/src"><span class="hs-identifier hs-type">SlotNo</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-94"></span><span>
+</span><span id="line-95"></span><span>    </span><span class="hs-comment">-- | Transition to the next era is known to happen at this 'EpochNo'</span><span>
+</span><span id="line-96"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span id="TransitionKnown"><span class="annot"><a href="Ouroboros.Consensus.HardFork.Combinator.State.Types.html#TransitionKnown"><span class="hs-identifier hs-var">TransitionKnown</span></a></span></span><span> </span><span class="hs-glyph">!</span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-slotting-0.1.0.0/noopt/doc/html/cardano-slotting/src"><span class="hs-identifier hs-type">EpochNo</span></a></span><span>
+</span><span id="line-97"></span><span>
+</span><span id="line-98"></span><span>    </span><span class="hs-comment">-- | The transition is impossible</span><span>
+</span><span id="line-99"></span><span>    </span><span class="hs-comment">--</span><span>
+</span><span id="line-100"></span><span>    </span><span class="hs-comment">-- This can be due to one of two reasons:</span><span>
+</span><span id="line-101"></span><span>    </span><span class="hs-comment">--</span><span>
+</span><span id="line-102"></span><span>    </span><span class="hs-comment">-- * We are in the final era</span><span>
+</span><span id="line-103"></span><span>    </span><span class="hs-comment">-- * This era has not actually begun yet (we are forecasting). In this case,</span><span>
+</span><span id="line-104"></span><span>    </span><span class="hs-comment">--   we cannot look past the safe zone of this era and hence, by definition,</span><span>
+</span><span id="line-105"></span><span>    </span><span class="hs-comment">--   the transition to the /next/ era cannot happen.</span><span>
+</span><span id="line-106"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span id="TransitionImpossible"><span class="annot"><a href="Ouroboros.Consensus.HardFork.Combinator.State.Types.html#TransitionImpossible"><span class="hs-identifier hs-var">TransitionImpossible</span></a></span></span><span>
+</span><span id="line-107"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621680027860"><span id="local-6989586621680027862"><span id="local-6989586621680027864"><span class="annot"><span class="annottext">Int -&gt; TransitionInfo -&gt; ShowS
+[TransitionInfo] -&gt; ShowS
+TransitionInfo -&gt; String
+(Int -&gt; TransitionInfo -&gt; ShowS)
+-&gt; (TransitionInfo -&gt; String)
+-&gt; ([TransitionInfo] -&gt; ShowS)
+-&gt; Show TransitionInfo
+forall a.
+(Int -&gt; a -&gt; ShowS) -&gt; (a -&gt; String) -&gt; ([a] -&gt; ShowS) -&gt; Show a
+showList :: [TransitionInfo] -&gt; ShowS
+$cshowList :: [TransitionInfo] -&gt; ShowS
+show :: TransitionInfo -&gt; String
+$cshow :: TransitionInfo -&gt; String
+showsPrec :: Int -&gt; TransitionInfo -&gt; ShowS
+$cshowsPrec :: Int -&gt; TransitionInfo -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">(forall x. TransitionInfo -&gt; Rep TransitionInfo x)
+-&gt; (forall x. Rep TransitionInfo x -&gt; TransitionInfo)
+-&gt; Generic TransitionInfo
+forall x. Rep TransitionInfo x -&gt; TransitionInfo
+forall x. TransitionInfo -&gt; Rep TransitionInfo x
+forall a.
+(forall x. a -&gt; Rep a x) -&gt; (forall x. Rep a x -&gt; a) -&gt; Generic a
+$cto :: forall x. Rep TransitionInfo x -&gt; TransitionInfo
+$cfrom :: forall x. TransitionInfo -&gt; Rep TransitionInfo x
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">Generic</span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621680027852"><span id="local-6989586621680027854"><span id="local-6989586621680027856"><span class="annot"><span class="annottext">Context -&gt; TransitionInfo -&gt; IO (Maybe ThunkInfo)
+Proxy TransitionInfo -&gt; String
+(Context -&gt; TransitionInfo -&gt; IO (Maybe ThunkInfo))
+-&gt; (Context -&gt; TransitionInfo -&gt; IO (Maybe ThunkInfo))
+-&gt; (Proxy TransitionInfo -&gt; String)
+-&gt; NoThunks TransitionInfo
+forall a.
+(Context -&gt; a -&gt; IO (Maybe ThunkInfo))
+-&gt; (Context -&gt; a -&gt; IO (Maybe ThunkInfo))
+-&gt; (Proxy a -&gt; String)
+-&gt; NoThunks a
+showTypeOf :: Proxy TransitionInfo -&gt; String
+$cshowTypeOf :: Proxy TransitionInfo -&gt; String
+wNoThunks :: Context -&gt; TransitionInfo -&gt; IO (Maybe ThunkInfo)
+$cwNoThunks :: Context -&gt; TransitionInfo -&gt; IO (Maybe ThunkInfo)
+noThunks :: Context -&gt; TransitionInfo -&gt; IO (Maybe ThunkInfo)
+$cnoThunks :: Context -&gt; TransitionInfo -&gt; IO (Maybe ThunkInfo)
+</span><a href="#local-6989586621680027852"><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">NoThunks</span></a></span></span></span></span><span class="hs-special">)</span><span>
+</span><span id="line-108"></span></pre></body></html>

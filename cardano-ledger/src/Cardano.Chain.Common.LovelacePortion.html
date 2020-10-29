@@ -1,112 +1,370 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-pragma">{-# LANGUAGE DeriveGeneric              #-}</span><span>
-</span><a name="line-2"></a><span class="hs-pragma">{-# LANGUAGE DerivingStrategies         #-}</span><span>
-</span><a name="line-3"></a><span class="hs-pragma">{-# LANGUAGE DerivingVia                #-}</span><span>
-</span><a name="line-4"></a><span class="hs-pragma">{-# LANGUAGE FlexibleInstances          #-}</span><span>
-</span><a name="line-5"></a><span class="hs-pragma">{-# LANGUAGE GeneralizedNewtypeDeriving #-}</span><span>
-</span><a name="line-6"></a><span class="hs-pragma">{-# LANGUAGE MultiParamTypeClasses      #-}</span><span>
-</span><a name="line-7"></a><span class="hs-pragma">{-# LANGUAGE NumDecimals                #-}</span><span>
-</span><a name="line-8"></a><span class="hs-pragma">{-# LANGUAGE OverloadedStrings          #-}</span><span>
-</span><a name="line-9"></a><span class="hs-pragma">{-# LANGUAGE UndecidableInstances       #-}</span><span>
-</span><a name="line-10"></a><span>
-</span><a name="line-11"></a><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Cardano.Chain.Common.LovelacePortion</span><span>
-</span><a name="line-12"></a><span>  </span><span class="hs-special">(</span><span> </span><a href="Cardano.Chain.Common.LovelacePortion.html#LovelacePortion"><span class="hs-identifier hs-type">LovelacePortion</span></a><span>
-</span><a name="line-13"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Cardano.Chain.Common.LovelacePortion.html#rationalToLovelacePortion"><span class="hs-identifier hs-var">rationalToLovelacePortion</span></a><span>
-</span><a name="line-14"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Cardano.Chain.Common.LovelacePortion.html#lovelacePortionToRational"><span class="hs-identifier hs-var">lovelacePortionToRational</span></a><span>
-</span><a name="line-15"></a><span>  </span><span class="hs-special">)</span><span>
-</span><a name="line-16"></a><span class="hs-keyword">where</span><span>
-</span><a name="line-17"></a><span>
-</span><a name="line-18"></a><span class="hs-keyword">import</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-prelude-0.1.0.0/noopt/doc/html/cardano-prelude/src/Cardano.Prelude.html"><span class="hs-identifier">Cardano.Prelude</span></a><span>
-</span><a name="line-19"></a><span>
-</span><a name="line-20"></a><span class="hs-keyword">import</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.html"><span class="hs-identifier">Cardano.Binary</span></a><span> </span><span class="hs-special">(</span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.FromCBOR.html#FromCBOR"><span class="hs-identifier hs-type">FromCBOR</span></a><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.ToCBOR.html#ToCBOR"><span class="hs-identifier hs-type">ToCBOR</span></a><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
-</span><a name="line-21"></a><span>
-</span><a name="line-22"></a><span class="hs-keyword">import</span><span> </span><span class="hs-identifier">Control.Monad</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-var">fail</span><span class="hs-special">)</span><span>
-</span><a name="line-23"></a><span>
-</span><a name="line-24"></a><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-identifier">Data.Aeson</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">Aeson</span><span>
-</span><a name="line-25"></a><span>
-</span><a name="line-26"></a><span class="hs-keyword">import</span><span> </span><span class="hs-identifier">Formatting</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-var">sformat</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-var">build</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-var">bprint</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-var">float</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-var">int</span><span class="hs-special">)</span><span>
-</span><a name="line-27"></a><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-identifier">Formatting.Buildable</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">B</span><span>
-</span><a name="line-28"></a><span>
-</span><a name="line-29"></a><span class="hs-keyword">import</span><span> </span><span class="hs-identifier">Quiet</span><span>
-</span><a name="line-30"></a><span>
-</span><a name="line-31"></a><span class="hs-keyword">import</span><span> </span><span class="hs-identifier">Text.JSON.Canonical</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">FromJSON</span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">ToJSON</span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
-</span><a name="line-32"></a><span>
-</span><a name="line-33"></a><span>
-</span><a name="line-34"></a><span>
-</span><a name="line-35"></a><span class="hs-comment">-- | 'LovelacePortion' is a legacy Byron type that we keep only for</span><span>
-</span><a name="line-36"></a><span class="hs-comment">-- compatibility. It was originally intended to represent a fraction of stake</span><span>
-</span><a name="line-37"></a><span class="hs-comment">-- in the system. It is used only for the thresholds used in the update system</span><span>
-</span><a name="line-38"></a><span class="hs-comment">-- rules, most of which are now themselves unused. The remaining case is no</span><span>
-</span><a name="line-39"></a><span class="hs-comment">-- longer interpreted as a fraction of all stake, but as a fraction of the</span><span>
-</span><a name="line-40"></a><span class="hs-comment">-- number of genesis keys.</span><span>
-</span><a name="line-41"></a><span class="hs-comment">--</span><span>
-</span><a name="line-42"></a><span class="hs-comment">-- It has enormous precision, due to the fact that it was originally intended</span><span>
-</span><a name="line-43"></a><span class="hs-comment">-- to represent a fraction of all stake and can cover the precision of all the</span><span>
-</span><a name="line-44"></a><span class="hs-comment">-- Lovelace in the system.</span><span>
-</span><a name="line-45"></a><span class="hs-comment">--</span><span>
-</span><a name="line-46"></a><span class="hs-comment">-- It is represented as a rational nominator with a fixed implicit denominator</span><span>
-</span><a name="line-47"></a><span class="hs-comment">-- of 1e15. So the nominator must be in the range @[0..1e15]@. This is also the</span><span>
-</span><a name="line-48"></a><span class="hs-comment">-- representation used on-chain (in update proposals) and in the JSON</span><span>
-</span><a name="line-49"></a><span class="hs-comment">-- genesis file.</span><span>
-</span><a name="line-50"></a><span class="hs-comment">--</span><span>
-</span><a name="line-51"></a><span class="hs-comment">-- It is interpreted as a 'Rational' via the provided conversion functions.</span><span>
-</span><a name="line-52"></a><span class="hs-comment">--</span><span>
-</span><a name="line-53"></a><span class="hs-keyword">newtype</span><span> </span><a name="LovelacePortion"><a href="Cardano.Chain.Common.LovelacePortion.html#LovelacePortion"><span class="hs-identifier">LovelacePortion</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><a name="LovelacePortion"><a href="Cardano.Chain.Common.LovelacePortion.html#LovelacePortion"><span class="hs-identifier">LovelacePortion</span></a></a><span>
-</span><a name="line-54"></a><span>  </span><span class="hs-special">{</span><span> </span><a name="unLovelacePortion"><a href="Cardano.Chain.Common.LovelacePortion.html#unLovelacePortion"><span class="hs-identifier">unLovelacePortion</span></a></a><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">Word64</span><span>
-</span><a name="line-55"></a><span>  </span><span class="hs-special">}</span><span> </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Ord</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Eq</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Generic</span><span class="hs-special">,</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-prelude-0.1.0.0/noopt/doc/html/cardano-prelude/src/Cardano.Prelude.HeapWords.html#HeapWords"><span class="hs-identifier hs-type">HeapWords</span></a><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">NFData</span><span class="hs-special">,</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-prelude-0.1.0.0/noopt/doc/html/cardano-prelude/src/Cardano.Prelude.GHC.Heap.NormalForm.Classy.html#NoUnexpectedThunks"><span class="hs-identifier hs-type">NoUnexpectedThunks</span></a><span class="hs-special">)</span><span>
-</span><a name="line-56"></a><span>    </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-identifier hs-type">Show</span><span> </span><span class="hs-keyword">via</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Quiet</span><span> </span><a href="Cardano.Chain.Common.LovelacePortion.html#LovelacePortion"><span class="hs-identifier hs-type">LovelacePortion</span></a><span class="hs-special">)</span><span>
-</span><a name="line-57"></a><span>
-</span><a name="line-58"></a><span class="hs-keyword">instance</span><span> </span><span class="hs-identifier hs-type">B.Buildable</span><span> </span><a href="Cardano.Chain.Common.LovelacePortion.html#LovelacePortion"><span class="hs-identifier hs-type">LovelacePortion</span></a><span> </span><span class="hs-keyword">where</span><span>
-</span><a name="line-59"></a><span>  </span><a name="local-8214565720323804885"><span class="hs-identifier">build</span></a><span> </span><a name="local-6989586621679193417"><a href="#local-6989586621679193417"><span class="hs-identifier">cp</span></a></a><span class="hs-glyph">@</span><span class="hs-special">(</span><a href="Cardano.Chain.Common.LovelacePortion.html#LovelacePortion"><span class="hs-identifier hs-var">LovelacePortion</span></a><span> </span><a name="local-6989586621679193418"><a href="#local-6989586621679193418"><span class="hs-identifier">x</span></a></a><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-identifier hs-var">bprint</span><span>
-</span><a name="line-60"></a><span>    </span><span class="hs-special">(</span><span class="hs-identifier hs-var">int</span><span> </span><span class="hs-operator hs-var">.</span><span> </span><span class="hs-string">&quot;/&quot;</span><span> </span><span class="hs-operator hs-var">.</span><span> </span><span class="hs-identifier hs-var">int</span><span> </span><span class="hs-operator hs-var">.</span><span> </span><span class="hs-string">&quot; (approx. &quot;</span><span> </span><span class="hs-operator hs-var">.</span><span> </span><span class="hs-identifier hs-var">float</span><span> </span><span class="hs-operator hs-var">.</span><span> </span><span class="hs-string">&quot;)&quot;</span><span class="hs-special">)</span><span>
-</span><a name="line-61"></a><span>    </span><a href="#local-6989586621679193418"><span class="hs-identifier hs-var">x</span></a><span>
-</span><a name="line-62"></a><span>    </span><a href="Cardano.Chain.Common.LovelacePortion.html#lovelacePortionDenominator"><span class="hs-identifier hs-var">lovelacePortionDenominator</span></a><span>
-</span><a name="line-63"></a><span>    </span><span class="hs-special">(</span><span class="hs-identifier hs-var">fromRational</span><span> </span><span class="hs-special">(</span><a href="Cardano.Chain.Common.LovelacePortion.html#lovelacePortionToRational"><span class="hs-identifier hs-var">lovelacePortionToRational</span></a><span> </span><a href="#local-6989586621679193417"><span class="hs-identifier hs-var">cp</span></a><span class="hs-special">)</span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">Double</span><span class="hs-special">)</span><span>
-</span><a name="line-64"></a><span>
-</span><a name="line-65"></a><span class="hs-comment">-- Used for debugging purposes only</span><span>
-</span><a name="line-66"></a><span class="hs-keyword">instance</span><span> </span><span class="hs-identifier hs-type">Aeson.ToJSON</span><span> </span><a href="Cardano.Chain.Common.LovelacePortion.html#LovelacePortion"><span class="hs-identifier hs-type">LovelacePortion</span></a><span> </span><span class="hs-keyword">where</span><span>
-</span><a name="line-67"></a><span>
-</span><a name="line-68"></a><span class="hs-keyword">instance</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.ToCBOR.html#ToCBOR"><span class="hs-identifier hs-type">ToCBOR</span></a><span> </span><a href="Cardano.Chain.Common.LovelacePortion.html#LovelacePortion"><span class="hs-identifier hs-type">LovelacePortion</span></a><span> </span><span class="hs-keyword">where</span><span>
-</span><a name="line-69"></a><span>  </span><a name="local-8214565720323797072"><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.ToCBOR.html#toCBOR"><span class="hs-identifier">toCBOR</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.ToCBOR.html#toCBOR"><span class="hs-identifier hs-var">toCBOR</span></a><span> </span><span class="hs-operator hs-var">.</span><span> </span><span class="hs-identifier">unLovelacePortion</span><span>
-</span><a name="line-70"></a><span>
-</span><a name="line-71"></a><span class="hs-keyword">instance</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.FromCBOR.html#FromCBOR"><span class="hs-identifier hs-type">FromCBOR</span></a><span> </span><a href="Cardano.Chain.Common.LovelacePortion.html#LovelacePortion"><span class="hs-identifier hs-type">LovelacePortion</span></a><span> </span><span class="hs-keyword">where</span><span>
-</span><a name="line-72"></a><span>  </span><a name="local-8214565720323797139"><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.FromCBOR.html#fromCBOR"><span class="hs-identifier">fromCBOR</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
-</span><a name="line-73"></a><span>    </span><a name="local-6989586621679193416"><a href="#local-6989586621679193416"><span class="hs-identifier">nominator</span></a></a><span> </span><span class="hs-glyph">&lt;-</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.FromCBOR.html#fromCBOR"><span class="hs-identifier hs-var">fromCBOR</span></a><span>
-</span><a name="line-74"></a><span>    </span><span class="hs-identifier hs-var">when</span><span> </span><span class="hs-special">(</span><a href="#local-6989586621679193416"><span class="hs-identifier hs-var">nominator</span></a><span> </span><span class="hs-operator hs-var">&gt;</span><span> </span><a href="Cardano.Chain.Common.LovelacePortion.html#lovelacePortionDenominator"><span class="hs-identifier hs-var">lovelacePortionDenominator</span></a><span class="hs-special">)</span><span> </span><span class="hs-operator hs-var">$</span><span>
-</span><a name="line-75"></a><span>      </span><span class="hs-identifier hs-var">fail</span><span> </span><span class="hs-string">&quot;LovelacePortion: value out of bounds [0..1e15]&quot;</span><span>
-</span><a name="line-76"></a><span>    </span><span class="hs-identifier hs-var">return</span><span> </span><span class="hs-special">(</span><a href="Cardano.Chain.Common.LovelacePortion.html#LovelacePortion"><span class="hs-identifier hs-var">LovelacePortion</span></a><span> </span><a href="#local-6989586621679193416"><span class="hs-identifier hs-var">nominator</span></a><span class="hs-special">)</span><span>
-</span><a name="line-77"></a><span>
-</span><a name="line-78"></a><span class="hs-comment">-- The canonical JSON instance for LovelacePortion uses only the nominator in</span><span>
-</span><a name="line-79"></a><span class="hs-comment">-- the external representation,  rather than a real in the range [0,1].</span><span>
-</span><a name="line-80"></a><span class="hs-comment">-- This is because 'canonical-json' only supports numbers of type @Int54@.</span><span>
-</span><a name="line-81"></a><span class="hs-keyword">instance</span><span> </span><span class="hs-identifier hs-type">Monad</span><span> </span><a href="#local-6989586621679193415"><span class="hs-identifier hs-type">m</span></a><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="hs-identifier hs-type">ToJSON</span><span> </span><a href="#local-6989586621679193415"><span class="hs-identifier hs-type">m</span></a><span> </span><a href="Cardano.Chain.Common.LovelacePortion.html#LovelacePortion"><span class="hs-identifier hs-type">LovelacePortion</span></a><span> </span><span class="hs-keyword">where</span><span>
-</span><a name="line-82"></a><span>  </span><a name="local-8214565720323940771"><span class="hs-identifier">toJSON</span></a><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-identifier hs-var">toJSON</span><span> </span><span class="hs-operator hs-var">.</span><span> </span><span class="hs-identifier">unLovelacePortion</span><span>
-</span><a name="line-83"></a><span>
-</span><a name="line-84"></a><span class="hs-keyword">instance</span><span> </span><span class="hs-identifier hs-type">MonadError</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-prelude-0.1.0.0/noopt/doc/html/cardano-prelude/src/Cardano.Prelude.Json.Canonical.html#SchemaError"><span class="hs-identifier hs-type">SchemaError</span></a><span> </span><a href="#local-6989586621679193412"><span class="hs-identifier hs-type">m</span></a><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="hs-identifier hs-type">FromJSON</span><span> </span><a href="#local-6989586621679193412"><span class="hs-identifier hs-type">m</span></a><span> </span><a href="Cardano.Chain.Common.LovelacePortion.html#LovelacePortion"><span class="hs-identifier hs-type">LovelacePortion</span></a><span> </span><span class="hs-keyword">where</span><span>
-</span><a name="line-85"></a><span>  </span><a name="local-8214565720323940767"><span class="hs-identifier">fromJSON</span></a><span> </span><a name="local-6989586621679193413"><a href="#local-6989586621679193413"><span class="hs-identifier">val</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
-</span><a name="line-86"></a><span>    </span><a name="local-6989586621679193414"><a href="#local-6989586621679193414"><span class="hs-identifier">nominator</span></a></a><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="hs-identifier hs-var">fromJSON</span><span> </span><a href="#local-6989586621679193413"><span class="hs-identifier hs-var">val</span></a><span>
-</span><a name="line-87"></a><span>    </span><span class="hs-identifier hs-var">when</span><span> </span><span class="hs-special">(</span><a href="#local-6989586621679193414"><span class="hs-identifier hs-var">nominator</span></a><span> </span><span class="hs-operator hs-var">&gt;</span><span> </span><a href="Cardano.Chain.Common.LovelacePortion.html#lovelacePortionDenominator"><span class="hs-identifier hs-var">lovelacePortionDenominator</span></a><span class="hs-special">)</span><span> </span><span class="hs-operator hs-var">$</span><span>
-</span><a name="line-88"></a><span>      </span><span class="hs-identifier hs-var">throwError</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-prelude-0.1.0.0/noopt/doc/html/cardano-prelude/src/Cardano.Prelude.Json.Canonical.html#SchemaError"><span class="hs-identifier hs-var">SchemaError</span></a><span> </span><span class="hs-special">{</span><span>
-</span><a name="line-89"></a><span>        </span><span class="hs-identifier">seExpected</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-string">&quot;LovelacePortion integer in bounds [0..1e15]&quot;</span><span class="hs-special">,</span><span>
-</span><a name="line-90"></a><span>        </span><span class="hs-identifier">seActual</span><span>   </span><span class="hs-glyph">=</span><span> </span><span class="hs-identifier hs-var">Just</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-var">sformat</span><span> </span><span class="hs-identifier hs-var">build</span><span> </span><a href="#local-6989586621679193414"><span class="hs-identifier hs-var">nominator</span></a><span class="hs-special">)</span><span>
-</span><a name="line-91"></a><span>      </span><span class="hs-special">}</span><span>
-</span><a name="line-92"></a><span>    </span><span class="hs-identifier hs-var">pure</span><span> </span><span class="hs-special">(</span><a href="Cardano.Chain.Common.LovelacePortion.html#LovelacePortion"><span class="hs-identifier hs-var">LovelacePortion</span></a><span> </span><a href="#local-6989586621679193414"><span class="hs-identifier hs-var">nominator</span></a><span class="hs-special">)</span><span>
-</span><a name="line-93"></a><span>
-</span><a name="line-94"></a><span class="hs-comment">-- | Denominator used by 'LovelacePortion'.</span><span>
-</span><a name="line-95"></a><span class="hs-identifier">lovelacePortionDenominator</span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">Word64</span><span>
-</span><a name="line-96"></a><a name="lovelacePortionDenominator"><a href="Cardano.Chain.Common.LovelacePortion.html#lovelacePortionDenominator"><span class="hs-identifier">lovelacePortionDenominator</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-number">1e15</span><span>
-</span><a name="line-97"></a><span>
-</span><a name="line-98"></a><span class="hs-comment">-- | Make a 'LovelacePortion' from a 'Rational'</span><span>
-</span><a name="line-99"></a><span class="hs-comment">-- which must be in the range @[0..1]@.</span><span>
-</span><a name="line-100"></a><span class="hs-comment">--</span><span>
-</span><a name="line-101"></a><span class="hs-identifier">rationalToLovelacePortion</span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">Rational</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><a href="Cardano.Chain.Common.LovelacePortion.html#LovelacePortion"><span class="hs-identifier hs-type">LovelacePortion</span></a><span>
-</span><a name="line-102"></a><a name="rationalToLovelacePortion"><a href="Cardano.Chain.Common.LovelacePortion.html#rationalToLovelacePortion"><span class="hs-identifier">rationalToLovelacePortion</span></a></a><span> </span><a name="local-6989586621679193419"><a href="#local-6989586621679193419"><span class="hs-identifier">r</span></a></a><span>
-</span><a name="line-103"></a><span>  </span><span class="hs-glyph">|</span><span> </span><a href="#local-6989586621679193419"><span class="hs-identifier hs-var">r</span></a><span> </span><span class="hs-operator hs-var">&gt;=</span><span> </span><span class="hs-number">0</span><span> </span><span class="hs-operator hs-var">&amp;&amp;</span><span> </span><a href="#local-6989586621679193419"><span class="hs-identifier hs-var">r</span></a><span> </span><span class="hs-operator hs-var">&lt;=</span><span> </span><span class="hs-number">1</span><span> </span><span class="hs-glyph">=</span><span> </span><a href="Cardano.Chain.Common.LovelacePortion.html#LovelacePortion"><span class="hs-identifier hs-var">LovelacePortion</span></a><span>
-</span><a name="line-104"></a><span>                         </span><span class="hs-special">(</span><span class="hs-identifier hs-var">ceiling</span><span> </span><span class="hs-special">(</span><a href="#local-6989586621679193419"><span class="hs-identifier hs-var">r</span></a><span> </span><span class="hs-operator hs-var">*</span><span> </span><span class="hs-identifier hs-var">toRational</span><span> </span><a href="Cardano.Chain.Common.LovelacePortion.html#lovelacePortionDenominator"><span class="hs-identifier hs-var">lovelacePortionDenominator</span></a><span class="hs-special">)</span><span class="hs-special">)</span><span>
-</span><a name="line-105"></a><span>  </span><span class="hs-glyph">|</span><span> </span><span class="hs-identifier hs-var">otherwise</span><span>        </span><span class="hs-glyph">=</span><span> </span><span class="hs-identifier hs-var">panic</span><span> </span><span class="hs-string">&quot;rationalToLovelacePortion: out of range [0..1]&quot;</span><span>
-</span><a name="line-106"></a><span>
-</span><a name="line-107"></a><span class="hs-comment">-- | Turn a 'LovelacePortion' into a 'Rational' in the range @[0..1]@.</span><span>
-</span><a name="line-108"></a><span class="hs-comment">--</span><span>
-</span><a name="line-109"></a><span class="hs-identifier">lovelacePortionToRational</span><span> </span><span class="hs-glyph">::</span><span> </span><a href="Cardano.Chain.Common.LovelacePortion.html#LovelacePortion"><span class="hs-identifier hs-type">LovelacePortion</span></a><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">Rational</span><span>
-</span><a name="line-110"></a><a name="lovelacePortionToRational"><a href="Cardano.Chain.Common.LovelacePortion.html#lovelacePortionToRational"><span class="hs-identifier">lovelacePortionToRational</span></a></a><span> </span><span class="hs-special">(</span><a href="Cardano.Chain.Common.LovelacePortion.html#LovelacePortion"><span class="hs-identifier hs-var">LovelacePortion</span></a><span> </span><a name="local-6989586621679193420"><a href="#local-6989586621679193420"><span class="hs-identifier">n</span></a></a><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span>
-</span><a name="line-111"></a><span>  </span><span class="hs-identifier hs-var">toInteger</span><span> </span><a href="#local-6989586621679193420"><span class="hs-identifier hs-var">n</span></a><span> </span><span class="hs-operator hs-var">%</span><span> </span><span class="hs-identifier hs-var">toInteger</span><span> </span><a href="Cardano.Chain.Common.LovelacePortion.html#lovelacePortionDenominator"><span class="hs-identifier hs-var">lovelacePortionDenominator</span></a><span>
-</span><a name="line-112"></a></pre></body></html>
+</span><span id="line-2"></span><span class="hs-pragma">{-# LANGUAGE DerivingStrategies         #-}</span><span>
+</span><span id="line-3"></span><span class="hs-pragma">{-# LANGUAGE DerivingVia                #-}</span><span>
+</span><span id="line-4"></span><span class="hs-pragma">{-# LANGUAGE FlexibleInstances          #-}</span><span>
+</span><span id="line-5"></span><span class="hs-pragma">{-# LANGUAGE GeneralizedNewtypeDeriving #-}</span><span>
+</span><span id="line-6"></span><span class="hs-pragma">{-# LANGUAGE MultiParamTypeClasses      #-}</span><span>
+</span><span id="line-7"></span><span class="hs-pragma">{-# LANGUAGE NumDecimals                #-}</span><span>
+</span><span id="line-8"></span><span class="hs-pragma">{-# LANGUAGE OverloadedStrings          #-}</span><span>
+</span><span id="line-9"></span><span class="hs-pragma">{-# LANGUAGE UndecidableInstances       #-}</span><span>
+</span><span id="line-10"></span><span>
+</span><span id="line-11"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Cardano.Chain.Common.LovelacePortion</span><span>
+</span><span id="line-12"></span><span>  </span><span class="hs-special">(</span><span> </span><span class="annot"><a href="Cardano.Chain.Common.LovelacePortion.html#LovelacePortion"><span class="hs-identifier">LovelacePortion</span></a></span><span>
+</span><span id="line-13"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cardano.Chain.Common.LovelacePortion.html#rationalToLovelacePortion"><span class="hs-identifier">rationalToLovelacePortion</span></a></span><span>
+</span><span id="line-14"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cardano.Chain.Common.LovelacePortion.html#lovelacePortionToRational"><span class="hs-identifier">lovelacePortionToRational</span></a></span><span>
+</span><span id="line-15"></span><span>  </span><span class="hs-special">)</span><span>
+</span><span id="line-16"></span><span class="hs-keyword">where</span><span>
+</span><span id="line-17"></span><span>
+</span><span id="line-18"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-prelude-0.1.0.0/noopt/doc/html/cardano-prelude/src"><span class="hs-identifier">Cardano.Prelude</span></a></span><span>
+</span><span id="line-19"></span><span>
+</span><span id="line-20"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src"><span class="hs-identifier">Cardano.Binary</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src"><span class="hs-identifier">FromCBOR</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src"><span class="hs-identifier">ToCBOR</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-21"></span><span>
+</span><span id="line-22"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Control.Monad</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">fail</span></span><span class="hs-special">)</span><span>
+</span><span id="line-23"></span><span>
+</span><span id="line-24"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Data.Aeson</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Aeson</span></span><span>
+</span><span id="line-25"></span><span>
+</span><span id="line-26"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Formatting</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">sformat</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">build</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">bprint</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">float</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">int</span></span><span class="hs-special">)</span><span>
+</span><span id="line-27"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Formatting.Buildable</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">B</span></span><span>
+</span><span id="line-28"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">NoThunks.Class</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">NoThunks</span></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-29"></span><span>
+</span><span id="line-30"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Quiet</span></span><span>
+</span><span id="line-31"></span><span>
+</span><span id="line-32"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Text.JSON.Canonical</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">FromJSON</span></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">ToJSON</span></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-33"></span><span>
+</span><span id="line-34"></span><span>
+</span><span id="line-35"></span><span>
+</span><span id="line-36"></span><span class="hs-comment">-- | 'LovelacePortion' is a legacy Byron type that we keep only for</span><span>
+</span><span id="line-37"></span><span class="hs-comment">-- compatibility. It was originally intended to represent a fraction of stake</span><span>
+</span><span id="line-38"></span><span class="hs-comment">-- in the system. It is used only for the thresholds used in the update system</span><span>
+</span><span id="line-39"></span><span class="hs-comment">-- rules, most of which are now themselves unused. The remaining case is no</span><span>
+</span><span id="line-40"></span><span class="hs-comment">-- longer interpreted as a fraction of all stake, but as a fraction of the</span><span>
+</span><span id="line-41"></span><span class="hs-comment">-- number of genesis keys.</span><span>
+</span><span id="line-42"></span><span class="hs-comment">--</span><span>
+</span><span id="line-43"></span><span class="hs-comment">-- It has enormous precision, due to the fact that it was originally intended</span><span>
+</span><span id="line-44"></span><span class="hs-comment">-- to represent a fraction of all stake and can cover the precision of all the</span><span>
+</span><span id="line-45"></span><span class="hs-comment">-- Lovelace in the system.</span><span>
+</span><span id="line-46"></span><span class="hs-comment">--</span><span>
+</span><span id="line-47"></span><span class="hs-comment">-- It is represented as a rational nominator with a fixed implicit denominator</span><span>
+</span><span id="line-48"></span><span class="hs-comment">-- of 1e15. So the nominator must be in the range @[0..1e15]@. This is also the</span><span>
+</span><span id="line-49"></span><span class="hs-comment">-- representation used on-chain (in update proposals) and in the JSON</span><span>
+</span><span id="line-50"></span><span class="hs-comment">-- genesis file.</span><span>
+</span><span id="line-51"></span><span class="hs-comment">--</span><span>
+</span><span id="line-52"></span><span class="hs-comment">-- It is interpreted as a 'Rational' via the provided conversion functions.</span><span>
+</span><span id="line-53"></span><span class="hs-comment">--</span><span>
+</span><span id="line-54"></span><span id="local-6989586621679508803"><span id="local-6989586621679508804"></span></span><span class="hs-keyword">newtype</span><span> </span><span id="LovelacePortion"><span class="annot"><a href="Cardano.Chain.Common.LovelacePortion.html#LovelacePortion"><span class="hs-identifier hs-var">LovelacePortion</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="LovelacePortion"><span class="annot"><a href="Cardano.Chain.Common.LovelacePortion.html#LovelacePortion"><span class="hs-identifier hs-var">LovelacePortion</span></a></span></span><span>
+</span><span id="line-55"></span><span>  </span><span class="hs-special">{</span><span> </span><span id="unLovelacePortion"><span class="annot"><span class="annottext">LovelacePortion -&gt; Word64
+</span><a href="Cardano.Chain.Common.LovelacePortion.html#unLovelacePortion"><span class="hs-identifier hs-var hs-var">unLovelacePortion</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Word64</span></span><span>
+</span><span id="line-56"></span><span>  </span><span class="hs-special">}</span><span> </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679508786"><span id="local-6989586621679508788"><span id="local-6989586621679508790"><span id="local-6989586621679508792"><span id="local-6989586621679508794"><span id="local-6989586621679508796"><span id="local-6989586621679508798"><span class="annot"><span class="annottext">Eq LovelacePortion
+Eq LovelacePortion
+-&gt; (LovelacePortion -&gt; LovelacePortion -&gt; Ordering)
+-&gt; (LovelacePortion -&gt; LovelacePortion -&gt; Bool)
+-&gt; (LovelacePortion -&gt; LovelacePortion -&gt; Bool)
+-&gt; (LovelacePortion -&gt; LovelacePortion -&gt; Bool)
+-&gt; (LovelacePortion -&gt; LovelacePortion -&gt; Bool)
+-&gt; (LovelacePortion -&gt; LovelacePortion -&gt; LovelacePortion)
+-&gt; (LovelacePortion -&gt; LovelacePortion -&gt; LovelacePortion)
+-&gt; Ord LovelacePortion
+LovelacePortion -&gt; LovelacePortion -&gt; Bool
+LovelacePortion -&gt; LovelacePortion -&gt; Ordering
+LovelacePortion -&gt; LovelacePortion -&gt; LovelacePortion
+forall a.
+Eq a
+-&gt; (a -&gt; a -&gt; Ordering)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; a)
+-&gt; (a -&gt; a -&gt; a)
+-&gt; Ord a
+min :: LovelacePortion -&gt; LovelacePortion -&gt; LovelacePortion
+$cmin :: LovelacePortion -&gt; LovelacePortion -&gt; LovelacePortion
+max :: LovelacePortion -&gt; LovelacePortion -&gt; LovelacePortion
+$cmax :: LovelacePortion -&gt; LovelacePortion -&gt; LovelacePortion
+&gt;= :: LovelacePortion -&gt; LovelacePortion -&gt; Bool
+$c&gt;= :: LovelacePortion -&gt; LovelacePortion -&gt; Bool
+&gt; :: LovelacePortion -&gt; LovelacePortion -&gt; Bool
+$c&gt; :: LovelacePortion -&gt; LovelacePortion -&gt; Bool
+&lt;= :: LovelacePortion -&gt; LovelacePortion -&gt; Bool
+$c&lt;= :: LovelacePortion -&gt; LovelacePortion -&gt; Bool
+&lt; :: LovelacePortion -&gt; LovelacePortion -&gt; Bool
+$c&lt; :: LovelacePortion -&gt; LovelacePortion -&gt; Bool
+compare :: LovelacePortion -&gt; LovelacePortion -&gt; Ordering
+$ccompare :: LovelacePortion -&gt; LovelacePortion -&gt; Ordering
+$cp1Ord :: Eq LovelacePortion
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Ord</span></span></span></span></span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679508781"><span id="local-6989586621679508783"><span class="annot"><span class="annottext">LovelacePortion -&gt; LovelacePortion -&gt; Bool
+(LovelacePortion -&gt; LovelacePortion -&gt; Bool)
+-&gt; (LovelacePortion -&gt; LovelacePortion -&gt; Bool)
+-&gt; Eq LovelacePortion
+forall a. (a -&gt; a -&gt; Bool) -&gt; (a -&gt; a -&gt; Bool) -&gt; Eq a
+/= :: LovelacePortion -&gt; LovelacePortion -&gt; Bool
+$c/= :: LovelacePortion -&gt; LovelacePortion -&gt; Bool
+== :: LovelacePortion -&gt; LovelacePortion -&gt; Bool
+$c== :: LovelacePortion -&gt; LovelacePortion -&gt; Bool
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">(forall x. LovelacePortion -&gt; Rep LovelacePortion x)
+-&gt; (forall x. Rep LovelacePortion x -&gt; LovelacePortion)
+-&gt; Generic LovelacePortion
+forall x. Rep LovelacePortion x -&gt; LovelacePortion
+forall x. LovelacePortion -&gt; Rep LovelacePortion x
+forall a.
+(forall x. a -&gt; Rep a x) -&gt; (forall x. Rep a x -&gt; a) -&gt; Generic a
+$cto :: forall x. Rep LovelacePortion x -&gt; LovelacePortion
+$cfrom :: forall x. LovelacePortion -&gt; Rep LovelacePortion x
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">Generic</span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679508775"><span class="annot"><span class="annottext">LovelacePortion -&gt; Int
+(LovelacePortion -&gt; Int) -&gt; HeapWords LovelacePortion
+forall a. (a -&gt; Int) -&gt; HeapWords a
+heapWords :: LovelacePortion -&gt; Int
+$cheapWords :: LovelacePortion -&gt; Int
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-prelude-0.1.0.0/noopt/doc/html/cardano-prelude/src"><span class="hs-identifier hs-var hs-var hs-var hs-var">HeapWords</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679508772"><span class="annot"><span class="annottext">LovelacePortion -&gt; ()
+(LovelacePortion -&gt; ()) -&gt; NFData LovelacePortion
+forall a. (a -&gt; ()) -&gt; NFData a
+rnf :: LovelacePortion -&gt; ()
+$crnf :: LovelacePortion -&gt; ()
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">NFData</span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679508765"><span id="local-6989586621679508767"><span id="local-6989586621679508769"><span class="annot"><span class="annottext">Context -&gt; LovelacePortion -&gt; IO (Maybe ThunkInfo)
+Proxy LovelacePortion -&gt; String
+(Context -&gt; LovelacePortion -&gt; IO (Maybe ThunkInfo))
+-&gt; (Context -&gt; LovelacePortion -&gt; IO (Maybe ThunkInfo))
+-&gt; (Proxy LovelacePortion -&gt; String)
+-&gt; NoThunks LovelacePortion
+forall a.
+(Context -&gt; a -&gt; IO (Maybe ThunkInfo))
+-&gt; (Context -&gt; a -&gt; IO (Maybe ThunkInfo))
+-&gt; (Proxy a -&gt; String)
+-&gt; NoThunks a
+showTypeOf :: Proxy LovelacePortion -&gt; String
+$cshowTypeOf :: Proxy LovelacePortion -&gt; String
+wNoThunks :: Context -&gt; LovelacePortion -&gt; IO (Maybe ThunkInfo)
+$cwNoThunks :: Context -&gt; LovelacePortion -&gt; IO (Maybe ThunkInfo)
+noThunks :: Context -&gt; LovelacePortion -&gt; IO (Maybe ThunkInfo)
+$cnoThunks :: Context -&gt; LovelacePortion -&gt; IO (Maybe ThunkInfo)
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">NoThunks</span></span></span></span></span><span class="hs-special">)</span><span>
+</span><span id="line-57"></span><span>    </span><span class="hs-keyword">deriving</span><span> </span><span id="local-6989586621679508758"><span id="local-6989586621679508760"><span id="local-6989586621679508762"><span class="annot"><span class="annottext">Int -&gt; LovelacePortion -&gt; ShowS
+[LovelacePortion] -&gt; ShowS
+LovelacePortion -&gt; String
+(Int -&gt; LovelacePortion -&gt; ShowS)
+-&gt; (LovelacePortion -&gt; String)
+-&gt; ([LovelacePortion] -&gt; ShowS)
+-&gt; Show LovelacePortion
+forall a.
+(Int -&gt; a -&gt; ShowS) -&gt; (a -&gt; String) -&gt; ([a] -&gt; ShowS) -&gt; Show a
+showList :: [LovelacePortion] -&gt; ShowS
+$cshowList :: [LovelacePortion] -&gt; ShowS
+show :: LovelacePortion -&gt; String
+$cshow :: LovelacePortion -&gt; String
+showsPrec :: Int -&gt; LovelacePortion -&gt; ShowS
+$cshowsPrec :: Int -&gt; LovelacePortion -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span> </span><span class="hs-keyword">via</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Quiet</span></span><span> </span><span class="annot"><a href="Cardano.Chain.Common.LovelacePortion.html#LovelacePortion"><span class="hs-identifier hs-type">LovelacePortion</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-58"></span><span>
+</span><span id="line-59"></span><span class="hs-keyword">instance</span><span> </span><span class="annot"><span class="hs-identifier hs-type">B.Buildable</span></span><span> </span><span class="annot"><a href="Cardano.Chain.Common.LovelacePortion.html#LovelacePortion"><span class="hs-identifier hs-type">LovelacePortion</span></a></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-60"></span><span>  </span><span id="local-6989586621679508753"><span class="annot"><span class="annottext">build :: LovelacePortion -&gt; Builder
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">build</span></span></span><span> </span><span id="local-6989586621679508751"><span class="annot"><span class="annottext">cp :: LovelacePortion
+</span><a href="#local-6989586621679508751"><span class="hs-identifier hs-var">cp</span></a></span></span><span class="hs-glyph">@</span><span class="hs-special">(</span><span class="annot"><a href="Cardano.Chain.Common.LovelacePortion.html#LovelacePortion"><span class="hs-identifier hs-type">LovelacePortion</span></a></span><span> </span><span id="local-6989586621679508750"><span class="annot"><span class="annottext">Word64
+</span><a href="#local-6989586621679508750"><span class="hs-identifier hs-var">x</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Format Builder (Word64 -&gt; Word64 -&gt; Double -&gt; Builder)
+-&gt; Word64 -&gt; Word64 -&gt; Double -&gt; Builder
+forall a. Format Builder a -&gt; a
+</span><span class="hs-identifier hs-var">bprint</span></span><span>
+</span><span id="line-61"></span><span>    </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Format
+  (Word64 -&gt; Double -&gt; Builder)
+  (Word64 -&gt; Word64 -&gt; Double -&gt; Builder)
+forall a r. Integral a =&gt; Format r (a -&gt; r)
+</span><span class="hs-identifier hs-var">int</span></span><span> </span><span class="annot"><span class="annottext">Format
+  (Word64 -&gt; Double -&gt; Builder)
+  (Word64 -&gt; Word64 -&gt; Double -&gt; Builder)
+-&gt; Format Builder (Word64 -&gt; Double -&gt; Builder)
+-&gt; Format Builder (Word64 -&gt; Word64 -&gt; Double -&gt; Builder)
+forall k (cat :: k -&gt; k -&gt; *) (b :: k) (c :: k) (a :: k).
+Category cat =&gt;
+cat b c -&gt; cat a b -&gt; cat a c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Format (Word64 -&gt; Double -&gt; Builder) (Word64 -&gt; Double -&gt; Builder)
+</span><span class="hs-string">&quot;/&quot;</span></span><span> </span><span class="annot"><span class="annottext">Format (Word64 -&gt; Double -&gt; Builder) (Word64 -&gt; Double -&gt; Builder)
+-&gt; Format Builder (Word64 -&gt; Double -&gt; Builder)
+-&gt; Format Builder (Word64 -&gt; Double -&gt; Builder)
+forall k (cat :: k -&gt; k -&gt; *) (b :: k) (c :: k) (a :: k).
+Category cat =&gt;
+cat b c -&gt; cat a b -&gt; cat a c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Format (Double -&gt; Builder) (Word64 -&gt; Double -&gt; Builder)
+forall a r. Integral a =&gt; Format r (a -&gt; r)
+</span><span class="hs-identifier hs-var">int</span></span><span> </span><span class="annot"><span class="annottext">Format (Double -&gt; Builder) (Word64 -&gt; Double -&gt; Builder)
+-&gt; Format Builder (Double -&gt; Builder)
+-&gt; Format Builder (Word64 -&gt; Double -&gt; Builder)
+forall k (cat :: k -&gt; k -&gt; *) (b :: k) (c :: k) (a :: k).
+Category cat =&gt;
+cat b c -&gt; cat a b -&gt; cat a c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Format (Double -&gt; Builder) (Double -&gt; Builder)
+</span><span class="hs-string">&quot; (approx. &quot;</span></span><span> </span><span class="annot"><span class="annottext">Format (Double -&gt; Builder) (Double -&gt; Builder)
+-&gt; Format Builder (Double -&gt; Builder)
+-&gt; Format Builder (Double -&gt; Builder)
+forall k (cat :: k -&gt; k -&gt; *) (b :: k) (c :: k) (a :: k).
+Category cat =&gt;
+cat b c -&gt; cat a b -&gt; cat a c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Format Builder (Double -&gt; Builder)
+forall a r. Real a =&gt; Format r (a -&gt; r)
+</span><span class="hs-identifier hs-var">float</span></span><span> </span><span class="annot"><span class="annottext">Format Builder (Double -&gt; Builder)
+-&gt; Format Builder Builder -&gt; Format Builder (Double -&gt; Builder)
+forall k (cat :: k -&gt; k -&gt; *) (b :: k) (c :: k) (a :: k).
+Category cat =&gt;
+cat b c -&gt; cat a b -&gt; cat a c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Format Builder Builder
+</span><span class="hs-string">&quot;)&quot;</span></span><span class="hs-special">)</span><span>
+</span><span id="line-62"></span><span>    </span><span class="annot"><span class="annottext">Word64
+</span><a href="#local-6989586621679508750"><span class="hs-identifier hs-var">x</span></a></span><span>
+</span><span id="line-63"></span><span>    </span><span class="annot"><span class="annottext">Word64
+</span><a href="Cardano.Chain.Common.LovelacePortion.html#lovelacePortionDenominator"><span class="hs-identifier hs-var">lovelacePortionDenominator</span></a></span><span>
+</span><span id="line-64"></span><span>    </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Rational -&gt; Double
+forall a. Fractional a =&gt; Rational -&gt; a
+</span><span class="hs-identifier hs-var">fromRational</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">LovelacePortion -&gt; Rational
+</span><a href="Cardano.Chain.Common.LovelacePortion.html#lovelacePortionToRational"><span class="hs-identifier hs-var">lovelacePortionToRational</span></a></span><span> </span><span class="annot"><span class="annottext">LovelacePortion
+</span><a href="#local-6989586621679508751"><span class="hs-identifier hs-var">cp</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Double</span></span><span class="hs-special">)</span><span>
+</span><span id="line-65"></span><span>
+</span><span id="line-66"></span><span class="hs-comment">-- Used for debugging purposes only</span><span>
+</span><span id="line-67"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679508740"><span id="local-6989586621679508742"><span id="local-6989586621679508744"><span id="local-6989586621679508746"><span class="annot"><span class="hs-identifier hs-type">Aeson.ToJSON</span></span><span> </span><span class="annot"><a href="Cardano.Chain.Common.LovelacePortion.html#LovelacePortion"><span class="hs-identifier hs-type">LovelacePortion</span></a></span></span></span></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-68"></span><span>
+</span><span id="line-69"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679508733"><span id="local-6989586621679508735"><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src"><span class="hs-identifier hs-type">ToCBOR</span></a></span><span> </span><span class="annot"><a href="Cardano.Chain.Common.LovelacePortion.html#LovelacePortion"><span class="hs-identifier hs-type">LovelacePortion</span></a></span></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-70"></span><span>  </span><span id="local-6989586621679508731"><span class="annot"><span class="annottext">toCBOR :: LovelacePortion -&gt; Encoding
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src"><span class="hs-identifier hs-var hs-var hs-var hs-var">toCBOR</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Word64 -&gt; Encoding
+forall a. ToCBOR a =&gt; a -&gt; Encoding
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src"><span class="hs-identifier hs-var">toCBOR</span></a></span><span> </span><span class="annot"><span class="annottext">(Word64 -&gt; Encoding)
+-&gt; (LovelacePortion -&gt; Word64) -&gt; LovelacePortion -&gt; Encoding
+forall k (cat :: k -&gt; k -&gt; *) (b :: k) (c :: k) (a :: k).
+Category cat =&gt;
+cat b c -&gt; cat a b -&gt; cat a c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">LovelacePortion -&gt; Word64
+</span><a href="Cardano.Chain.Common.LovelacePortion.html#unLovelacePortion"><span class="hs-identifier hs-var hs-var">unLovelacePortion</span></a></span><span>
+</span><span id="line-71"></span><span>
+</span><span id="line-72"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679508726"><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src"><span class="hs-identifier hs-type">FromCBOR</span></a></span><span> </span><span class="annot"><a href="Cardano.Chain.Common.LovelacePortion.html#LovelacePortion"><span class="hs-identifier hs-type">LovelacePortion</span></a></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-73"></span><span>  </span><span id="local-6989586621679508724"><span class="annot"><span class="annottext">fromCBOR :: Decoder s LovelacePortion
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src"><span class="hs-identifier hs-var hs-var hs-var hs-var">fromCBOR</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-74"></span><span>    </span><span id="local-6989586621679508722"><span class="annot"><span class="annottext">Word64
+</span><a href="#local-6989586621679508722"><span class="hs-identifier hs-var">nominator</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Decoder s Word64
+forall a s. FromCBOR a =&gt; Decoder s a
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src"><span class="hs-identifier hs-var">fromCBOR</span></a></span><span>
+</span><span id="line-75"></span><span>    </span><span class="annot"><span class="annottext">Bool -&gt; Decoder s () -&gt; Decoder s ()
+forall (f :: * -&gt; *). Applicative f =&gt; Bool -&gt; f () -&gt; f ()
+</span><span class="hs-identifier hs-var">when</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Word64
+</span><a href="#local-6989586621679508722"><span class="hs-identifier hs-var">nominator</span></a></span><span> </span><span class="annot"><span class="annottext">Word64 -&gt; Word64 -&gt; Bool
+forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">&gt;</span></span><span> </span><span class="annot"><span class="annottext">Word64
+</span><a href="Cardano.Chain.Common.LovelacePortion.html#lovelacePortionDenominator"><span class="hs-identifier hs-var">lovelacePortionDenominator</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(Decoder s () -&gt; Decoder s ()) -&gt; Decoder s () -&gt; Decoder s ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span>
+</span><span id="line-76"></span><span>      </span><span class="annot"><span class="annottext">String -&gt; Decoder s ()
+forall (m :: * -&gt; *) a. MonadFail m =&gt; String -&gt; m a
+</span><span class="hs-identifier hs-var">fail</span></span><span> </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;LovelacePortion: value out of bounds [0..1e15]&quot;</span></span><span>
+</span><span id="line-77"></span><span>    </span><span class="annot"><span class="annottext">LovelacePortion -&gt; Decoder s LovelacePortion
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Word64 -&gt; LovelacePortion
+</span><a href="Cardano.Chain.Common.LovelacePortion.html#LovelacePortion"><span class="hs-identifier hs-var">LovelacePortion</span></a></span><span> </span><span class="annot"><span class="annottext">Word64
+</span><a href="#local-6989586621679508722"><span class="hs-identifier hs-var">nominator</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-78"></span><span>
+</span><span id="line-79"></span><span class="hs-comment">-- The canonical JSON instance for LovelacePortion uses only the nominator in</span><span>
+</span><span id="line-80"></span><span class="hs-comment">-- the external representation,  rather than a real in the range [0,1].</span><span>
+</span><span id="line-81"></span><span class="hs-comment">-- This is because 'canonical-json' only supports numbers of type @Int54@.</span><span>
+</span><span id="line-82"></span><span id="local-6989586621679508719"><span class="hs-keyword">instance</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Monad</span></span><span> </span><span class="annot"><a href="#local-6989586621679508719"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">ToJSON</span></span><span> </span><span class="annot"><a href="#local-6989586621679508719"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><a href="Cardano.Chain.Common.LovelacePortion.html#LovelacePortion"><span class="hs-identifier hs-type">LovelacePortion</span></a></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-83"></span><span>  </span><span id="local-6989586621679508716"><span class="annot"><span class="annottext">toJSON :: LovelacePortion -&gt; m JSValue
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">toJSON</span></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Word64 -&gt; m JSValue
+forall (m :: * -&gt; *) a. ToJSON m a =&gt; a -&gt; m JSValue
+</span><span class="hs-identifier hs-var">toJSON</span></span><span> </span><span class="annot"><span class="annottext">(Word64 -&gt; m JSValue)
+-&gt; (LovelacePortion -&gt; Word64) -&gt; LovelacePortion -&gt; m JSValue
+forall k (cat :: k -&gt; k -&gt; *) (b :: k) (c :: k) (a :: k).
+Category cat =&gt;
+cat b c -&gt; cat a b -&gt; cat a c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">LovelacePortion -&gt; Word64
+</span><a href="Cardano.Chain.Common.LovelacePortion.html#unLovelacePortion"><span class="hs-identifier hs-var hs-var">unLovelacePortion</span></a></span></span><span>
+</span><span id="line-84"></span><span>
+</span><span id="line-85"></span><span id="local-6989586621679508714"><span class="hs-keyword">instance</span><span> </span><span class="annot"><span class="hs-identifier hs-type">MonadError</span></span><span> </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-prelude-0.1.0.0/noopt/doc/html/cardano-prelude/src"><span class="hs-identifier hs-type">SchemaError</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679508714"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">FromJSON</span></span><span> </span><span class="annot"><a href="#local-6989586621679508714"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><a href="Cardano.Chain.Common.LovelacePortion.html#LovelacePortion"><span class="hs-identifier hs-type">LovelacePortion</span></a></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-86"></span><span>  </span><span id="local-6989586621679508711"><span class="annot"><span class="annottext">fromJSON :: JSValue -&gt; m LovelacePortion
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">fromJSON</span></span></span><span> </span><span id="local-6989586621679508709"><span class="annot"><span class="annottext">JSValue
+</span><a href="#local-6989586621679508709"><span class="hs-identifier hs-var">val</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-87"></span><span>    </span><span id="local-6989586621679508708"><span class="annot"><span class="annottext">Word64
+</span><a href="#local-6989586621679508708"><span class="hs-identifier hs-var">nominator</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">JSValue -&gt; m Word64
+forall (m :: * -&gt; *) a. FromJSON m a =&gt; JSValue -&gt; m a
+</span><span class="hs-identifier hs-var">fromJSON</span></span><span> </span><span class="annot"><span class="annottext">JSValue
+</span><a href="#local-6989586621679508709"><span class="hs-identifier hs-var">val</span></a></span><span>
+</span><span id="line-88"></span><span>    </span><span class="annot"><span class="annottext">Bool -&gt; m () -&gt; m ()
+forall (f :: * -&gt; *). Applicative f =&gt; Bool -&gt; f () -&gt; f ()
+</span><span class="hs-identifier hs-var">when</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Word64
+</span><a href="#local-6989586621679508708"><span class="hs-identifier hs-var">nominator</span></a></span><span> </span><span class="annot"><span class="annottext">Word64 -&gt; Word64 -&gt; Bool
+forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">&gt;</span></span><span> </span><span class="annot"><span class="annottext">Word64
+</span><a href="Cardano.Chain.Common.LovelacePortion.html#lovelacePortionDenominator"><span class="hs-identifier hs-var">lovelacePortionDenominator</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(m () -&gt; m ()) -&gt; m () -&gt; m ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span>
+</span><span id="line-89"></span><span>      </span><span class="annot"><span class="annottext">SchemaError -&gt; m ()
+forall e (m :: * -&gt; *) a. MonadError e m =&gt; e -&gt; m a
+</span><span class="hs-identifier hs-var">throwError</span></span><span> </span><span class="annot"><span class="annottext">SchemaError :: Text -&gt; Maybe Text -&gt; SchemaError
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-prelude-0.1.0.0/noopt/doc/html/cardano-prelude/src"><span class="hs-identifier hs-type">SchemaError</span></a></span><span> </span><span class="hs-special">{</span><span>
+</span><span id="line-90"></span><span>        </span><span class="annot"><span class="annottext">seExpected :: Text
+</span><a href="#local-6989586621679508705"><span class="hs-identifier hs-var">seExpected</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Text
+</span><span class="hs-string">&quot;LovelacePortion integer in bounds [0..1e15]&quot;</span></span><span class="hs-special">,</span><span>
+</span><span id="line-91"></span><span>        </span><span class="annot"><span class="annottext">seActual :: Maybe Text
+</span><a href="#local-6989586621679508704"><span class="hs-identifier hs-var">seActual</span></a></span><span>   </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Text -&gt; Maybe Text
+forall a. a -&gt; Maybe a
+</span><span class="hs-identifier hs-var">Just</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Format Text (Word64 -&gt; Text) -&gt; Word64 -&gt; Text
+forall a. Format Text a -&gt; a
+</span><span class="hs-identifier hs-var">sformat</span></span><span> </span><span class="annot"><span class="annottext">Format Text (Word64 -&gt; Text)
+forall a r. Buildable a =&gt; Format r (a -&gt; r)
+</span><span class="hs-identifier hs-var">build</span></span><span> </span><span class="annot"><span class="annottext">Word64
+</span><a href="#local-6989586621679508708"><span class="hs-identifier hs-var">nominator</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-92"></span><span>      </span><span class="hs-special">}</span><span>
+</span><span id="line-93"></span><span>    </span><span class="annot"><span class="annottext">LovelacePortion -&gt; m LovelacePortion
+forall (f :: * -&gt; *) a. Applicative f =&gt; a -&gt; f a
+</span><span class="hs-identifier hs-var">pure</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Word64 -&gt; LovelacePortion
+</span><a href="Cardano.Chain.Common.LovelacePortion.html#LovelacePortion"><span class="hs-identifier hs-var">LovelacePortion</span></a></span><span> </span><span class="annot"><span class="annottext">Word64
+</span><a href="#local-6989586621679508708"><span class="hs-identifier hs-var">nominator</span></a></span><span class="hs-special">)</span></span><span>
+</span><span id="line-94"></span><span>
+</span><span id="line-95"></span><span class="hs-comment">-- | Denominator used by 'LovelacePortion'.</span><span>
+</span><span id="line-96"></span><span class="annot"><a href="Cardano.Chain.Common.LovelacePortion.html#lovelacePortionDenominator"><span class="hs-identifier hs-type">lovelacePortionDenominator</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Word64</span></span><span>
+</span><span id="line-97"></span><span id="lovelacePortionDenominator"><span class="annot"><span class="annottext">lovelacePortionDenominator :: Word64
+</span><a href="Cardano.Chain.Common.LovelacePortion.html#lovelacePortionDenominator"><span class="hs-identifier hs-var hs-var">lovelacePortionDenominator</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Word64
+</span><span class="hs-number">1e15</span></span><span>
+</span><span id="line-98"></span><span>
+</span><span id="line-99"></span><span class="hs-comment">-- | Make a 'LovelacePortion' from a 'Rational'</span><span>
+</span><span id="line-100"></span><span class="hs-comment">-- which must be in the range @[0..1]@.</span><span>
+</span><span id="line-101"></span><span class="hs-comment">--</span><span>
+</span><span id="line-102"></span><span class="annot"><a href="Cardano.Chain.Common.LovelacePortion.html#rationalToLovelacePortion"><span class="hs-identifier hs-type">rationalToLovelacePortion</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Rational</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cardano.Chain.Common.LovelacePortion.html#LovelacePortion"><span class="hs-identifier hs-type">LovelacePortion</span></a></span><span>
+</span><span id="line-103"></span><span id="rationalToLovelacePortion"><span class="annot"><span class="annottext">rationalToLovelacePortion :: Rational -&gt; LovelacePortion
+</span><a href="Cardano.Chain.Common.LovelacePortion.html#rationalToLovelacePortion"><span class="hs-identifier hs-var hs-var">rationalToLovelacePortion</span></a></span></span><span> </span><span id="local-6989586621679508703"><span class="annot"><span class="annottext">Rational
+</span><a href="#local-6989586621679508703"><span class="hs-identifier hs-var">r</span></a></span></span><span>
+</span><span id="line-104"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Rational
+</span><a href="#local-6989586621679508703"><span class="hs-identifier hs-var">r</span></a></span><span> </span><span class="annot"><span class="annottext">Rational -&gt; Rational -&gt; Bool
+forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">&gt;=</span></span><span> </span><span class="annot"><span class="annottext">Rational
+</span><span class="hs-number">0</span></span><span> </span><span class="annot"><span class="annottext">Bool -&gt; Bool -&gt; Bool
+</span><span class="hs-operator hs-var">&amp;&amp;</span></span><span> </span><span class="annot"><span class="annottext">Rational
+</span><a href="#local-6989586621679508703"><span class="hs-identifier hs-var">r</span></a></span><span> </span><span class="annot"><span class="annottext">Rational -&gt; Rational -&gt; Bool
+forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">&lt;=</span></span><span> </span><span class="annot"><span class="annottext">Rational
+</span><span class="hs-number">1</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Word64 -&gt; LovelacePortion
+</span><a href="Cardano.Chain.Common.LovelacePortion.html#LovelacePortion"><span class="hs-identifier hs-var">LovelacePortion</span></a></span><span>
+</span><span id="line-105"></span><span>                         </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Rational -&gt; Word64
+forall a b. (RealFrac a, Integral b) =&gt; a -&gt; b
+</span><span class="hs-identifier hs-var">ceiling</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Rational
+</span><a href="#local-6989586621679508703"><span class="hs-identifier hs-var">r</span></a></span><span> </span><span class="annot"><span class="annottext">Rational -&gt; Rational -&gt; Rational
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">*</span></span><span> </span><span class="annot"><span class="annottext">Word64 -&gt; Rational
+forall a. Real a =&gt; a -&gt; Rational
+</span><span class="hs-identifier hs-var">toRational</span></span><span> </span><span class="annot"><span class="annottext">Word64
+</span><a href="Cardano.Chain.Common.LovelacePortion.html#lovelacePortionDenominator"><span class="hs-identifier hs-var">lovelacePortionDenominator</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-106"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">otherwise</span></span><span>        </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Text -&gt; LovelacePortion
+forall a. HasCallStack =&gt; Text -&gt; a
+</span><span class="hs-identifier hs-var">panic</span></span><span> </span><span class="annot"><span class="annottext">Text
+</span><span class="hs-string">&quot;rationalToLovelacePortion: out of range [0..1]&quot;</span></span><span>
+</span><span id="line-107"></span><span>
+</span><span id="line-108"></span><span class="hs-comment">-- | Turn a 'LovelacePortion' into a 'Rational' in the range @[0..1]@.</span><span>
+</span><span id="line-109"></span><span class="hs-comment">--</span><span>
+</span><span id="line-110"></span><span class="annot"><a href="Cardano.Chain.Common.LovelacePortion.html#lovelacePortionToRational"><span class="hs-identifier hs-type">lovelacePortionToRational</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cardano.Chain.Common.LovelacePortion.html#LovelacePortion"><span class="hs-identifier hs-type">LovelacePortion</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Rational</span></span><span>
+</span><span id="line-111"></span><span id="lovelacePortionToRational"><span class="annot"><span class="annottext">lovelacePortionToRational :: LovelacePortion -&gt; Rational
+</span><a href="Cardano.Chain.Common.LovelacePortion.html#lovelacePortionToRational"><span class="hs-identifier hs-var hs-var">lovelacePortionToRational</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cardano.Chain.Common.LovelacePortion.html#LovelacePortion"><span class="hs-identifier hs-type">LovelacePortion</span></a></span><span> </span><span id="local-6989586621679508697"><span class="annot"><span class="annottext">Word64
+</span><a href="#local-6989586621679508697"><span class="hs-identifier hs-var">n</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-112"></span><span>  </span><span class="annot"><span class="annottext">Word64 -&gt; Integer
+forall a. Integral a =&gt; a -&gt; Integer
+</span><span class="hs-identifier hs-var">toInteger</span></span><span> </span><span class="annot"><span class="annottext">Word64
+</span><a href="#local-6989586621679508697"><span class="hs-identifier hs-var">n</span></a></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Integer -&gt; Rational
+forall a. Integral a =&gt; a -&gt; a -&gt; Ratio a
+</span><span class="hs-operator hs-var">%</span></span><span> </span><span class="annot"><span class="annottext">Word64 -&gt; Integer
+forall a. Integral a =&gt; a -&gt; Integer
+</span><span class="hs-identifier hs-var">toInteger</span></span><span> </span><span class="annot"><span class="annottext">Word64
+</span><a href="Cardano.Chain.Common.LovelacePortion.html#lovelacePortionDenominator"><span class="hs-identifier hs-var">lovelacePortionDenominator</span></a></span><span>
+</span><span id="line-113"></span></pre></body></html>

@@ -1,90 +1,279 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-pragma">{-# LANGUAGE NoImplicitPrelude    #-}</span><span>
-</span><a name="line-2"></a><span class="hs-pragma">{-# LANGUAGE Rank2Types           #-}</span><span>
-</span><a name="line-3"></a><span class="hs-pragma">{-# LANGUAGE DataKinds            #-}</span><span>
-</span><a name="line-4"></a><span class="hs-pragma">{-# LANGUAGE KindSignatures       #-}</span><span>
-</span><a name="line-5"></a><span class="hs-pragma">{-# LANGUAGE TypeFamilies         #-}</span><span>
-</span><a name="line-6"></a><span class="hs-pragma">{-# LANGUAGE TypeOperators        #-}</span><span>
-</span><a name="line-7"></a><span class="hs-pragma">{-# LANGUAGE ConstraintKinds      #-}</span><span>
-</span><a name="line-8"></a><span class="hs-pragma">{-# LANGUAGE ScopedTypeVariables  #-}</span><span>
-</span><a name="line-9"></a><span class="hs-pragma">{-# LANGUAGE FlexibleInstances    #-}</span><span>
-</span><a name="line-10"></a><span class="hs-pragma">{-# LANGUAGE MultiParamTypeClasses #-}</span><span>
-</span><a name="line-11"></a><span class="hs-pragma">{-# LANGUAGE UndecidableInstances #-}</span><span>
-</span><a name="line-12"></a><span class="hs-pragma">{-# LANGUAGE OverloadedStrings    #-}</span><span>
-</span><a name="line-13"></a><span>
-</span><a name="line-14"></a><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Crypto.Encoding.BIP39.Dictionary</span><span>
-</span><a name="line-15"></a><span>    </span><span class="hs-special">(</span><span> </span><span class="hs-comment">-- ** Dictionary</span><span>
-</span><a name="line-16"></a><span>      </span><a href="Crypto.Encoding.BIP39.Dictionary.html#Dictionary"><span class="hs-identifier hs-type">Dictionary</span></a><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
-</span><a name="line-17"></a><span>    </span><span class="hs-special">,</span><span> </span><a href="Crypto.Encoding.BIP39.Dictionary.html#WordIndex"><span class="hs-identifier hs-type">WordIndex</span></a><span>
-</span><a name="line-18"></a><span>    </span><span class="hs-special">,</span><span> </span><a href="Crypto.Encoding.BIP39.Dictionary.html#wordIndex"><span class="hs-identifier hs-var">wordIndex</span></a><span>
-</span><a name="line-19"></a><span>    </span><span class="hs-special">,</span><span> </span><a href="Crypto.Encoding.BIP39.Dictionary.html#unWordIndex"><span class="hs-identifier hs-var">unWordIndex</span></a><span>
-</span><a name="line-20"></a><span>
-</span><a name="line-21"></a><span>    </span><span class="hs-special">,</span><span> </span><a href="Crypto.Encoding.BIP39.Dictionary.html#DictionaryError"><span class="hs-identifier hs-type">DictionaryError</span></a><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
-</span><a name="line-22"></a><span>    </span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
-</span><a name="line-23"></a><span>
-</span><a name="line-24"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Basement.String</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">String</span><span class="hs-special">)</span><span>
-</span><a name="line-25"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Basement.NormalForm</span><span>
-</span><a name="line-26"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Basement.Compat.Typeable</span><span>
-</span><a name="line-27"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Basement.Types.OffsetSize</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Offset</span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
-</span><a name="line-28"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Basement.From</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">TryFrom</span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
-</span><a name="line-29"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Basement.Imports</span><span>
-</span><a name="line-30"></a><span>
-</span><a name="line-31"></a><span class="hs-comment">-- | this discribe the property of the Dictionary and will alllow to</span><span>
-</span><a name="line-32"></a><span class="hs-comment">-- convert from a mnemonic phrase to 'MnemonicSentence'</span><span>
-</span><a name="line-33"></a><span class="hs-comment">--</span><span>
-</span><a name="line-34"></a><span class="hs-comment">-- This is especially needed to build the BIP39 'Seed'</span><span>
-</span><a name="line-35"></a><span class="hs-comment">--</span><span>
-</span><a name="line-36"></a><span class="hs-keyword">data</span><span> </span><a name="Dictionary"><a href="Crypto.Encoding.BIP39.Dictionary.html#Dictionary"><span class="hs-identifier">Dictionary</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><a name="Dictionary"><a href="Crypto.Encoding.BIP39.Dictionary.html#Dictionary"><span class="hs-identifier">Dictionary</span></a></a><span>
-</span><a name="line-37"></a><span>    </span><span class="hs-special">{</span><span> </span><a name="dictionaryIndexToWord"><a href="Crypto.Encoding.BIP39.Dictionary.html#dictionaryIndexToWord"><span class="hs-identifier">dictionaryIndexToWord</span></a></a><span> </span><span class="hs-glyph">::</span><span> </span><a href="Crypto.Encoding.BIP39.Dictionary.html#WordIndex"><span class="hs-identifier hs-type">WordIndex</span></a><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">String</span><span>
-</span><a name="line-38"></a><span>      </span><span class="hs-comment">-- ^ This function will retrieve the mnemonic word associated to the</span><span>
-</span><a name="line-39"></a><span>      </span><span class="hs-comment">-- given 'WordIndex'.</span><span>
-</span><a name="line-40"></a><span>    </span><span class="hs-special">,</span><span> </span><a name="dictionaryWordToIndex"><a href="Crypto.Encoding.BIP39.Dictionary.html#dictionaryWordToIndex"><span class="hs-identifier">dictionaryWordToIndex</span></a></a><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">String</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">Either</span><span> </span><a href="Crypto.Encoding.BIP39.Dictionary.html#DictionaryError"><span class="hs-identifier hs-type">DictionaryError</span></a><span> </span><a href="Crypto.Encoding.BIP39.Dictionary.html#WordIndex"><span class="hs-identifier hs-type">WordIndex</span></a><span>
-</span><a name="line-41"></a><span>      </span><span class="hs-comment">-- ^ This function will retrieve the 'WordIndex' from a given mnemonic</span><span>
-</span><a name="line-42"></a><span>      </span><span class="hs-comment">-- word.</span><span>
-</span><a name="line-43"></a><span>    </span><span class="hs-special">,</span><span> </span><a name="dictionaryTestWord"><a href="Crypto.Encoding.BIP39.Dictionary.html#dictionaryTestWord"><span class="hs-identifier">dictionaryTestWord</span></a></a><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">String</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">Bool</span><span>
-</span><a name="line-44"></a><span>      </span><span class="hs-comment">-- ^ test a given word is in the dictionary</span><span>
-</span><a name="line-45"></a><span>    </span><span class="hs-special">,</span><span> </span><a name="dictionaryWordSeparator"><a href="Crypto.Encoding.BIP39.Dictionary.html#dictionaryWordSeparator"><span class="hs-identifier">dictionaryWordSeparator</span></a></a><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">String</span><span>
-</span><a name="line-46"></a><span>      </span><span class="hs-comment">-- ^ joining string (e.g. space for english)</span><span>
-</span><a name="line-47"></a><span>    </span><span class="hs-special">}</span><span>
-</span><a name="line-48"></a><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Typeable</span><span class="hs-special">)</span><span>
-</span><a name="line-49"></a><span>
-</span><a name="line-50"></a><span class="hs-comment">-- | Index of the mnemonic word in the 'Dictionary'</span><span>
-</span><a name="line-51"></a><span class="hs-comment">--</span><span>
-</span><a name="line-52"></a><span class="hs-comment">-- 'WordIndex' are within range of [0..2047]</span><span>
-</span><a name="line-53"></a><span class="hs-comment">--</span><span>
-</span><a name="line-54"></a><span class="hs-keyword">newtype</span><span> </span><a name="WordIndex"><a href="Crypto.Encoding.BIP39.Dictionary.html#WordIndex"><span class="hs-identifier">WordIndex</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><a name="WordIndex"><a href="Crypto.Encoding.BIP39.Dictionary.html#WordIndex"><span class="hs-identifier">WordIndex</span></a></a><span> </span><span class="hs-special">{</span><span> </span><a name="unWordIndex"><a href="Crypto.Encoding.BIP39.Dictionary.html#unWordIndex"><span class="hs-identifier">unWordIndex</span></a></a><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">Offset</span><span> </span><span class="hs-identifier hs-type">String</span><span> </span><span class="hs-special">}</span><span>
-</span><a name="line-55"></a><span>    </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Show</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Eq</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Ord</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Typeable</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">NormalForm</span><span class="hs-special">)</span><span>
-</span><a name="line-56"></a><span class="hs-keyword">instance</span><span> </span><span class="hs-identifier hs-type">Enum</span><span> </span><a href="Crypto.Encoding.BIP39.Dictionary.html#WordIndex"><span class="hs-identifier hs-type">WordIndex</span></a><span> </span><span class="hs-keyword">where</span><span>
-</span><a name="line-57"></a><span>    </span><a name="local-8214565720323790311"><span class="hs-identifier">toEnum</span></a><span> </span><span class="hs-glyph">=</span><span> </span><a href="Crypto.Encoding.BIP39.Dictionary.html#wordIndex"><span class="hs-identifier hs-var">wordIndex</span></a><span> </span><span class="hs-operator hs-var">.</span><span> </span><span class="hs-identifier hs-var">toEnum</span><span>
-</span><a name="line-58"></a><span>    </span><a name="local-8214565720323790310"><span class="hs-identifier">fromEnum</span></a><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-identifier hs-var">fromEnum</span><span> </span><span class="hs-operator hs-var">.</span><span> </span><span class="hs-identifier">unWordIndex</span><span>
-</span><a name="line-59"></a><span>    </span><a name="local-8214565720323790313"><span class="hs-identifier">succ</span></a><span> </span><span class="hs-special">(</span><a href="Crypto.Encoding.BIP39.Dictionary.html#WordIndex"><span class="hs-identifier hs-var">WordIndex</span></a><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-var">Offset</span><span> </span><a name="local-6989586621679069778"><a href="#local-6989586621679069778"><span class="hs-identifier">v</span></a></a><span class="hs-special">)</span><span class="hs-special">)</span><span>
-</span><a name="line-60"></a><span>        </span><span class="hs-glyph">|</span><span> </span><a href="#local-6989586621679069778"><span class="hs-identifier hs-var">v</span></a><span> </span><span class="hs-operator hs-var">&lt;</span><span> </span><span class="hs-number">2047</span><span> </span><span class="hs-glyph">=</span><span> </span><a href="Crypto.Encoding.BIP39.Dictionary.html#WordIndex"><span class="hs-identifier hs-var">WordIndex</span></a><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-var">Offset</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-var">succ</span><span> </span><a href="#local-6989586621679069778"><span class="hs-identifier hs-var">v</span></a><span class="hs-special">)</span><span class="hs-special">)</span><span>
-</span><a name="line-61"></a><span>        </span><span class="hs-glyph">|</span><span> </span><span class="hs-identifier hs-var">otherwise</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-identifier hs-var">error</span><span> </span><span class="hs-string">&quot;WordIndex out of bound&quot;</span><span>
-</span><a name="line-62"></a><span>    </span><a name="local-8214565720323790312"><span class="hs-identifier">pred</span></a><span> </span><span class="hs-special">(</span><a href="Crypto.Encoding.BIP39.Dictionary.html#WordIndex"><span class="hs-identifier hs-var">WordIndex</span></a><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-var">Offset</span><span> </span><a name="local-6989586621679069792"><a href="#local-6989586621679069792"><span class="hs-identifier">v</span></a></a><span class="hs-special">)</span><span class="hs-special">)</span><span>
-</span><a name="line-63"></a><span>        </span><span class="hs-glyph">|</span><span> </span><a href="#local-6989586621679069792"><span class="hs-identifier hs-var">v</span></a><span> </span><span class="hs-operator hs-var">&lt;=</span><span> </span><span class="hs-number">0</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-identifier hs-var">error</span><span> </span><span class="hs-string">&quot;WordIndex out of bound&quot;</span><span>
-</span><a name="line-64"></a><span>        </span><span class="hs-glyph">|</span><span> </span><span class="hs-identifier hs-var">otherwise</span><span> </span><span class="hs-glyph">=</span><span> </span><a href="Crypto.Encoding.BIP39.Dictionary.html#WordIndex"><span class="hs-identifier hs-var">WordIndex</span></a><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-var">Offset</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-var">pred</span><span> </span><a href="#local-6989586621679069792"><span class="hs-identifier hs-var">v</span></a><span class="hs-special">)</span><span class="hs-special">)</span><span>
-</span><a name="line-65"></a><span class="hs-keyword">instance</span><span> </span><span class="hs-identifier hs-type">Bounded</span><span> </span><a href="Crypto.Encoding.BIP39.Dictionary.html#WordIndex"><span class="hs-identifier hs-type">WordIndex</span></a><span> </span><span class="hs-keyword">where</span><span>
-</span><a name="line-66"></a><span>    </span><a name="local-8214565720323790309"><span class="hs-identifier">minBound</span></a><span> </span><span class="hs-glyph">=</span><span> </span><a href="Crypto.Encoding.BIP39.Dictionary.html#WordIndex"><span class="hs-identifier hs-var">WordIndex</span></a><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-var">Offset</span><span> </span><span class="hs-number">0</span><span class="hs-special">)</span><span>
-</span><a name="line-67"></a><span>    </span><a name="local-8214565720323790308"><span class="hs-identifier">maxBound</span></a><span> </span><span class="hs-glyph">=</span><span> </span><a href="Crypto.Encoding.BIP39.Dictionary.html#WordIndex"><span class="hs-identifier hs-var">WordIndex</span></a><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-var">Offset</span><span> </span><span class="hs-number">2047</span><span class="hs-special">)</span><span>
-</span><a name="line-68"></a><span class="hs-keyword">instance</span><span> </span><span class="hs-identifier hs-type">TryFrom</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Offset</span><span> </span><span class="hs-identifier hs-type">String</span><span class="hs-special">)</span><span> </span><a href="Crypto.Encoding.BIP39.Dictionary.html#WordIndex"><span class="hs-identifier hs-type">WordIndex</span></a><span> </span><span class="hs-keyword">where</span><span>
-</span><a name="line-69"></a><span>    </span><a name="local-8214565720323844176"><span class="hs-identifier">tryFrom</span></a><span> </span><a name="local-6989586621679069735"><a href="#local-6989586621679069735"><span class="hs-identifier">w</span></a></a><span>
-</span><a name="line-70"></a><span>        </span><span class="hs-glyph">|</span><span> </span><a href="#local-6989586621679069735"><span class="hs-identifier hs-var">w</span></a><span> </span><span class="hs-operator hs-var">&lt;</span><span> </span><span class="hs-number">2048</span><span>  </span><span class="hs-glyph">=</span><span> </span><span class="hs-identifier hs-var">Just</span><span> </span><span class="hs-special">(</span><a href="Crypto.Encoding.BIP39.Dictionary.html#WordIndex"><span class="hs-identifier hs-var">WordIndex</span></a><span> </span><a href="#local-6989586621679069735"><span class="hs-identifier hs-var">w</span></a><span class="hs-special">)</span><span>
-</span><a name="line-71"></a><span>        </span><span class="hs-glyph">|</span><span> </span><span class="hs-identifier hs-var">otherwise</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-identifier hs-var">Nothing</span><span>
-</span><a name="line-72"></a><span class="hs-keyword">instance</span><span> </span><span class="hs-identifier hs-type">TryFrom</span><span> </span><span class="hs-identifier hs-type">Int</span><span> </span><a href="Crypto.Encoding.BIP39.Dictionary.html#WordIndex"><span class="hs-identifier hs-type">WordIndex</span></a><span> </span><span class="hs-keyword">where</span><span>
-</span><a name="line-73"></a><span>    </span><a name="local-8214565720323844176"><span class="hs-identifier">tryFrom</span></a><span> </span><a name="local-6989586621679069734"><a href="#local-6989586621679069734"><span class="hs-identifier">v</span></a></a><span>
-</span><a name="line-74"></a><span>        </span><span class="hs-glyph">|</span><span> </span><a href="#local-6989586621679069734"><span class="hs-identifier hs-var">v</span></a><span> </span><span class="hs-operator hs-var">&gt;=</span><span> </span><span class="hs-number">0</span><span>    </span><span class="hs-glyph">=</span><span> </span><span class="hs-identifier hs-var">tryFrom</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-var">Offset</span><span> </span><a href="#local-6989586621679069734"><span class="hs-identifier hs-var">v</span></a><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">Offset</span><span> </span><span class="hs-identifier hs-type">String</span><span class="hs-special">)</span><span>
-</span><a name="line-75"></a><span>        </span><span class="hs-glyph">|</span><span> </span><span class="hs-identifier hs-var">otherwise</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-identifier hs-var">Nothing</span><span>
-</span><a name="line-76"></a><span>
-</span><a name="line-77"></a><span class="hs-identifier">wordIndex</span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">Offset</span><span> </span><span class="hs-identifier hs-type">String</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><a href="Crypto.Encoding.BIP39.Dictionary.html#WordIndex"><span class="hs-identifier hs-type">WordIndex</span></a><span>
-</span><a name="line-78"></a><a name="wordIndex"><a href="Crypto.Encoding.BIP39.Dictionary.html#wordIndex"><span class="hs-identifier">wordIndex</span></a></a><span> </span><a name="local-6989586621679069793"><a href="#local-6989586621679069793"><span class="hs-identifier">w</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">case</span><span> </span><span class="hs-identifier hs-var">tryFrom</span><span> </span><a href="#local-6989586621679069793"><span class="hs-identifier hs-var">w</span></a><span> </span><span class="hs-keyword">of</span><span>
-</span><a name="line-79"></a><span>    </span><span class="hs-identifier hs-var">Nothing</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-var">error</span><span> </span><span class="hs-special">(</span><span class="hs-string">&quot;Error: word index should be between 0 to 2047. &quot;</span><span> </span><span class="hs-operator hs-var">&lt;&gt;</span><span> </span><span class="hs-identifier hs-var">show</span><span> </span><a href="#local-6989586621679069793"><span class="hs-identifier hs-var">w</span></a><span class="hs-special">)</span><span>
-</span><a name="line-80"></a><span>    </span><span class="hs-identifier hs-var">Just</span><span> </span><a name="local-6989586621679069806"><a href="#local-6989586621679069806"><span class="hs-identifier">wi</span></a></a><span> </span><span class="hs-glyph">-&gt;</span><span> </span><a href="#local-6989586621679069806"><span class="hs-identifier hs-var">wi</span></a><span>
-</span><a name="line-81"></a><span>
-</span><a name="line-82"></a><span class="hs-comment">-- -------------------------------------------------------------------------- --</span><span>
-</span><a name="line-83"></a><span class="hs-comment">-- Errors</span><span>
-</span><a name="line-84"></a><span class="hs-comment">-- -------------------------------------------------------------------------- --</span><span>
-</span><a name="line-85"></a><span>
-</span><a name="line-86"></a><span class="hs-keyword">data</span><span> </span><a name="DictionaryError"><a href="Crypto.Encoding.BIP39.Dictionary.html#DictionaryError"><span class="hs-identifier">DictionaryError</span></a></a><span>
-</span><a name="line-87"></a><span>    </span><span class="hs-glyph">=</span><span> </span><a name="ErrInvalidDictionaryWord"><a href="Crypto.Encoding.BIP39.Dictionary.html#ErrInvalidDictionaryWord"><span class="hs-identifier">ErrInvalidDictionaryWord</span></a></a><span> </span><span class="hs-identifier hs-type">String</span><span>
-</span><a name="line-88"></a><span>    </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Show</span><span class="hs-special">)</span><span>
-</span><a name="line-89"></a><span>
-</span><a name="line-90"></a></pre></body></html>
+</span><span id="line-2"></span><span class="hs-pragma">{-# LANGUAGE Rank2Types           #-}</span><span>
+</span><span id="line-3"></span><span class="hs-pragma">{-# LANGUAGE DataKinds            #-}</span><span>
+</span><span id="line-4"></span><span class="hs-pragma">{-# LANGUAGE KindSignatures       #-}</span><span>
+</span><span id="line-5"></span><span class="hs-pragma">{-# LANGUAGE TypeFamilies         #-}</span><span>
+</span><span id="line-6"></span><span class="hs-pragma">{-# LANGUAGE TypeOperators        #-}</span><span>
+</span><span id="line-7"></span><span class="hs-pragma">{-# LANGUAGE ConstraintKinds      #-}</span><span>
+</span><span id="line-8"></span><span class="hs-pragma">{-# LANGUAGE ScopedTypeVariables  #-}</span><span>
+</span><span id="line-9"></span><span class="hs-pragma">{-# LANGUAGE FlexibleInstances    #-}</span><span>
+</span><span id="line-10"></span><span class="hs-pragma">{-# LANGUAGE MultiParamTypeClasses #-}</span><span>
+</span><span id="line-11"></span><span class="hs-pragma">{-# LANGUAGE UndecidableInstances #-}</span><span>
+</span><span id="line-12"></span><span class="hs-pragma">{-# LANGUAGE OverloadedStrings    #-}</span><span>
+</span><span id="line-13"></span><span>
+</span><span id="line-14"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Crypto.Encoding.BIP39.Dictionary</span><span>
+</span><span id="line-15"></span><span>    </span><span class="hs-special">(</span><span> </span><span class="annot"><span class="hs-comment">-- ** Dictionary</span></span><span>
+</span><span id="line-16"></span><span>      </span><span class="annot"><a href="Crypto.Encoding.BIP39.Dictionary.html#Dictionary"><span class="hs-identifier">Dictionary</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
+</span><span id="line-17"></span><span>    </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Crypto.Encoding.BIP39.Dictionary.html#WordIndex"><span class="hs-identifier">WordIndex</span></a></span><span>
+</span><span id="line-18"></span><span>    </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Crypto.Encoding.BIP39.Dictionary.html#wordIndex"><span class="hs-identifier">wordIndex</span></a></span><span>
+</span><span id="line-19"></span><span>    </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Crypto.Encoding.BIP39.Dictionary.html#unWordIndex"><span class="hs-identifier">unWordIndex</span></a></span><span>
+</span><span id="line-20"></span><span>
+</span><span id="line-21"></span><span>    </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Crypto.Encoding.BIP39.Dictionary.html#DictionaryError"><span class="hs-identifier">DictionaryError</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
+</span><span id="line-22"></span><span>    </span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-23"></span><span>
+</span><span id="line-24"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><span class="hs-identifier">Basement.String</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">String</span></span><span class="hs-special">)</span><span>
+</span><span id="line-25"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><span class="hs-identifier">Basement.NormalForm</span></span><span>
+</span><span id="line-26"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><span class="hs-identifier">Basement.Compat.Typeable</span></span><span>
+</span><span id="line-27"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><span class="hs-identifier">Basement.Types.OffsetSize</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Offset</span></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-28"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><span class="hs-identifier">Basement.From</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">TryFrom</span></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-29"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><span class="hs-identifier">Basement.Imports</span></span><span>
+</span><span id="line-30"></span><span>
+</span><span id="line-31"></span><span class="hs-comment">-- | this discribe the property of the Dictionary and will alllow to</span><span>
+</span><span id="line-32"></span><span class="hs-comment">-- convert from a mnemonic phrase to 'MnemonicSentence'</span><span>
+</span><span id="line-33"></span><span class="hs-comment">--</span><span>
+</span><span id="line-34"></span><span class="hs-comment">-- This is especially needed to build the BIP39 'Seed'</span><span>
+</span><span id="line-35"></span><span class="hs-comment">--</span><span>
+</span><span id="line-36"></span><span class="hs-keyword">data</span><span> </span><span id="Dictionary"><span class="annot"><a href="Crypto.Encoding.BIP39.Dictionary.html#Dictionary"><span class="hs-identifier hs-var">Dictionary</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="Dictionary"><span class="annot"><a href="Crypto.Encoding.BIP39.Dictionary.html#Dictionary"><span class="hs-identifier hs-var">Dictionary</span></a></span></span><span>
+</span><span id="line-37"></span><span>    </span><span class="hs-special">{</span><span> </span><span id="dictionaryIndexToWord"><span class="annot"><span class="annottext">Dictionary -&gt; WordIndex -&gt; String
+</span><a href="Crypto.Encoding.BIP39.Dictionary.html#dictionaryIndexToWord"><span class="hs-identifier hs-var hs-var">dictionaryIndexToWord</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Crypto.Encoding.BIP39.Dictionary.html#WordIndex"><span class="hs-identifier hs-type">WordIndex</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">String</span></span><span>
+</span><span id="line-38"></span><span>      </span><span class="hs-comment">-- ^ This function will retrieve the mnemonic word associated to the</span><span>
+</span><span id="line-39"></span><span>      </span><span class="hs-comment">-- given 'WordIndex'.</span><span>
+</span><span id="line-40"></span><span>    </span><span class="hs-special">,</span><span> </span><span id="dictionaryWordToIndex"><span class="annot"><span class="annottext">Dictionary -&gt; String -&gt; Either DictionaryError WordIndex
+</span><a href="Crypto.Encoding.BIP39.Dictionary.html#dictionaryWordToIndex"><span class="hs-identifier hs-var hs-var">dictionaryWordToIndex</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">String</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Either</span></span><span> </span><span class="annot"><a href="Crypto.Encoding.BIP39.Dictionary.html#DictionaryError"><span class="hs-identifier hs-type">DictionaryError</span></a></span><span> </span><span class="annot"><a href="Crypto.Encoding.BIP39.Dictionary.html#WordIndex"><span class="hs-identifier hs-type">WordIndex</span></a></span><span>
+</span><span id="line-41"></span><span>      </span><span class="hs-comment">-- ^ This function will retrieve the 'WordIndex' from a given mnemonic</span><span>
+</span><span id="line-42"></span><span>      </span><span class="hs-comment">-- word.</span><span>
+</span><span id="line-43"></span><span>    </span><span class="hs-special">,</span><span> </span><span id="dictionaryTestWord"><span class="annot"><span class="annottext">Dictionary -&gt; String -&gt; Bool
+</span><a href="Crypto.Encoding.BIP39.Dictionary.html#dictionaryTestWord"><span class="hs-identifier hs-var hs-var">dictionaryTestWord</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">String</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span><span>
+</span><span id="line-44"></span><span>      </span><span class="hs-comment">-- ^ test a given word is in the dictionary</span><span>
+</span><span id="line-45"></span><span>    </span><span class="hs-special">,</span><span> </span><span id="dictionaryWordSeparator"><span class="annot"><span class="annottext">Dictionary -&gt; String
+</span><a href="Crypto.Encoding.BIP39.Dictionary.html#dictionaryWordSeparator"><span class="hs-identifier hs-var hs-var">dictionaryWordSeparator</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">String</span></span><span>
+</span><span id="line-46"></span><span>      </span><span class="hs-comment">-- ^ joining string (e.g. space for english)</span><span>
+</span><span id="line-47"></span><span>    </span><span class="hs-special">}</span><span>
+</span><span id="line-48"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Typeable</span></span><span class="hs-special">)</span><span>
+</span><span id="line-49"></span><span>
+</span><span id="line-50"></span><span class="hs-comment">-- | Index of the mnemonic word in the 'Dictionary'</span><span>
+</span><span id="line-51"></span><span class="hs-comment">--</span><span>
+</span><span id="line-52"></span><span class="hs-comment">-- 'WordIndex' are within range of [0..2047]</span><span>
+</span><span id="line-53"></span><span class="hs-comment">--</span><span>
+</span><span id="line-54"></span><span class="hs-keyword">newtype</span><span> </span><span id="WordIndex"><span class="annot"><a href="Crypto.Encoding.BIP39.Dictionary.html#WordIndex"><span class="hs-identifier hs-var">WordIndex</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="WordIndex"><span class="annot"><a href="Crypto.Encoding.BIP39.Dictionary.html#WordIndex"><span class="hs-identifier hs-var">WordIndex</span></a></span></span><span> </span><span class="hs-special">{</span><span> </span><span id="unWordIndex"><span class="annot"><span class="annottext">WordIndex -&gt; Offset String
+</span><a href="Crypto.Encoding.BIP39.Dictionary.html#unWordIndex"><span class="hs-identifier hs-var hs-var">unWordIndex</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Offset</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">String</span></span><span> </span><span class="hs-special">}</span><span>
+</span><span id="line-55"></span><span>    </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679084747"><span id="local-6989586621679084749"><span id="local-6989586621679084751"><span class="annot"><span class="annottext">Int -&gt; WordIndex -&gt; ShowS
+[WordIndex] -&gt; ShowS
+WordIndex -&gt; String
+(Int -&gt; WordIndex -&gt; ShowS)
+-&gt; (WordIndex -&gt; String)
+-&gt; ([WordIndex] -&gt; ShowS)
+-&gt; Show WordIndex
+forall a.
+(Int -&gt; a -&gt; ShowS) -&gt; (a -&gt; String) -&gt; ([a] -&gt; ShowS) -&gt; Show a
+showList :: [WordIndex] -&gt; ShowS
+$cshowList :: [WordIndex] -&gt; ShowS
+show :: WordIndex -&gt; String
+$cshow :: WordIndex -&gt; String
+showsPrec :: Int -&gt; WordIndex -&gt; ShowS
+$cshowsPrec :: Int -&gt; WordIndex -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679084742"><span id="local-6989586621679084744"><span class="annot"><span class="annottext">WordIndex -&gt; WordIndex -&gt; Bool
+(WordIndex -&gt; WordIndex -&gt; Bool)
+-&gt; (WordIndex -&gt; WordIndex -&gt; Bool) -&gt; Eq WordIndex
+forall a. (a -&gt; a -&gt; Bool) -&gt; (a -&gt; a -&gt; Bool) -&gt; Eq a
+/= :: WordIndex -&gt; WordIndex -&gt; Bool
+$c/= :: WordIndex -&gt; WordIndex -&gt; Bool
+== :: WordIndex -&gt; WordIndex -&gt; Bool
+$c== :: WordIndex -&gt; WordIndex -&gt; Bool
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679084726"><span id="local-6989586621679084728"><span id="local-6989586621679084730"><span id="local-6989586621679084732"><span id="local-6989586621679084734"><span id="local-6989586621679084736"><span id="local-6989586621679084738"><span class="annot"><span class="annottext">Eq WordIndex
+Eq WordIndex
+-&gt; (WordIndex -&gt; WordIndex -&gt; Ordering)
+-&gt; (WordIndex -&gt; WordIndex -&gt; Bool)
+-&gt; (WordIndex -&gt; WordIndex -&gt; Bool)
+-&gt; (WordIndex -&gt; WordIndex -&gt; Bool)
+-&gt; (WordIndex -&gt; WordIndex -&gt; Bool)
+-&gt; (WordIndex -&gt; WordIndex -&gt; WordIndex)
+-&gt; (WordIndex -&gt; WordIndex -&gt; WordIndex)
+-&gt; Ord WordIndex
+WordIndex -&gt; WordIndex -&gt; Bool
+WordIndex -&gt; WordIndex -&gt; Ordering
+WordIndex -&gt; WordIndex -&gt; WordIndex
+forall a.
+Eq a
+-&gt; (a -&gt; a -&gt; Ordering)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; a)
+-&gt; (a -&gt; a -&gt; a)
+-&gt; Ord a
+min :: WordIndex -&gt; WordIndex -&gt; WordIndex
+$cmin :: WordIndex -&gt; WordIndex -&gt; WordIndex
+max :: WordIndex -&gt; WordIndex -&gt; WordIndex
+$cmax :: WordIndex -&gt; WordIndex -&gt; WordIndex
+&gt;= :: WordIndex -&gt; WordIndex -&gt; Bool
+$c&gt;= :: WordIndex -&gt; WordIndex -&gt; Bool
+&gt; :: WordIndex -&gt; WordIndex -&gt; Bool
+$c&gt; :: WordIndex -&gt; WordIndex -&gt; Bool
+&lt;= :: WordIndex -&gt; WordIndex -&gt; Bool
+$c&lt;= :: WordIndex -&gt; WordIndex -&gt; Bool
+&lt; :: WordIndex -&gt; WordIndex -&gt; Bool
+$c&lt; :: WordIndex -&gt; WordIndex -&gt; Bool
+compare :: WordIndex -&gt; WordIndex -&gt; Ordering
+$ccompare :: WordIndex -&gt; WordIndex -&gt; Ordering
+$cp1Ord :: Eq WordIndex
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Ord</span></span></span></span></span></span></span></span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Typeable</span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679084723"><span class="annot"><span class="annottext">WordIndex -&gt; ()
+(WordIndex -&gt; ()) -&gt; NormalForm WordIndex
+forall a. (a -&gt; ()) -&gt; NormalForm a
+toNormalForm :: WordIndex -&gt; ()
+$ctoNormalForm :: WordIndex -&gt; ()
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">NormalForm</span></span></span><span class="hs-special">)</span><span>
+</span><span id="line-56"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679084710"><span id="local-6989586621679084712"><span id="local-6989586621679084714"><span id="local-6989586621679084716"><span class="annot"><span class="hs-identifier hs-type">Enum</span></span><span> </span><span class="annot"><a href="Crypto.Encoding.BIP39.Dictionary.html#WordIndex"><span class="hs-identifier hs-type">WordIndex</span></a></span></span></span></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-57"></span><span>    </span><span id="local-6989586621679084708"><span class="annot"><span class="annottext">toEnum :: Int -&gt; WordIndex
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">toEnum</span></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Offset String -&gt; WordIndex
+</span><a href="Crypto.Encoding.BIP39.Dictionary.html#wordIndex"><span class="hs-identifier hs-var">wordIndex</span></a></span><span> </span><span class="annot"><span class="annottext">(Offset String -&gt; WordIndex)
+-&gt; (Int -&gt; Offset String) -&gt; Int -&gt; WordIndex
+forall k (cat :: k -&gt; k -&gt; Type) (b :: k) (c :: k) (a :: k).
+Category cat =&gt;
+cat b c -&gt; cat a b -&gt; cat a c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Offset String
+forall a. Enum a =&gt; Int -&gt; a
+</span><span class="hs-identifier hs-var">toEnum</span></span><span>
+</span><span id="line-58"></span><span>    </span><span id="local-6989586621679084705"><span class="annot"><span class="annottext">fromEnum :: WordIndex -&gt; Int
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">fromEnum</span></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Offset String -&gt; Int
+forall a. Enum a =&gt; a -&gt; Int
+</span><span class="hs-identifier hs-var">fromEnum</span></span><span> </span><span class="annot"><span class="annottext">(Offset String -&gt; Int)
+-&gt; (WordIndex -&gt; Offset String) -&gt; WordIndex -&gt; Int
+forall k (cat :: k -&gt; k -&gt; Type) (b :: k) (c :: k) (a :: k).
+Category cat =&gt;
+cat b c -&gt; cat a b -&gt; cat a c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">WordIndex -&gt; Offset String
+</span><a href="Crypto.Encoding.BIP39.Dictionary.html#unWordIndex"><span class="hs-identifier hs-var hs-var">unWordIndex</span></a></span><span>
+</span><span id="line-59"></span><span>    </span><span id="local-6989586621679084703"><span class="annot"><span class="annottext">succ :: WordIndex -&gt; WordIndex
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">succ</span></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Crypto.Encoding.BIP39.Dictionary.html#WordIndex"><span class="hs-identifier hs-type">WordIndex</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Offset</span></span><span> </span><span id="local-6989586621679084700"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679084700"><span class="hs-identifier hs-var">v</span></a></span></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-60"></span><span>        </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679084700"><span class="hs-identifier hs-var">v</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">&lt;</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">2047</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Offset String -&gt; WordIndex
+</span><a href="Crypto.Encoding.BIP39.Dictionary.html#WordIndex"><span class="hs-identifier hs-var">WordIndex</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; Offset String
+forall ty. Int -&gt; Offset ty
+</span><span class="hs-identifier hs-var">Offset</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; Int
+forall a. Enum a =&gt; a -&gt; a
+</span><span class="hs-identifier hs-var">succ</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679084700"><span class="hs-identifier hs-var">v</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-61"></span><span>        </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">otherwise</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">String -&gt; WordIndex
+forall a. HasCallStack =&gt; String -&gt; a
+</span><span class="hs-identifier hs-var">error</span></span><span> </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;WordIndex out of bound&quot;</span></span><span>
+</span><span id="line-62"></span><span>    </span><span id="local-6989586621679084697"><span class="annot"><span class="annottext">pred :: WordIndex -&gt; WordIndex
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">pred</span></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Crypto.Encoding.BIP39.Dictionary.html#WordIndex"><span class="hs-identifier hs-type">WordIndex</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Offset</span></span><span> </span><span id="local-6989586621679084695"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679084695"><span class="hs-identifier hs-var">v</span></a></span></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-63"></span><span>        </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679084695"><span class="hs-identifier hs-var">v</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">&lt;=</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">String -&gt; WordIndex
+forall a. HasCallStack =&gt; String -&gt; a
+</span><span class="hs-identifier hs-var">error</span></span><span> </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;WordIndex out of bound&quot;</span></span><span>
+</span><span id="line-64"></span><span>        </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">otherwise</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Offset String -&gt; WordIndex
+</span><a href="Crypto.Encoding.BIP39.Dictionary.html#WordIndex"><span class="hs-identifier hs-var">WordIndex</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; Offset String
+forall ty. Int -&gt; Offset ty
+</span><span class="hs-identifier hs-var">Offset</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; Int
+forall a. Enum a =&gt; a -&gt; a
+</span><span class="hs-identifier hs-var">pred</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679084695"><span class="hs-identifier hs-var">v</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-65"></span><span class="hs-keyword">instance</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bounded</span></span><span> </span><span class="annot"><a href="Crypto.Encoding.BIP39.Dictionary.html#WordIndex"><span class="hs-identifier hs-type">WordIndex</span></a></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-66"></span><span>    </span><span id="local-6989586621679084690"><span class="annot"><span class="annottext">minBound :: WordIndex
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">minBound</span></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Offset String -&gt; WordIndex
+</span><a href="Crypto.Encoding.BIP39.Dictionary.html#WordIndex"><span class="hs-identifier hs-var">WordIndex</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; Offset String
+forall ty. Int -&gt; Offset ty
+</span><span class="hs-identifier hs-var">Offset</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span class="hs-special">)</span><span>
+</span><span id="line-67"></span><span>    </span><span id="local-6989586621679084688"><span class="annot"><span class="annottext">maxBound :: WordIndex
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">maxBound</span></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Offset String -&gt; WordIndex
+</span><a href="Crypto.Encoding.BIP39.Dictionary.html#WordIndex"><span class="hs-identifier hs-var">WordIndex</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; Offset String
+forall ty. Int -&gt; Offset ty
+</span><span class="hs-identifier hs-var">Offset</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">2047</span></span><span class="hs-special">)</span><span>
+</span><span id="line-68"></span><span class="hs-keyword">instance</span><span> </span><span class="annot"><span class="hs-identifier hs-type">TryFrom</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Offset</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">String</span></span><span class="hs-special">)</span><span> </span><span class="annot"><a href="Crypto.Encoding.BIP39.Dictionary.html#WordIndex"><span class="hs-identifier hs-type">WordIndex</span></a></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-69"></span><span>    </span><span id="local-6989586621679084684"><span class="annot"><span class="annottext">tryFrom :: Offset String -&gt; Maybe WordIndex
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">tryFrom</span></span></span><span> </span><span id="local-6989586621679084682"><span class="annot"><span class="annottext">Offset String
+</span><a href="#local-6989586621679084682"><span class="hs-identifier hs-var">w</span></a></span></span><span>
+</span><span id="line-70"></span><span>        </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Offset String
+</span><a href="#local-6989586621679084682"><span class="hs-identifier hs-var">w</span></a></span><span> </span><span class="annot"><span class="annottext">Offset String -&gt; Offset String -&gt; Bool
+forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">&lt;</span></span><span> </span><span class="annot"><span class="annottext">Offset String
+</span><span class="hs-number">2048</span></span><span>  </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">WordIndex -&gt; Maybe WordIndex
+forall a. a -&gt; Maybe a
+</span><span class="hs-identifier hs-var">Just</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Offset String -&gt; WordIndex
+</span><a href="Crypto.Encoding.BIP39.Dictionary.html#WordIndex"><span class="hs-identifier hs-var">WordIndex</span></a></span><span> </span><span class="annot"><span class="annottext">Offset String
+</span><a href="#local-6989586621679084682"><span class="hs-identifier hs-var">w</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-71"></span><span>        </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">otherwise</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Maybe WordIndex
+forall a. Maybe a
+</span><span class="hs-identifier hs-var">Nothing</span></span><span>
+</span><span id="line-72"></span><span class="hs-keyword">instance</span><span> </span><span class="annot"><span class="hs-identifier hs-type">TryFrom</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="annot"><a href="Crypto.Encoding.BIP39.Dictionary.html#WordIndex"><span class="hs-identifier hs-type">WordIndex</span></a></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-73"></span><span>    </span><span id="local-6989586621679084680"><span class="annot"><span class="annottext">tryFrom :: Int -&gt; Maybe WordIndex
+</span><a href="#local-6989586621679084680"><span class="hs-identifier hs-var hs-var hs-var hs-var">tryFrom</span></a></span></span><span> </span><span id="local-6989586621679084679"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679084679"><span class="hs-identifier hs-var">v</span></a></span></span><span>
+</span><span id="line-74"></span><span>        </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679084679"><span class="hs-identifier hs-var">v</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">&gt;=</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span>    </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Offset String -&gt; Maybe WordIndex
+forall a b. TryFrom a b =&gt; a -&gt; Maybe b
+</span><span class="hs-identifier hs-var">tryFrom</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; Offset String
+forall ty. Int -&gt; Offset ty
+</span><span class="hs-identifier hs-var">Offset</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679084679"><span class="hs-identifier hs-var">v</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Offset</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">String</span></span><span class="hs-special">)</span><span>
+</span><span id="line-75"></span><span>        </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">otherwise</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Maybe WordIndex
+forall a. Maybe a
+</span><span class="hs-identifier hs-var">Nothing</span></span><span>
+</span><span id="line-76"></span><span>
+</span><span id="line-77"></span><span class="annot"><a href="Crypto.Encoding.BIP39.Dictionary.html#wordIndex"><span class="hs-identifier hs-type">wordIndex</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Offset</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">String</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Crypto.Encoding.BIP39.Dictionary.html#WordIndex"><span class="hs-identifier hs-type">WordIndex</span></a></span><span>
+</span><span id="line-78"></span><span id="wordIndex"><span class="annot"><span class="annottext">wordIndex :: Offset String -&gt; WordIndex
+</span><a href="Crypto.Encoding.BIP39.Dictionary.html#wordIndex"><span class="hs-identifier hs-var hs-var">wordIndex</span></a></span></span><span> </span><span id="local-6989586621679084678"><span class="annot"><span class="annottext">Offset String
+</span><a href="#local-6989586621679084678"><span class="hs-identifier hs-var">w</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">Offset String -&gt; Maybe WordIndex
+forall a b. TryFrom a b =&gt; a -&gt; Maybe b
+</span><span class="hs-identifier hs-var">tryFrom</span></span><span> </span><span class="annot"><span class="annottext">Offset String
+</span><a href="#local-6989586621679084678"><span class="hs-identifier hs-var">w</span></a></span><span> </span><span class="hs-keyword">of</span><span>
+</span><span id="line-79"></span><span>    </span><span class="annot"><span class="annottext">Maybe WordIndex
+</span><span class="hs-identifier hs-var">Nothing</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">String -&gt; WordIndex
+forall a. HasCallStack =&gt; String -&gt; a
+</span><span class="hs-identifier hs-var">error</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;Error: word index should be between 0 to 2047. &quot;</span></span><span> </span><span class="annot"><span class="annottext">String -&gt; String -&gt; String
+forall a. Semigroup a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">&lt;&gt;</span></span><span> </span><span class="annot"><span class="annottext">Offset String -&gt; String
+forall a. Show a =&gt; a -&gt; String
+</span><span class="hs-identifier hs-var">show</span></span><span> </span><span class="annot"><span class="annottext">Offset String
+</span><a href="#local-6989586621679084678"><span class="hs-identifier hs-var">w</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-80"></span><span>    </span><span class="annot"><span class="hs-identifier hs-type">Just</span></span><span> </span><span id="local-6989586621679084676"><span class="annot"><span class="annottext">WordIndex
+</span><a href="#local-6989586621679084676"><span class="hs-identifier hs-var">wi</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">WordIndex
+</span><a href="#local-6989586621679084676"><span class="hs-identifier hs-var">wi</span></a></span><span>
+</span><span id="line-81"></span><span>
+</span><span id="line-82"></span><span class="hs-comment">-- -------------------------------------------------------------------------- --</span><span>
+</span><span id="line-83"></span><span class="hs-comment">-- Errors</span><span>
+</span><span id="line-84"></span><span class="hs-comment">-- -------------------------------------------------------------------------- --</span><span>
+</span><span id="line-85"></span><span>
+</span><span id="line-86"></span><span class="hs-keyword">data</span><span> </span><span id="DictionaryError"><span class="annot"><a href="Crypto.Encoding.BIP39.Dictionary.html#DictionaryError"><span class="hs-identifier hs-var">DictionaryError</span></a></span></span><span>
+</span><span id="line-87"></span><span>    </span><span class="hs-glyph">=</span><span> </span><span id="ErrInvalidDictionaryWord"><span class="annot"><a href="Crypto.Encoding.BIP39.Dictionary.html#ErrInvalidDictionaryWord"><span class="hs-identifier hs-var">ErrInvalidDictionaryWord</span></a></span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">String</span></span><span>
+</span><span id="line-88"></span><span>    </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679084669"><span id="local-6989586621679084671"><span id="local-6989586621679084673"><span class="annot"><span class="annottext">Int -&gt; DictionaryError -&gt; ShowS
+[DictionaryError] -&gt; ShowS
+DictionaryError -&gt; String
+(Int -&gt; DictionaryError -&gt; ShowS)
+-&gt; (DictionaryError -&gt; String)
+-&gt; ([DictionaryError] -&gt; ShowS)
+-&gt; Show DictionaryError
+forall a.
+(Int -&gt; a -&gt; ShowS) -&gt; (a -&gt; String) -&gt; ([a] -&gt; ShowS) -&gt; Show a
+showList :: [DictionaryError] -&gt; ShowS
+$cshowList :: [DictionaryError] -&gt; ShowS
+show :: DictionaryError -&gt; String
+$cshow :: DictionaryError -&gt; String
+showsPrec :: Int -&gt; DictionaryError -&gt; ShowS
+$cshowsPrec :: Int -&gt; DictionaryError -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">)</span><span>
+</span><span id="line-89"></span><span>
+</span><span id="line-90"></span></pre></body></html>

@@ -1,81 +1,319 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-pragma">{-# LANGUAGE BangPatterns       #-}</span><span>
-</span><a name="line-2"></a><span class="hs-pragma">{-# LANGUAGE DeriveAnyClass     #-}</span><span>
-</span><a name="line-3"></a><span class="hs-pragma">{-# LANGUAGE DeriveGeneric      #-}</span><span>
-</span><a name="line-4"></a><span class="hs-pragma">{-# LANGUAGE DerivingStrategies #-}</span><span>
-</span><a name="line-5"></a><span class="hs-pragma">{-# LANGUAGE OverloadedStrings  #-}</span><span>
-</span><a name="line-6"></a><span class="hs-pragma">{-# LANGUAGE TypeApplications   #-}</span><span>
-</span><a name="line-7"></a><span>
-</span><a name="line-8"></a><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Cardano.Chain.Common.TxSizeLinear</span><span>
-</span><a name="line-9"></a><span>  </span><span class="hs-special">(</span><span> </span><a href="Cardano.Chain.Common.TxSizeLinear.html#TxSizeLinear"><span class="hs-identifier hs-type">TxSizeLinear</span></a><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
-</span><a name="line-10"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Cardano.Chain.Common.TxSizeLinear.html#txSizeLinearMinValue"><span class="hs-identifier hs-var">txSizeLinearMinValue</span></a><span>
-</span><a name="line-11"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Cardano.Chain.Common.TxSizeLinear.html#calculateTxSizeLinear"><span class="hs-identifier hs-var">calculateTxSizeLinear</span></a><span>
-</span><a name="line-12"></a><span>  </span><span class="hs-special">)</span><span>
-</span><a name="line-13"></a><span class="hs-keyword">where</span><span>
-</span><a name="line-14"></a><span>
-</span><a name="line-15"></a><span class="hs-keyword">import</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-prelude-0.1.0.0/noopt/doc/html/cardano-prelude/src/Cardano.Prelude.html"><span class="hs-identifier">Cardano.Prelude</span></a><span>
-</span><a name="line-16"></a><span>
-</span><a name="line-17"></a><span class="hs-keyword">import</span><span> </span><span class="hs-identifier">Data.Aeson</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">ToJSON</span><span class="hs-special">)</span><span>
-</span><a name="line-18"></a><span class="hs-keyword">import</span><span> </span><span class="hs-identifier">Data.Fixed</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Nano</span><span class="hs-special">)</span><span>
-</span><a name="line-19"></a><span class="hs-keyword">import</span><span> </span><span class="hs-identifier">Formatting</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-var">bprint</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-var">build</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-var">sformat</span><span class="hs-special">)</span><span>
-</span><a name="line-20"></a><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-identifier">Formatting.Buildable</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">B</span><span>
-</span><a name="line-21"></a><span>
-</span><a name="line-22"></a><span class="hs-keyword">import</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.html"><span class="hs-identifier">Cardano.Binary</span></a><span>
-</span><a name="line-23"></a><span>  </span><span class="hs-special">(</span><span> </span><span class="hs-identifier hs-type">Decoder</span><span>
-</span><a name="line-24"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.FromCBOR.html#DecoderError"><span class="hs-identifier hs-type">DecoderError</span></a><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
-</span><a name="line-25"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.FromCBOR.html#FromCBOR"><span class="hs-identifier hs-type">FromCBOR</span></a><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
-</span><a name="line-26"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.ToCBOR.html#ToCBOR"><span class="hs-identifier hs-type">ToCBOR</span></a><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
-</span><a name="line-27"></a><span>  </span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-var">encodeListLen</span><span>
-</span><a name="line-28"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.FromCBOR.html#enforceSize"><span class="hs-identifier hs-var">enforceSize</span></a><span>
-</span><a name="line-29"></a><span>  </span><span class="hs-special">)</span><span>
-</span><a name="line-30"></a><span class="hs-keyword">import</span><span> </span><a href="Cardano.Chain.Common.Lovelace.html"><span class="hs-identifier">Cardano.Chain.Common.Lovelace</span></a><span>
-</span><a name="line-31"></a><span>  </span><span class="hs-special">(</span><span> </span><a href="Cardano.Chain.Common.Lovelace.html#Lovelace"><span class="hs-identifier hs-type">Lovelace</span></a><span>
-</span><a name="line-32"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Cardano.Chain.Common.Lovelace.html#LovelaceError"><span class="hs-identifier hs-type">LovelaceError</span></a><span>
-</span><a name="line-33"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Cardano.Chain.Common.Lovelace.html#addLovelace"><span class="hs-identifier hs-var">addLovelace</span></a><span>
-</span><a name="line-34"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Cardano.Chain.Common.Lovelace.html#integerToLovelace"><span class="hs-identifier hs-var">integerToLovelace</span></a><span>
-</span><a name="line-35"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Cardano.Chain.Common.Lovelace.html#mkLovelace"><span class="hs-identifier hs-var">mkLovelace</span></a><span>
-</span><a name="line-36"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Cardano.Chain.Common.Lovelace.html#scaleLovelaceRationalUp"><span class="hs-identifier hs-var">scaleLovelaceRationalUp</span></a><span>
-</span><a name="line-37"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Cardano.Chain.Common.Lovelace.html#unsafeGetLovelace"><span class="hs-identifier hs-var">unsafeGetLovelace</span></a><span>
-</span><a name="line-38"></a><span>  </span><span class="hs-special">)</span><span>
-</span><a name="line-39"></a><span>
-</span><a name="line-40"></a><span class="hs-comment">-- | A linear equation on the transaction size. Represents the @\s -&gt; a + b*s@</span><span>
-</span><a name="line-41"></a><span class="hs-comment">-- function where @s@ is the transaction size in bytes, @a@ and @b@ are</span><span>
-</span><a name="line-42"></a><span class="hs-comment">-- constant coefficients.</span><span>
-</span><a name="line-43"></a><span class="hs-keyword">data</span><span> </span><a name="TxSizeLinear"><a href="Cardano.Chain.Common.TxSizeLinear.html#TxSizeLinear"><span class="hs-identifier">TxSizeLinear</span></a></a><span> </span><span class="hs-glyph">=</span><span>
-</span><a name="line-44"></a><span>  </span><a name="TxSizeLinear"><a href="Cardano.Chain.Common.TxSizeLinear.html#TxSizeLinear"><span class="hs-identifier">TxSizeLinear</span></a></a><span> </span><span class="hs-glyph">!</span><a href="Cardano.Chain.Common.Lovelace.html#Lovelace"><span class="hs-identifier hs-type">Lovelace</span></a><span> </span><span class="hs-glyph">!</span><span class="hs-identifier hs-type">Rational</span><span>
-</span><a name="line-45"></a><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Eq</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Ord</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Show</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Generic</span><span class="hs-special">)</span><span>
-</span><a name="line-46"></a><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-keyword">anyclass</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">NFData</span><span class="hs-special">,</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-prelude-0.1.0.0/noopt/doc/html/cardano-prelude/src/Cardano.Prelude.GHC.Heap.NormalForm.Classy.html#NoUnexpectedThunks"><span class="hs-identifier hs-type">NoUnexpectedThunks</span></a><span class="hs-special">)</span><span>
-</span><a name="line-47"></a><span>
-</span><a name="line-48"></a><span class="hs-keyword">instance</span><span> </span><span class="hs-identifier hs-type">B.Buildable</span><span> </span><a href="Cardano.Chain.Common.TxSizeLinear.html#TxSizeLinear"><span class="hs-identifier hs-type">TxSizeLinear</span></a><span> </span><span class="hs-keyword">where</span><span>
-</span><a name="line-49"></a><span>  </span><a name="local-8214565720323804885"><span class="hs-identifier">build</span></a><span> </span><span class="hs-special">(</span><a href="Cardano.Chain.Common.TxSizeLinear.html#TxSizeLinear"><span class="hs-identifier hs-var">TxSizeLinear</span></a><span> </span><a name="local-6989586621679251358"><a href="#local-6989586621679251358"><span class="hs-identifier">a</span></a></a><span> </span><a name="local-6989586621679251359"><a href="#local-6989586621679251359"><span class="hs-identifier">b</span></a></a><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-identifier hs-var">bprint</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-var">build</span><span> </span><span class="hs-operator hs-var">.</span><span> </span><span class="hs-string">&quot; + &quot;</span><span> </span><span class="hs-operator hs-var">.</span><span> </span><span class="hs-identifier hs-var">build</span><span> </span><span class="hs-operator hs-var">.</span><span> </span><span class="hs-string">&quot;*s&quot;</span><span class="hs-special">)</span><span> </span><a href="#local-6989586621679251358"><span class="hs-identifier hs-var">a</span></a><span> </span><a href="#local-6989586621679251359"><span class="hs-identifier hs-var">b</span></a><span>
-</span><a name="line-50"></a><span>
-</span><a name="line-51"></a><span class="hs-comment">-- Used for debugging purposes only</span><span>
-</span><a name="line-52"></a><span class="hs-keyword">instance</span><span> </span><span class="hs-identifier hs-type">ToJSON</span><span> </span><a href="Cardano.Chain.Common.TxSizeLinear.html#TxSizeLinear"><span class="hs-identifier hs-type">TxSizeLinear</span></a><span> </span><span class="hs-keyword">where</span><span>
-</span><a name="line-53"></a><span>
-</span><a name="line-54"></a><span class="hs-keyword">instance</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.ToCBOR.html#ToCBOR"><span class="hs-identifier hs-type">ToCBOR</span></a><span> </span><a href="Cardano.Chain.Common.TxSizeLinear.html#TxSizeLinear"><span class="hs-identifier hs-type">TxSizeLinear</span></a><span> </span><span class="hs-keyword">where</span><span>
-</span><a name="line-55"></a><span>  </span><span class="hs-comment">-- We encode as 'Nano' for backwards compatibility</span><span>
-</span><a name="line-56"></a><span>  </span><a name="local-8214565720323797072"><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.ToCBOR.html#toCBOR"><span class="hs-identifier">toCBOR</span></a></a><span> </span><span class="hs-special">(</span><a href="Cardano.Chain.Common.TxSizeLinear.html#TxSizeLinear"><span class="hs-identifier hs-var">TxSizeLinear</span></a><span> </span><a name="local-6989586621679251356"><a href="#local-6989586621679251356"><span class="hs-identifier">a</span></a></a><span> </span><a name="local-6989586621679251357"><a href="#local-6989586621679251357"><span class="hs-identifier">b</span></a></a><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span>
-</span><a name="line-57"></a><span>    </span><span class="hs-identifier hs-var">encodeListLen</span><span> </span><span class="hs-number">2</span><span>
-</span><a name="line-58"></a><span>      </span><span class="hs-operator hs-var">&lt;&gt;</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.ToCBOR.html#toCBOR"><span class="hs-identifier hs-var">toCBOR</span></a><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-var">fromIntegral</span><span> </span><span class="hs-special">(</span><a href="Cardano.Chain.Common.Lovelace.html#unsafeGetLovelace"><span class="hs-identifier hs-var">unsafeGetLovelace</span></a><span> </span><a href="#local-6989586621679251356"><span class="hs-identifier hs-var">a</span></a><span class="hs-special">)</span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">Nano</span><span class="hs-special">)</span><span>
-</span><a name="line-59"></a><span>      </span><span class="hs-operator hs-var">&lt;&gt;</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.ToCBOR.html#toCBOR"><span class="hs-identifier hs-var">toCBOR</span></a><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-var">fromRational</span><span> </span><a href="#local-6989586621679251357"><span class="hs-identifier hs-var">b</span></a><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">Nano</span><span class="hs-special">)</span><span>
-</span><a name="line-60"></a><span>
-</span><a name="line-61"></a><span class="hs-keyword">instance</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.FromCBOR.html#FromCBOR"><span class="hs-identifier hs-type">FromCBOR</span></a><span> </span><a href="Cardano.Chain.Common.TxSizeLinear.html#TxSizeLinear"><span class="hs-identifier hs-type">TxSizeLinear</span></a><span> </span><span class="hs-keyword">where</span><span>
-</span><a name="line-62"></a><span>  </span><a name="local-8214565720323797139"><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.FromCBOR.html#fromCBOR"><span class="hs-identifier">fromCBOR</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
-</span><a name="line-63"></a><span>    </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.FromCBOR.html#enforceSize"><span class="hs-identifier hs-var">enforceSize</span></a><span> </span><span class="hs-string">&quot;TxSizeLinear&quot;</span><span> </span><span class="hs-number">2</span><span>
-</span><a name="line-64"></a><span>    </span><span class="hs-glyph">!</span><a name="local-6989586621679251354"><a href="#local-6989586621679251354"><span class="hs-identifier">a</span></a></a><span> </span><span class="hs-glyph">&lt;-</span><span> </span><a href="#local-6989586621679251352"><span class="hs-identifier hs-var">wrapLovelaceError</span></a><span> </span><span class="hs-operator hs-var">.</span><span> </span><a href="Cardano.Chain.Common.Lovelace.html#mkLovelace"><span class="hs-identifier hs-var">mkLovelace</span></a><span> </span><span class="hs-operator hs-var">.</span><span> </span><span class="hs-identifier hs-var">round</span><span> </span><span class="hs-operator hs-var">=&lt;&lt;</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.FromCBOR.html#fromCBOR"><span class="hs-identifier hs-var">fromCBOR</span></a><span> </span><span class="hs-glyph">@</span><span class="hs-identifier hs-type">Nano</span><span>
-</span><a name="line-65"></a><span>    </span><span class="hs-glyph">!</span><a name="local-6989586621679251355"><a href="#local-6989586621679251355"><span class="hs-identifier">b</span></a></a><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="hs-identifier hs-var">toRational</span><span> </span><span class="hs-operator hs-var">&lt;$&gt;</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.FromCBOR.html#fromCBOR"><span class="hs-identifier hs-var">fromCBOR</span></a><span> </span><span class="hs-glyph">@</span><span class="hs-identifier hs-type">Nano</span><span>
-</span><a name="line-66"></a><span>    </span><span class="hs-identifier hs-var">return</span><span> </span><span class="hs-operator hs-var">$</span><span> </span><a href="Cardano.Chain.Common.TxSizeLinear.html#TxSizeLinear"><span class="hs-identifier hs-var">TxSizeLinear</span></a><span> </span><a href="#local-6989586621679251354"><span class="hs-identifier hs-var">a</span></a><span> </span><a href="#local-6989586621679251355"><span class="hs-identifier hs-var">b</span></a><span>
-</span><a name="line-67"></a><span>   </span><span class="hs-keyword">where</span><span>
-</span><a name="line-68"></a><span>    </span><span class="hs-identifier">wrapLovelaceError</span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">Either</span><span> </span><a href="Cardano.Chain.Common.Lovelace.html#LovelaceError"><span class="hs-identifier hs-type">LovelaceError</span></a><span> </span><a href="Cardano.Chain.Common.Lovelace.html#Lovelace"><span class="hs-identifier hs-type">Lovelace</span></a><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">Decoder</span><span> </span><a href="#local-6989586621679251353"><span class="hs-identifier hs-type">s</span></a><span> </span><a href="Cardano.Chain.Common.Lovelace.html#Lovelace"><span class="hs-identifier hs-type">Lovelace</span></a><span>
-</span><a name="line-69"></a><span>    </span><a name="local-6989586621679251352"><a href="#local-6989586621679251352"><span class="hs-identifier">wrapLovelaceError</span></a></a><span> </span><span class="hs-glyph">=</span><span>
-</span><a name="line-70"></a><span>      </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-prelude-0.1.0.0/noopt/doc/html/cardano-prelude/src/Cardano.Prelude.Error.html#toCborError"><span class="hs-identifier hs-var">toCborError</span></a><span> </span><span class="hs-operator hs-var">.</span><span> </span><span class="hs-identifier hs-var">first</span><span> </span><span class="hs-special">(</span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.FromCBOR.html#DecoderErrorCustom"><span class="hs-identifier hs-var">DecoderErrorCustom</span></a><span> </span><span class="hs-string">&quot;TxSizeLinear&quot;</span><span> </span><span class="hs-operator hs-var">.</span><span> </span><span class="hs-identifier hs-var">sformat</span><span> </span><span class="hs-identifier hs-var">build</span><span class="hs-special">)</span><span>
-</span><a name="line-71"></a><span>
-</span><a name="line-72"></a><span class="hs-identifier">calculateTxSizeLinear</span><span>
-</span><a name="line-73"></a><span>  </span><span class="hs-glyph">::</span><span> </span><a href="Cardano.Chain.Common.TxSizeLinear.html#TxSizeLinear"><span class="hs-identifier hs-type">TxSizeLinear</span></a><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">Natural</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">Either</span><span> </span><a href="Cardano.Chain.Common.Lovelace.html#LovelaceError"><span class="hs-identifier hs-type">LovelaceError</span></a><span> </span><a href="Cardano.Chain.Common.Lovelace.html#Lovelace"><span class="hs-identifier hs-type">Lovelace</span></a><span>
-</span><a name="line-74"></a><a name="calculateTxSizeLinear"><a href="Cardano.Chain.Common.TxSizeLinear.html#calculateTxSizeLinear"><span class="hs-identifier">calculateTxSizeLinear</span></a></a><span> </span><span class="hs-special">(</span><a href="Cardano.Chain.Common.TxSizeLinear.html#TxSizeLinear"><span class="hs-identifier hs-var">TxSizeLinear</span></a><span> </span><a name="local-6989586621679251360"><a href="#local-6989586621679251360"><span class="hs-identifier">a</span></a></a><span> </span><a name="local-6989586621679251361"><a href="#local-6989586621679251361"><span class="hs-identifier">b</span></a></a><span class="hs-special">)</span><span> </span><a name="local-6989586621679251362"><a href="#local-6989586621679251362"><span class="hs-identifier">sz</span></a></a><span>
-</span><a name="line-75"></a><span>  </span><span class="hs-glyph">=</span><span> </span><a href="Cardano.Chain.Common.Lovelace.html#addLovelace"><span class="hs-identifier hs-var">addLovelace</span></a><span> </span><a href="#local-6989586621679251360"><span class="hs-identifier hs-var">a</span></a><span>
-</span><a name="line-76"></a><span>      </span><span class="hs-operator hs-var">=&lt;&lt;</span><span> </span><span class="hs-identifier hs-var">flip</span><span> </span><a href="Cardano.Chain.Common.Lovelace.html#scaleLovelaceRationalUp"><span class="hs-identifier hs-var">scaleLovelaceRationalUp</span></a><span> </span><a href="#local-6989586621679251361"><span class="hs-identifier hs-var">b</span></a><span>
-</span><a name="line-77"></a><span>      </span><span class="hs-operator hs-var">&lt;$&gt;</span><span> </span><a href="Cardano.Chain.Common.Lovelace.html#integerToLovelace"><span class="hs-identifier hs-var">integerToLovelace</span></a><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-var">fromIntegral</span><span> </span><a href="#local-6989586621679251362"><span class="hs-identifier hs-var">sz</span></a><span class="hs-special">)</span><span>
-</span><a name="line-78"></a><span>
-</span><a name="line-79"></a><span class="hs-identifier">txSizeLinearMinValue</span><span> </span><span class="hs-glyph">::</span><span> </span><a href="Cardano.Chain.Common.TxSizeLinear.html#TxSizeLinear"><span class="hs-identifier hs-type">TxSizeLinear</span></a><span> </span><span class="hs-glyph">-&gt;</span><span> </span><a href="Cardano.Chain.Common.Lovelace.html#Lovelace"><span class="hs-identifier hs-type">Lovelace</span></a><span>
-</span><a name="line-80"></a><a name="txSizeLinearMinValue"><a href="Cardano.Chain.Common.TxSizeLinear.html#txSizeLinearMinValue"><span class="hs-identifier">txSizeLinearMinValue</span></a></a><span> </span><span class="hs-special">(</span><a href="Cardano.Chain.Common.TxSizeLinear.html#TxSizeLinear"><span class="hs-identifier hs-var">TxSizeLinear</span></a><span> </span><a name="local-6989586621679251363"><a href="#local-6989586621679251363"><span class="hs-identifier">a</span></a></a><span> </span><span class="hs-identifier">_</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><a href="#local-6989586621679251363"><span class="hs-identifier hs-var">a</span></a><span>
-</span><a name="line-81"></a></pre></body></html>
+</span><span id="line-2"></span><span class="hs-pragma">{-# LANGUAGE DeriveAnyClass     #-}</span><span>
+</span><span id="line-3"></span><span class="hs-pragma">{-# LANGUAGE DeriveGeneric      #-}</span><span>
+</span><span id="line-4"></span><span class="hs-pragma">{-# LANGUAGE DerivingStrategies #-}</span><span>
+</span><span id="line-5"></span><span class="hs-pragma">{-# LANGUAGE OverloadedStrings  #-}</span><span>
+</span><span id="line-6"></span><span class="hs-pragma">{-# LANGUAGE TypeApplications   #-}</span><span>
+</span><span id="line-7"></span><span>
+</span><span id="line-8"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Cardano.Chain.Common.TxSizeLinear</span><span>
+</span><span id="line-9"></span><span>  </span><span class="hs-special">(</span><span> </span><span class="annot"><a href="Cardano.Chain.Common.TxSizeLinear.html#TxSizeLinear"><span class="hs-identifier">TxSizeLinear</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
+</span><span id="line-10"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cardano.Chain.Common.TxSizeLinear.html#txSizeLinearMinValue"><span class="hs-identifier">txSizeLinearMinValue</span></a></span><span>
+</span><span id="line-11"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cardano.Chain.Common.TxSizeLinear.html#calculateTxSizeLinear"><span class="hs-identifier">calculateTxSizeLinear</span></a></span><span>
+</span><span id="line-12"></span><span>  </span><span class="hs-special">)</span><span>
+</span><span id="line-13"></span><span class="hs-keyword">where</span><span>
+</span><span id="line-14"></span><span>
+</span><span id="line-15"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-prelude-0.1.0.0/noopt/doc/html/cardano-prelude/src"><span class="hs-identifier">Cardano.Prelude</span></a></span><span>
+</span><span id="line-16"></span><span>
+</span><span id="line-17"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Aeson</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">ToJSON</span></span><span class="hs-special">)</span><span>
+</span><span id="line-18"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Fixed</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Nano</span></span><span class="hs-special">)</span><span>
+</span><span id="line-19"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Formatting</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">bprint</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">build</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">sformat</span></span><span class="hs-special">)</span><span>
+</span><span id="line-20"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Formatting.Buildable</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">B</span></span><span>
+</span><span id="line-21"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">NoThunks.Class</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">NoThunks</span></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-22"></span><span>
+</span><span id="line-23"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src"><span class="hs-identifier">Cardano.Binary</span></a></span><span>
+</span><span id="line-24"></span><span>  </span><span class="hs-special">(</span><span> </span><span class="annot"><span class="hs-identifier">Decoder</span></span><span>
+</span><span id="line-25"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src"><span class="hs-identifier">DecoderError</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
+</span><span id="line-26"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src"><span class="hs-identifier">FromCBOR</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
+</span><span id="line-27"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src"><span class="hs-identifier">ToCBOR</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
+</span><span id="line-28"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">encodeListLen</span></span><span>
+</span><span id="line-29"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src"><span class="hs-identifier">enforceSize</span></a></span><span>
+</span><span id="line-30"></span><span>  </span><span class="hs-special">)</span><span>
+</span><span id="line-31"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Cardano.Chain.Common.Lovelace.html"><span class="hs-identifier">Cardano.Chain.Common.Lovelace</span></a></span><span>
+</span><span id="line-32"></span><span>  </span><span class="hs-special">(</span><span> </span><span class="annot"><a href="Cardano.Chain.Common.Lovelace.html#Lovelace"><span class="hs-identifier">Lovelace</span></a></span><span>
+</span><span id="line-33"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cardano.Chain.Common.Lovelace.html#LovelaceError"><span class="hs-identifier">LovelaceError</span></a></span><span>
+</span><span id="line-34"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cardano.Chain.Common.Lovelace.html#addLovelace"><span class="hs-identifier">addLovelace</span></a></span><span>
+</span><span id="line-35"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cardano.Chain.Common.Lovelace.html#integerToLovelace"><span class="hs-identifier">integerToLovelace</span></a></span><span>
+</span><span id="line-36"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cardano.Chain.Common.Lovelace.html#mkLovelace"><span class="hs-identifier">mkLovelace</span></a></span><span>
+</span><span id="line-37"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cardano.Chain.Common.Lovelace.html#scaleLovelaceRationalUp"><span class="hs-identifier">scaleLovelaceRationalUp</span></a></span><span>
+</span><span id="line-38"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cardano.Chain.Common.Lovelace.html#unsafeGetLovelace"><span class="hs-identifier">unsafeGetLovelace</span></a></span><span>
+</span><span id="line-39"></span><span>  </span><span class="hs-special">)</span><span>
+</span><span id="line-40"></span><span>
+</span><span id="line-41"></span><span class="hs-comment">-- | A linear equation on the transaction size. Represents the @\s -&gt; a + b*s@</span><span>
+</span><span id="line-42"></span><span class="hs-comment">-- function where @s@ is the transaction size in bytes, @a@ and @b@ are</span><span>
+</span><span id="line-43"></span><span class="hs-comment">-- constant coefficients.</span><span>
+</span><span id="line-44"></span><span id="local-6989586621679510431"><span id="local-6989586621679510432"></span></span><span class="hs-keyword">data</span><span> </span><span id="TxSizeLinear"><span class="annot"><a href="Cardano.Chain.Common.TxSizeLinear.html#TxSizeLinear"><span class="hs-identifier hs-var">TxSizeLinear</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-45"></span><span>  </span><span id="TxSizeLinear"><span class="annot"><a href="Cardano.Chain.Common.TxSizeLinear.html#TxSizeLinear"><span class="hs-identifier hs-var">TxSizeLinear</span></a></span></span><span> </span><span class="hs-glyph">!</span><span class="annot"><a href="Cardano.Chain.Common.Lovelace.html#Lovelace"><span class="hs-identifier hs-type">Lovelace</span></a></span><span> </span><span class="hs-glyph">!</span><span class="annot"><span class="hs-identifier hs-type">Rational</span></span><span>
+</span><span id="line-46"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679510426"><span id="local-6989586621679510428"><span class="annot"><span class="annottext">TxSizeLinear -&gt; TxSizeLinear -&gt; Bool
+(TxSizeLinear -&gt; TxSizeLinear -&gt; Bool)
+-&gt; (TxSizeLinear -&gt; TxSizeLinear -&gt; Bool) -&gt; Eq TxSizeLinear
+forall a. (a -&gt; a -&gt; Bool) -&gt; (a -&gt; a -&gt; Bool) -&gt; Eq a
+/= :: TxSizeLinear -&gt; TxSizeLinear -&gt; Bool
+$c/= :: TxSizeLinear -&gt; TxSizeLinear -&gt; Bool
+== :: TxSizeLinear -&gt; TxSizeLinear -&gt; Bool
+$c== :: TxSizeLinear -&gt; TxSizeLinear -&gt; Bool
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679510410"><span id="local-6989586621679510412"><span id="local-6989586621679510414"><span id="local-6989586621679510416"><span id="local-6989586621679510418"><span id="local-6989586621679510420"><span id="local-6989586621679510422"><span class="annot"><span class="annottext">Eq TxSizeLinear
+Eq TxSizeLinear
+-&gt; (TxSizeLinear -&gt; TxSizeLinear -&gt; Ordering)
+-&gt; (TxSizeLinear -&gt; TxSizeLinear -&gt; Bool)
+-&gt; (TxSizeLinear -&gt; TxSizeLinear -&gt; Bool)
+-&gt; (TxSizeLinear -&gt; TxSizeLinear -&gt; Bool)
+-&gt; (TxSizeLinear -&gt; TxSizeLinear -&gt; Bool)
+-&gt; (TxSizeLinear -&gt; TxSizeLinear -&gt; TxSizeLinear)
+-&gt; (TxSizeLinear -&gt; TxSizeLinear -&gt; TxSizeLinear)
+-&gt; Ord TxSizeLinear
+TxSizeLinear -&gt; TxSizeLinear -&gt; Bool
+TxSizeLinear -&gt; TxSizeLinear -&gt; Ordering
+TxSizeLinear -&gt; TxSizeLinear -&gt; TxSizeLinear
+forall a.
+Eq a
+-&gt; (a -&gt; a -&gt; Ordering)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; a)
+-&gt; (a -&gt; a -&gt; a)
+-&gt; Ord a
+min :: TxSizeLinear -&gt; TxSizeLinear -&gt; TxSizeLinear
+$cmin :: TxSizeLinear -&gt; TxSizeLinear -&gt; TxSizeLinear
+max :: TxSizeLinear -&gt; TxSizeLinear -&gt; TxSizeLinear
+$cmax :: TxSizeLinear -&gt; TxSizeLinear -&gt; TxSizeLinear
+&gt;= :: TxSizeLinear -&gt; TxSizeLinear -&gt; Bool
+$c&gt;= :: TxSizeLinear -&gt; TxSizeLinear -&gt; Bool
+&gt; :: TxSizeLinear -&gt; TxSizeLinear -&gt; Bool
+$c&gt; :: TxSizeLinear -&gt; TxSizeLinear -&gt; Bool
+&lt;= :: TxSizeLinear -&gt; TxSizeLinear -&gt; Bool
+$c&lt;= :: TxSizeLinear -&gt; TxSizeLinear -&gt; Bool
+&lt; :: TxSizeLinear -&gt; TxSizeLinear -&gt; Bool
+$c&lt; :: TxSizeLinear -&gt; TxSizeLinear -&gt; Bool
+compare :: TxSizeLinear -&gt; TxSizeLinear -&gt; Ordering
+$ccompare :: TxSizeLinear -&gt; TxSizeLinear -&gt; Ordering
+$cp1Ord :: Eq TxSizeLinear
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Ord</span></span></span></span></span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679510403"><span id="local-6989586621679510405"><span id="local-6989586621679510407"><span class="annot"><span class="annottext">Int -&gt; TxSizeLinear -&gt; ShowS
+[TxSizeLinear] -&gt; ShowS
+TxSizeLinear -&gt; String
+(Int -&gt; TxSizeLinear -&gt; ShowS)
+-&gt; (TxSizeLinear -&gt; String)
+-&gt; ([TxSizeLinear] -&gt; ShowS)
+-&gt; Show TxSizeLinear
+forall a.
+(Int -&gt; a -&gt; ShowS) -&gt; (a -&gt; String) -&gt; ([a] -&gt; ShowS) -&gt; Show a
+showList :: [TxSizeLinear] -&gt; ShowS
+$cshowList :: [TxSizeLinear] -&gt; ShowS
+show :: TxSizeLinear -&gt; String
+$cshow :: TxSizeLinear -&gt; String
+showsPrec :: Int -&gt; TxSizeLinear -&gt; ShowS
+$cshowsPrec :: Int -&gt; TxSizeLinear -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">(forall x. TxSizeLinear -&gt; Rep TxSizeLinear x)
+-&gt; (forall x. Rep TxSizeLinear x -&gt; TxSizeLinear)
+-&gt; Generic TxSizeLinear
+forall x. Rep TxSizeLinear x -&gt; TxSizeLinear
+forall x. TxSizeLinear -&gt; Rep TxSizeLinear x
+forall a.
+(forall x. a -&gt; Rep a x) -&gt; (forall x. Rep a x -&gt; a) -&gt; Generic a
+$cto :: forall x. Rep TxSizeLinear x -&gt; TxSizeLinear
+$cfrom :: forall x. TxSizeLinear -&gt; Rep TxSizeLinear x
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">Generic</span></span><span class="hs-special">)</span><span>
+</span><span id="line-47"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="annot"><span class="hs-keyword">anyclass</span></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679510397"><span class="annot"><span class="annottext">TxSizeLinear -&gt; ()
+(TxSizeLinear -&gt; ()) -&gt; NFData TxSizeLinear
+forall a. (a -&gt; ()) -&gt; NFData a
+rnf :: TxSizeLinear -&gt; ()
+$crnf :: TxSizeLinear -&gt; ()
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">NFData</span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679510390"><span id="local-6989586621679510392"><span id="local-6989586621679510394"><span class="annot"><span class="annottext">Context -&gt; TxSizeLinear -&gt; IO (Maybe ThunkInfo)
+Proxy TxSizeLinear -&gt; String
+(Context -&gt; TxSizeLinear -&gt; IO (Maybe ThunkInfo))
+-&gt; (Context -&gt; TxSizeLinear -&gt; IO (Maybe ThunkInfo))
+-&gt; (Proxy TxSizeLinear -&gt; String)
+-&gt; NoThunks TxSizeLinear
+forall a.
+(Context -&gt; a -&gt; IO (Maybe ThunkInfo))
+-&gt; (Context -&gt; a -&gt; IO (Maybe ThunkInfo))
+-&gt; (Proxy a -&gt; String)
+-&gt; NoThunks a
+showTypeOf :: Proxy TxSizeLinear -&gt; String
+$cshowTypeOf :: Proxy TxSizeLinear -&gt; String
+wNoThunks :: Context -&gt; TxSizeLinear -&gt; IO (Maybe ThunkInfo)
+$cwNoThunks :: Context -&gt; TxSizeLinear -&gt; IO (Maybe ThunkInfo)
+noThunks :: Context -&gt; TxSizeLinear -&gt; IO (Maybe ThunkInfo)
+$cnoThunks :: Context -&gt; TxSizeLinear -&gt; IO (Maybe ThunkInfo)
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">NoThunks</span></span></span></span></span><span class="hs-special">)</span><span>
+</span><span id="line-48"></span><span>
+</span><span id="line-49"></span><span class="hs-keyword">instance</span><span> </span><span class="annot"><span class="hs-identifier hs-type">B.Buildable</span></span><span> </span><span class="annot"><a href="Cardano.Chain.Common.TxSizeLinear.html#TxSizeLinear"><span class="hs-identifier hs-type">TxSizeLinear</span></a></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-50"></span><span>  </span><span id="local-6989586621679510386"><span class="annot"><span class="annottext">build :: TxSizeLinear -&gt; Builder
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">build</span></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cardano.Chain.Common.TxSizeLinear.html#TxSizeLinear"><span class="hs-identifier hs-type">TxSizeLinear</span></a></span><span> </span><span id="local-6989586621679510384"><span class="annot"><span class="annottext">Lovelace
+</span><a href="#local-6989586621679510384"><span class="hs-identifier hs-var">a</span></a></span></span><span> </span><span id="local-6989586621679510383"><span class="annot"><span class="annottext">Rational
+</span><a href="#local-6989586621679510383"><span class="hs-identifier hs-var">b</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Format Builder (Lovelace -&gt; Rational -&gt; Builder)
+-&gt; Lovelace -&gt; Rational -&gt; Builder
+forall a. Format Builder a -&gt; a
+</span><span class="hs-identifier hs-var">bprint</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Format (Rational -&gt; Builder) (Lovelace -&gt; Rational -&gt; Builder)
+forall a r. Buildable a =&gt; Format r (a -&gt; r)
+</span><span class="hs-identifier hs-var">build</span></span><span> </span><span class="annot"><span class="annottext">Format (Rational -&gt; Builder) (Lovelace -&gt; Rational -&gt; Builder)
+-&gt; Format Builder (Rational -&gt; Builder)
+-&gt; Format Builder (Lovelace -&gt; Rational -&gt; Builder)
+forall k (cat :: k -&gt; k -&gt; *) (b :: k) (c :: k) (a :: k).
+Category cat =&gt;
+cat b c -&gt; cat a b -&gt; cat a c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Format (Rational -&gt; Builder) (Rational -&gt; Builder)
+</span><span class="hs-string">&quot; + &quot;</span></span><span> </span><span class="annot"><span class="annottext">Format (Rational -&gt; Builder) (Rational -&gt; Builder)
+-&gt; Format Builder (Rational -&gt; Builder)
+-&gt; Format Builder (Rational -&gt; Builder)
+forall k (cat :: k -&gt; k -&gt; *) (b :: k) (c :: k) (a :: k).
+Category cat =&gt;
+cat b c -&gt; cat a b -&gt; cat a c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Format Builder (Rational -&gt; Builder)
+forall a r. Buildable a =&gt; Format r (a -&gt; r)
+</span><span class="hs-identifier hs-var">build</span></span><span> </span><span class="annot"><span class="annottext">Format Builder (Rational -&gt; Builder)
+-&gt; Format Builder Builder -&gt; Format Builder (Rational -&gt; Builder)
+forall k (cat :: k -&gt; k -&gt; *) (b :: k) (c :: k) (a :: k).
+Category cat =&gt;
+cat b c -&gt; cat a b -&gt; cat a c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Format Builder Builder
+</span><span class="hs-string">&quot;*s&quot;</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Lovelace
+</span><a href="#local-6989586621679510384"><span class="hs-identifier hs-var">a</span></a></span><span> </span><span class="annot"><span class="annottext">Rational
+</span><a href="#local-6989586621679510383"><span class="hs-identifier hs-var">b</span></a></span><span>
+</span><span id="line-51"></span><span>
+</span><span id="line-52"></span><span class="hs-comment">-- Used for debugging purposes only</span><span>
+</span><span id="line-53"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679510374"><span id="local-6989586621679510376"><span id="local-6989586621679510378"><span id="local-6989586621679510380"><span class="annot"><span class="hs-identifier hs-type">ToJSON</span></span><span> </span><span class="annot"><a href="Cardano.Chain.Common.TxSizeLinear.html#TxSizeLinear"><span class="hs-identifier hs-type">TxSizeLinear</span></a></span></span></span></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-54"></span><span>
+</span><span id="line-55"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679510367"><span id="local-6989586621679510369"><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src"><span class="hs-identifier hs-type">ToCBOR</span></a></span><span> </span><span class="annot"><a href="Cardano.Chain.Common.TxSizeLinear.html#TxSizeLinear"><span class="hs-identifier hs-type">TxSizeLinear</span></a></span></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-56"></span><span>  </span><span class="hs-comment">-- We encode as 'Nano' for backwards compatibility</span><span>
+</span><span id="line-57"></span><span>  </span><span id="local-6989586621679510365"><span class="annot"><span class="annottext">toCBOR :: TxSizeLinear -&gt; Encoding
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src"><span class="hs-identifier hs-var hs-var hs-var hs-var">toCBOR</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cardano.Chain.Common.TxSizeLinear.html#TxSizeLinear"><span class="hs-identifier hs-type">TxSizeLinear</span></a></span><span> </span><span id="local-6989586621679510363"><span class="annot"><span class="annottext">Lovelace
+</span><a href="#local-6989586621679510363"><span class="hs-identifier hs-var">a</span></a></span></span><span> </span><span id="local-6989586621679510362"><span class="annot"><span class="annottext">Rational
+</span><a href="#local-6989586621679510362"><span class="hs-identifier hs-var">b</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-58"></span><span>    </span><span class="annot"><span class="annottext">Word -&gt; Encoding
+</span><span class="hs-identifier hs-var">encodeListLen</span></span><span> </span><span class="annot"><span class="annottext">Word
+</span><span class="hs-number">2</span></span><span>
+</span><span id="line-59"></span><span>      </span><span class="annot"><span class="annottext">Encoding -&gt; Encoding -&gt; Encoding
+forall a. Semigroup a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">&lt;&gt;</span></span><span> </span><span class="annot"><span class="annottext">Nano -&gt; Encoding
+forall a. ToCBOR a =&gt; a -&gt; Encoding
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src"><span class="hs-identifier hs-var">toCBOR</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Word64 -&gt; Nano
+forall a b. (Integral a, Num b) =&gt; a -&gt; b
+</span><span class="hs-identifier hs-var">fromIntegral</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Lovelace -&gt; Word64
+</span><a href="Cardano.Chain.Common.Lovelace.html#unsafeGetLovelace"><span class="hs-identifier hs-var">unsafeGetLovelace</span></a></span><span> </span><span class="annot"><span class="annottext">Lovelace
+</span><a href="#local-6989586621679510363"><span class="hs-identifier hs-var">a</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Nano</span></span><span class="hs-special">)</span><span>
+</span><span id="line-60"></span><span>      </span><span class="annot"><span class="annottext">Encoding -&gt; Encoding -&gt; Encoding
+forall a. Semigroup a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">&lt;&gt;</span></span><span> </span><span class="annot"><span class="annottext">Nano -&gt; Encoding
+forall a. ToCBOR a =&gt; a -&gt; Encoding
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src"><span class="hs-identifier hs-var">toCBOR</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Rational -&gt; Nano
+forall a. Fractional a =&gt; Rational -&gt; a
+</span><span class="hs-identifier hs-var">fromRational</span></span><span> </span><span class="annot"><span class="annottext">Rational
+</span><a href="#local-6989586621679510362"><span class="hs-identifier hs-var">b</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Nano</span></span><span class="hs-special">)</span><span>
+</span><span id="line-61"></span><span>
+</span><span id="line-62"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679510358"><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src"><span class="hs-identifier hs-type">FromCBOR</span></a></span><span> </span><span class="annot"><a href="Cardano.Chain.Common.TxSizeLinear.html#TxSizeLinear"><span class="hs-identifier hs-type">TxSizeLinear</span></a></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-63"></span><span>  </span><span id="local-6989586621679510356"><span class="annot"><span class="annottext">fromCBOR :: Decoder s TxSizeLinear
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src"><span class="hs-identifier hs-var hs-var hs-var hs-var">fromCBOR</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-64"></span><span>    </span><span class="annot"><span class="annottext">Text -&gt; Int -&gt; Decoder s ()
+forall s. Text -&gt; Int -&gt; Decoder s ()
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src"><span class="hs-identifier hs-var">enforceSize</span></a></span><span> </span><span class="annot"><span class="annottext">Text
+</span><span class="hs-string">&quot;TxSizeLinear&quot;</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">2</span></span><span>
+</span><span id="line-65"></span><span>    </span><span class="hs-glyph">!</span><span id="local-6989586621679510354"><span class="annot"><span class="annottext">Lovelace
+</span><a href="#local-6989586621679510354"><span class="hs-identifier hs-var">a</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Either LovelaceError Lovelace -&gt; Decoder s Lovelace
+forall s. Either LovelaceError Lovelace -&gt; Decoder s Lovelace
+</span><a href="#local-6989586621679510353"><span class="hs-identifier hs-var">wrapLovelaceError</span></a></span><span> </span><span class="annot"><span class="annottext">(Either LovelaceError Lovelace -&gt; Decoder s Lovelace)
+-&gt; (Nano -&gt; Either LovelaceError Lovelace)
+-&gt; Nano
+-&gt; Decoder s Lovelace
+forall k (cat :: k -&gt; k -&gt; *) (b :: k) (c :: k) (a :: k).
+Category cat =&gt;
+cat b c -&gt; cat a b -&gt; cat a c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Word64 -&gt; Either LovelaceError Lovelace
+</span><a href="Cardano.Chain.Common.Lovelace.html#mkLovelace"><span class="hs-identifier hs-var">mkLovelace</span></a></span><span> </span><span class="annot"><span class="annottext">(Word64 -&gt; Either LovelaceError Lovelace)
+-&gt; (Nano -&gt; Word64) -&gt; Nano -&gt; Either LovelaceError Lovelace
+forall k (cat :: k -&gt; k -&gt; *) (b :: k) (c :: k) (a :: k).
+Category cat =&gt;
+cat b c -&gt; cat a b -&gt; cat a c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Nano -&gt; Word64
+forall a b. (RealFrac a, Integral b) =&gt; a -&gt; b
+</span><span class="hs-identifier hs-var">round</span></span><span> </span><span class="annot"><span class="annottext">(Nano -&gt; Decoder s Lovelace)
+-&gt; Decoder s Nano -&gt; Decoder s Lovelace
+forall (m :: * -&gt; *) a b. Monad m =&gt; (a -&gt; m b) -&gt; m a -&gt; m b
+</span><span class="hs-operator hs-var">=&lt;&lt;</span></span><span> </span><span class="annot"><span class="annottext">forall s. FromCBOR Nano =&gt; Decoder s Nano
+forall a s. FromCBOR a =&gt; Decoder s a
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src"><span class="hs-identifier hs-var">fromCBOR</span></a></span><span> </span><span class="hs-glyph">@</span><span class="annot"><span class="hs-identifier hs-type">Nano</span></span><span>
+</span><span id="line-66"></span><span>    </span><span class="hs-glyph">!</span><span id="local-6989586621679510350"><span class="annot"><span class="annottext">Rational
+</span><a href="#local-6989586621679510350"><span class="hs-identifier hs-var">b</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Nano -&gt; Rational
+forall a. Real a =&gt; a -&gt; Rational
+</span><span class="hs-identifier hs-var">toRational</span></span><span> </span><span class="annot"><span class="annottext">(Nano -&gt; Rational) -&gt; Decoder s Nano -&gt; Decoder s Rational
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">forall s. FromCBOR Nano =&gt; Decoder s Nano
+forall a s. FromCBOR a =&gt; Decoder s a
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src"><span class="hs-identifier hs-var">fromCBOR</span></a></span><span> </span><span class="hs-glyph">@</span><span class="annot"><span class="hs-identifier hs-type">Nano</span></span><span>
+</span><span id="line-67"></span><span>    </span><span class="annot"><span class="annottext">TxSizeLinear -&gt; Decoder s TxSizeLinear
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">(TxSizeLinear -&gt; Decoder s TxSizeLinear)
+-&gt; TxSizeLinear -&gt; Decoder s TxSizeLinear
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Lovelace -&gt; Rational -&gt; TxSizeLinear
+</span><a href="Cardano.Chain.Common.TxSizeLinear.html#TxSizeLinear"><span class="hs-identifier hs-var">TxSizeLinear</span></a></span><span> </span><span class="annot"><span class="annottext">Lovelace
+</span><a href="#local-6989586621679510354"><span class="hs-identifier hs-var">a</span></a></span><span> </span><span class="annot"><span class="annottext">Rational
+</span><a href="#local-6989586621679510350"><span class="hs-identifier hs-var">b</span></a></span><span>
+</span><span id="line-68"></span><span>   </span><span class="hs-keyword">where</span><span>
+</span><span id="line-69"></span><span>    </span><span id="local-6989586621679510473"><span class="annot"><a href="#local-6989586621679510353"><span class="hs-identifier hs-type">wrapLovelaceError</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Either</span></span><span> </span><span class="annot"><a href="Cardano.Chain.Common.Lovelace.html#LovelaceError"><span class="hs-identifier hs-type">LovelaceError</span></a></span><span> </span><span class="annot"><a href="Cardano.Chain.Common.Lovelace.html#Lovelace"><span class="hs-identifier hs-type">Lovelace</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Decoder</span></span><span> </span><span class="annot"><a href="#local-6989586621679510473"><span class="hs-identifier hs-type">s</span></a></span><span> </span><span class="annot"><a href="Cardano.Chain.Common.Lovelace.html#Lovelace"><span class="hs-identifier hs-type">Lovelace</span></a></span></span><span>
+</span><span id="line-70"></span><span>    </span><span id="local-6989586621679510353"><span class="annot"><span class="annottext">wrapLovelaceError :: Either LovelaceError Lovelace -&gt; Decoder s Lovelace
+</span><a href="#local-6989586621679510353"><span class="hs-identifier hs-var hs-var">wrapLovelaceError</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-71"></span><span>      </span><span class="annot"><span class="annottext">Either DecoderError Lovelace -&gt; Decoder s Lovelace
+forall e a s. Buildable e =&gt; Either e a -&gt; Decoder s a
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-prelude-0.1.0.0/noopt/doc/html/cardano-prelude/src"><span class="hs-identifier hs-var">toCborError</span></a></span><span> </span><span class="annot"><span class="annottext">(Either DecoderError Lovelace -&gt; Decoder s Lovelace)
+-&gt; (Either LovelaceError Lovelace -&gt; Either DecoderError Lovelace)
+-&gt; Either LovelaceError Lovelace
+-&gt; Decoder s Lovelace
+forall k (cat :: k -&gt; k -&gt; *) (b :: k) (c :: k) (a :: k).
+Category cat =&gt;
+cat b c -&gt; cat a b -&gt; cat a c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">(LovelaceError -&gt; DecoderError)
+-&gt; Either LovelaceError Lovelace -&gt; Either DecoderError Lovelace
+forall (p :: * -&gt; * -&gt; *) a b c.
+Bifunctor p =&gt;
+(a -&gt; b) -&gt; p a c -&gt; p b c
+</span><span class="hs-identifier hs-var">first</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Text -&gt; Text -&gt; DecoderError
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src"><span class="hs-identifier hs-var">DecoderErrorCustom</span></a></span><span> </span><span class="annot"><span class="annottext">Text
+</span><span class="hs-string">&quot;TxSizeLinear&quot;</span></span><span> </span><span class="annot"><span class="annottext">(Text -&gt; DecoderError)
+-&gt; (LovelaceError -&gt; Text) -&gt; LovelaceError -&gt; DecoderError
+forall k (cat :: k -&gt; k -&gt; *) (b :: k) (c :: k) (a :: k).
+Category cat =&gt;
+cat b c -&gt; cat a b -&gt; cat a c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Format Text (LovelaceError -&gt; Text) -&gt; LovelaceError -&gt; Text
+forall a. Format Text a -&gt; a
+</span><span class="hs-identifier hs-var">sformat</span></span><span> </span><span class="annot"><span class="annottext">Format Text (LovelaceError -&gt; Text)
+forall a r. Buildable a =&gt; Format r (a -&gt; r)
+</span><span class="hs-identifier hs-var">build</span></span><span class="hs-special">)</span><span>
+</span><span id="line-72"></span><span>
+</span><span id="line-73"></span><span class="annot"><a href="Cardano.Chain.Common.TxSizeLinear.html#calculateTxSizeLinear"><span class="hs-identifier hs-type">calculateTxSizeLinear</span></a></span><span>
+</span><span id="line-74"></span><span>  </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cardano.Chain.Common.TxSizeLinear.html#TxSizeLinear"><span class="hs-identifier hs-type">TxSizeLinear</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Natural</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Either</span></span><span> </span><span class="annot"><a href="Cardano.Chain.Common.Lovelace.html#LovelaceError"><span class="hs-identifier hs-type">LovelaceError</span></a></span><span> </span><span class="annot"><a href="Cardano.Chain.Common.Lovelace.html#Lovelace"><span class="hs-identifier hs-type">Lovelace</span></a></span><span>
+</span><span id="line-75"></span><span id="calculateTxSizeLinear"><span class="annot"><span class="annottext">calculateTxSizeLinear :: TxSizeLinear -&gt; Natural -&gt; Either LovelaceError Lovelace
+</span><a href="Cardano.Chain.Common.TxSizeLinear.html#calculateTxSizeLinear"><span class="hs-identifier hs-var hs-var">calculateTxSizeLinear</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cardano.Chain.Common.TxSizeLinear.html#TxSizeLinear"><span class="hs-identifier hs-type">TxSizeLinear</span></a></span><span> </span><span id="local-6989586621679510345"><span class="annot"><span class="annottext">Lovelace
+</span><a href="#local-6989586621679510345"><span class="hs-identifier hs-var">a</span></a></span></span><span> </span><span id="local-6989586621679510344"><span class="annot"><span class="annottext">Rational
+</span><a href="#local-6989586621679510344"><span class="hs-identifier hs-var">b</span></a></span></span><span class="hs-special">)</span><span> </span><span id="local-6989586621679510343"><span class="annot"><span class="annottext">Natural
+</span><a href="#local-6989586621679510343"><span class="hs-identifier hs-var">sz</span></a></span></span><span>
+</span><span id="line-76"></span><span>  </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Lovelace -&gt; Lovelace -&gt; Either LovelaceError Lovelace
+</span><a href="Cardano.Chain.Common.Lovelace.html#addLovelace"><span class="hs-identifier hs-var">addLovelace</span></a></span><span> </span><span class="annot"><span class="annottext">Lovelace
+</span><a href="#local-6989586621679510345"><span class="hs-identifier hs-var">a</span></a></span><span>
+</span><span id="line-77"></span><span>      </span><span class="annot"><span class="annottext">(Lovelace -&gt; Either LovelaceError Lovelace)
+-&gt; Either LovelaceError Lovelace -&gt; Either LovelaceError Lovelace
+forall (m :: * -&gt; *) a b. Monad m =&gt; (a -&gt; m b) -&gt; m a -&gt; m b
+</span><span class="hs-operator hs-var">=&lt;&lt;</span></span><span> </span><span class="annot"><span class="annottext">(Lovelace -&gt; Rational -&gt; Lovelace)
+-&gt; Rational -&gt; Lovelace -&gt; Lovelace
+forall a b c. (a -&gt; b -&gt; c) -&gt; b -&gt; a -&gt; c
+</span><span class="hs-identifier hs-var">flip</span></span><span> </span><span class="annot"><span class="annottext">Lovelace -&gt; Rational -&gt; Lovelace
+</span><a href="Cardano.Chain.Common.Lovelace.html#scaleLovelaceRationalUp"><span class="hs-identifier hs-var">scaleLovelaceRationalUp</span></a></span><span> </span><span class="annot"><span class="annottext">Rational
+</span><a href="#local-6989586621679510344"><span class="hs-identifier hs-var">b</span></a></span><span>
+</span><span id="line-78"></span><span>      </span><span class="annot"><span class="annottext">(Lovelace -&gt; Lovelace)
+-&gt; Either LovelaceError Lovelace -&gt; Either LovelaceError Lovelace
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Either LovelaceError Lovelace
+</span><a href="Cardano.Chain.Common.Lovelace.html#integerToLovelace"><span class="hs-identifier hs-var">integerToLovelace</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Natural -&gt; Integer
+forall a b. (Integral a, Num b) =&gt; a -&gt; b
+</span><span class="hs-identifier hs-var">fromIntegral</span></span><span> </span><span class="annot"><span class="annottext">Natural
+</span><a href="#local-6989586621679510343"><span class="hs-identifier hs-var">sz</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-79"></span><span>
+</span><span id="line-80"></span><span class="annot"><a href="Cardano.Chain.Common.TxSizeLinear.html#txSizeLinearMinValue"><span class="hs-identifier hs-type">txSizeLinearMinValue</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cardano.Chain.Common.TxSizeLinear.html#TxSizeLinear"><span class="hs-identifier hs-type">TxSizeLinear</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cardano.Chain.Common.Lovelace.html#Lovelace"><span class="hs-identifier hs-type">Lovelace</span></a></span><span>
+</span><span id="line-81"></span><span id="txSizeLinearMinValue"><span class="annot"><span class="annottext">txSizeLinearMinValue :: TxSizeLinear -&gt; Lovelace
+</span><a href="Cardano.Chain.Common.TxSizeLinear.html#txSizeLinearMinValue"><span class="hs-identifier hs-var hs-var">txSizeLinearMinValue</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cardano.Chain.Common.TxSizeLinear.html#TxSizeLinear"><span class="hs-identifier hs-type">TxSizeLinear</span></a></span><span> </span><span id="local-6989586621679510341"><span class="annot"><span class="annottext">Lovelace
+</span><a href="#local-6989586621679510341"><span class="hs-identifier hs-var">a</span></a></span></span><span> </span><span class="annot"><span class="annottext">Rational
+</span><span class="hs-identifier">_</span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Lovelace
+</span><a href="#local-6989586621679510341"><span class="hs-identifier hs-var">a</span></a></span><span>
+</span><span id="line-82"></span></pre></body></html>

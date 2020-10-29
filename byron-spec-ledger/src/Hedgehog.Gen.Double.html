@@ -1,20 +1,52 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-comment">-- | Generally useful generators not present in the upstream release</span><span>
-</span><a name="line-2"></a><span class="hs-comment">-- of Hedgehog</span><span>
-</span><a name="line-3"></a><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Hedgehog.Gen.Double</span><span> </span><span class="hs-special">(</span><a href="Hedgehog.Gen.Double.html#doubleInc"><span class="hs-identifier hs-var">doubleInc</span></a><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
-</span><a name="line-4"></a><span>
-</span><a name="line-5"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data.Bits</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-var">shiftL</span><span class="hs-special">)</span><span>
-</span><a name="line-6"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data.Word</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Word64</span><span class="hs-special">)</span><span>
-</span><a name="line-7"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Hedgehog</span><span>
-</span><a name="line-8"></a><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-identifier">Hedgehog.Gen</span><span>    </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">Gen</span><span>
-</span><a name="line-9"></a><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-identifier">Hedgehog.Range</span><span>  </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">Range</span><span>
-</span><a name="line-10"></a><span>
-</span><a name="line-11"></a><span>
-</span><a name="line-12"></a><span class="hs-comment">-- | Generates a Double in the inclusive range [0, 1]</span><span>
-</span><a name="line-13"></a><span class="hs-identifier">doubleInc</span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">Gen</span><span> </span><span class="hs-identifier hs-type">Double</span><span>
-</span><a name="line-14"></a><a name="doubleInc"><a href="Hedgehog.Gen.Double.html#doubleInc"><span class="hs-identifier">doubleInc</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
-</span><a name="line-15"></a><span>  </span><a name="local-6989586621679595930"><a href="#local-6989586621679595930"><span class="hs-identifier">b</span></a></a><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="hs-identifier hs-var">Gen.word64</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-var">Range.linear</span><span> </span><span class="hs-number">1</span><span> </span><a href="#local-6989586621679595929"><span class="hs-identifier hs-var">hi</span></a><span class="hs-special">)</span><span>
-</span><a name="line-16"></a><span>  </span><a name="local-6989586621679595931"><a href="#local-6989586621679595931"><span class="hs-identifier">a</span></a></a><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="hs-identifier hs-var">Gen.word64</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-var">Range.linear</span><span> </span><span class="hs-number">0</span><span> </span><a href="#local-6989586621679595930"><span class="hs-identifier hs-var">b</span></a><span> </span><span class="hs-special">)</span><span>
-</span><a name="line-17"></a><span>  </span><span class="hs-identifier hs-var">return</span><span> </span><span class="hs-operator hs-var">$</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-var">fromIntegral</span><span> </span><a href="#local-6989586621679595931"><span class="hs-identifier hs-var">a</span></a><span class="hs-special">)</span><span> </span><span class="hs-operator hs-var">/</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-var">fromIntegral</span><span> </span><a href="#local-6989586621679595930"><span class="hs-identifier hs-var">b</span></a><span class="hs-special">)</span><span>
-</span><a name="line-18"></a><span> </span><span class="hs-keyword">where</span><span>
-</span><a name="line-19"></a><span>  </span><a name="local-6989586621679595929"><a href="#local-6989586621679595929"><span class="hs-identifier">hi</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-number">2</span><span> </span><span class="hs-special">`</span><span class="hs-identifier hs-var">shiftL</span><span class="hs-special">`</span><span> </span><span class="hs-number">48</span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">Word64</span><span>
-</span><a name="line-20"></a></pre></body></html>
+</span><span id="line-2"></span><span class="hs-comment">-- of Hedgehog</span><span>
+</span><span id="line-3"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Hedgehog.Gen.Double</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Hedgehog.Gen.Double.html#doubleInc"><span class="hs-identifier">doubleInc</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-4"></span><span>
+</span><span id="line-5"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><span class="hs-identifier">Data.Bits</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">shiftL</span></span><span class="hs-special">)</span><span>
+</span><span id="line-6"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><span class="hs-identifier">Data.Word</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Word64</span></span><span class="hs-special">)</span><span>
+</span><span id="line-7"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><span class="hs-identifier">Hedgehog</span></span><span>
+</span><span id="line-8"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Hedgehog.Gen</span></span><span>    </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Gen</span></span><span>
+</span><span id="line-9"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Hedgehog.Range</span></span><span>  </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Range</span></span><span>
+</span><span id="line-10"></span><span>
+</span><span id="line-11"></span><span>
+</span><span id="line-12"></span><span class="hs-comment">-- | Generates a Double in the inclusive range [0, 1]</span><span>
+</span><span id="line-13"></span><span class="annot"><a href="Hedgehog.Gen.Double.html#doubleInc"><span class="hs-identifier hs-type">doubleInc</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Gen</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Double</span></span><span>
+</span><span id="line-14"></span><span id="doubleInc"><span class="annot"><span class="annottext">doubleInc :: Gen Double
+</span><a href="Hedgehog.Gen.Double.html#doubleInc"><span class="hs-identifier hs-var hs-var">doubleInc</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-15"></span><span>  </span><span id="local-6989586621679562872"><span class="annot"><span class="annottext">Word64
+</span><a href="#local-6989586621679562872"><span class="hs-identifier hs-var">b</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Range Word64 -&gt; GenT Identity Word64
+forall (m :: * -&gt; *). MonadGen m =&gt; Range Word64 -&gt; m Word64
+</span><span class="hs-identifier hs-var">Gen.word64</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Word64 -&gt; Word64 -&gt; Range Word64
+forall a. Integral a =&gt; a -&gt; a -&gt; Range a
+</span><span class="hs-identifier hs-var">Range.linear</span></span><span> </span><span class="annot"><span class="annottext">Word64
+</span><span class="hs-number">1</span></span><span> </span><span class="annot"><span class="annottext">Word64
+</span><a href="#local-6989586621679562869"><span class="hs-identifier hs-var">hi</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-16"></span><span>  </span><span id="local-6989586621679562868"><span class="annot"><span class="annottext">Word64
+</span><a href="#local-6989586621679562868"><span class="hs-identifier hs-var">a</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Range Word64 -&gt; GenT Identity Word64
+forall (m :: * -&gt; *). MonadGen m =&gt; Range Word64 -&gt; m Word64
+</span><span class="hs-identifier hs-var">Gen.word64</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Word64 -&gt; Word64 -&gt; Range Word64
+forall a. Integral a =&gt; a -&gt; a -&gt; Range a
+</span><span class="hs-identifier hs-var">Range.linear</span></span><span> </span><span class="annot"><span class="annottext">Word64
+</span><span class="hs-number">0</span></span><span> </span><span class="annot"><span class="annottext">Word64
+</span><a href="#local-6989586621679562872"><span class="hs-identifier hs-var">b</span></a></span><span> </span><span class="hs-special">)</span><span>
+</span><span id="line-17"></span><span>  </span><span class="annot"><span class="annottext">Double -&gt; Gen Double
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">(Double -&gt; Gen Double) -&gt; Double -&gt; Gen Double
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Word64 -&gt; Double
+forall a b. (Integral a, Num b) =&gt; a -&gt; b
+</span><span class="hs-identifier hs-var">fromIntegral</span></span><span> </span><span class="annot"><span class="annottext">Word64
+</span><a href="#local-6989586621679562868"><span class="hs-identifier hs-var">a</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Double -&gt; Double -&gt; Double
+forall a. Fractional a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">/</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Word64 -&gt; Double
+forall a b. (Integral a, Num b) =&gt; a -&gt; b
+</span><span class="hs-identifier hs-var">fromIntegral</span></span><span> </span><span class="annot"><span class="annottext">Word64
+</span><a href="#local-6989586621679562872"><span class="hs-identifier hs-var">b</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-18"></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-19"></span><span>  </span><span id="local-6989586621679562869"><span class="annot"><span class="annottext">hi :: Word64
+</span><a href="#local-6989586621679562869"><span class="hs-identifier hs-var hs-var">hi</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Word64
+</span><span class="hs-number">2</span></span><span> </span><span class="annot"><span class="annottext">Word64 -&gt; Int -&gt; Word64
+forall a. Bits a =&gt; a -&gt; Int -&gt; a
+</span><span class="hs-operator hs-var">`shiftL`</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">48</span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Word64</span></span><span>
+</span><span id="line-20"></span></pre></body></html>

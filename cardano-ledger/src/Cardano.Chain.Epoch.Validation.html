@@ -1,101 +1,397 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-pragma">{-# LANGUAGE FlexibleContexts    #-}</span><span>
-</span><a name="line-2"></a><span class="hs-pragma">{-# LANGUAGE LambdaCase          #-}</span><span>
-</span><a name="line-3"></a><span class="hs-pragma">{-# LANGUAGE OverloadedStrings   #-}</span><span>
-</span><a name="line-4"></a><span class="hs-pragma">{-# LANGUAGE ScopedTypeVariables #-}</span><span>
-</span><a name="line-5"></a><span>
-</span><a name="line-6"></a><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Cardano.Chain.Epoch.Validation</span><span>
-</span><a name="line-7"></a><span>  </span><span class="hs-special">(</span><span> </span><a href="Cardano.Chain.Epoch.Validation.html#EpochError"><span class="hs-identifier hs-type">EpochError</span></a><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
-</span><a name="line-8"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Cardano.Chain.Epoch.Validation.html#validateEpochFile"><span class="hs-identifier hs-var">validateEpochFile</span></a><span>
-</span><a name="line-9"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Cardano.Chain.Epoch.Validation.html#validateEpochFiles"><span class="hs-identifier hs-var">validateEpochFiles</span></a><span>
-</span><a name="line-10"></a><span>  </span><span class="hs-special">)</span><span>
-</span><a name="line-11"></a><span class="hs-keyword">where</span><span>
-</span><a name="line-12"></a><span>
-</span><a name="line-13"></a><span class="hs-keyword">import</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-prelude-0.1.0.0/noopt/doc/html/cardano-prelude/src/Cardano.Prelude.html"><span class="hs-identifier">Cardano.Prelude</span></a><span> </span><span class="hs-keyword">hiding</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-var">trace</span><span class="hs-special">)</span><span>
-</span><a name="line-14"></a><span>
-</span><a name="line-15"></a><span class="hs-keyword">import</span><span> </span><span class="hs-identifier">Control.Monad.Trans.Resource</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">ResIO</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-var">runResourceT</span><span class="hs-special">)</span><span>
-</span><a name="line-16"></a><span class="hs-keyword">import</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/contra-tracer-0.1.0.0/noopt/doc/html/contra-tracer/src/Control.Tracer.html"><span class="hs-identifier">Control.Tracer</span></a><span>
-</span><a name="line-17"></a><span class="hs-keyword">import</span><span> </span><span class="hs-identifier">Streaming</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Of</span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Stream</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-var">hoist</span><span class="hs-special">)</span><span>
-</span><a name="line-18"></a><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-identifier">Streaming.Prelude</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">S</span><span>
-</span><a name="line-19"></a><span>
-</span><a name="line-20"></a><span class="hs-keyword">import</span><span> </span><a href="Cardano.Chain.Block.html"><span class="hs-identifier">Cardano.Chain.Block</span></a><span>
-</span><a name="line-21"></a><span>  </span><span class="hs-special">(</span><span> </span><a href="Cardano.Chain.Block.Block.html#ABlockOrBoundary"><span class="hs-identifier hs-type">ABlockOrBoundary</span></a><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
-</span><a name="line-22"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Cardano.Chain.Block.Validation.html#ChainValidationError"><span class="hs-identifier hs-type">ChainValidationError</span></a><span>
-</span><a name="line-23"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Cardano.Chain.Block.Validation.html#ChainValidationState"><span class="hs-identifier hs-type">ChainValidationState</span></a><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
-</span><a name="line-24"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Cardano.Chain.Block.Block.html#blockSlot"><span class="hs-identifier hs-var">blockSlot</span></a><span>
-</span><a name="line-25"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Cardano.Chain.Block.Validation.html#updateChainBlockOrBoundary"><span class="hs-identifier hs-var">updateChainBlockOrBoundary</span></a><span>
-</span><a name="line-26"></a><span>  </span><span class="hs-special">)</span><span>
-</span><a name="line-27"></a><span class="hs-keyword">import</span><span> </span><a href="Cardano.Chain.Epoch.File.html"><span class="hs-identifier">Cardano.Chain.Epoch.File</span></a><span>
-</span><a name="line-28"></a><span>  </span><span class="hs-special">(</span><span> </span><a href="Cardano.Chain.Epoch.File.html#ParseError"><span class="hs-identifier hs-type">ParseError</span></a><span>
-</span><a name="line-29"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Cardano.Chain.Epoch.File.html#mainnetEpochSlots"><span class="hs-identifier hs-var">mainnetEpochSlots</span></a><span>
-</span><a name="line-30"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Cardano.Chain.Epoch.File.html#parseEpochFileWithBoundary"><span class="hs-identifier hs-var">parseEpochFileWithBoundary</span></a><span>
-</span><a name="line-31"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Cardano.Chain.Epoch.File.html#parseEpochFilesWithBoundary"><span class="hs-identifier hs-var">parseEpochFilesWithBoundary</span></a><span>
-</span><a name="line-32"></a><span>  </span><span class="hs-special">)</span><span>
-</span><a name="line-33"></a><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><a href="Cardano.Chain.Genesis.html"><span class="hs-identifier">Cardano.Chain.Genesis</span></a><span> </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">Genesis</span><span>
-</span><a name="line-34"></a><span class="hs-keyword">import</span><span> </span><a href="Cardano.Chain.Slotting.html"><span class="hs-identifier">Cardano.Chain.Slotting</span></a><span>
-</span><a name="line-35"></a><span>  </span><span class="hs-special">(</span><a href="Cardano.Chain.Slotting.EpochAndSlotCount.html#EpochAndSlotCount"><span class="hs-identifier hs-type">EpochAndSlotCount</span></a><span class="hs-special">,</span><span> </span><a href="Cardano.Chain.Slotting.EpochAndSlotCount.html#fromSlotNumber"><span class="hs-identifier hs-var">fromSlotNumber</span></a><span class="hs-special">)</span><span>
-</span><a name="line-36"></a><span class="hs-keyword">import</span><span> </span><a href="Cardano.Chain.ValidationMode.html"><span class="hs-identifier">Cardano.Chain.ValidationMode</span></a><span> </span><span class="hs-special">(</span><a href="Cardano.Chain.ValidationMode.html#ValidationMode"><span class="hs-identifier hs-type">ValidationMode</span></a><span class="hs-special">)</span><span>
-</span><a name="line-37"></a><span>
-</span><a name="line-38"></a><span>
-</span><a name="line-39"></a><span class="hs-keyword">data</span><span> </span><a name="EpochError"><a href="Cardano.Chain.Epoch.Validation.html#EpochError"><span class="hs-identifier">EpochError</span></a></a><span>
-</span><a name="line-40"></a><span>  </span><span class="hs-glyph">=</span><span> </span><a name="EpochParseError"><a href="Cardano.Chain.Epoch.Validation.html#EpochParseError"><span class="hs-identifier">EpochParseError</span></a></a><span> </span><a href="Cardano.Chain.Epoch.File.html#ParseError"><span class="hs-identifier hs-type">ParseError</span></a><span>
-</span><a name="line-41"></a><span>  </span><span class="hs-glyph">|</span><span> </span><a name="EpochChainValidationError"><a href="Cardano.Chain.Epoch.Validation.html#EpochChainValidationError"><span class="hs-identifier">EpochChainValidationError</span></a></a><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Maybe</span><span> </span><a href="Cardano.Chain.Slotting.EpochAndSlotCount.html#EpochAndSlotCount"><span class="hs-identifier hs-type">EpochAndSlotCount</span></a><span class="hs-special">)</span><span> </span><a href="Cardano.Chain.Block.Validation.html#ChainValidationError"><span class="hs-identifier hs-type">ChainValidationError</span></a><span>
-</span><a name="line-42"></a><span>  </span><span class="hs-glyph">|</span><span> </span><a name="Initial"><a href="Cardano.Chain.Epoch.Validation.html#Initial"><span class="hs-identifier">Initial</span></a></a><span>
-</span><a name="line-43"></a><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Eq</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Show</span><span class="hs-special">)</span><span>
-</span><a name="line-44"></a><span>
-</span><a name="line-45"></a><span>
-</span><a name="line-46"></a><span class="hs-comment">-- | Check that a single epoch's `Block`s are valid by folding over them</span><span>
-</span><a name="line-47"></a><span class="hs-comment">-- TODO(KS): We should use contra-tracer here!</span><span>
-</span><a name="line-48"></a><span class="hs-comment">-- tracing is orthogonal to throwing errors; it does not change the program flow.</span><span>
-</span><a name="line-49"></a><span class="hs-identifier">validateEpochFile</span><span>
-</span><a name="line-50"></a><span>  </span><span class="hs-glyph">::</span><span> </span><span class="hs-keyword">forall</span><span> </span><a name="local-6989586621679504673"><a href="#local-6989586621679504673"><span class="hs-identifier">m</span></a></a><span>
-</span><a name="line-51"></a><span>   </span><span class="hs-operator">.</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">MonadIO</span><span> </span><a href="#local-6989586621679504673"><span class="hs-identifier hs-type">m</span></a><span class="hs-special">)</span><span>
-</span><a name="line-52"></a><span>  </span><span class="hs-glyph">=&gt;</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/contra-tracer-0.1.0.0/noopt/doc/html/contra-tracer/src/Control.Tracer.html#Tracer"><span class="hs-identifier hs-type">Tracer</span></a><span> </span><a href="#local-6989586621679504673"><span class="hs-identifier hs-type">m</span></a><span> </span><a href="Cardano.Chain.Epoch.Validation.html#EpochError"><span class="hs-identifier hs-type">EpochError</span></a><span>
-</span><a name="line-53"></a><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><a href="Cardano.Chain.ValidationMode.html#ValidationMode"><span class="hs-identifier hs-type">ValidationMode</span></a><span>
-</span><a name="line-54"></a><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><a href="Cardano.Chain.Genesis.Config.html#Config"><span class="hs-identifier hs-type">Genesis.Config</span></a><span>
-</span><a name="line-55"></a><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><a href="Cardano.Chain.Block.Validation.html#ChainValidationState"><span class="hs-identifier hs-type">ChainValidationState</span></a><span>
-</span><a name="line-56"></a><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">FilePath</span><span>
-</span><a name="line-57"></a><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><a href="#local-6989586621679504673"><span class="hs-identifier hs-type">m</span></a><span> </span><a href="Cardano.Chain.Block.Validation.html#ChainValidationState"><span class="hs-identifier hs-type">ChainValidationState</span></a><span>
-</span><a name="line-58"></a><a name="validateEpochFile"><a href="Cardano.Chain.Epoch.Validation.html#validateEpochFile"><span class="hs-identifier">validateEpochFile</span></a></a><span> </span><a name="local-6989586621679504674"><a href="#local-6989586621679504674"><span class="hs-identifier">tr</span></a></a><span> </span><a name="local-6989586621679504675"><a href="#local-6989586621679504675"><span class="hs-identifier">vMode</span></a></a><span> </span><a name="local-6989586621679504676"><a href="#local-6989586621679504676"><span class="hs-identifier">config</span></a></a><span> </span><a name="local-6989586621679504677"><a href="#local-6989586621679504677"><span class="hs-identifier">cvs</span></a></a><span> </span><a name="local-6989586621679504678"><a href="#local-6989586621679504678"><span class="hs-identifier">fp</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
-</span><a name="line-59"></a><span>
-</span><a name="line-60"></a><span>  </span><a name="local-6989586621679504680"><a href="#local-6989586621679504680"><span class="hs-identifier">res</span></a></a><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="hs-identifier hs-var">liftIO</span><span> </span><span class="hs-operator hs-var">$</span><span> </span><span class="hs-identifier hs-var">runResourceT</span><span> </span><span class="hs-operator hs-var">$</span><span> </span><span class="hs-special">(</span><span class="hs-special">`</span><span class="hs-identifier">runReaderT</span><span class="hs-special">`</span><span> </span><a href="#local-6989586621679504675"><span class="hs-identifier hs-var">vMode</span></a><span class="hs-special">)</span><span> </span><span class="hs-operator hs-var">$</span><span> </span><span class="hs-identifier hs-var">runExceptT</span><span> </span><span class="hs-operator hs-var">$</span><span>
-</span><a name="line-61"></a><span>        </span><a href="Cardano.Chain.Epoch.Validation.html#foldChainValidationState"><span class="hs-identifier hs-var">foldChainValidationState</span></a><span> </span><a href="#local-6989586621679504676"><span class="hs-identifier hs-var">config</span></a><span> </span><a href="#local-6989586621679504677"><span class="hs-identifier hs-var">cvs</span></a><span> </span><a href="#local-6989586621679504679"><span class="hs-identifier hs-var">stream</span></a><span>
-</span><a name="line-62"></a><span>
-</span><a name="line-63"></a><span>  </span><span class="hs-keyword">case</span><span> </span><a href="#local-6989586621679504680"><span class="hs-identifier hs-var">res</span></a><span> </span><span class="hs-keyword">of</span><span>
-</span><a name="line-64"></a><span>    </span><span class="hs-identifier hs-var">Left</span><span> </span><a name="local-6989586621679504681"><a href="#local-6989586621679504681"><span class="hs-identifier">e</span></a></a><span>     </span><span class="hs-glyph">-&gt;</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/contra-tracer-0.1.0.0/noopt/doc/html/contra-tracer/src/Control.Tracer.html#traceWith"><span class="hs-identifier hs-var">traceWith</span></a><span> </span><a href="#local-6989586621679504674"><span class="hs-identifier hs-var">tr</span></a><span> </span><a href="#local-6989586621679504681"><span class="hs-identifier hs-var">e</span></a><span> </span><span class="hs-operator hs-var">&gt;&gt;</span><span> </span><span class="hs-identifier hs-var">pure</span><span> </span><a href="#local-6989586621679504677"><span class="hs-identifier hs-var">cvs</span></a><span>
-</span><a name="line-65"></a><span>    </span><span class="hs-identifier hs-var">Right</span><span> </span><a name="local-6989586621679504682"><a href="#local-6989586621679504682"><span class="hs-identifier">cvs'</span></a></a><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-var">pure</span><span> </span><a href="#local-6989586621679504682"><span class="hs-identifier hs-var">cvs'</span></a><span>
-</span><a name="line-66"></a><span>
-</span><a name="line-67"></a><span> </span><span class="hs-keyword">where</span><span>
-</span><a name="line-68"></a><span>  </span><a name="local-6989586621679504679"><a href="#local-6989586621679504679"><span class="hs-identifier">stream</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><a href="Cardano.Chain.Epoch.File.html#parseEpochFileWithBoundary"><span class="hs-identifier hs-var">parseEpochFileWithBoundary</span></a><span> </span><a href="Cardano.Chain.Epoch.File.html#mainnetEpochSlots"><span class="hs-identifier hs-var">mainnetEpochSlots</span></a><span> </span><a href="#local-6989586621679504678"><span class="hs-identifier hs-var">fp</span></a><span>
-</span><a name="line-69"></a><span>
-</span><a name="line-70"></a><span class="hs-comment">-- | Check that a list of epochs 'Block's are valid.</span><span>
-</span><a name="line-71"></a><span class="hs-identifier">validateEpochFiles</span><span>
-</span><a name="line-72"></a><span>  </span><span class="hs-glyph">::</span><span> </span><a href="Cardano.Chain.ValidationMode.html#ValidationMode"><span class="hs-identifier hs-type">ValidationMode</span></a><span>
-</span><a name="line-73"></a><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><a href="Cardano.Chain.Genesis.Config.html#Config"><span class="hs-identifier hs-type">Genesis.Config</span></a><span>
-</span><a name="line-74"></a><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><a href="Cardano.Chain.Block.Validation.html#ChainValidationState"><span class="hs-identifier hs-type">ChainValidationState</span></a><span>
-</span><a name="line-75"></a><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">[</span><span class="hs-identifier hs-type">FilePath</span><span class="hs-special">]</span><span>
-</span><a name="line-76"></a><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">IO</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Either</span><span> </span><a href="Cardano.Chain.Epoch.Validation.html#EpochError"><span class="hs-identifier hs-type">EpochError</span></a><span> </span><a href="Cardano.Chain.Block.Validation.html#ChainValidationState"><span class="hs-identifier hs-type">ChainValidationState</span></a><span class="hs-special">)</span><span>
-</span><a name="line-77"></a><a name="validateEpochFiles"><a href="Cardano.Chain.Epoch.Validation.html#validateEpochFiles"><span class="hs-identifier">validateEpochFiles</span></a></a><span> </span><a name="local-6989586621679504683"><a href="#local-6989586621679504683"><span class="hs-identifier">vMode</span></a></a><span> </span><a name="local-6989586621679504684"><a href="#local-6989586621679504684"><span class="hs-identifier">config</span></a></a><span> </span><a name="local-6989586621679504685"><a href="#local-6989586621679504685"><span class="hs-identifier">cvs</span></a></a><span> </span><a name="local-6989586621679504686"><a href="#local-6989586621679504686"><span class="hs-identifier">fps</span></a></a><span> </span><span class="hs-glyph">=</span><span>
-</span><a name="line-78"></a><span>    </span><span class="hs-identifier hs-var">runResourceT</span><span> </span><span class="hs-operator hs-var">$</span><span> </span><span class="hs-special">(</span><span class="hs-special">`</span><span class="hs-identifier">runReaderT</span><span class="hs-special">`</span><span> </span><a href="#local-6989586621679504683"><span class="hs-identifier hs-var">vMode</span></a><span class="hs-special">)</span><span> </span><span class="hs-operator hs-var">$</span><span> </span><span class="hs-identifier hs-var">runExceptT</span><span>
-</span><a name="line-79"></a><span>      </span><span class="hs-special">(</span><a href="Cardano.Chain.Epoch.Validation.html#foldChainValidationState"><span class="hs-identifier hs-var">foldChainValidationState</span></a><span> </span><a href="#local-6989586621679504684"><span class="hs-identifier hs-var">config</span></a><span> </span><a href="#local-6989586621679504685"><span class="hs-identifier hs-var">cvs</span></a><span> </span><a href="#local-6989586621679504687"><span class="hs-identifier hs-var">stream</span></a><span class="hs-special">)</span><span>
-</span><a name="line-80"></a><span>  </span><span class="hs-keyword">where</span><span> </span><a name="local-6989586621679504687"><a href="#local-6989586621679504687"><span class="hs-identifier">stream</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><a href="Cardano.Chain.Epoch.File.html#parseEpochFilesWithBoundary"><span class="hs-identifier hs-var">parseEpochFilesWithBoundary</span></a><span> </span><a href="Cardano.Chain.Epoch.File.html#mainnetEpochSlots"><span class="hs-identifier hs-var">mainnetEpochSlots</span></a><span> </span><a href="#local-6989586621679504686"><span class="hs-identifier hs-var">fps</span></a><span>
-</span><a name="line-81"></a><span>
-</span><a name="line-82"></a><span>
-</span><a name="line-83"></a><span class="hs-comment">-- | Fold chain validation over a 'Stream' of 'Block's</span><span>
-</span><a name="line-84"></a><span class="hs-identifier">foldChainValidationState</span><span>
-</span><a name="line-85"></a><span>  </span><span class="hs-glyph">::</span><span> </span><a href="Cardano.Chain.Genesis.Config.html#Config"><span class="hs-identifier hs-type">Genesis.Config</span></a><span>
-</span><a name="line-86"></a><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><a href="Cardano.Chain.Block.Validation.html#ChainValidationState"><span class="hs-identifier hs-type">ChainValidationState</span></a><span>
-</span><a name="line-87"></a><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">Stream</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Of</span><span> </span><span class="hs-special">(</span><a href="Cardano.Chain.Block.Block.html#ABlockOrBoundary"><span class="hs-identifier hs-type">ABlockOrBoundary</span></a><span> </span><span class="hs-identifier hs-type">ByteString</span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">ExceptT</span><span> </span><a href="Cardano.Chain.Epoch.File.html#ParseError"><span class="hs-identifier hs-type">ParseError</span></a><span> </span><span class="hs-identifier hs-type">ResIO</span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
-</span><a name="line-88"></a><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">ExceptT</span><span> </span><a href="Cardano.Chain.Epoch.Validation.html#EpochError"><span class="hs-identifier hs-type">EpochError</span></a><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">ReaderT</span><span> </span><a href="Cardano.Chain.ValidationMode.html#ValidationMode"><span class="hs-identifier hs-type">ValidationMode</span></a><span> </span><span class="hs-identifier hs-type">ResIO</span><span class="hs-special">)</span><span> </span><a href="Cardano.Chain.Block.Validation.html#ChainValidationState"><span class="hs-identifier hs-type">ChainValidationState</span></a><span>
-</span><a name="line-89"></a><a name="foldChainValidationState"><a href="Cardano.Chain.Epoch.Validation.html#foldChainValidationState"><span class="hs-identifier">foldChainValidationState</span></a></a><span> </span><a name="local-6989586621679504688"><a href="#local-6989586621679504688"><span class="hs-identifier">config</span></a></a><span> </span><a name="local-6989586621679504689"><a href="#local-6989586621679504689"><span class="hs-identifier">chainValState</span></a></a><span> </span><a name="local-6989586621679504690"><a href="#local-6989586621679504690"><span class="hs-identifier">blocks</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-identifier hs-var">S.foldM_</span><span>
-</span><a name="line-90"></a><span>  </span><span class="hs-special">(</span><span class="hs-glyph">\</span><a name="local-6989586621679504694"><a href="#local-6989586621679504694"><span class="hs-identifier">cvs</span></a></a><span> </span><a name="local-6989586621679504695"><a href="#local-6989586621679504695"><span class="hs-identifier">block</span></a></a><span> </span><span class="hs-glyph">-&gt;</span><span>
-</span><a name="line-91"></a><span>    </span><span class="hs-identifier hs-var">withExceptT</span><span> </span><span class="hs-special">(</span><a href="Cardano.Chain.Epoch.Validation.html#EpochChainValidationError"><span class="hs-identifier hs-var">EpochChainValidationError</span></a><span> </span><span class="hs-special">(</span><a href="#local-6989586621679504691"><span class="hs-identifier hs-var">blockOrBoundarySlot</span></a><span> </span><a href="#local-6989586621679504695"><span class="hs-identifier hs-var">block</span></a><span class="hs-special">)</span><span class="hs-special">)</span><span>
-</span><a name="line-92"></a><span>      </span><span class="hs-operator hs-var">$</span><span> </span><a href="Cardano.Chain.Block.Validation.html#updateChainBlockOrBoundary"><span class="hs-identifier hs-var">updateChainBlockOrBoundary</span></a><span> </span><a href="#local-6989586621679504688"><span class="hs-identifier hs-var">config</span></a><span> </span><a href="#local-6989586621679504694"><span class="hs-identifier hs-var">cvs</span></a><span> </span><a href="#local-6989586621679504695"><span class="hs-identifier hs-var">block</span></a><span>
-</span><a name="line-93"></a><span>  </span><span class="hs-special">)</span><span>
-</span><a name="line-94"></a><span>  </span><span class="hs-special">(</span><span class="hs-identifier hs-var">pure</span><span> </span><a href="#local-6989586621679504689"><span class="hs-identifier hs-var">chainValState</span></a><span class="hs-special">)</span><span>
-</span><a name="line-95"></a><span>  </span><span class="hs-identifier hs-var">pure</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-var">pure</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-var">hoist</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-var">withExceptT</span><span> </span><a href="Cardano.Chain.Epoch.Validation.html#EpochParseError"><span class="hs-identifier hs-var">EpochParseError</span></a><span class="hs-special">)</span><span> </span><a href="#local-6989586621679504690"><span class="hs-identifier hs-var">blocks</span></a><span class="hs-special">)</span><span class="hs-special">)</span><span>
-</span><a name="line-96"></a><span> </span><span class="hs-keyword">where</span><span>
-</span><a name="line-97"></a><span>  </span><span class="hs-identifier">blockOrBoundarySlot</span><span> </span><span class="hs-glyph">::</span><span> </span><a href="Cardano.Chain.Block.Block.html#ABlockOrBoundary"><span class="hs-identifier hs-type">ABlockOrBoundary</span></a><span> </span><a href="#local-6989586621679504692"><span class="hs-identifier hs-type">a</span></a><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">Maybe</span><span> </span><a href="Cardano.Chain.Slotting.EpochAndSlotCount.html#EpochAndSlotCount"><span class="hs-identifier hs-type">EpochAndSlotCount</span></a><span>
-</span><a name="line-98"></a><span>  </span><a name="local-6989586621679504691"><a href="#local-6989586621679504691"><span class="hs-identifier">blockOrBoundarySlot</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-glyph">\</span><span class="hs-glyph">case</span><span>
-</span><a name="line-99"></a><span>    </span><a href="Cardano.Chain.Block.Block.html#ABOBBoundary"><span class="hs-identifier hs-var">ABOBBoundary</span></a><span> </span><span class="hs-identifier">_</span><span>     </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-var">Nothing</span><span>
-</span><a name="line-100"></a><span>    </span><a href="Cardano.Chain.Block.Block.html#ABOBBlock"><span class="hs-identifier hs-var">ABOBBlock</span></a><span>    </span><a name="local-6989586621679504693"><a href="#local-6989586621679504693"><span class="hs-identifier">block</span></a></a><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-var">Just</span><span> </span><span class="hs-operator hs-var">.</span><span> </span><a href="Cardano.Chain.Slotting.EpochAndSlotCount.html#fromSlotNumber"><span class="hs-identifier hs-var">fromSlotNumber</span></a><span> </span><a href="Cardano.Chain.Epoch.File.html#mainnetEpochSlots"><span class="hs-identifier hs-var">mainnetEpochSlots</span></a><span> </span><span class="hs-operator hs-var">$</span><span> </span><a href="Cardano.Chain.Block.Block.html#blockSlot"><span class="hs-identifier hs-var">blockSlot</span></a><span> </span><a href="#local-6989586621679504693"><span class="hs-identifier hs-var">block</span></a><span>
-</span><a name="line-101"></a></pre></body></html>
+</span><span id="line-2"></span><span class="hs-pragma">{-# LANGUAGE LambdaCase          #-}</span><span>
+</span><span id="line-3"></span><span class="hs-pragma">{-# LANGUAGE OverloadedStrings   #-}</span><span>
+</span><span id="line-4"></span><span class="hs-pragma">{-# LANGUAGE ScopedTypeVariables #-}</span><span>
+</span><span id="line-5"></span><span>
+</span><span id="line-6"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Cardano.Chain.Epoch.Validation</span><span>
+</span><span id="line-7"></span><span>  </span><span class="hs-special">(</span><span> </span><span class="annot"><a href="Cardano.Chain.Epoch.Validation.html#EpochError"><span class="hs-identifier">EpochError</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
+</span><span id="line-8"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cardano.Chain.Epoch.Validation.html#validateEpochFile"><span class="hs-identifier">validateEpochFile</span></a></span><span>
+</span><span id="line-9"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cardano.Chain.Epoch.Validation.html#validateEpochFiles"><span class="hs-identifier">validateEpochFiles</span></a></span><span>
+</span><span id="line-10"></span><span>  </span><span class="hs-special">)</span><span>
+</span><span id="line-11"></span><span class="hs-keyword">where</span><span>
+</span><span id="line-12"></span><span>
+</span><span id="line-13"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-prelude-0.1.0.0/noopt/doc/html/cardano-prelude/src"><span class="hs-identifier">Cardano.Prelude</span></a></span><span> </span><span class="hs-keyword">hiding</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">trace</span></span><span class="hs-special">)</span><span>
+</span><span id="line-14"></span><span>
+</span><span id="line-15"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Control.Monad.Trans.Resource</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">ResIO</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">runResourceT</span></span><span class="hs-special">)</span><span>
+</span><span id="line-16"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/contra-tracer-0.1.0.0/noopt/doc/html/contra-tracer/src"><span class="hs-identifier">Control.Tracer</span></a></span><span>
+</span><span id="line-17"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Streaming</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Of</span></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">Stream</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">hoist</span></span><span class="hs-special">)</span><span>
+</span><span id="line-18"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Streaming.Prelude</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">S</span></span><span>
+</span><span id="line-19"></span><span>
+</span><span id="line-20"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Cardano.Chain.Block.html"><span class="hs-identifier">Cardano.Chain.Block</span></a></span><span>
+</span><span id="line-21"></span><span>  </span><span class="hs-special">(</span><span> </span><span class="annot"><a href="Cardano.Chain.Block.Block.html#ABlockOrBoundary"><span class="hs-identifier">ABlockOrBoundary</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
+</span><span id="line-22"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cardano.Chain.Block.Validation.html#ChainValidationError"><span class="hs-identifier">ChainValidationError</span></a></span><span>
+</span><span id="line-23"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cardano.Chain.Block.Validation.html#ChainValidationState"><span class="hs-identifier">ChainValidationState</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
+</span><span id="line-24"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cardano.Chain.Block.Block.html#blockSlot"><span class="hs-identifier">blockSlot</span></a></span><span>
+</span><span id="line-25"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cardano.Chain.Block.Validation.html#updateChainBlockOrBoundary"><span class="hs-identifier">updateChainBlockOrBoundary</span></a></span><span>
+</span><span id="line-26"></span><span>  </span><span class="hs-special">)</span><span>
+</span><span id="line-27"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Cardano.Chain.Epoch.File.html"><span class="hs-identifier">Cardano.Chain.Epoch.File</span></a></span><span>
+</span><span id="line-28"></span><span>  </span><span class="hs-special">(</span><span> </span><span class="annot"><a href="Cardano.Chain.Epoch.File.html#ParseError"><span class="hs-identifier">ParseError</span></a></span><span>
+</span><span id="line-29"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cardano.Chain.Epoch.File.html#mainnetEpochSlots"><span class="hs-identifier">mainnetEpochSlots</span></a></span><span>
+</span><span id="line-30"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cardano.Chain.Epoch.File.html#parseEpochFileWithBoundary"><span class="hs-identifier">parseEpochFileWithBoundary</span></a></span><span>
+</span><span id="line-31"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cardano.Chain.Epoch.File.html#parseEpochFilesWithBoundary"><span class="hs-identifier">parseEpochFilesWithBoundary</span></a></span><span>
+</span><span id="line-32"></span><span>  </span><span class="hs-special">)</span><span>
+</span><span id="line-33"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><a href="Cardano.Chain.Genesis.html"><span class="hs-identifier">Cardano.Chain.Genesis</span></a></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Genesis</span></span><span>
+</span><span id="line-34"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Cardano.Chain.Slotting.html"><span class="hs-identifier">Cardano.Chain.Slotting</span></a></span><span>
+</span><span id="line-35"></span><span>  </span><span class="hs-special">(</span><span class="annot"><a href="Cardano.Chain.Slotting.EpochAndSlotCount.html#EpochAndSlotCount"><span class="hs-identifier">EpochAndSlotCount</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cardano.Chain.Slotting.EpochAndSlotCount.html#fromSlotNumber"><span class="hs-identifier">fromSlotNumber</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-36"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Cardano.Chain.ValidationMode.html"><span class="hs-identifier">Cardano.Chain.ValidationMode</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cardano.Chain.ValidationMode.html#ValidationMode"><span class="hs-identifier">ValidationMode</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-37"></span><span>
+</span><span id="line-38"></span><span>
+</span><span id="line-39"></span><span class="hs-keyword">data</span><span> </span><span id="EpochError"><span class="annot"><a href="Cardano.Chain.Epoch.Validation.html#EpochError"><span class="hs-identifier hs-var">EpochError</span></a></span></span><span>
+</span><span id="line-40"></span><span>  </span><span class="hs-glyph">=</span><span> </span><span id="EpochParseError"><span class="annot"><a href="Cardano.Chain.Epoch.Validation.html#EpochParseError"><span class="hs-identifier hs-var">EpochParseError</span></a></span></span><span> </span><span class="annot"><a href="Cardano.Chain.Epoch.File.html#ParseError"><span class="hs-identifier hs-type">ParseError</span></a></span><span>
+</span><span id="line-41"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span id="EpochChainValidationError"><span class="annot"><a href="Cardano.Chain.Epoch.Validation.html#EpochChainValidationError"><span class="hs-identifier hs-var">EpochChainValidationError</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><a href="Cardano.Chain.Slotting.EpochAndSlotCount.html#EpochAndSlotCount"><span class="hs-identifier hs-type">EpochAndSlotCount</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><a href="Cardano.Chain.Block.Validation.html#ChainValidationError"><span class="hs-identifier hs-type">ChainValidationError</span></a></span><span>
+</span><span id="line-42"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span id="Initial"><span class="annot"><a href="Cardano.Chain.Epoch.Validation.html#Initial"><span class="hs-identifier hs-var">Initial</span></a></span></span><span>
+</span><span id="line-43"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679523618"><span id="local-6989586621679523620"><span class="annot"><span class="annottext">EpochError -&gt; EpochError -&gt; Bool
+(EpochError -&gt; EpochError -&gt; Bool)
+-&gt; (EpochError -&gt; EpochError -&gt; Bool) -&gt; Eq EpochError
+forall a. (a -&gt; a -&gt; Bool) -&gt; (a -&gt; a -&gt; Bool) -&gt; Eq a
+/= :: EpochError -&gt; EpochError -&gt; Bool
+$c/= :: EpochError -&gt; EpochError -&gt; Bool
+== :: EpochError -&gt; EpochError -&gt; Bool
+$c== :: EpochError -&gt; EpochError -&gt; Bool
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679523611"><span id="local-6989586621679523613"><span id="local-6989586621679523615"><span class="annot"><span class="annottext">Int -&gt; EpochError -&gt; ShowS
+[EpochError] -&gt; ShowS
+EpochError -&gt; String
+(Int -&gt; EpochError -&gt; ShowS)
+-&gt; (EpochError -&gt; String)
+-&gt; ([EpochError] -&gt; ShowS)
+-&gt; Show EpochError
+forall a.
+(Int -&gt; a -&gt; ShowS) -&gt; (a -&gt; String) -&gt; ([a] -&gt; ShowS) -&gt; Show a
+showList :: [EpochError] -&gt; ShowS
+$cshowList :: [EpochError] -&gt; ShowS
+show :: EpochError -&gt; String
+$cshow :: EpochError -&gt; String
+showsPrec :: Int -&gt; EpochError -&gt; ShowS
+$cshowsPrec :: Int -&gt; EpochError -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">)</span><span>
+</span><span id="line-44"></span><span>
+</span><span id="line-45"></span><span>
+</span><span id="line-46"></span><span class="hs-comment">-- | Check that a single epoch's `Block`s are valid by folding over them</span><span>
+</span><span id="line-47"></span><span class="hs-comment">-- TODO(KS): We should use contra-tracer here!</span><span>
+</span><span id="line-48"></span><span class="hs-comment">-- tracing is orthogonal to throwing errors; it does not change the program flow.</span><span>
+</span><span id="line-49"></span><span class="annot"><a href="Cardano.Chain.Epoch.Validation.html#validateEpochFile"><span class="hs-identifier hs-type">validateEpochFile</span></a></span><span>
+</span><span id="line-50"></span><span>  </span><span class="hs-glyph">::</span><span> </span><span class="hs-keyword">forall</span><span> </span><span id="local-6989586621679523609"><span class="annot"><a href="#local-6989586621679523609"><span class="hs-identifier hs-type">m</span></a></span></span><span>
+</span><span id="line-51"></span><span>   </span><span class="hs-operator">.</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">MonadIO</span></span><span> </span><span class="annot"><a href="#local-6989586621679523609"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-52"></span><span>  </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/contra-tracer-0.1.0.0/noopt/doc/html/contra-tracer/src"><span class="hs-identifier hs-type">Tracer</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679523609"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><a href="Cardano.Chain.Epoch.Validation.html#EpochError"><span class="hs-identifier hs-type">EpochError</span></a></span><span>
+</span><span id="line-53"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cardano.Chain.ValidationMode.html#ValidationMode"><span class="hs-identifier hs-type">ValidationMode</span></a></span><span>
+</span><span id="line-54"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cardano.Chain.Genesis.Config.html#Config"><span class="hs-identifier hs-type">Genesis.Config</span></a></span><span>
+</span><span id="line-55"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cardano.Chain.Block.Validation.html#ChainValidationState"><span class="hs-identifier hs-type">ChainValidationState</span></a></span><span>
+</span><span id="line-56"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">FilePath</span></span><span>
+</span><span id="line-57"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679523609"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><a href="Cardano.Chain.Block.Validation.html#ChainValidationState"><span class="hs-identifier hs-type">ChainValidationState</span></a></span><span>
+</span><span id="line-58"></span><span id="validateEpochFile"><span class="annot"><span class="annottext">validateEpochFile :: Tracer m EpochError
+-&gt; ValidationMode
+-&gt; Config
+-&gt; ChainValidationState
+-&gt; String
+-&gt; m ChainValidationState
+</span><a href="Cardano.Chain.Epoch.Validation.html#validateEpochFile"><span class="hs-identifier hs-var hs-var">validateEpochFile</span></a></span></span><span> </span><span id="local-6989586621679523607"><span class="annot"><span class="annottext">Tracer m EpochError
+</span><a href="#local-6989586621679523607"><span class="hs-identifier hs-var">tr</span></a></span></span><span> </span><span id="local-6989586621679523606"><span class="annot"><span class="annottext">ValidationMode
+</span><a href="#local-6989586621679523606"><span class="hs-identifier hs-var">vMode</span></a></span></span><span> </span><span id="local-6989586621679523605"><span class="annot"><span class="annottext">Config
+</span><a href="#local-6989586621679523605"><span class="hs-identifier hs-var">config</span></a></span></span><span> </span><span id="local-6989586621679523604"><span class="annot"><span class="annottext">ChainValidationState
+</span><a href="#local-6989586621679523604"><span class="hs-identifier hs-var">cvs</span></a></span></span><span> </span><span id="local-6989586621679523603"><span class="annot"><span class="annottext">String
+</span><a href="#local-6989586621679523603"><span class="hs-identifier hs-var">fp</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-59"></span><span>
+</span><span id="line-60"></span><span>  </span><span id="local-6989586621679523602"><span class="annot"><span class="annottext">Either EpochError ChainValidationState
+</span><a href="#local-6989586621679523602"><span class="hs-identifier hs-var">res</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">IO (Either EpochError ChainValidationState)
+-&gt; m (Either EpochError ChainValidationState)
+forall (m :: * -&gt; *) a. MonadIO m =&gt; IO a -&gt; m a
+</span><span class="hs-identifier hs-var">liftIO</span></span><span> </span><span class="annot"><span class="annottext">(IO (Either EpochError ChainValidationState)
+ -&gt; m (Either EpochError ChainValidationState))
+-&gt; IO (Either EpochError ChainValidationState)
+-&gt; m (Either EpochError ChainValidationState)
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">ResourceT IO (Either EpochError ChainValidationState)
+-&gt; IO (Either EpochError ChainValidationState)
+forall (m :: * -&gt; *) a. MonadUnliftIO m =&gt; ResourceT m a -&gt; m a
+</span><span class="hs-identifier hs-var">runResourceT</span></span><span> </span><span class="annot"><span class="annottext">(ResourceT IO (Either EpochError ChainValidationState)
+ -&gt; IO (Either EpochError ChainValidationState))
+-&gt; ResourceT IO (Either EpochError ChainValidationState)
+-&gt; IO (Either EpochError ChainValidationState)
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">ReaderT
+  ValidationMode ResIO (Either EpochError ChainValidationState)
+-&gt; ValidationMode
+-&gt; ResourceT IO (Either EpochError ChainValidationState)
+forall r (m :: * -&gt; *) a. ReaderT r m a -&gt; r -&gt; m a
+</span><span class="hs-operator hs-var hs-var">`runReaderT`</span></span><span> </span><span class="annot"><span class="annottext">ValidationMode
+</span><a href="#local-6989586621679523606"><span class="hs-identifier hs-var">vMode</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(ReaderT
+   ValidationMode ResIO (Either EpochError ChainValidationState)
+ -&gt; ResourceT IO (Either EpochError ChainValidationState))
+-&gt; ReaderT
+     ValidationMode ResIO (Either EpochError ChainValidationState)
+-&gt; ResourceT IO (Either EpochError ChainValidationState)
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">ExceptT
+  EpochError (ReaderT ValidationMode ResIO) ChainValidationState
+-&gt; ReaderT
+     ValidationMode ResIO (Either EpochError ChainValidationState)
+forall e (m :: * -&gt; *) a. ExceptT e m a -&gt; m (Either e a)
+</span><span class="hs-identifier hs-var">runExceptT</span></span><span> </span><span class="annot"><span class="annottext">(ExceptT
+   EpochError (ReaderT ValidationMode ResIO) ChainValidationState
+ -&gt; ReaderT
+      ValidationMode ResIO (Either EpochError ChainValidationState))
+-&gt; ExceptT
+     EpochError (ReaderT ValidationMode ResIO) ChainValidationState
+-&gt; ReaderT
+     ValidationMode ResIO (Either EpochError ChainValidationState)
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span>
+</span><span id="line-61"></span><span>        </span><span class="annot"><span class="annottext">Config
+-&gt; ChainValidationState
+-&gt; Stream
+     (Of (ABlockOrBoundary ByteString)) (ExceptT ParseError ResIO) ()
+-&gt; ExceptT
+     EpochError (ReaderT ValidationMode ResIO) ChainValidationState
+</span><a href="Cardano.Chain.Epoch.Validation.html#foldChainValidationState"><span class="hs-identifier hs-var">foldChainValidationState</span></a></span><span> </span><span class="annot"><span class="annottext">Config
+</span><a href="#local-6989586621679523605"><span class="hs-identifier hs-var">config</span></a></span><span> </span><span class="annot"><span class="annottext">ChainValidationState
+</span><a href="#local-6989586621679523604"><span class="hs-identifier hs-var">cvs</span></a></span><span> </span><span class="annot"><span class="annottext">Stream
+  (Of (ABlockOrBoundary ByteString)) (ExceptT ParseError ResIO) ()
+</span><a href="#local-6989586621679523597"><span class="hs-identifier hs-var">stream</span></a></span><span>
+</span><span id="line-62"></span><span>
+</span><span id="line-63"></span><span>  </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">Either EpochError ChainValidationState
+</span><a href="#local-6989586621679523602"><span class="hs-identifier hs-var">res</span></a></span><span> </span><span class="hs-keyword">of</span><span>
+</span><span id="line-64"></span><span>    </span><span class="annot"><span class="hs-identifier hs-type">Left</span></span><span> </span><span id="local-6989586621679523596"><span class="annot"><span class="annottext">EpochError
+</span><a href="#local-6989586621679523596"><span class="hs-identifier hs-var">e</span></a></span></span><span>     </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Tracer m EpochError -&gt; EpochError -&gt; m ()
+forall (m :: * -&gt; *) a. Tracer m a -&gt; a -&gt; m ()
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/contra-tracer-0.1.0.0/noopt/doc/html/contra-tracer/src"><span class="hs-identifier hs-var">traceWith</span></a></span><span> </span><span class="annot"><span class="annottext">Tracer m EpochError
+</span><a href="#local-6989586621679523607"><span class="hs-identifier hs-var">tr</span></a></span><span> </span><span class="annot"><span class="annottext">EpochError
+</span><a href="#local-6989586621679523596"><span class="hs-identifier hs-var">e</span></a></span><span> </span><span class="annot"><span class="annottext">m () -&gt; m ChainValidationState -&gt; m ChainValidationState
+forall (m :: * -&gt; *) a b. Monad m =&gt; m a -&gt; m b -&gt; m b
+</span><span class="hs-operator hs-var">&gt;&gt;</span></span><span> </span><span class="annot"><span class="annottext">ChainValidationState -&gt; m ChainValidationState
+forall (f :: * -&gt; *) a. Applicative f =&gt; a -&gt; f a
+</span><span class="hs-identifier hs-var">pure</span></span><span> </span><span class="annot"><span class="annottext">ChainValidationState
+</span><a href="#local-6989586621679523604"><span class="hs-identifier hs-var">cvs</span></a></span><span>
+</span><span id="line-65"></span><span>    </span><span class="annot"><span class="hs-identifier hs-type">Right</span></span><span> </span><span id="local-6989586621679523594"><span class="annot"><span class="annottext">ChainValidationState
+</span><a href="#local-6989586621679523594"><span class="hs-identifier hs-var">cvs'</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">ChainValidationState -&gt; m ChainValidationState
+forall (f :: * -&gt; *) a. Applicative f =&gt; a -&gt; f a
+</span><span class="hs-identifier hs-var">pure</span></span><span> </span><span class="annot"><span class="annottext">ChainValidationState
+</span><a href="#local-6989586621679523594"><span class="hs-identifier hs-var">cvs'</span></a></span><span>
+</span><span id="line-66"></span><span>
+</span><span id="line-67"></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-68"></span><span>  </span><span id="local-6989586621679523597"><span class="annot"><span class="annottext">stream :: Stream
+  (Of (ABlockOrBoundary ByteString)) (ExceptT ParseError ResIO) ()
+</span><a href="#local-6989586621679523597"><span class="hs-identifier hs-var hs-var">stream</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">EpochSlots
+-&gt; String
+-&gt; Stream
+     (Of (ABlockOrBoundary ByteString)) (ExceptT ParseError ResIO) ()
+</span><a href="Cardano.Chain.Epoch.File.html#parseEpochFileWithBoundary"><span class="hs-identifier hs-var">parseEpochFileWithBoundary</span></a></span><span> </span><span class="annot"><span class="annottext">EpochSlots
+</span><a href="Cardano.Chain.Epoch.File.html#mainnetEpochSlots"><span class="hs-identifier hs-var">mainnetEpochSlots</span></a></span><span> </span><span class="annot"><span class="annottext">String
+</span><a href="#local-6989586621679523603"><span class="hs-identifier hs-var">fp</span></a></span><span>
+</span><span id="line-69"></span><span>
+</span><span id="line-70"></span><span class="hs-comment">-- | Check that a list of epochs 'Block's are valid.</span><span>
+</span><span id="line-71"></span><span class="annot"><a href="Cardano.Chain.Epoch.Validation.html#validateEpochFiles"><span class="hs-identifier hs-type">validateEpochFiles</span></a></span><span>
+</span><span id="line-72"></span><span>  </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cardano.Chain.ValidationMode.html#ValidationMode"><span class="hs-identifier hs-type">ValidationMode</span></a></span><span>
+</span><span id="line-73"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cardano.Chain.Genesis.Config.html#Config"><span class="hs-identifier hs-type">Genesis.Config</span></a></span><span>
+</span><span id="line-74"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cardano.Chain.Block.Validation.html#ChainValidationState"><span class="hs-identifier hs-type">ChainValidationState</span></a></span><span>
+</span><span id="line-75"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">[</span><span class="annot"><span class="hs-identifier hs-type">FilePath</span></span><span class="hs-special">]</span><span>
+</span><span id="line-76"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">IO</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Either</span></span><span> </span><span class="annot"><a href="Cardano.Chain.Epoch.Validation.html#EpochError"><span class="hs-identifier hs-type">EpochError</span></a></span><span> </span><span class="annot"><a href="Cardano.Chain.Block.Validation.html#ChainValidationState"><span class="hs-identifier hs-type">ChainValidationState</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-77"></span><span id="validateEpochFiles"><span class="annot"><span class="annottext">validateEpochFiles :: ValidationMode
+-&gt; Config
+-&gt; ChainValidationState
+-&gt; [String]
+-&gt; IO (Either EpochError ChainValidationState)
+</span><a href="Cardano.Chain.Epoch.Validation.html#validateEpochFiles"><span class="hs-identifier hs-var hs-var">validateEpochFiles</span></a></span></span><span> </span><span id="local-6989586621679523593"><span class="annot"><span class="annottext">ValidationMode
+</span><a href="#local-6989586621679523593"><span class="hs-identifier hs-var">vMode</span></a></span></span><span> </span><span id="local-6989586621679523592"><span class="annot"><span class="annottext">Config
+</span><a href="#local-6989586621679523592"><span class="hs-identifier hs-var">config</span></a></span></span><span> </span><span id="local-6989586621679523591"><span class="annot"><span class="annottext">ChainValidationState
+</span><a href="#local-6989586621679523591"><span class="hs-identifier hs-var">cvs</span></a></span></span><span> </span><span id="local-6989586621679523590"><span class="annot"><span class="annottext">[String]
+</span><a href="#local-6989586621679523590"><span class="hs-identifier hs-var">fps</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-78"></span><span>    </span><span class="annot"><span class="annottext">ResourceT IO (Either EpochError ChainValidationState)
+-&gt; IO (Either EpochError ChainValidationState)
+forall (m :: * -&gt; *) a. MonadUnliftIO m =&gt; ResourceT m a -&gt; m a
+</span><span class="hs-identifier hs-var">runResourceT</span></span><span> </span><span class="annot"><span class="annottext">(ResourceT IO (Either EpochError ChainValidationState)
+ -&gt; IO (Either EpochError ChainValidationState))
+-&gt; ResourceT IO (Either EpochError ChainValidationState)
+-&gt; IO (Either EpochError ChainValidationState)
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">ReaderT
+  ValidationMode ResIO (Either EpochError ChainValidationState)
+-&gt; ValidationMode
+-&gt; ResourceT IO (Either EpochError ChainValidationState)
+forall r (m :: * -&gt; *) a. ReaderT r m a -&gt; r -&gt; m a
+</span><span class="hs-operator hs-var hs-var">`runReaderT`</span></span><span> </span><span class="annot"><span class="annottext">ValidationMode
+</span><a href="#local-6989586621679523593"><span class="hs-identifier hs-var">vMode</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(ReaderT
+   ValidationMode ResIO (Either EpochError ChainValidationState)
+ -&gt; ResourceT IO (Either EpochError ChainValidationState))
+-&gt; ReaderT
+     ValidationMode ResIO (Either EpochError ChainValidationState)
+-&gt; ResourceT IO (Either EpochError ChainValidationState)
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">ExceptT
+  EpochError (ReaderT ValidationMode ResIO) ChainValidationState
+-&gt; ReaderT
+     ValidationMode ResIO (Either EpochError ChainValidationState)
+forall e (m :: * -&gt; *) a. ExceptT e m a -&gt; m (Either e a)
+</span><span class="hs-identifier hs-var">runExceptT</span></span><span>
+</span><span id="line-79"></span><span>      </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Config
+-&gt; ChainValidationState
+-&gt; Stream
+     (Of (ABlockOrBoundary ByteString)) (ExceptT ParseError ResIO) ()
+-&gt; ExceptT
+     EpochError (ReaderT ValidationMode ResIO) ChainValidationState
+</span><a href="Cardano.Chain.Epoch.Validation.html#foldChainValidationState"><span class="hs-identifier hs-var">foldChainValidationState</span></a></span><span> </span><span class="annot"><span class="annottext">Config
+</span><a href="#local-6989586621679523592"><span class="hs-identifier hs-var">config</span></a></span><span> </span><span class="annot"><span class="annottext">ChainValidationState
+</span><a href="#local-6989586621679523591"><span class="hs-identifier hs-var">cvs</span></a></span><span> </span><span class="annot"><span class="annottext">Stream
+  (Of (ABlockOrBoundary ByteString)) (ExceptT ParseError ResIO) ()
+</span><a href="#local-6989586621679523589"><span class="hs-identifier hs-var">stream</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-80"></span><span>  </span><span class="hs-keyword">where</span><span> </span><span id="local-6989586621679523589"><span class="annot"><span class="annottext">stream :: Stream
+  (Of (ABlockOrBoundary ByteString)) (ExceptT ParseError ResIO) ()
+</span><a href="#local-6989586621679523589"><span class="hs-identifier hs-var hs-var">stream</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">EpochSlots
+-&gt; [String]
+-&gt; Stream
+     (Of (ABlockOrBoundary ByteString)) (ExceptT ParseError ResIO) ()
+</span><a href="Cardano.Chain.Epoch.File.html#parseEpochFilesWithBoundary"><span class="hs-identifier hs-var">parseEpochFilesWithBoundary</span></a></span><span> </span><span class="annot"><span class="annottext">EpochSlots
+</span><a href="Cardano.Chain.Epoch.File.html#mainnetEpochSlots"><span class="hs-identifier hs-var">mainnetEpochSlots</span></a></span><span> </span><span class="annot"><span class="annottext">[String]
+</span><a href="#local-6989586621679523590"><span class="hs-identifier hs-var">fps</span></a></span><span>
+</span><span id="line-81"></span><span>
+</span><span id="line-82"></span><span>
+</span><span id="line-83"></span><span class="hs-comment">-- | Fold chain validation over a 'Stream' of 'Block's</span><span>
+</span><span id="line-84"></span><span class="annot"><a href="Cardano.Chain.Epoch.Validation.html#foldChainValidationState"><span class="hs-identifier hs-type">foldChainValidationState</span></a></span><span>
+</span><span id="line-85"></span><span>  </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cardano.Chain.Genesis.Config.html#Config"><span class="hs-identifier hs-type">Genesis.Config</span></a></span><span>
+</span><span id="line-86"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cardano.Chain.Block.Validation.html#ChainValidationState"><span class="hs-identifier hs-type">ChainValidationState</span></a></span><span>
+</span><span id="line-87"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Stream</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Of</span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cardano.Chain.Block.Block.html#ABlockOrBoundary"><span class="hs-identifier hs-type">ABlockOrBoundary</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">ByteString</span></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">ExceptT</span></span><span> </span><span class="annot"><a href="Cardano.Chain.Epoch.File.html#ParseError"><span class="hs-identifier hs-type">ParseError</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">ResIO</span></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
+</span><span id="line-88"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">ExceptT</span></span><span> </span><span class="annot"><a href="Cardano.Chain.Epoch.Validation.html#EpochError"><span class="hs-identifier hs-type">EpochError</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">ReaderT</span></span><span> </span><span class="annot"><a href="Cardano.Chain.ValidationMode.html#ValidationMode"><span class="hs-identifier hs-type">ValidationMode</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">ResIO</span></span><span class="hs-special">)</span><span> </span><span class="annot"><a href="Cardano.Chain.Block.Validation.html#ChainValidationState"><span class="hs-identifier hs-type">ChainValidationState</span></a></span><span>
+</span><span id="line-89"></span><span id="foldChainValidationState"><span class="annot"><span class="annottext">foldChainValidationState :: Config
+-&gt; ChainValidationState
+-&gt; Stream
+     (Of (ABlockOrBoundary ByteString)) (ExceptT ParseError ResIO) ()
+-&gt; ExceptT
+     EpochError (ReaderT ValidationMode ResIO) ChainValidationState
+</span><a href="Cardano.Chain.Epoch.Validation.html#foldChainValidationState"><span class="hs-identifier hs-var hs-var">foldChainValidationState</span></a></span></span><span> </span><span id="local-6989586621679523588"><span class="annot"><span class="annottext">Config
+</span><a href="#local-6989586621679523588"><span class="hs-identifier hs-var">config</span></a></span></span><span> </span><span id="local-6989586621679523587"><span class="annot"><span class="annottext">ChainValidationState
+</span><a href="#local-6989586621679523587"><span class="hs-identifier hs-var">chainValState</span></a></span></span><span> </span><span id="local-6989586621679523586"><span class="annot"><span class="annottext">Stream
+  (Of (ABlockOrBoundary ByteString)) (ExceptT ParseError ResIO) ()
+</span><a href="#local-6989586621679523586"><span class="hs-identifier hs-var">blocks</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(ChainValidationState
+ -&gt; ABlockOrBoundary ByteString
+ -&gt; ExceptT
+      EpochError (ReaderT ValidationMode ResIO) ChainValidationState)
+-&gt; ExceptT
+     EpochError (ReaderT ValidationMode ResIO) ChainValidationState
+-&gt; (ChainValidationState
+    -&gt; ExceptT
+         EpochError (ReaderT ValidationMode ResIO) ChainValidationState)
+-&gt; Stream
+     (Of (ABlockOrBoundary ByteString))
+     (ExceptT EpochError (ReaderT ValidationMode ResIO))
+     (Stream
+        (Of (ABlockOrBoundary ByteString)) (ExceptT EpochError ResIO) ())
+-&gt; ExceptT
+     EpochError (ReaderT ValidationMode ResIO) ChainValidationState
+forall (m :: * -&gt; *) x a b r.
+Monad m =&gt;
+(x -&gt; a -&gt; m x) -&gt; m x -&gt; (x -&gt; m b) -&gt; Stream (Of a) m r -&gt; m b
+</span><span class="hs-identifier hs-var">S.foldM_</span></span><span>
+</span><span id="line-90"></span><span>  </span><span class="hs-special">(</span><span class="hs-glyph">\</span><span id="local-6989586621679523584"><span class="annot"><span class="annottext">ChainValidationState
+</span><a href="#local-6989586621679523584"><span class="hs-identifier hs-var">cvs</span></a></span></span><span> </span><span id="local-6989586621679523583"><span class="annot"><span class="annottext">ABlockOrBoundary ByteString
+</span><a href="#local-6989586621679523583"><span class="hs-identifier hs-var">block</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-91"></span><span>    </span><span class="annot"><span class="annottext">(ChainValidationError -&gt; EpochError)
+-&gt; ExceptT
+     ChainValidationError
+     (ReaderT ValidationMode ResIO)
+     ChainValidationState
+-&gt; ExceptT
+     EpochError (ReaderT ValidationMode ResIO) ChainValidationState
+forall (m :: * -&gt; *) e e' a.
+Functor m =&gt;
+(e -&gt; e') -&gt; ExceptT e m a -&gt; ExceptT e' m a
+</span><span class="hs-identifier hs-var">withExceptT</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Maybe EpochAndSlotCount -&gt; ChainValidationError -&gt; EpochError
+</span><a href="Cardano.Chain.Epoch.Validation.html#EpochChainValidationError"><span class="hs-identifier hs-var">EpochChainValidationError</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">ABlockOrBoundary ByteString -&gt; Maybe EpochAndSlotCount
+forall a. ABlockOrBoundary a -&gt; Maybe EpochAndSlotCount
+</span><a href="#local-6989586621679523581"><span class="hs-identifier hs-var">blockOrBoundarySlot</span></a></span><span> </span><span class="annot"><span class="annottext">ABlockOrBoundary ByteString
+</span><a href="#local-6989586621679523583"><span class="hs-identifier hs-var">block</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-92"></span><span>      </span><span class="annot"><span class="annottext">(ExceptT
+   ChainValidationError
+   (ReaderT ValidationMode ResIO)
+   ChainValidationState
+ -&gt; ExceptT
+      EpochError (ReaderT ValidationMode ResIO) ChainValidationState)
+-&gt; ExceptT
+     ChainValidationError
+     (ReaderT ValidationMode ResIO)
+     ChainValidationState
+-&gt; ExceptT
+     EpochError (ReaderT ValidationMode ResIO) ChainValidationState
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Config
+-&gt; ChainValidationState
+-&gt; ABlockOrBoundary ByteString
+-&gt; ExceptT
+     ChainValidationError
+     (ReaderT ValidationMode ResIO)
+     ChainValidationState
+forall (m :: * -&gt; *).
+(MonadError ChainValidationError m,
+ MonadReader ValidationMode m) =&gt;
+Config
+-&gt; ChainValidationState
+-&gt; ABlockOrBoundary ByteString
+-&gt; m ChainValidationState
+</span><a href="Cardano.Chain.Block.Validation.html#updateChainBlockOrBoundary"><span class="hs-identifier hs-var">updateChainBlockOrBoundary</span></a></span><span> </span><span class="annot"><span class="annottext">Config
+</span><a href="#local-6989586621679523588"><span class="hs-identifier hs-var">config</span></a></span><span> </span><span class="annot"><span class="annottext">ChainValidationState
+</span><a href="#local-6989586621679523584"><span class="hs-identifier hs-var">cvs</span></a></span><span> </span><span class="annot"><span class="annottext">ABlockOrBoundary ByteString
+</span><a href="#local-6989586621679523583"><span class="hs-identifier hs-var">block</span></a></span><span>
+</span><span id="line-93"></span><span>  </span><span class="hs-special">)</span><span>
+</span><span id="line-94"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="annottext">ChainValidationState
+-&gt; ExceptT
+     EpochError (ReaderT ValidationMode ResIO) ChainValidationState
+forall (f :: * -&gt; *) a. Applicative f =&gt; a -&gt; f a
+</span><span class="hs-identifier hs-var">pure</span></span><span> </span><span class="annot"><span class="annottext">ChainValidationState
+</span><a href="#local-6989586621679523587"><span class="hs-identifier hs-var">chainValState</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-95"></span><span>  </span><span class="annot"><span class="annottext">ChainValidationState
+-&gt; ExceptT
+     EpochError (ReaderT ValidationMode ResIO) ChainValidationState
+forall (f :: * -&gt; *) a. Applicative f =&gt; a -&gt; f a
+</span><span class="hs-identifier hs-var">pure</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Stream
+  (Of (ABlockOrBoundary ByteString)) (ExceptT EpochError ResIO) ()
+-&gt; Stream
+     (Of (ABlockOrBoundary ByteString))
+     (ExceptT EpochError (ReaderT ValidationMode ResIO))
+     (Stream
+        (Of (ABlockOrBoundary ByteString)) (ExceptT EpochError ResIO) ())
+forall (f :: * -&gt; *) a. Applicative f =&gt; a -&gt; f a
+</span><span class="hs-identifier hs-var">pure</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">(forall a.
+ ExceptT ParseError ResIO a -&gt; ExceptT EpochError ResIO a)
+-&gt; Stream
+     (Of (ABlockOrBoundary ByteString)) (ExceptT ParseError ResIO) ()
+-&gt; Stream
+     (Of (ABlockOrBoundary ByteString)) (ExceptT EpochError ResIO) ()
+forall k (t :: (* -&gt; *) -&gt; k -&gt; *) (m :: * -&gt; *) (n :: * -&gt; *)
+       (b :: k).
+(MFunctor t, Monad m) =&gt;
+(forall a. m a -&gt; n a) -&gt; t m b -&gt; t n b
+</span><span class="hs-identifier hs-var">hoist</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">(ParseError -&gt; EpochError)
+-&gt; ExceptT ParseError ResIO a -&gt; ExceptT EpochError ResIO a
+forall (m :: * -&gt; *) e e' a.
+Functor m =&gt;
+(e -&gt; e') -&gt; ExceptT e m a -&gt; ExceptT e' m a
+</span><span class="hs-identifier hs-var">withExceptT</span></span><span> </span><span class="annot"><span class="annottext">ParseError -&gt; EpochError
+</span><a href="Cardano.Chain.Epoch.Validation.html#EpochParseError"><span class="hs-identifier hs-var">EpochParseError</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Stream
+  (Of (ABlockOrBoundary ByteString)) (ExceptT ParseError ResIO) ()
+</span><a href="#local-6989586621679523586"><span class="hs-identifier hs-var">blocks</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-96"></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-97"></span><span>  </span><span id="local-6989586621679523659"><span class="annot"><a href="#local-6989586621679523581"><span class="hs-identifier hs-type">blockOrBoundarySlot</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cardano.Chain.Block.Block.html#ABlockOrBoundary"><span class="hs-identifier hs-type">ABlockOrBoundary</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679523659"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><a href="Cardano.Chain.Slotting.EpochAndSlotCount.html#EpochAndSlotCount"><span class="hs-identifier hs-type">EpochAndSlotCount</span></a></span></span><span>
+</span><span id="line-98"></span><span>  </span><span id="local-6989586621679523581"><span class="annot"><span class="annottext">blockOrBoundarySlot :: ABlockOrBoundary a -&gt; Maybe EpochAndSlotCount
+</span><a href="#local-6989586621679523581"><span class="hs-identifier hs-var hs-var">blockOrBoundarySlot</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-glyph">\</span><span class="hs-glyph">case</span><span>
+</span><span id="line-99"></span><span>    </span><span class="annot"><a href="Cardano.Chain.Block.Block.html#ABOBBoundary"><span class="hs-identifier hs-type">ABOBBoundary</span></a></span><span> </span><span class="annot"><span class="annottext">ABoundaryBlock a
+</span><span class="hs-identifier">_</span></span><span>     </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Maybe EpochAndSlotCount
+forall a. Maybe a
+</span><span class="hs-identifier hs-var">Nothing</span></span><span>
+</span><span id="line-100"></span><span>    </span><span class="annot"><a href="Cardano.Chain.Block.Block.html#ABOBBlock"><span class="hs-identifier hs-type">ABOBBlock</span></a></span><span>    </span><span id="local-6989586621679523578"><span class="annot"><span class="annottext">ABlock a
+</span><a href="#local-6989586621679523578"><span class="hs-identifier hs-var">block</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">EpochAndSlotCount -&gt; Maybe EpochAndSlotCount
+forall a. a -&gt; Maybe a
+</span><span class="hs-identifier hs-var">Just</span></span><span> </span><span class="annot"><span class="annottext">(EpochAndSlotCount -&gt; Maybe EpochAndSlotCount)
+-&gt; (SlotNumber -&gt; EpochAndSlotCount)
+-&gt; SlotNumber
+-&gt; Maybe EpochAndSlotCount
+forall k (cat :: k -&gt; k -&gt; *) (b :: k) (c :: k) (a :: k).
+Category cat =&gt;
+cat b c -&gt; cat a b -&gt; cat a c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">EpochSlots -&gt; SlotNumber -&gt; EpochAndSlotCount
+</span><a href="Cardano.Chain.Slotting.EpochAndSlotCount.html#fromSlotNumber"><span class="hs-identifier hs-var">fromSlotNumber</span></a></span><span> </span><span class="annot"><span class="annottext">EpochSlots
+</span><a href="Cardano.Chain.Epoch.File.html#mainnetEpochSlots"><span class="hs-identifier hs-var">mainnetEpochSlots</span></a></span><span> </span><span class="annot"><span class="annottext">(SlotNumber -&gt; Maybe EpochAndSlotCount)
+-&gt; SlotNumber -&gt; Maybe EpochAndSlotCount
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">ABlock a -&gt; SlotNumber
+forall a. ABlock a -&gt; SlotNumber
+</span><a href="Cardano.Chain.Block.Block.html#blockSlot"><span class="hs-identifier hs-var">blockSlot</span></a></span><span> </span><span class="annot"><span class="annottext">ABlock a
+</span><a href="#local-6989586621679523578"><span class="hs-identifier hs-var">block</span></a></span><span>
+</span><span id="line-101"></span></pre></body></html>

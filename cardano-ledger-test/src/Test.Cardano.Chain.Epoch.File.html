@@ -1,42 +1,160 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-pragma">{-# LANGUAGE TemplateHaskell #-}</span><span>
-</span><a name="line-2"></a><span>
-</span><a name="line-3"></a><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Test.Cardano.Chain.Epoch.File</span><span>
-</span><a name="line-4"></a><span>  </span><span class="hs-special">(</span><span> </span><a href="Test.Cardano.Chain.Epoch.File.html#tests"><span class="hs-identifier hs-var">tests</span></a><span>
-</span><a name="line-5"></a><span>  </span><span class="hs-special">)</span><span>
-</span><a name="line-6"></a><span class="hs-keyword">where</span><span>
-</span><a name="line-7"></a><span>
-</span><a name="line-8"></a><span class="hs-keyword">import</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-prelude-0.1.0.0/noopt/doc/html/cardano-prelude/src/Cardano.Prelude.html"><span class="hs-identifier">Cardano.Prelude</span></a><span>
-</span><a name="line-9"></a><span>
-</span><a name="line-10"></a><span class="hs-keyword">import</span><span> </span><span class="hs-identifier">Control.Monad.Trans.Resource</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">ResIO</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-var">runResourceT</span><span class="hs-special">)</span><span>
-</span><a name="line-11"></a><span class="hs-keyword">import</span><span> </span><span class="hs-identifier">Hedgehog</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Group</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Property</span><span class="hs-special">,</span><span> </span><span class="hs-special">(</span><span class="hs-operator hs-var">===</span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-var">discover</span><span class="hs-special">)</span><span>
-</span><a name="line-12"></a><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-identifier">Hedgehog</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">H</span><span>
-</span><a name="line-13"></a><span class="hs-keyword">import</span><span> </span><span class="hs-identifier">Streaming</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Of</span><span class="hs-special">(</span><span class="hs-special">(</span><span class="hs-operator hs-var">:&gt;</span><span class="hs-special">)</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
-</span><a name="line-14"></a><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-identifier">Streaming</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">S</span><span>
-</span><a name="line-15"></a><span class="hs-keyword">import</span><span> </span><span class="hs-identifier">System.Environment</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-var">lookupEnv</span><span class="hs-special">)</span><span>
-</span><a name="line-16"></a><span>
-</span><a name="line-17"></a><span class="hs-keyword">import</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-ledger-0.1.0.0/noopt/doc/html/cardano-ledger/src/Cardano.Chain.Epoch.File.html"><span class="hs-identifier">Cardano.Chain.Epoch.File</span></a><span> </span><span class="hs-special">(</span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-ledger-0.1.0.0/noopt/doc/html/cardano-ledger/src/Cardano.Chain.Epoch.File.html#ParseError"><span class="hs-identifier hs-type">ParseError</span></a><span class="hs-special">,</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-ledger-0.1.0.0/noopt/doc/html/cardano-ledger/src/Cardano.Chain.Epoch.File.html#mainnetEpochSlots"><span class="hs-identifier hs-var">mainnetEpochSlots</span></a><span class="hs-special">,</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-ledger-0.1.0.0/noopt/doc/html/cardano-ledger/src/Cardano.Chain.Epoch.File.html#parseEpochFilesWithBoundary"><span class="hs-identifier hs-var">parseEpochFilesWithBoundary</span></a><span class="hs-special">)</span><span>
-</span><a name="line-18"></a><span>
-</span><a name="line-19"></a><span class="hs-keyword">import</span><span> </span><a href="Test.Cardano.Mirror.html"><span class="hs-identifier">Test.Cardano.Mirror</span></a><span> </span><span class="hs-special">(</span><a href="Test.Cardano.Mirror.html#mainnetEpochFiles"><span class="hs-identifier hs-var">mainnetEpochFiles</span></a><span class="hs-special">)</span><span>
-</span><a name="line-20"></a><span>
-</span><a name="line-21"></a><span>
-</span><a name="line-22"></a><span class="hs-identifier">tests</span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">Group</span><span>
-</span><a name="line-23"></a><a name="tests"><a href="Test.Cardano.Chain.Epoch.File.html#tests"><span class="hs-identifier">tests</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><span class="">$$discover</span><span>
-</span><a name="line-24"></a><span>
-</span><a name="line-25"></a><span class="hs-identifier">prop_deserializeEpochs</span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">Property</span><span>
-</span><a name="line-26"></a><a name="prop_deserializeEpochs"><a href="Test.Cardano.Chain.Epoch.File.html#prop_deserializeEpochs"><span class="hs-identifier">prop_deserializeEpochs</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-identifier hs-var">H.withTests</span><span> </span><span class="hs-number">1</span><span> </span><span class="hs-operator hs-var">$</span><span> </span><span class="hs-identifier hs-var">H.property</span><span> </span><span class="hs-operator hs-var">$</span><span> </span><span class="hs-keyword">do</span><span>
-</span><a name="line-27"></a><span>  </span><a name="local-6989586621679220347"><a href="#local-6989586621679220347"><span class="hs-identifier">menv</span></a></a><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="hs-identifier hs-var">liftIO</span><span> </span><span class="hs-operator hs-var">$</span><span> </span><span class="hs-identifier hs-var">lookupEnv</span><span> </span><span class="hs-string">&quot;CARDANO_MAINNET_MIRROR&quot;</span><span>
-</span><a name="line-28"></a><span>  </span><span class="hs-identifier hs-var">H.assert</span><span> </span><span class="hs-operator hs-var">$</span><span> </span><span class="hs-identifier hs-var">isJust</span><span> </span><a href="#local-6989586621679220347"><span class="hs-identifier hs-var">menv</span></a><span>
-</span><a name="line-29"></a><span>
-</span><a name="line-30"></a><span>  </span><a name="local-6989586621679220348"><a href="#local-6989586621679220348"><span class="hs-identifier">files</span></a></a><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="hs-identifier hs-var">take</span><span> </span><span class="hs-number">10</span><span> </span><span class="hs-operator hs-var">&lt;$&gt;</span><span> </span><span class="hs-identifier hs-var">liftIO</span><span> </span><a href="Test.Cardano.Mirror.html#mainnetEpochFiles"><span class="hs-identifier hs-var">mainnetEpochFiles</span></a><span>
-</span><a name="line-31"></a><span>  </span><span class="hs-identifier hs-var">H.assert</span><span> </span><span class="hs-operator hs-var">$</span><span> </span><span class="hs-identifier hs-var">not</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-var">null</span><span> </span><a href="#local-6989586621679220348"><span class="hs-identifier hs-var">files</span></a><span class="hs-special">)</span><span>
-</span><a name="line-32"></a><span>  </span><span class="hs-comment">-- TODO: the property cannot take any parameters (if we want discoverPrefix</span><span>
-</span><a name="line-33"></a><span>  </span><span class="hs-comment">-- to work). Now the question is whether it is OK to use an hardcoded value</span><span>
-</span><a name="line-34"></a><span>  </span><span class="hs-comment">-- for the number of slots per epoch, and if so in which module should we</span><span>
-</span><a name="line-35"></a><span>  </span><span class="hs-comment">-- store this constant?</span><span>
-</span><a name="line-36"></a><span>  </span><span class="hs-keyword">let</span><span> </span><a name="local-6989586621679220349"><a href="#local-6989586621679220349"><span class="hs-identifier">stream</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-ledger-0.1.0.0/noopt/doc/html/cardano-ledger/src/Cardano.Chain.Epoch.File.html#parseEpochFilesWithBoundary"><span class="hs-identifier hs-var">parseEpochFilesWithBoundary</span></a><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-ledger-0.1.0.0/noopt/doc/html/cardano-ledger/src/Cardano.Chain.Epoch.File.html#mainnetEpochSlots"><span class="hs-identifier hs-var">mainnetEpochSlots</span></a><span> </span><a href="#local-6989586621679220348"><span class="hs-identifier hs-var">files</span></a><span>
-</span><a name="line-37"></a><span>  </span><a name="local-6989586621679220703"><a href="#local-6989586621679220703"><span class="hs-identifier">result</span></a></a><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-var">liftIO</span><span> </span><span class="hs-operator hs-var">.</span><span> </span><span class="hs-identifier hs-var">runResourceT</span><span> </span><span class="hs-operator hs-var">.</span><span> </span><span class="hs-identifier hs-var">runExceptT</span><span> </span><span class="hs-operator hs-var">.</span><span> </span><span class="hs-identifier hs-var">S.run</span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-var">S.maps</span><span> </span><a href="#local-6989586621679220343"><span class="hs-identifier hs-var">discard</span></a><span> </span><a href="#local-6989586621679220349"><span class="hs-identifier hs-var">stream</span></a><span class="hs-special">)</span><span>
-</span><a name="line-38"></a><span>  </span><a href="#local-6989586621679220703"><span class="hs-identifier hs-var">result</span></a><span> </span><span class="hs-operator hs-var">===</span><span> </span><span class="hs-identifier hs-var">Right</span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
-</span><a name="line-39"></a><span> </span><span class="hs-keyword">where</span><span>
-</span><a name="line-40"></a><span>  </span><span class="hs-identifier">discard</span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">Of</span><span> </span><a href="#local-6989586621679220344"><span class="hs-identifier hs-type">a</span></a><span> </span><a href="#local-6989586621679220345"><span class="hs-identifier hs-type">m</span></a><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">ExceptT</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-ledger-0.1.0.0/noopt/doc/html/cardano-ledger/src/Cardano.Chain.Epoch.File.html#ParseError"><span class="hs-identifier hs-type">ParseError</span></a><span> </span><span class="hs-identifier hs-type">ResIO</span><span> </span><a href="#local-6989586621679220345"><span class="hs-identifier hs-type">m</span></a><span>
-</span><a name="line-41"></a><span>  </span><a name="local-6989586621679220343"><a href="#local-6989586621679220343"><span class="hs-identifier">discard</span></a></a><span> </span><span class="hs-special">(</span><span class="hs-identifier">_</span><span> </span><span class="hs-operator hs-var">:&gt;</span><span> </span><a name="local-6989586621679220346"><a href="#local-6989586621679220346"><span class="hs-identifier">rest</span></a></a><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-identifier hs-var">pure</span><span> </span><a href="#local-6989586621679220346"><span class="hs-identifier hs-var">rest</span></a><span>
-</span><a name="line-42"></a></pre></body></html>
+</span><span id="line-2"></span><span>
+</span><span id="line-3"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Test.Cardano.Chain.Epoch.File</span><span>
+</span><span id="line-4"></span><span>  </span><span class="hs-special">(</span><span> </span><span class="annot"><a href="Test.Cardano.Chain.Epoch.File.html#tests"><span class="hs-identifier">tests</span></a></span><span>
+</span><span id="line-5"></span><span>  </span><span class="hs-special">)</span><span>
+</span><span id="line-6"></span><span class="hs-keyword">where</span><span>
+</span><span id="line-7"></span><span>
+</span><span id="line-8"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-prelude-0.1.0.0/noopt/doc/html/cardano-prelude/src"><span class="hs-identifier">Cardano.Prelude</span></a></span><span>
+</span><span id="line-9"></span><span>
+</span><span id="line-10"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Control.Monad.Trans.Resource</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">ResIO</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">runResourceT</span></span><span class="hs-special">)</span><span>
+</span><span id="line-11"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Hedgehog</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Group</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">Property</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-operator">(===)</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">discover</span></span><span class="hs-special">)</span><span>
+</span><span id="line-12"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Hedgehog</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">H</span></span><span>
+</span><span id="line-13"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Streaming</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Of</span></span><span class="hs-special">(</span><span class="annot"><span class="hs-operator">(:&gt;)</span></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-14"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Streaming</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">S</span></span><span>
+</span><span id="line-15"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">System.Environment</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">lookupEnv</span></span><span class="hs-special">)</span><span>
+</span><span id="line-16"></span><span>
+</span><span id="line-17"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-ledger-0.1.0.0/noopt/doc/html/cardano-ledger/src"><span class="hs-identifier">Cardano.Chain.Epoch.File</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-ledger-0.1.0.0/noopt/doc/html/cardano-ledger/src"><span class="hs-identifier">ParseError</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-ledger-0.1.0.0/noopt/doc/html/cardano-ledger/src"><span class="hs-identifier">mainnetEpochSlots</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-ledger-0.1.0.0/noopt/doc/html/cardano-ledger/src"><span class="hs-identifier">parseEpochFilesWithBoundary</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-18"></span><span>
+</span><span id="line-19"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Test.Cardano.Mirror.html"><span class="hs-identifier">Test.Cardano.Mirror</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Test.Cardano.Mirror.html#mainnetEpochFiles"><span class="hs-identifier">mainnetEpochFiles</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-20"></span><span>
+</span><span id="line-21"></span><span>
+</span><span id="line-22"></span><span class="annot"><a href="Test.Cardano.Chain.Epoch.File.html#tests"><span class="hs-identifier hs-type">tests</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Group</span></span><span>
+</span><span id="line-23"></span><span id="tests"><span class="annot"><span class="annottext">tests :: Group
+</span><a href="Test.Cardano.Chain.Epoch.File.html#tests"><span class="hs-identifier hs-var hs-var">tests</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[Char]
+[(PropertyName, Property)]
+Property
+[Char] -&gt; GroupName
+[Char] -&gt; PropertyName
+GroupName -&gt; [(PropertyName, Property)] -&gt; Group
+</span><a href="Test.Cardano.Chain.Epoch.File.html#prop_deserializeEpochs"><span class="hs-var hs-var hs-var hs-var hs-var">$$discover</span></a></span><span>
+</span><span id="line-24"></span><span>
+</span><span id="line-25"></span><span class="annot"><a href="Test.Cardano.Chain.Epoch.File.html#prop_deserializeEpochs"><span class="hs-identifier hs-type">prop_deserializeEpochs</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Property</span></span><span>
+</span><span id="line-26"></span><span id="prop_deserializeEpochs"><span class="annot"><span class="annottext">prop_deserializeEpochs :: Property
+</span><a href="Test.Cardano.Chain.Epoch.File.html#prop_deserializeEpochs"><span class="hs-identifier hs-var hs-var">prop_deserializeEpochs</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">TestLimit -&gt; Property -&gt; Property
+</span><span class="hs-identifier hs-var">H.withTests</span></span><span> </span><span class="annot"><span class="annottext">TestLimit
+</span><span class="hs-number">1</span></span><span> </span><span class="annot"><span class="annottext">(Property -&gt; Property) -&gt; Property -&gt; Property
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">HasCallStack =&gt; PropertyT IO () -&gt; Property
+PropertyT IO () -&gt; Property
+</span><span class="hs-identifier hs-var">H.property</span></span><span> </span><span class="annot"><span class="annottext">(PropertyT IO () -&gt; Property) -&gt; PropertyT IO () -&gt; Property
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-27"></span><span>  </span><span id="local-6989586621679441716"><span class="annot"><span class="annottext">Maybe [Char]
+</span><a href="#local-6989586621679441716"><span class="hs-identifier hs-var">menv</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">IO (Maybe [Char]) -&gt; PropertyT IO (Maybe [Char])
+forall (m :: * -&gt; *) a. MonadIO m =&gt; IO a -&gt; m a
+</span><span class="hs-identifier hs-var">liftIO</span></span><span> </span><span class="annot"><span class="annottext">(IO (Maybe [Char]) -&gt; PropertyT IO (Maybe [Char]))
+-&gt; IO (Maybe [Char]) -&gt; PropertyT IO (Maybe [Char])
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">[Char] -&gt; IO (Maybe [Char])
+</span><span class="hs-identifier hs-var">lookupEnv</span></span><span> </span><span class="annot"><span class="annottext">[Char]
+</span><span class="hs-string">&quot;CARDANO_MAINNET_MIRROR&quot;</span></span><span>
+</span><span id="line-28"></span><span>  </span><span class="annot"><span class="annottext">Bool -&gt; PropertyT IO ()
+forall (m :: * -&gt; *). (MonadTest m, HasCallStack) =&gt; Bool -&gt; m ()
+</span><span class="hs-identifier hs-var">H.assert</span></span><span> </span><span class="annot"><span class="annottext">(Bool -&gt; PropertyT IO ()) -&gt; Bool -&gt; PropertyT IO ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Maybe [Char] -&gt; Bool
+forall a. Maybe a -&gt; Bool
+</span><span class="hs-identifier hs-var">isJust</span></span><span> </span><span class="annot"><span class="annottext">Maybe [Char]
+</span><a href="#local-6989586621679441716"><span class="hs-identifier hs-var">menv</span></a></span><span>
+</span><span id="line-29"></span><span>
+</span><span id="line-30"></span><span>  </span><span id="local-6989586621679441712"><span class="annot"><span class="annottext">[[Char]]
+</span><a href="#local-6989586621679441712"><span class="hs-identifier hs-var">files</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Int -&gt; [[Char]] -&gt; [[Char]]
+forall a. Int -&gt; [a] -&gt; [a]
+</span><span class="hs-identifier hs-var">take</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">10</span></span><span> </span><span class="annot"><span class="annottext">([[Char]] -&gt; [[Char]])
+-&gt; PropertyT IO [[Char]] -&gt; PropertyT IO [[Char]]
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">IO [[Char]] -&gt; PropertyT IO [[Char]]
+forall (m :: * -&gt; *) a. MonadIO m =&gt; IO a -&gt; m a
+</span><span class="hs-identifier hs-var">liftIO</span></span><span> </span><span class="annot"><span class="annottext">IO [[Char]]
+</span><a href="Test.Cardano.Mirror.html#mainnetEpochFiles"><span class="hs-identifier hs-var">mainnetEpochFiles</span></a></span><span>
+</span><span id="line-31"></span><span>  </span><span class="annot"><span class="annottext">Bool -&gt; PropertyT IO ()
+forall (m :: * -&gt; *). (MonadTest m, HasCallStack) =&gt; Bool -&gt; m ()
+</span><span class="hs-identifier hs-var">H.assert</span></span><span> </span><span class="annot"><span class="annottext">(Bool -&gt; PropertyT IO ()) -&gt; Bool -&gt; PropertyT IO ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Bool -&gt; Bool
+</span><span class="hs-identifier hs-var">not</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">[[Char]] -&gt; Bool
+forall (t :: * -&gt; *) a. Foldable t =&gt; t a -&gt; Bool
+</span><span class="hs-identifier hs-var">null</span></span><span> </span><span class="annot"><span class="annottext">[[Char]]
+</span><a href="#local-6989586621679441712"><span class="hs-identifier hs-var">files</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-32"></span><span>  </span><span class="hs-comment">-- TODO: the property cannot take any parameters (if we want discoverPrefix</span><span>
+</span><span id="line-33"></span><span>  </span><span class="hs-comment">-- to work). Now the question is whether it is OK to use an hardcoded value</span><span>
+</span><span id="line-34"></span><span>  </span><span class="hs-comment">-- for the number of slots per epoch, and if so in which module should we</span><span>
+</span><span id="line-35"></span><span>  </span><span class="hs-comment">-- store this constant?</span><span>
+</span><span id="line-36"></span><span>  </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679441707"><span class="annot"><span class="annottext">stream :: Stream
+  (Of (ABlockOrBoundary ByteString)) (ExceptT ParseError ResIO) ()
+</span><a href="#local-6989586621679441707"><span class="hs-identifier hs-var hs-var">stream</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">EpochSlots
+-&gt; [[Char]]
+-&gt; Stream
+     (Of (ABlockOrBoundary ByteString)) (ExceptT ParseError ResIO) ()
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-ledger-0.1.0.0/noopt/doc/html/cardano-ledger/src"><span class="hs-identifier hs-var">parseEpochFilesWithBoundary</span></a></span><span> </span><span class="annot"><span class="annottext">EpochSlots
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-ledger-0.1.0.0/noopt/doc/html/cardano-ledger/src"><span class="hs-identifier hs-var">mainnetEpochSlots</span></a></span><span> </span><span class="annot"><span class="annottext">[[Char]]
+</span><a href="#local-6989586621679441712"><span class="hs-identifier hs-var">files</span></a></span><span>
+</span><span id="line-37"></span><span>  </span><span id="local-6989586621679441706"><span class="annot"><span class="annottext">Either ParseError ()
+</span><a href="#local-6989586621679441706"><span class="hs-identifier hs-var">result</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">IO (Either ParseError ()) -&gt; PropertyT IO (Either ParseError ())
+forall (m :: * -&gt; *) a. MonadIO m =&gt; IO a -&gt; m a
+</span><span class="hs-identifier hs-var">liftIO</span></span><span> </span><span class="annot"><span class="annottext">(IO (Either ParseError ()) -&gt; PropertyT IO (Either ParseError ()))
+-&gt; (Stream (ExceptT ParseError ResIO) (ExceptT ParseError ResIO) ()
+    -&gt; IO (Either ParseError ()))
+-&gt; Stream (ExceptT ParseError ResIO) (ExceptT ParseError ResIO) ()
+-&gt; PropertyT IO (Either ParseError ())
+forall k (cat :: k -&gt; k -&gt; *) (b :: k) (c :: k) (a :: k).
+Category cat =&gt;
+cat b c -&gt; cat a b -&gt; cat a c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">ResourceT IO (Either ParseError ()) -&gt; IO (Either ParseError ())
+forall (m :: * -&gt; *) a. MonadUnliftIO m =&gt; ResourceT m a -&gt; m a
+</span><span class="hs-identifier hs-var">runResourceT</span></span><span> </span><span class="annot"><span class="annottext">(ResourceT IO (Either ParseError ()) -&gt; IO (Either ParseError ()))
+-&gt; (Stream (ExceptT ParseError ResIO) (ExceptT ParseError ResIO) ()
+    -&gt; ResourceT IO (Either ParseError ()))
+-&gt; Stream (ExceptT ParseError ResIO) (ExceptT ParseError ResIO) ()
+-&gt; IO (Either ParseError ())
+forall k (cat :: k -&gt; k -&gt; *) (b :: k) (c :: k) (a :: k).
+Category cat =&gt;
+cat b c -&gt; cat a b -&gt; cat a c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">ExceptT ParseError ResIO () -&gt; ResourceT IO (Either ParseError ())
+forall e (m :: * -&gt; *) a. ExceptT e m a -&gt; m (Either e a)
+</span><span class="hs-identifier hs-var">runExceptT</span></span><span> </span><span class="annot"><span class="annottext">(ExceptT ParseError ResIO ()
+ -&gt; ResourceT IO (Either ParseError ()))
+-&gt; (Stream (ExceptT ParseError ResIO) (ExceptT ParseError ResIO) ()
+    -&gt; ExceptT ParseError ResIO ())
+-&gt; Stream (ExceptT ParseError ResIO) (ExceptT ParseError ResIO) ()
+-&gt; ResourceT IO (Either ParseError ())
+forall k (cat :: k -&gt; k -&gt; *) (b :: k) (c :: k) (a :: k).
+Category cat =&gt;
+cat b c -&gt; cat a b -&gt; cat a c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Stream (ExceptT ParseError ResIO) (ExceptT ParseError ResIO) ()
+-&gt; ExceptT ParseError ResIO ()
+forall (m :: * -&gt; *) r. Monad m =&gt; Stream m m r -&gt; m r
+</span><span class="hs-identifier hs-var">S.run</span></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">(forall x.
+ Of (ABlockOrBoundary ByteString) x -&gt; ExceptT ParseError ResIO x)
+-&gt; Stream
+     (Of (ABlockOrBoundary ByteString)) (ExceptT ParseError ResIO) ()
+-&gt; Stream (ExceptT ParseError ResIO) (ExceptT ParseError ResIO) ()
+forall (m :: * -&gt; *) (f :: * -&gt; *) (g :: * -&gt; *) r.
+(Monad m, Functor f) =&gt;
+(forall x. f x -&gt; g x) -&gt; Stream f m r -&gt; Stream g m r
+</span><span class="hs-identifier hs-var">S.maps</span></span><span> </span><span class="annot"><span class="annottext">forall x.
+Of (ABlockOrBoundary ByteString) x -&gt; ExceptT ParseError ResIO x
+forall a m. Of a m -&gt; ExceptT ParseError ResIO m
+</span><a href="#local-6989586621679441701"><span class="hs-identifier hs-var">discard</span></a></span><span> </span><span class="annot"><span class="annottext">Stream
+  (Of (ABlockOrBoundary ByteString)) (ExceptT ParseError ResIO) ()
+</span><a href="#local-6989586621679441707"><span class="hs-identifier hs-var">stream</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-38"></span><span>  </span><span class="annot"><span class="annottext">Either ParseError ()
+</span><a href="#local-6989586621679441706"><span class="hs-identifier hs-var">result</span></a></span><span> </span><span class="annot"><span class="annottext">Either ParseError () -&gt; Either ParseError () -&gt; PropertyT IO ()
+forall (m :: * -&gt; *) a.
+(MonadTest m, Eq a, Show a, HasCallStack) =&gt;
+a -&gt; a -&gt; m ()
+</span><span class="hs-operator hs-var">===</span></span><span> </span><span class="annot"><span class="annottext">() -&gt; Either ParseError ()
+forall a b. b -&gt; Either a b
+</span><span class="hs-identifier hs-var">Right</span></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
+</span><span id="line-39"></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-40"></span><span>  </span><span id="local-6989586621679441740"><span id="local-6989586621679441741"><span class="annot"><a href="#local-6989586621679441701"><span class="hs-identifier hs-type">discard</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Of</span></span><span> </span><span class="annot"><a href="#local-6989586621679441741"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679441740"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">ExceptT</span></span><span> </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-ledger-0.1.0.0/noopt/doc/html/cardano-ledger/src"><span class="hs-identifier hs-type">ParseError</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">ResIO</span></span><span> </span><span class="annot"><a href="#local-6989586621679441740"><span class="hs-identifier hs-type">m</span></a></span></span></span><span>
+</span><span id="line-41"></span><span>  </span><span id="local-6989586621679441701"><span class="annot"><span class="annottext">discard :: Of a m -&gt; ExceptT ParseError ResIO m
+</span><a href="#local-6989586621679441701"><span class="hs-identifier hs-var hs-var">discard</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">a
+</span><span class="hs-identifier">_</span></span><span> </span><span class="annot"><span class="hs-operator hs-type">:&gt;</span></span><span> </span><span id="local-6989586621679441700"><span class="annot"><span class="annottext">m
+</span><a href="#local-6989586621679441700"><span class="hs-identifier hs-var">rest</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">m -&gt; ExceptT ParseError ResIO m
+forall (f :: * -&gt; *) a. Applicative f =&gt; a -&gt; f a
+</span><span class="hs-identifier hs-var">pure</span></span><span> </span><span class="annot"><span class="annottext">m
+</span><a href="#local-6989586621679441700"><span class="hs-identifier hs-var">rest</span></a></span><span>
+</span><span id="line-42"></span></pre></body></html>

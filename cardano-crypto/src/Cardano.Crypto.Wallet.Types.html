@@ -1,30 +1,258 @@
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-pragma">{-# LANGUAGE PatternSynonyms #-}</span><span>
-</span><a name="line-2"></a><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Cardano.Crypto.Wallet.Types</span><span>
-</span><a name="line-3"></a><span>    </span><span class="hs-special">(</span><span> </span><a href="Cardano.Crypto.Wallet.Types.html#ChainCode"><span class="hs-identifier hs-type">ChainCode</span></a><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
-</span><a name="line-4"></a><span>    </span><span class="hs-special">,</span><span> </span><a href="Cardano.Crypto.Wallet.Types.html#DerivationScheme"><span class="hs-identifier hs-type">DerivationScheme</span></a><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
-</span><a name="line-5"></a><span>    </span><span class="hs-special">,</span><span> </span><a href="Cardano.Crypto.Wallet.Types.html#DerivationIndex"><span class="hs-identifier hs-type">DerivationIndex</span></a><span>
-</span><a name="line-6"></a><span>    </span><span class="hs-special">,</span><span> </span><span class="hs-keyword">pattern</span><span> </span><a href="Cardano.Crypto.Wallet.Types.html#LatestScheme"><span class="hs-identifier hs-var">LatestScheme</span></a><span>
-</span><a name="line-7"></a><span>    </span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
-</span><a name="line-8"></a><span>
-</span><a name="line-9"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Control.DeepSeq</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">NFData</span><span class="hs-special">)</span><span>
-</span><a name="line-10"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data.ByteArray</span><span>  </span><span class="hs-special">(</span><span class="hs-identifier hs-type">ByteArrayAccess</span><span class="hs-special">)</span><span>
-</span><a name="line-11"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data.ByteString</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">ByteString</span><span class="hs-special">)</span><span>
-</span><a name="line-12"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data.Hashable</span><span>   </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Hashable</span><span class="hs-special">)</span><span>
-</span><a name="line-13"></a><span>
-</span><a name="line-14"></a><span class="hs-keyword">import</span><span> </span><span class="hs-identifier">Foundation</span><span>
-</span><a name="line-15"></a><span class="hs-keyword">import</span><span> </span><span class="hs-identifier">Foundation.Collection</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-var">nonEmpty_</span><span class="hs-special">)</span><span>
-</span><a name="line-16"></a><span class="hs-keyword">import</span><span> </span><span class="hs-identifier">Foundation.Check</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Arbitrary</span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-var">frequency</span><span class="hs-special">)</span><span>
-</span><a name="line-17"></a><span>
-</span><a name="line-18"></a><span class="hs-keyword">type</span><span> </span><a name="DerivationIndex"><a href="Cardano.Crypto.Wallet.Types.html#DerivationIndex"><span class="hs-identifier">DerivationIndex</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-identifier hs-type">Word32</span><span>
-</span><a name="line-19"></a><span>
-</span><a name="line-20"></a><span class="hs-keyword">data</span><span> </span><a name="DerivationScheme"><a href="Cardano.Crypto.Wallet.Types.html#DerivationScheme"><span class="hs-identifier">DerivationScheme</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><a name="DerivationScheme1"><a href="Cardano.Crypto.Wallet.Types.html#DerivationScheme1"><span class="hs-identifier">DerivationScheme1</span></a></a><span> </span><span class="hs-glyph">|</span><span> </span><a name="DerivationScheme2"><a href="Cardano.Crypto.Wallet.Types.html#DerivationScheme2"><span class="hs-identifier">DerivationScheme2</span></a></a><span>
-</span><a name="line-21"></a><span>    </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Show</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Eq</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Ord</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Enum</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Bounded</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Typeable</span><span class="hs-special">)</span><span>
-</span><a name="line-22"></a><span class="hs-keyword">instance</span><span> </span><span class="hs-identifier hs-type">Arbitrary</span><span> </span><a href="Cardano.Crypto.Wallet.Types.html#DerivationScheme"><span class="hs-identifier hs-type">DerivationScheme</span></a><span> </span><span class="hs-keyword">where</span><span>
-</span><a name="line-23"></a><span>    </span><a name="local-8214565720323795226"><span class="hs-identifier">arbitrary</span></a><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-identifier hs-var">frequency</span><span> </span><span class="hs-operator hs-var">$</span><span> </span><span class="hs-identifier hs-var">nonEmpty_</span><span> </span><span class="hs-special">[</span><span> </span><span class="hs-special">(</span><span class="hs-number">1</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-var">pure</span><span> </span><a href="Cardano.Crypto.Wallet.Types.html#DerivationScheme1"><span class="hs-identifier hs-var">DerivationScheme1</span></a><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="hs-special">(</span><span class="hs-number">1</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-var">pure</span><span> </span><a href="Cardano.Crypto.Wallet.Types.html#DerivationScheme2"><span class="hs-identifier hs-var">DerivationScheme2</span></a><span class="hs-special">)</span><span> </span><span class="hs-special">]</span><span>
-</span><a name="line-24"></a><span>
-</span><a name="line-25"></a><span class="hs-keyword">pattern</span><span> </span><span class="hs-identifier">LatestScheme</span><span> </span><span class="hs-glyph">::</span><span> </span><a href="Cardano.Crypto.Wallet.Types.html#DerivationScheme"><span class="hs-identifier hs-type">DerivationScheme</span></a><span>
-</span><a name="line-26"></a><span class="hs-keyword">pattern</span><span> </span><a name="LatestScheme"><a href="Cardano.Crypto.Wallet.Types.html#LatestScheme"><span class="hs-identifier">LatestScheme</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><a href="Cardano.Crypto.Wallet.Types.html#DerivationScheme2"><span class="hs-identifier hs-var">DerivationScheme2</span></a><span>
-</span><a name="line-27"></a><span>
-</span><a name="line-28"></a><span class="hs-keyword">newtype</span><span> </span><a name="ChainCode"><a href="Cardano.Crypto.Wallet.Types.html#ChainCode"><span class="hs-identifier">ChainCode</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><a name="ChainCode"><a href="Cardano.Crypto.Wallet.Types.html#ChainCode"><span class="hs-identifier">ChainCode</span></a></a><span> </span><span class="hs-identifier hs-type">ByteString</span><span>
-</span><a name="line-29"></a><span>    </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Show</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Eq</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Ord</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">ByteArrayAccess</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">NFData</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Hashable</span><span class="hs-special">)</span><span>
-</span><a name="line-30"></a></pre></body></html>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span id="%24maxtag_3nW5ovAUgYBDxMaJUQb1FC"><span id="%24tag2con_3nW5ovAUgYBDxMaJUQb1FC"><span id="%24con2tag_3nW5ovAUgYBDxMaJUQb1FC"></span></span></span><span class="hs-pragma">{-# LANGUAGE PatternSynonyms #-}</span><span>
+</span><span id="line-2"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Cardano.Crypto.Wallet.Types</span><span>
+</span><span id="line-3"></span><span>    </span><span class="hs-special">(</span><span> </span><span class="annot"><a href="Cardano.Crypto.Wallet.Types.html#ChainCode"><span class="hs-identifier">ChainCode</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
+</span><span id="line-4"></span><span>    </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cardano.Crypto.Wallet.Types.html#DerivationScheme"><span class="hs-identifier">DerivationScheme</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
+</span><span id="line-5"></span><span>    </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cardano.Crypto.Wallet.Types.html#DerivationIndex"><span class="hs-identifier">DerivationIndex</span></a></span><span>
+</span><span id="line-6"></span><span>    </span><span class="hs-special">,</span><span> </span><span class="hs-keyword">pattern</span><span> </span><span class="annot"><a href="Cardano.Crypto.Wallet.Types.html#LatestScheme"><span class="hs-identifier">LatestScheme</span></a></span><span>
+</span><span id="line-7"></span><span>    </span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-8"></span><span>
+</span><span id="line-9"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><span class="hs-identifier">Control.DeepSeq</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">NFData</span></span><span class="hs-special">)</span><span>
+</span><span id="line-10"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><span class="hs-identifier">Data.ByteArray</span></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">ByteArrayAccess</span></span><span class="hs-special">)</span><span>
+</span><span id="line-11"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><span class="hs-identifier">Data.ByteString</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">ByteString</span></span><span class="hs-special">)</span><span>
+</span><span id="line-12"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><span class="hs-identifier">Data.Hashable</span></span><span>   </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Hashable</span></span><span class="hs-special">)</span><span>
+</span><span id="line-13"></span><span>
+</span><span id="line-14"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Foundation</span></span><span>
+</span><span id="line-15"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Foundation.Collection</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">nonEmpty_</span></span><span class="hs-special">)</span><span>
+</span><span id="line-16"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Foundation.Check</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Arbitrary</span></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">frequency</span></span><span class="hs-special">)</span><span>
+</span><span id="line-17"></span><span>
+</span><span id="line-18"></span><span class="hs-keyword">type</span><span> </span><span id="DerivationIndex"><span class="annot"><a href="Cardano.Crypto.Wallet.Types.html#DerivationIndex"><span class="hs-identifier hs-var">DerivationIndex</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Word32</span></span><span>
+</span><span id="line-19"></span><span>
+</span><span id="line-20"></span><span class="hs-keyword">data</span><span> </span><span id="DerivationScheme"><span class="annot"><a href="Cardano.Crypto.Wallet.Types.html#DerivationScheme"><span class="hs-identifier hs-var">DerivationScheme</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="DerivationScheme1"><span class="annot"><a href="Cardano.Crypto.Wallet.Types.html#DerivationScheme1"><span class="hs-identifier hs-var">DerivationScheme1</span></a></span></span><span> </span><span class="hs-glyph">|</span><span> </span><span id="DerivationScheme2"><span class="annot"><a href="Cardano.Crypto.Wallet.Types.html#DerivationScheme2"><span class="hs-identifier hs-var">DerivationScheme2</span></a></span></span><span>
+</span><span id="line-21"></span><span>    </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679084218"><span id="local-6989586621679084220"><span id="local-6989586621679084222"><span class="annot"><span class="annottext">Int -&gt; DerivationScheme -&gt; ShowS
+[DerivationScheme] -&gt; ShowS
+DerivationScheme -&gt; String
+(Int -&gt; DerivationScheme -&gt; ShowS)
+-&gt; (DerivationScheme -&gt; String)
+-&gt; ([DerivationScheme] -&gt; ShowS)
+-&gt; Show DerivationScheme
+forall a.
+(Int -&gt; a -&gt; ShowS) -&gt; (a -&gt; String) -&gt; ([a] -&gt; ShowS) -&gt; Show a
+showList :: [DerivationScheme] -&gt; ShowS
+$cshowList :: [DerivationScheme] -&gt; ShowS
+show :: DerivationScheme -&gt; String
+$cshow :: DerivationScheme -&gt; String
+showsPrec :: Int -&gt; DerivationScheme -&gt; ShowS
+$cshowsPrec :: Int -&gt; DerivationScheme -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679084213"><span id="local-6989586621679084215"><span class="annot"><span class="annottext">DerivationScheme -&gt; DerivationScheme -&gt; Bool
+(DerivationScheme -&gt; DerivationScheme -&gt; Bool)
+-&gt; (DerivationScheme -&gt; DerivationScheme -&gt; Bool)
+-&gt; Eq DerivationScheme
+forall a. (a -&gt; a -&gt; Bool) -&gt; (a -&gt; a -&gt; Bool) -&gt; Eq a
+/= :: DerivationScheme -&gt; DerivationScheme -&gt; Bool
+$c/= :: DerivationScheme -&gt; DerivationScheme -&gt; Bool
+== :: DerivationScheme -&gt; DerivationScheme -&gt; Bool
+$c== :: DerivationScheme -&gt; DerivationScheme -&gt; Bool
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679084197"><span id="local-6989586621679084199"><span id="local-6989586621679084201"><span id="local-6989586621679084203"><span id="local-6989586621679084205"><span id="local-6989586621679084207"><span id="local-6989586621679084209"><span class="annot"><span class="annottext">Eq DerivationScheme
+Eq DerivationScheme
+-&gt; (DerivationScheme -&gt; DerivationScheme -&gt; Ordering)
+-&gt; (DerivationScheme -&gt; DerivationScheme -&gt; Bool)
+-&gt; (DerivationScheme -&gt; DerivationScheme -&gt; Bool)
+-&gt; (DerivationScheme -&gt; DerivationScheme -&gt; Bool)
+-&gt; (DerivationScheme -&gt; DerivationScheme -&gt; Bool)
+-&gt; (DerivationScheme -&gt; DerivationScheme -&gt; DerivationScheme)
+-&gt; (DerivationScheme -&gt; DerivationScheme -&gt; DerivationScheme)
+-&gt; Ord DerivationScheme
+DerivationScheme -&gt; DerivationScheme -&gt; Bool
+DerivationScheme -&gt; DerivationScheme -&gt; Ordering
+DerivationScheme -&gt; DerivationScheme -&gt; DerivationScheme
+forall a.
+Eq a
+-&gt; (a -&gt; a -&gt; Ordering)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; a)
+-&gt; (a -&gt; a -&gt; a)
+-&gt; Ord a
+min :: DerivationScheme -&gt; DerivationScheme -&gt; DerivationScheme
+$cmin :: DerivationScheme -&gt; DerivationScheme -&gt; DerivationScheme
+max :: DerivationScheme -&gt; DerivationScheme -&gt; DerivationScheme
+$cmax :: DerivationScheme -&gt; DerivationScheme -&gt; DerivationScheme
+&gt;= :: DerivationScheme -&gt; DerivationScheme -&gt; Bool
+$c&gt;= :: DerivationScheme -&gt; DerivationScheme -&gt; Bool
+&gt; :: DerivationScheme -&gt; DerivationScheme -&gt; Bool
+$c&gt; :: DerivationScheme -&gt; DerivationScheme -&gt; Bool
+&lt;= :: DerivationScheme -&gt; DerivationScheme -&gt; Bool
+$c&lt;= :: DerivationScheme -&gt; DerivationScheme -&gt; Bool
+&lt; :: DerivationScheme -&gt; DerivationScheme -&gt; Bool
+$c&lt; :: DerivationScheme -&gt; DerivationScheme -&gt; Bool
+compare :: DerivationScheme -&gt; DerivationScheme -&gt; Ordering
+$ccompare :: DerivationScheme -&gt; DerivationScheme -&gt; Ordering
+$cp1Ord :: Eq DerivationScheme
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Ord</span></span></span></span></span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679084180"><span id="local-6989586621679084182"><span id="local-6989586621679084184"><span id="local-6989586621679084186"><span id="local-6989586621679084188"><span id="local-6989586621679084190"><span id="local-6989586621679084192"><span id="local-6989586621679084194"><span class="annot"><span class="annottext">Int -&gt; DerivationScheme
+DerivationScheme -&gt; Int
+DerivationScheme -&gt; [DerivationScheme]
+DerivationScheme -&gt; DerivationScheme
+DerivationScheme -&gt; DerivationScheme -&gt; [DerivationScheme]
+DerivationScheme
+-&gt; DerivationScheme -&gt; DerivationScheme -&gt; [DerivationScheme]
+(DerivationScheme -&gt; DerivationScheme)
+-&gt; (DerivationScheme -&gt; DerivationScheme)
+-&gt; (Int -&gt; DerivationScheme)
+-&gt; (DerivationScheme -&gt; Int)
+-&gt; (DerivationScheme -&gt; [DerivationScheme])
+-&gt; (DerivationScheme -&gt; DerivationScheme -&gt; [DerivationScheme])
+-&gt; (DerivationScheme -&gt; DerivationScheme -&gt; [DerivationScheme])
+-&gt; (DerivationScheme
+    -&gt; DerivationScheme -&gt; DerivationScheme -&gt; [DerivationScheme])
+-&gt; Enum DerivationScheme
+forall a.
+(a -&gt; a)
+-&gt; (a -&gt; a)
+-&gt; (Int -&gt; a)
+-&gt; (a -&gt; Int)
+-&gt; (a -&gt; [a])
+-&gt; (a -&gt; a -&gt; [a])
+-&gt; (a -&gt; a -&gt; [a])
+-&gt; (a -&gt; a -&gt; a -&gt; [a])
+-&gt; Enum a
+enumFromThenTo :: DerivationScheme
+-&gt; DerivationScheme -&gt; DerivationScheme -&gt; [DerivationScheme]
+$cenumFromThenTo :: DerivationScheme
+-&gt; DerivationScheme -&gt; DerivationScheme -&gt; [DerivationScheme]
+enumFromTo :: DerivationScheme -&gt; DerivationScheme -&gt; [DerivationScheme]
+$cenumFromTo :: DerivationScheme -&gt; DerivationScheme -&gt; [DerivationScheme]
+enumFromThen :: DerivationScheme -&gt; DerivationScheme -&gt; [DerivationScheme]
+$cenumFromThen :: DerivationScheme -&gt; DerivationScheme -&gt; [DerivationScheme]
+enumFrom :: DerivationScheme -&gt; [DerivationScheme]
+$cenumFrom :: DerivationScheme -&gt; [DerivationScheme]
+fromEnum :: DerivationScheme -&gt; Int
+$cfromEnum :: DerivationScheme -&gt; Int
+toEnum :: Int -&gt; DerivationScheme
+$ctoEnum :: Int -&gt; DerivationScheme
+pred :: DerivationScheme -&gt; DerivationScheme
+$cpred :: DerivationScheme -&gt; DerivationScheme
+succ :: DerivationScheme -&gt; DerivationScheme
+$csucc :: DerivationScheme -&gt; DerivationScheme
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Enum</span></span></span></span></span></span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679084175"><span id="local-6989586621679084177"><span class="annot"><span class="annottext">DerivationScheme
+DerivationScheme -&gt; DerivationScheme -&gt; Bounded DerivationScheme
+forall a. a -&gt; a -&gt; Bounded a
+maxBound :: DerivationScheme
+$cmaxBound :: DerivationScheme
+minBound :: DerivationScheme
+$cminBound :: DerivationScheme
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Bounded</span></span></span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Typeable</span></span><span class="hs-special">)</span><span>
+</span><span id="line-22"></span><span class="hs-keyword">instance</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Arbitrary</span></span><span> </span><span class="annot"><a href="Cardano.Crypto.Wallet.Types.html#DerivationScheme"><span class="hs-identifier hs-type">DerivationScheme</span></a></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-23"></span><span>    </span><span id="local-6989586621679084171"><span class="annot"><span class="annottext">arbitrary :: Gen DerivationScheme
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">arbitrary</span></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">NonEmpty [(Word, Gen DerivationScheme)] -&gt; Gen DerivationScheme
+forall a. NonEmpty [(Word, Gen a)] -&gt; Gen a
+</span><span class="hs-identifier hs-var">frequency</span></span><span> </span><span class="annot"><span class="annottext">(NonEmpty [(Word, Gen DerivationScheme)] -&gt; Gen DerivationScheme)
+-&gt; NonEmpty [(Word, Gen DerivationScheme)] -&gt; Gen DerivationScheme
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">[(Word, Gen DerivationScheme)]
+-&gt; NonEmpty [(Word, Gen DerivationScheme)]
+forall c. Collection c =&gt; c -&gt; NonEmpty c
+</span><span class="hs-identifier hs-var">nonEmpty_</span></span><span> </span><span class="hs-special">[</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Word
+</span><span class="hs-number">1</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">DerivationScheme -&gt; Gen DerivationScheme
+forall (f :: Type -&gt; Type) a. Applicative f =&gt; a -&gt; f a
+</span><span class="hs-identifier hs-var">pure</span></span><span> </span><span class="annot"><span class="annottext">DerivationScheme
+</span><a href="Cardano.Crypto.Wallet.Types.html#DerivationScheme1"><span class="hs-identifier hs-var">DerivationScheme1</span></a></span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Word
+</span><span class="hs-number">1</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">DerivationScheme -&gt; Gen DerivationScheme
+forall (f :: Type -&gt; Type) a. Applicative f =&gt; a -&gt; f a
+</span><span class="hs-identifier hs-var">pure</span></span><span> </span><span class="annot"><span class="annottext">DerivationScheme
+</span><a href="Cardano.Crypto.Wallet.Types.html#DerivationScheme2"><span class="hs-identifier hs-var">DerivationScheme2</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">]</span><span>
+</span><span id="line-24"></span><span>
+</span><span id="line-25"></span><span class="hs-keyword">pattern</span><span> </span><span class="annot"><a href="Cardano.Crypto.Wallet.Types.html#LatestScheme"><span class="hs-identifier hs-type">LatestScheme</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cardano.Crypto.Wallet.Types.html#DerivationScheme"><span class="hs-identifier hs-type">DerivationScheme</span></a></span><span>
+</span><span id="line-26"></span><span class="hs-keyword">pattern</span><span> </span><span id="%24bLatestScheme"><span id="%24mLatestScheme"><span id="LatestScheme"><span class="annot"><span class="annottext">$bLatestScheme :: DerivationScheme
+$mLatestScheme :: forall r. DerivationScheme -&gt; (Void# -&gt; r) -&gt; (Void# -&gt; r) -&gt; r
+</span><a href="Cardano.Crypto.Wallet.Types.html#%24bLatestScheme"><span class="hs-identifier hs-var hs-var hs-var">LatestScheme</span></a></span></span></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><a href="Cardano.Crypto.Wallet.Types.html#DerivationScheme2"><span class="hs-identifier hs-type">DerivationScheme2</span></a></span><span>
+</span><span id="line-27"></span><span>
+</span><span id="line-28"></span><span class="hs-keyword">newtype</span><span> </span><span id="ChainCode"><span class="annot"><a href="Cardano.Crypto.Wallet.Types.html#ChainCode"><span class="hs-identifier hs-var">ChainCode</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="ChainCode"><span class="annot"><a href="Cardano.Crypto.Wallet.Types.html#ChainCode"><span class="hs-identifier hs-var">ChainCode</span></a></span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">ByteString</span></span><span>
+</span><span id="line-29"></span><span>    </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679084161"><span id="local-6989586621679084163"><span id="local-6989586621679084165"><span class="annot"><span class="annottext">Int -&gt; ChainCode -&gt; ShowS
+[ChainCode] -&gt; ShowS
+ChainCode -&gt; String
+(Int -&gt; ChainCode -&gt; ShowS)
+-&gt; (ChainCode -&gt; String)
+-&gt; ([ChainCode] -&gt; ShowS)
+-&gt; Show ChainCode
+forall a.
+(Int -&gt; a -&gt; ShowS) -&gt; (a -&gt; String) -&gt; ([a] -&gt; ShowS) -&gt; Show a
+showList :: [ChainCode] -&gt; ShowS
+$cshowList :: [ChainCode] -&gt; ShowS
+show :: ChainCode -&gt; String
+$cshow :: ChainCode -&gt; String
+showsPrec :: Int -&gt; ChainCode -&gt; ShowS
+$cshowsPrec :: Int -&gt; ChainCode -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679084157"><span id="local-6989586621679084159"><span class="annot"><span class="annottext">ChainCode -&gt; ChainCode -&gt; Bool
+(ChainCode -&gt; ChainCode -&gt; Bool)
+-&gt; (ChainCode -&gt; ChainCode -&gt; Bool) -&gt; Eq ChainCode
+forall a. (a -&gt; a -&gt; Bool) -&gt; (a -&gt; a -&gt; Bool) -&gt; Eq a
+/= :: ChainCode -&gt; ChainCode -&gt; Bool
+$c/= :: ChainCode -&gt; ChainCode -&gt; Bool
+== :: ChainCode -&gt; ChainCode -&gt; Bool
+$c== :: ChainCode -&gt; ChainCode -&gt; Bool
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679084142"><span id="local-6989586621679084144"><span id="local-6989586621679084146"><span id="local-6989586621679084148"><span id="local-6989586621679084150"><span id="local-6989586621679084152"><span id="local-6989586621679084154"><span class="annot"><span class="annottext">Eq ChainCode
+Eq ChainCode
+-&gt; (ChainCode -&gt; ChainCode -&gt; Ordering)
+-&gt; (ChainCode -&gt; ChainCode -&gt; Bool)
+-&gt; (ChainCode -&gt; ChainCode -&gt; Bool)
+-&gt; (ChainCode -&gt; ChainCode -&gt; Bool)
+-&gt; (ChainCode -&gt; ChainCode -&gt; Bool)
+-&gt; (ChainCode -&gt; ChainCode -&gt; ChainCode)
+-&gt; (ChainCode -&gt; ChainCode -&gt; ChainCode)
+-&gt; Ord ChainCode
+ChainCode -&gt; ChainCode -&gt; Bool
+ChainCode -&gt; ChainCode -&gt; Ordering
+ChainCode -&gt; ChainCode -&gt; ChainCode
+forall a.
+Eq a
+-&gt; (a -&gt; a -&gt; Ordering)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; a)
+-&gt; (a -&gt; a -&gt; a)
+-&gt; Ord a
+min :: ChainCode -&gt; ChainCode -&gt; ChainCode
+$cmin :: ChainCode -&gt; ChainCode -&gt; ChainCode
+max :: ChainCode -&gt; ChainCode -&gt; ChainCode
+$cmax :: ChainCode -&gt; ChainCode -&gt; ChainCode
+&gt;= :: ChainCode -&gt; ChainCode -&gt; Bool
+$c&gt;= :: ChainCode -&gt; ChainCode -&gt; Bool
+&gt; :: ChainCode -&gt; ChainCode -&gt; Bool
+$c&gt; :: ChainCode -&gt; ChainCode -&gt; Bool
+&lt;= :: ChainCode -&gt; ChainCode -&gt; Bool
+$c&lt;= :: ChainCode -&gt; ChainCode -&gt; Bool
+&lt; :: ChainCode -&gt; ChainCode -&gt; Bool
+$c&lt; :: ChainCode -&gt; ChainCode -&gt; Bool
+compare :: ChainCode -&gt; ChainCode -&gt; Ordering
+$ccompare :: ChainCode -&gt; ChainCode -&gt; Ordering
+$cp1Ord :: Eq ChainCode
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Ord</span></span></span></span></span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679084136"><span id="local-6989586621679084138"><span id="local-6989586621679084140"><span class="annot"><span class="annottext">ChainCode -&gt; Int
+ChainCode -&gt; Ptr p -&gt; IO ()
+ChainCode -&gt; (Ptr p -&gt; IO a) -&gt; IO a
+(ChainCode -&gt; Int)
+-&gt; (forall p a. ChainCode -&gt; (Ptr p -&gt; IO a) -&gt; IO a)
+-&gt; (forall p. ChainCode -&gt; Ptr p -&gt; IO ())
+-&gt; ByteArrayAccess ChainCode
+forall p. ChainCode -&gt; Ptr p -&gt; IO ()
+forall ba.
+(ba -&gt; Int)
+-&gt; (forall p a. ba -&gt; (Ptr p -&gt; IO a) -&gt; IO a)
+-&gt; (forall p. ba -&gt; Ptr p -&gt; IO ())
+-&gt; ByteArrayAccess ba
+forall p a. ChainCode -&gt; (Ptr p -&gt; IO a) -&gt; IO a
+copyByteArrayToPtr :: ChainCode -&gt; Ptr p -&gt; IO ()
+$ccopyByteArrayToPtr :: forall p. ChainCode -&gt; Ptr p -&gt; IO ()
+withByteArray :: ChainCode -&gt; (Ptr p -&gt; IO a) -&gt; IO a
+$cwithByteArray :: forall p a. ChainCode -&gt; (Ptr p -&gt; IO a) -&gt; IO a
+length :: ChainCode -&gt; Int
+$clength :: ChainCode -&gt; Int
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">ByteArrayAccess</span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679084133"><span class="annot"><span class="annottext">ChainCode -&gt; ()
+(ChainCode -&gt; ()) -&gt; NFData ChainCode
+forall a. (a -&gt; ()) -&gt; NFData a
+rnf :: ChainCode -&gt; ()
+$crnf :: ChainCode -&gt; ()
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">NFData</span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679084128"><span id="local-6989586621679084130"><span class="annot"><span class="annottext">Int -&gt; ChainCode -&gt; Int
+ChainCode -&gt; Int
+(Int -&gt; ChainCode -&gt; Int)
+-&gt; (ChainCode -&gt; Int) -&gt; Hashable ChainCode
+forall a. (Int -&gt; a -&gt; Int) -&gt; (a -&gt; Int) -&gt; Hashable a
+hash :: ChainCode -&gt; Int
+$chash :: ChainCode -&gt; Int
+hashWithSalt :: Int -&gt; ChainCode -&gt; Int
+$chashWithSalt :: Int -&gt; ChainCode -&gt; Int
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Hashable</span></span></span></span><span class="hs-special">)</span><span>
+</span><span id="line-30"></span></pre></body></html>

@@ -1,105 +1,1196 @@
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-pragma">{-# LANGUAGE DeriveAnyClass #-}</span><span>
-</span><a name="line-2"></a><span class="hs-pragma">{-# LANGUAGE DeriveFoldable #-}</span><span>
-</span><a name="line-3"></a><span class="hs-pragma">{-# LANGUAGE DeriveFunctor #-}</span><span>
-</span><a name="line-4"></a><span class="hs-pragma">{-# LANGUAGE DeriveGeneric #-}</span><span>
-</span><a name="line-5"></a><span class="hs-pragma">{-# LANGUAGE DeriveTraversable #-}</span><span>
-</span><a name="line-6"></a><span class="hs-pragma">{-# LANGUAGE DerivingStrategies #-}</span><span>
-</span><a name="line-7"></a><span class="hs-pragma">{-# LANGUAGE DerivingVia #-}</span><span>
-</span><a name="line-8"></a><span class="hs-pragma">{-# LANGUAGE GeneralizedNewtypeDeriving #-}</span><span>
-</span><a name="line-9"></a><span>
-</span><a name="line-10"></a><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Cardano.Slotting.Slot</span><span>
-</span><a name="line-11"></a><span>  </span><span class="hs-special">(</span><span> </span><a href="Cardano.Slotting.Slot.html#SlotNo"><span class="hs-identifier hs-type">SlotNo</span></a><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span>
-</span><a name="line-12"></a><span>    </span><a href="Cardano.Slotting.Slot.html#WithOrigin"><span class="hs-identifier hs-type">WithOrigin</span></a><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span>
-</span><a name="line-13"></a><span>    </span><a href="Cardano.Slotting.Slot.html#at"><span class="hs-identifier hs-var">at</span></a><span class="hs-special">,</span><span>
-</span><a name="line-14"></a><span>    </span><a href="Cardano.Slotting.Slot.html#origin"><span class="hs-identifier hs-var">origin</span></a><span class="hs-special">,</span><span>
-</span><a name="line-15"></a><span>    </span><a href="Cardano.Slotting.Slot.html#fromWithOrigin"><span class="hs-identifier hs-var">fromWithOrigin</span></a><span class="hs-special">,</span><span>
-</span><a name="line-16"></a><span>    </span><a href="Cardano.Slotting.Slot.html#withOrigin"><span class="hs-identifier hs-var">withOrigin</span></a><span class="hs-special">,</span><span>
-</span><a name="line-17"></a><span>    </span><a href="Cardano.Slotting.Slot.html#withOriginToMaybe"><span class="hs-identifier hs-var">withOriginToMaybe</span></a><span class="hs-special">,</span><span>
-</span><a name="line-18"></a><span>    </span><a href="Cardano.Slotting.Slot.html#withOriginFromMaybe"><span class="hs-identifier hs-var">withOriginFromMaybe</span></a><span class="hs-special">,</span><span>
-</span><a name="line-19"></a><span>    </span><a href="Cardano.Slotting.Slot.html#EpochNo"><span class="hs-identifier hs-type">EpochNo</span></a><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span>
-</span><a name="line-20"></a><span>    </span><a href="Cardano.Slotting.Slot.html#EpochSize"><span class="hs-identifier hs-type">EpochSize</span></a><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span>
-</span><a name="line-21"></a><span>  </span><span class="hs-special">)</span><span>
-</span><a name="line-22"></a><span class="hs-keyword">where</span><span>
-</span><a name="line-23"></a><span>
-</span><a name="line-24"></a><span class="hs-keyword">import</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.html"><span class="hs-identifier">Cardano.Binary</span></a><span> </span><span class="hs-special">(</span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.FromCBOR.html#FromCBOR"><span class="hs-identifier hs-type">FromCBOR</span></a><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.ToCBOR.html#ToCBOR"><span class="hs-identifier hs-type">ToCBOR</span></a><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
-</span><a name="line-25"></a><span class="hs-keyword">import</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-prelude-0.1.0.0/noopt/doc/html/cardano-prelude/src/Cardano.Prelude.html"><span class="hs-identifier">Cardano.Prelude</span></a><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">NFData</span><span class="hs-special">,</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-prelude-0.1.0.0/noopt/doc/html/cardano-prelude/src/Cardano.Prelude.GHC.Heap.NormalForm.Classy.html#NoUnexpectedThunks"><span class="hs-identifier hs-type">NoUnexpectedThunks</span></a><span class="hs-special">)</span><span>
-</span><a name="line-26"></a><span class="hs-keyword">import</span><span> </span><span class="hs-identifier">Codec.Serialise</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Serialise</span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
-</span><a name="line-27"></a><span class="hs-keyword">import</span><span> </span><span class="hs-identifier">Data.Aeson</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">FromJSON</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">ToJSON</span><span class="hs-special">)</span><span>
-</span><a name="line-28"></a><span class="hs-keyword">import</span><span> </span><span class="hs-identifier">Data.Typeable</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Typeable</span><span class="hs-special">)</span><span>
-</span><a name="line-29"></a><span class="hs-keyword">import</span><span> </span><span class="hs-identifier">Data.Word</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Word64</span><span class="hs-special">)</span><span>
-</span><a name="line-30"></a><span class="hs-keyword">import</span><span> </span><span class="hs-identifier">Quiet</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Quiet</span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
-</span><a name="line-31"></a><span class="hs-keyword">import</span><span> </span><span class="hs-identifier">GHC.Generics</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Generic</span><span class="hs-special">)</span><span>
-</span><a name="line-32"></a><span>
-</span><a name="line-33"></a><span class="hs-comment">-- | The 0-based index for the Ourboros time slot.</span><span>
-</span><a name="line-34"></a><span class="hs-keyword">newtype</span><span> </span><a name="SlotNo"><a href="Cardano.Slotting.Slot.html#SlotNo"><span class="hs-identifier">SlotNo</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><a name="SlotNo"><a href="Cardano.Slotting.Slot.html#SlotNo"><span class="hs-identifier">SlotNo</span></a></a><span> </span><span class="hs-special">{</span><a name="unSlotNo"><a href="Cardano.Slotting.Slot.html#unSlotNo"><span class="hs-identifier">unSlotNo</span></a></a><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">Word64</span><span class="hs-special">}</span><span>
-</span><a name="line-35"></a><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-keyword">stock</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Eq</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Ord</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Generic</span><span class="hs-special">)</span><span>
-</span><a name="line-36"></a><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-identifier hs-type">Show</span><span> </span><span class="hs-keyword">via</span><span> </span><span class="hs-identifier hs-type">Quiet</span><span> </span><a href="Cardano.Slotting.Slot.html#SlotNo"><span class="hs-identifier hs-type">SlotNo</span></a><span>
-</span><a name="line-37"></a><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-keyword">newtype</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Enum</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Bounded</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Num</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">NFData</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Serialise</span><span class="hs-special">,</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-prelude-0.1.0.0/noopt/doc/html/cardano-prelude/src/Cardano.Prelude.GHC.Heap.NormalForm.Classy.html#NoUnexpectedThunks"><span class="hs-identifier hs-type">NoUnexpectedThunks</span></a><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">ToJSON</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">FromJSON</span><span class="hs-special">)</span><span>
-</span><a name="line-38"></a><span>
-</span><a name="line-39"></a><span class="hs-keyword">instance</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.ToCBOR.html#ToCBOR"><span class="hs-identifier hs-type">ToCBOR</span></a><span> </span><a href="Cardano.Slotting.Slot.html#SlotNo"><span class="hs-identifier hs-type">SlotNo</span></a><span> </span><span class="hs-keyword">where</span><span>
-</span><a name="line-40"></a><span>  </span><a name="local-8214565720323791715"><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.ToCBOR.html#toCBOR"><span class="hs-identifier">toCBOR</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-identifier hs-var">encode</span><span>
-</span><a name="line-41"></a><span>  </span><a name="local-8214565720323791714"><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.ToCBOR.html#encodedSizeExpr"><span class="hs-identifier">encodedSizeExpr</span></a></a><span> </span><a name="local-6989586621679097610"><a href="#local-6989586621679097610"><span class="hs-identifier">size</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.ToCBOR.html#encodedSizeExpr"><span class="hs-identifier hs-var">encodedSizeExpr</span></a><span> </span><a href="#local-6989586621679097610"><span class="hs-identifier hs-var">size</span></a><span> </span><span class="hs-operator hs-var">.</span><span> </span><span class="hs-identifier hs-var">fmap</span><span> </span><span class="hs-identifier">unSlotNo</span><span>
-</span><a name="line-42"></a><span>
-</span><a name="line-43"></a><span class="hs-keyword">instance</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.FromCBOR.html#FromCBOR"><span class="hs-identifier hs-type">FromCBOR</span></a><span> </span><a href="Cardano.Slotting.Slot.html#SlotNo"><span class="hs-identifier hs-type">SlotNo</span></a><span> </span><span class="hs-keyword">where</span><span>
-</span><a name="line-44"></a><span>  </span><a name="local-8214565720323791782"><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.FromCBOR.html#fromCBOR"><span class="hs-identifier">fromCBOR</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-identifier hs-var">decode</span><span>
-</span><a name="line-45"></a><span>
-</span><a name="line-46"></a><span class="hs-comment">{-------------------------------------------------------------------------------
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span id="%24con2tag_LlyGQ9pns5UDqyNQn8Bn7X"></span><span class="hs-pragma">{-# LANGUAGE DeriveAnyClass #-}</span><span>
+</span><span id="line-2"></span><span class="hs-pragma">{-# LANGUAGE DeriveFoldable #-}</span><span>
+</span><span id="line-3"></span><span class="hs-pragma">{-# LANGUAGE DeriveFunctor #-}</span><span>
+</span><span id="line-4"></span><span class="hs-pragma">{-# LANGUAGE DeriveGeneric #-}</span><span>
+</span><span id="line-5"></span><span class="hs-pragma">{-# LANGUAGE DeriveTraversable #-}</span><span>
+</span><span id="line-6"></span><span class="hs-pragma">{-# LANGUAGE DerivingStrategies #-}</span><span>
+</span><span id="line-7"></span><span class="hs-pragma">{-# LANGUAGE DerivingVia #-}</span><span>
+</span><span id="line-8"></span><span class="hs-pragma">{-# LANGUAGE GeneralizedNewtypeDeriving #-}</span><span>
+</span><span id="line-9"></span><span>
+</span><span id="line-10"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Cardano.Slotting.Slot</span><span>
+</span><span id="line-11"></span><span>  </span><span class="hs-special">(</span><span> </span><span class="annot"><a href="Cardano.Slotting.Slot.html#SlotNo"><span class="hs-identifier">SlotNo</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span>
+</span><span id="line-12"></span><span>    </span><span class="annot"><a href="Cardano.Slotting.Slot.html#WithOrigin"><span class="hs-identifier">WithOrigin</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span>
+</span><span id="line-13"></span><span>    </span><span class="annot"><a href="Cardano.Slotting.Slot.html#at"><span class="hs-identifier">at</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-14"></span><span>    </span><span class="annot"><a href="Cardano.Slotting.Slot.html#origin"><span class="hs-identifier">origin</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-15"></span><span>    </span><span class="annot"><a href="Cardano.Slotting.Slot.html#fromWithOrigin"><span class="hs-identifier">fromWithOrigin</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-16"></span><span>    </span><span class="annot"><a href="Cardano.Slotting.Slot.html#withOrigin"><span class="hs-identifier">withOrigin</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-17"></span><span>    </span><span class="annot"><a href="Cardano.Slotting.Slot.html#withOriginToMaybe"><span class="hs-identifier">withOriginToMaybe</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-18"></span><span>    </span><span class="annot"><a href="Cardano.Slotting.Slot.html#withOriginFromMaybe"><span class="hs-identifier">withOriginFromMaybe</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-19"></span><span>    </span><span class="annot"><a href="Cardano.Slotting.Slot.html#EpochNo"><span class="hs-identifier">EpochNo</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span>
+</span><span id="line-20"></span><span>    </span><span class="annot"><a href="Cardano.Slotting.Slot.html#EpochSize"><span class="hs-identifier">EpochSize</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span>
+</span><span id="line-21"></span><span>  </span><span class="hs-special">)</span><span>
+</span><span id="line-22"></span><span class="hs-keyword">where</span><span>
+</span><span id="line-23"></span><span>
+</span><span id="line-24"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src"><span class="hs-identifier">Cardano.Binary</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src"><span class="hs-identifier">FromCBOR</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src"><span class="hs-identifier">ToCBOR</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-25"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Codec.Serialise</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Serialise</span></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-26"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Control.DeepSeq</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">NFData</span></span><span class="hs-special">)</span><span>
+</span><span id="line-27"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Aeson</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">FromJSON</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">ToJSON</span></span><span class="hs-special">)</span><span>
+</span><span id="line-28"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Typeable</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Typeable</span></span><span class="hs-special">)</span><span>
+</span><span id="line-29"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Word</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Word64</span></span><span class="hs-special">)</span><span>
+</span><span id="line-30"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">GHC.Generics</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Generic</span></span><span class="hs-special">)</span><span>
+</span><span id="line-31"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Quiet</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Quiet</span></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-32"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">NoThunks.Class</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">NoThunks</span></span><span class="hs-special">)</span><span>
+</span><span id="line-33"></span><span>
+</span><span id="line-34"></span><span class="hs-comment">-- | The 0-based index for the Ourboros time slot.</span><span>
+</span><span id="line-35"></span><span id="local-6989586621679091800"><span id="local-6989586621679091801"></span></span><span class="hs-keyword">newtype</span><span> </span><span id="SlotNo"><span class="annot"><a href="Cardano.Slotting.Slot.html#SlotNo"><span class="hs-identifier hs-var">SlotNo</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="SlotNo"><span class="annot"><a href="Cardano.Slotting.Slot.html#SlotNo"><span class="hs-identifier hs-var">SlotNo</span></a></span></span><span> </span><span class="hs-special">{</span><span id="unSlotNo"><span class="annot"><span class="annottext">SlotNo -&gt; Word64
+</span><a href="Cardano.Slotting.Slot.html#unSlotNo"><span class="hs-identifier hs-var hs-var">unSlotNo</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Word64</span></span><span class="hs-special">}</span><span>
+</span><span id="line-36"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="annot"><span class="hs-keyword">stock</span></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679091794"><span id="local-6989586621679091796"><span class="annot"><span class="annottext">SlotNo -&gt; SlotNo -&gt; Bool
+(SlotNo -&gt; SlotNo -&gt; Bool)
+-&gt; (SlotNo -&gt; SlotNo -&gt; Bool) -&gt; Eq SlotNo
+forall a. (a -&gt; a -&gt; Bool) -&gt; (a -&gt; a -&gt; Bool) -&gt; Eq a
+/= :: SlotNo -&gt; SlotNo -&gt; Bool
+$c/= :: SlotNo -&gt; SlotNo -&gt; Bool
+== :: SlotNo -&gt; SlotNo -&gt; Bool
+$c== :: SlotNo -&gt; SlotNo -&gt; Bool
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679091778"><span id="local-6989586621679091780"><span id="local-6989586621679091782"><span id="local-6989586621679091784"><span id="local-6989586621679091786"><span id="local-6989586621679091788"><span id="local-6989586621679091790"><span class="annot"><span class="annottext">Eq SlotNo
+Eq SlotNo
+-&gt; (SlotNo -&gt; SlotNo -&gt; Ordering)
+-&gt; (SlotNo -&gt; SlotNo -&gt; Bool)
+-&gt; (SlotNo -&gt; SlotNo -&gt; Bool)
+-&gt; (SlotNo -&gt; SlotNo -&gt; Bool)
+-&gt; (SlotNo -&gt; SlotNo -&gt; Bool)
+-&gt; (SlotNo -&gt; SlotNo -&gt; SlotNo)
+-&gt; (SlotNo -&gt; SlotNo -&gt; SlotNo)
+-&gt; Ord SlotNo
+SlotNo -&gt; SlotNo -&gt; Bool
+SlotNo -&gt; SlotNo -&gt; Ordering
+SlotNo -&gt; SlotNo -&gt; SlotNo
+forall a.
+Eq a
+-&gt; (a -&gt; a -&gt; Ordering)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; a)
+-&gt; (a -&gt; a -&gt; a)
+-&gt; Ord a
+min :: SlotNo -&gt; SlotNo -&gt; SlotNo
+$cmin :: SlotNo -&gt; SlotNo -&gt; SlotNo
+max :: SlotNo -&gt; SlotNo -&gt; SlotNo
+$cmax :: SlotNo -&gt; SlotNo -&gt; SlotNo
+&gt;= :: SlotNo -&gt; SlotNo -&gt; Bool
+$c&gt;= :: SlotNo -&gt; SlotNo -&gt; Bool
+&gt; :: SlotNo -&gt; SlotNo -&gt; Bool
+$c&gt; :: SlotNo -&gt; SlotNo -&gt; Bool
+&lt;= :: SlotNo -&gt; SlotNo -&gt; Bool
+$c&lt;= :: SlotNo -&gt; SlotNo -&gt; Bool
+&lt; :: SlotNo -&gt; SlotNo -&gt; Bool
+$c&lt; :: SlotNo -&gt; SlotNo -&gt; Bool
+compare :: SlotNo -&gt; SlotNo -&gt; Ordering
+$ccompare :: SlotNo -&gt; SlotNo -&gt; Ordering
+$cp1Ord :: Eq SlotNo
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Ord</span></span></span></span></span></span></span></span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">(forall x. SlotNo -&gt; Rep SlotNo x)
+-&gt; (forall x. Rep SlotNo x -&gt; SlotNo) -&gt; Generic SlotNo
+forall x. Rep SlotNo x -&gt; SlotNo
+forall x. SlotNo -&gt; Rep SlotNo x
+forall a.
+(forall x. a -&gt; Rep a x) -&gt; (forall x. Rep a x -&gt; a) -&gt; Generic a
+$cto :: forall x. Rep SlotNo x -&gt; SlotNo
+$cfrom :: forall x. SlotNo -&gt; Rep SlotNo x
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">Generic</span></span><span class="hs-special">)</span><span>
+</span><span id="line-37"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span id="local-6989586621679091768"><span id="local-6989586621679091770"><span id="local-6989586621679091772"><span class="annot"><span class="annottext">Int -&gt; SlotNo -&gt; ShowS
+[SlotNo] -&gt; ShowS
+SlotNo -&gt; String
+(Int -&gt; SlotNo -&gt; ShowS)
+-&gt; (SlotNo -&gt; String) -&gt; ([SlotNo] -&gt; ShowS) -&gt; Show SlotNo
+forall a.
+(Int -&gt; a -&gt; ShowS) -&gt; (a -&gt; String) -&gt; ([a] -&gt; ShowS) -&gt; Show a
+showList :: [SlotNo] -&gt; ShowS
+$cshowList :: [SlotNo] -&gt; ShowS
+show :: SlotNo -&gt; String
+$cshow :: SlotNo -&gt; String
+showsPrec :: Int -&gt; SlotNo -&gt; ShowS
+$cshowsPrec :: Int -&gt; SlotNo -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span> </span><span class="hs-keyword">via</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Quiet</span></span><span> </span><span class="annot"><a href="Cardano.Slotting.Slot.html#SlotNo"><span class="hs-identifier hs-type">SlotNo</span></a></span><span>
+</span><span id="line-38"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="annot"><span class="hs-keyword">newtype</span></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679091751"><span id="local-6989586621679091753"><span id="local-6989586621679091755"><span id="local-6989586621679091757"><span id="local-6989586621679091759"><span id="local-6989586621679091761"><span id="local-6989586621679091763"><span id="local-6989586621679091765"><span class="annot"><span class="annottext">Int -&gt; SlotNo
+SlotNo -&gt; Int
+SlotNo -&gt; [SlotNo]
+SlotNo -&gt; SlotNo
+SlotNo -&gt; SlotNo -&gt; [SlotNo]
+SlotNo -&gt; SlotNo -&gt; SlotNo -&gt; [SlotNo]
+(SlotNo -&gt; SlotNo)
+-&gt; (SlotNo -&gt; SlotNo)
+-&gt; (Int -&gt; SlotNo)
+-&gt; (SlotNo -&gt; Int)
+-&gt; (SlotNo -&gt; [SlotNo])
+-&gt; (SlotNo -&gt; SlotNo -&gt; [SlotNo])
+-&gt; (SlotNo -&gt; SlotNo -&gt; [SlotNo])
+-&gt; (SlotNo -&gt; SlotNo -&gt; SlotNo -&gt; [SlotNo])
+-&gt; Enum SlotNo
+forall a.
+(a -&gt; a)
+-&gt; (a -&gt; a)
+-&gt; (Int -&gt; a)
+-&gt; (a -&gt; Int)
+-&gt; (a -&gt; [a])
+-&gt; (a -&gt; a -&gt; [a])
+-&gt; (a -&gt; a -&gt; [a])
+-&gt; (a -&gt; a -&gt; a -&gt; [a])
+-&gt; Enum a
+enumFromThenTo :: SlotNo -&gt; SlotNo -&gt; SlotNo -&gt; [SlotNo]
+$cenumFromThenTo :: SlotNo -&gt; SlotNo -&gt; SlotNo -&gt; [SlotNo]
+enumFromTo :: SlotNo -&gt; SlotNo -&gt; [SlotNo]
+$cenumFromTo :: SlotNo -&gt; SlotNo -&gt; [SlotNo]
+enumFromThen :: SlotNo -&gt; SlotNo -&gt; [SlotNo]
+$cenumFromThen :: SlotNo -&gt; SlotNo -&gt; [SlotNo]
+enumFrom :: SlotNo -&gt; [SlotNo]
+$cenumFrom :: SlotNo -&gt; [SlotNo]
+fromEnum :: SlotNo -&gt; Int
+$cfromEnum :: SlotNo -&gt; Int
+toEnum :: Int -&gt; SlotNo
+$ctoEnum :: Int -&gt; SlotNo
+pred :: SlotNo -&gt; SlotNo
+$cpred :: SlotNo -&gt; SlotNo
+succ :: SlotNo -&gt; SlotNo
+$csucc :: SlotNo -&gt; SlotNo
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Enum</span></span></span></span></span></span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679091746"><span id="local-6989586621679091748"><span class="annot"><span class="annottext">SlotNo
+SlotNo -&gt; SlotNo -&gt; Bounded SlotNo
+forall a. a -&gt; a -&gt; Bounded a
+maxBound :: SlotNo
+$cmaxBound :: SlotNo
+minBound :: SlotNo
+$cminBound :: SlotNo
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Bounded</span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679091731"><span id="local-6989586621679091733"><span id="local-6989586621679091735"><span id="local-6989586621679091737"><span id="local-6989586621679091739"><span id="local-6989586621679091741"><span id="local-6989586621679091743"><span class="annot"><span class="annottext">Integer -&gt; SlotNo
+SlotNo -&gt; SlotNo
+SlotNo -&gt; SlotNo -&gt; SlotNo
+(SlotNo -&gt; SlotNo -&gt; SlotNo)
+-&gt; (SlotNo -&gt; SlotNo -&gt; SlotNo)
+-&gt; (SlotNo -&gt; SlotNo -&gt; SlotNo)
+-&gt; (SlotNo -&gt; SlotNo)
+-&gt; (SlotNo -&gt; SlotNo)
+-&gt; (SlotNo -&gt; SlotNo)
+-&gt; (Integer -&gt; SlotNo)
+-&gt; Num SlotNo
+forall a.
+(a -&gt; a -&gt; a)
+-&gt; (a -&gt; a -&gt; a)
+-&gt; (a -&gt; a -&gt; a)
+-&gt; (a -&gt; a)
+-&gt; (a -&gt; a)
+-&gt; (a -&gt; a)
+-&gt; (Integer -&gt; a)
+-&gt; Num a
+fromInteger :: Integer -&gt; SlotNo
+$cfromInteger :: Integer -&gt; SlotNo
+signum :: SlotNo -&gt; SlotNo
+$csignum :: SlotNo -&gt; SlotNo
+abs :: SlotNo -&gt; SlotNo
+$cabs :: SlotNo -&gt; SlotNo
+negate :: SlotNo -&gt; SlotNo
+$cnegate :: SlotNo -&gt; SlotNo
+* :: SlotNo -&gt; SlotNo -&gt; SlotNo
+$c* :: SlotNo -&gt; SlotNo -&gt; SlotNo
+- :: SlotNo -&gt; SlotNo -&gt; SlotNo
+$c- :: SlotNo -&gt; SlotNo -&gt; SlotNo
++ :: SlotNo -&gt; SlotNo -&gt; SlotNo
+$c+ :: SlotNo -&gt; SlotNo -&gt; SlotNo
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Num</span></span></span></span></span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679091728"><span class="annot"><span class="annottext">SlotNo -&gt; ()
+(SlotNo -&gt; ()) -&gt; NFData SlotNo
+forall a. (a -&gt; ()) -&gt; NFData a
+rnf :: SlotNo -&gt; ()
+$crnf :: SlotNo -&gt; ()
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">NFData</span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679091719"><span id="local-6989586621679091721"><span id="local-6989586621679091723"><span id="local-6989586621679091725"><span class="annot"><span class="annottext">Decoder s SlotNo
+Decoder s [SlotNo]
+[SlotNo] -&gt; Encoding
+SlotNo -&gt; Encoding
+(SlotNo -&gt; Encoding)
+-&gt; (forall s. Decoder s SlotNo)
+-&gt; ([SlotNo] -&gt; Encoding)
+-&gt; (forall s. Decoder s [SlotNo])
+-&gt; Serialise SlotNo
+forall s. Decoder s [SlotNo]
+forall s. Decoder s SlotNo
+forall a.
+(a -&gt; Encoding)
+-&gt; (forall s. Decoder s a)
+-&gt; ([a] -&gt; Encoding)
+-&gt; (forall s. Decoder s [a])
+-&gt; Serialise a
+decodeList :: Decoder s [SlotNo]
+$cdecodeList :: forall s. Decoder s [SlotNo]
+encodeList :: [SlotNo] -&gt; Encoding
+$cencodeList :: [SlotNo] -&gt; Encoding
+decode :: Decoder s SlotNo
+$cdecode :: forall s. Decoder s SlotNo
+encode :: SlotNo -&gt; Encoding
+$cencode :: SlotNo -&gt; Encoding
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Serialise</span></span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679091712"><span id="local-6989586621679091714"><span id="local-6989586621679091716"><span class="annot"><span class="annottext">Context -&gt; SlotNo -&gt; IO (Maybe ThunkInfo)
+Proxy SlotNo -&gt; String
+(Context -&gt; SlotNo -&gt; IO (Maybe ThunkInfo))
+-&gt; (Context -&gt; SlotNo -&gt; IO (Maybe ThunkInfo))
+-&gt; (Proxy SlotNo -&gt; String)
+-&gt; NoThunks SlotNo
+forall a.
+(Context -&gt; a -&gt; IO (Maybe ThunkInfo))
+-&gt; (Context -&gt; a -&gt; IO (Maybe ThunkInfo))
+-&gt; (Proxy a -&gt; String)
+-&gt; NoThunks a
+showTypeOf :: Proxy SlotNo -&gt; String
+$cshowTypeOf :: Proxy SlotNo -&gt; String
+wNoThunks :: Context -&gt; SlotNo -&gt; IO (Maybe ThunkInfo)
+$cwNoThunks :: Context -&gt; SlotNo -&gt; IO (Maybe ThunkInfo)
+noThunks :: Context -&gt; SlotNo -&gt; IO (Maybe ThunkInfo)
+$cnoThunks :: Context -&gt; SlotNo -&gt; IO (Maybe ThunkInfo)
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">NoThunks</span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679091703"><span id="local-6989586621679091705"><span id="local-6989586621679091707"><span id="local-6989586621679091709"><span class="annot"><span class="annottext">[SlotNo] -&gt; Value
+[SlotNo] -&gt; Encoding
+SlotNo -&gt; Value
+SlotNo -&gt; Encoding
+(SlotNo -&gt; Value)
+-&gt; (SlotNo -&gt; Encoding)
+-&gt; ([SlotNo] -&gt; Value)
+-&gt; ([SlotNo] -&gt; Encoding)
+-&gt; ToJSON SlotNo
+forall a.
+(a -&gt; Value)
+-&gt; (a -&gt; Encoding)
+-&gt; ([a] -&gt; Value)
+-&gt; ([a] -&gt; Encoding)
+-&gt; ToJSON a
+toEncodingList :: [SlotNo] -&gt; Encoding
+$ctoEncodingList :: [SlotNo] -&gt; Encoding
+toJSONList :: [SlotNo] -&gt; Value
+$ctoJSONList :: [SlotNo] -&gt; Value
+toEncoding :: SlotNo -&gt; Encoding
+$ctoEncoding :: SlotNo -&gt; Encoding
+toJSON :: SlotNo -&gt; Value
+$ctoJSON :: SlotNo -&gt; Value
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">ToJSON</span></span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679091698"><span id="local-6989586621679091700"><span class="annot"><span class="annottext">Value -&gt; Parser [SlotNo]
+Value -&gt; Parser SlotNo
+(Value -&gt; Parser SlotNo)
+-&gt; (Value -&gt; Parser [SlotNo]) -&gt; FromJSON SlotNo
+forall a.
+(Value -&gt; Parser a) -&gt; (Value -&gt; Parser [a]) -&gt; FromJSON a
+parseJSONList :: Value -&gt; Parser [SlotNo]
+$cparseJSONList :: Value -&gt; Parser [SlotNo]
+parseJSON :: Value -&gt; Parser SlotNo
+$cparseJSON :: Value -&gt; Parser SlotNo
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">FromJSON</span></span></span></span><span class="hs-special">)</span><span>
+</span><span id="line-39"></span><span>
+</span><span id="line-40"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679091692"><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src"><span class="hs-identifier hs-type">ToCBOR</span></a></span><span> </span><span class="annot"><a href="Cardano.Slotting.Slot.html#SlotNo"><span class="hs-identifier hs-type">SlotNo</span></a></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-41"></span><span>  </span><span id="local-6989586621679091690"><span class="annot"><span class="annottext">toCBOR :: SlotNo -&gt; Encoding
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src"><span class="hs-identifier hs-var hs-var hs-var hs-var">toCBOR</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">SlotNo -&gt; Encoding
+forall a. Serialise a =&gt; a -&gt; Encoding
+</span><span class="hs-identifier hs-var">encode</span></span><span>
+</span><span id="line-42"></span><span>  </span><span id="local-6989586621679091687"><span class="annot"><span class="annottext">encodedSizeExpr :: (forall t. ToCBOR t =&gt; Proxy t -&gt; Size) -&gt; Proxy SlotNo -&gt; Size
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src"><span class="hs-identifier hs-var hs-var hs-var hs-var">encodedSizeExpr</span></a></span></span><span> </span><span id="local-6989586621679091685"><span class="annot"><span class="annottext">forall t. ToCBOR t =&gt; Proxy t -&gt; Size
+</span><a href="#local-6989586621679091685"><span class="hs-identifier hs-var">size</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(forall t. ToCBOR t =&gt; Proxy t -&gt; Size) -&gt; Proxy Word64 -&gt; Size
+forall a.
+ToCBOR a =&gt;
+(forall t. ToCBOR t =&gt; Proxy t -&gt; Size) -&gt; Proxy a -&gt; Size
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src"><span class="hs-identifier hs-var">encodedSizeExpr</span></a></span><span> </span><span class="annot"><span class="annottext">forall t. ToCBOR t =&gt; Proxy t -&gt; Size
+</span><a href="#local-6989586621679091685"><span class="hs-identifier hs-var">size</span></a></span><span> </span><span class="annot"><span class="annottext">(Proxy Word64 -&gt; Size)
+-&gt; (Proxy SlotNo -&gt; Proxy Word64) -&gt; Proxy SlotNo -&gt; Size
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">(SlotNo -&gt; Word64) -&gt; Proxy SlotNo -&gt; Proxy Word64
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-identifier hs-var">fmap</span></span><span> </span><span class="annot"><span class="annottext">SlotNo -&gt; Word64
+</span><a href="Cardano.Slotting.Slot.html#unSlotNo"><span class="hs-identifier hs-var hs-var">unSlotNo</span></a></span><span>
+</span><span id="line-43"></span><span>
+</span><span id="line-44"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679091680"><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src"><span class="hs-identifier hs-type">FromCBOR</span></a></span><span> </span><span class="annot"><a href="Cardano.Slotting.Slot.html#SlotNo"><span class="hs-identifier hs-type">SlotNo</span></a></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-45"></span><span>  </span><span id="local-6989586621679091678"><span class="annot"><span class="annottext">fromCBOR :: Decoder s SlotNo
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src"><span class="hs-identifier hs-var hs-var hs-var hs-var">fromCBOR</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Decoder s SlotNo
+forall a s. Serialise a =&gt; Decoder s a
+</span><span class="hs-identifier hs-var">decode</span></span><span>
+</span><span id="line-46"></span><span>
+</span><span id="line-47"></span><span class="hs-comment">{-------------------------------------------------------------------------------
   WithOrigin
 -------------------------------------------------------------------------------}</span><span>
-</span><a name="line-49"></a><span>
-</span><a name="line-50"></a><span class="hs-keyword">data</span><span> </span><a name="WithOrigin"><a href="Cardano.Slotting.Slot.html#WithOrigin"><span class="hs-identifier">WithOrigin</span></a></a><span> </span><a name="local-6989586621679095472"><a href="#local-6989586621679095472"><span class="hs-identifier">t</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><a name="Origin"><a href="Cardano.Slotting.Slot.html#Origin"><span class="hs-identifier">Origin</span></a></a><span> </span><span class="hs-glyph">|</span><span> </span><a name="At"><a href="Cardano.Slotting.Slot.html#At"><span class="hs-identifier">At</span></a></a><span> </span><span class="hs-glyph">!</span><a href="#local-6989586621679095472"><span class="hs-identifier hs-type">t</span></a><span>
-</span><a name="line-51"></a><span>  </span><span class="hs-keyword">deriving</span><span>
-</span><a name="line-52"></a><span>    </span><span class="hs-special">(</span><span> </span><span class="hs-identifier hs-type">Eq</span><span class="hs-special">,</span><span>
-</span><a name="line-53"></a><span>      </span><span class="hs-identifier hs-type">Ord</span><span class="hs-special">,</span><span>
-</span><a name="line-54"></a><span>      </span><span class="hs-identifier hs-type">Show</span><span class="hs-special">,</span><span>
-</span><a name="line-55"></a><span>      </span><span class="hs-identifier hs-type">Generic</span><span class="hs-special">,</span><span>
-</span><a name="line-56"></a><span>      </span><span class="hs-identifier hs-type">Functor</span><span class="hs-special">,</span><span>
-</span><a name="line-57"></a><span>      </span><span class="hs-identifier hs-type">Foldable</span><span class="hs-special">,</span><span>
-</span><a name="line-58"></a><span>      </span><span class="hs-identifier hs-type">Traversable</span><span class="hs-special">,</span><span>
-</span><a name="line-59"></a><span>      </span><span class="hs-identifier hs-type">Serialise</span><span class="hs-special">,</span><span>
-</span><a name="line-60"></a><span>      </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-prelude-0.1.0.0/noopt/doc/html/cardano-prelude/src/Cardano.Prelude.GHC.Heap.NormalForm.Classy.html#NoUnexpectedThunks"><span class="hs-identifier hs-type">NoUnexpectedThunks</span></a><span>
-</span><a name="line-61"></a><span>    </span><span class="hs-special">)</span><span>
-</span><a name="line-62"></a><span>
-</span><a name="line-63"></a><span class="hs-keyword">instance</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Serialise</span><span> </span><a href="#local-6989586621679097609"><span class="hs-identifier hs-type">t</span></a><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Typeable</span><span> </span><a href="#local-6989586621679097609"><span class="hs-identifier hs-type">t</span></a><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.ToCBOR.html#ToCBOR"><span class="hs-identifier hs-type">ToCBOR</span></a><span> </span><span class="hs-special">(</span><a href="Cardano.Slotting.Slot.html#WithOrigin"><span class="hs-identifier hs-type">WithOrigin</span></a><span> </span><a href="#local-6989586621679097609"><span class="hs-identifier hs-type">t</span></a><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
-</span><a name="line-64"></a><span>  </span><a name="local-8214565720323791715"><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.ToCBOR.html#toCBOR"><span class="hs-identifier">toCBOR</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-identifier hs-var">encode</span><span>
-</span><a name="line-65"></a><span>
-</span><a name="line-66"></a><span class="hs-keyword">instance</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Serialise</span><span> </span><a href="#local-6989586621679097608"><span class="hs-identifier hs-type">t</span></a><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Typeable</span><span> </span><a href="#local-6989586621679097608"><span class="hs-identifier hs-type">t</span></a><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.FromCBOR.html#FromCBOR"><span class="hs-identifier hs-type">FromCBOR</span></a><span> </span><span class="hs-special">(</span><a href="Cardano.Slotting.Slot.html#WithOrigin"><span class="hs-identifier hs-type">WithOrigin</span></a><span> </span><a href="#local-6989586621679097608"><span class="hs-identifier hs-type">t</span></a><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
-</span><a name="line-67"></a><span>  </span><a name="local-8214565720323791782"><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.FromCBOR.html#fromCBOR"><span class="hs-identifier">fromCBOR</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-identifier hs-var">decode</span><span>
-</span><a name="line-68"></a><span>
-</span><a name="line-69"></a><span class="hs-identifier">at</span><span> </span><span class="hs-glyph">::</span><span> </span><a href="#local-6989586621679097617"><span class="hs-identifier hs-type">t</span></a><span> </span><span class="hs-glyph">-&gt;</span><span> </span><a href="Cardano.Slotting.Slot.html#WithOrigin"><span class="hs-identifier hs-type">WithOrigin</span></a><span> </span><a href="#local-6989586621679097617"><span class="hs-identifier hs-type">t</span></a><span>
-</span><a name="line-70"></a><a name="at"><a href="Cardano.Slotting.Slot.html#at"><span class="hs-identifier">at</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><a href="Cardano.Slotting.Slot.html#At"><span class="hs-identifier hs-var">At</span></a><span>
-</span><a name="line-71"></a><span>
-</span><a name="line-72"></a><span class="hs-identifier">origin</span><span> </span><span class="hs-glyph">::</span><span> </span><a href="Cardano.Slotting.Slot.html#WithOrigin"><span class="hs-identifier hs-type">WithOrigin</span></a><span> </span><a href="#local-6989586621679097616"><span class="hs-identifier hs-type">t</span></a><span>
-</span><a name="line-73"></a><a name="origin"><a href="Cardano.Slotting.Slot.html#origin"><span class="hs-identifier">origin</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><a href="Cardano.Slotting.Slot.html#Origin"><span class="hs-identifier hs-var">Origin</span></a><span>
-</span><a name="line-74"></a><span>
-</span><a name="line-75"></a><span class="hs-identifier">fromWithOrigin</span><span> </span><span class="hs-glyph">::</span><span> </span><a href="#local-6989586621679097615"><span class="hs-identifier hs-type">t</span></a><span> </span><span class="hs-glyph">-&gt;</span><span> </span><a href="Cardano.Slotting.Slot.html#WithOrigin"><span class="hs-identifier hs-type">WithOrigin</span></a><span> </span><a href="#local-6989586621679097615"><span class="hs-identifier hs-type">t</span></a><span> </span><span class="hs-glyph">-&gt;</span><span> </span><a href="#local-6989586621679097615"><span class="hs-identifier hs-type">t</span></a><span>
-</span><a name="line-76"></a><a name="fromWithOrigin"><a href="Cardano.Slotting.Slot.html#fromWithOrigin"><span class="hs-identifier">fromWithOrigin</span></a></a><span> </span><a name="local-6989586621679097618"><a href="#local-6989586621679097618"><span class="hs-identifier">t</span></a></a><span> </span><a href="Cardano.Slotting.Slot.html#Origin"><span class="hs-identifier hs-var">Origin</span></a><span> </span><span class="hs-glyph">=</span><span> </span><a href="#local-6989586621679097618"><span class="hs-identifier hs-var">t</span></a><span>
-</span><a name="line-77"></a><span class="hs-identifier">fromWithOrigin</span><span> </span><span class="hs-identifier">_</span><span> </span><span class="hs-special">(</span><a href="Cardano.Slotting.Slot.html#At"><span class="hs-identifier hs-var">At</span></a><span> </span><a name="local-6989586621679097619"><a href="#local-6989586621679097619"><span class="hs-identifier">t</span></a></a><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><a href="#local-6989586621679097619"><span class="hs-identifier hs-var">t</span></a><span>
-</span><a name="line-78"></a><span>
-</span><a name="line-79"></a><span class="hs-identifier">withOrigin</span><span> </span><span class="hs-glyph">::</span><span> </span><a href="#local-6989586621679097613"><span class="hs-identifier hs-type">b</span></a><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">(</span><a href="#local-6989586621679097614"><span class="hs-identifier hs-type">t</span></a><span> </span><span class="hs-glyph">-&gt;</span><span> </span><a href="#local-6989586621679097613"><span class="hs-identifier hs-type">b</span></a><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><a href="Cardano.Slotting.Slot.html#WithOrigin"><span class="hs-identifier hs-type">WithOrigin</span></a><span> </span><a href="#local-6989586621679097614"><span class="hs-identifier hs-type">t</span></a><span> </span><span class="hs-glyph">-&gt;</span><span> </span><a href="#local-6989586621679097613"><span class="hs-identifier hs-type">b</span></a><span>
-</span><a name="line-80"></a><a name="withOrigin"><a href="Cardano.Slotting.Slot.html#withOrigin"><span class="hs-identifier">withOrigin</span></a></a><span> </span><a name="local-6989586621679097620"><a href="#local-6989586621679097620"><span class="hs-identifier">a</span></a></a><span> </span><span class="hs-identifier">_</span><span> </span><a href="Cardano.Slotting.Slot.html#Origin"><span class="hs-identifier hs-var">Origin</span></a><span> </span><span class="hs-glyph">=</span><span> </span><a href="#local-6989586621679097620"><span class="hs-identifier hs-var">a</span></a><span>
-</span><a name="line-81"></a><span class="hs-identifier">withOrigin</span><span> </span><span class="hs-identifier">_</span><span> </span><a name="local-6989586621679097621"><a href="#local-6989586621679097621"><span class="hs-identifier">f</span></a></a><span> </span><span class="hs-special">(</span><a href="Cardano.Slotting.Slot.html#At"><span class="hs-identifier hs-var">At</span></a><span> </span><a name="local-6989586621679097622"><a href="#local-6989586621679097622"><span class="hs-identifier">t</span></a></a><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><a href="#local-6989586621679097621"><span class="hs-identifier hs-var">f</span></a><span> </span><a href="#local-6989586621679097622"><span class="hs-identifier hs-var">t</span></a><span>
-</span><a name="line-82"></a><span>
-</span><a name="line-83"></a><span class="hs-identifier">withOriginToMaybe</span><span> </span><span class="hs-glyph">::</span><span> </span><a href="Cardano.Slotting.Slot.html#WithOrigin"><span class="hs-identifier hs-type">WithOrigin</span></a><span> </span><a href="#local-6989586621679097612"><span class="hs-identifier hs-type">t</span></a><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">Maybe</span><span> </span><a href="#local-6989586621679097612"><span class="hs-identifier hs-type">t</span></a><span>
-</span><a name="line-84"></a><a name="withOriginToMaybe"><a href="Cardano.Slotting.Slot.html#withOriginToMaybe"><span class="hs-identifier">withOriginToMaybe</span></a></a><span> </span><a href="Cardano.Slotting.Slot.html#Origin"><span class="hs-identifier hs-var">Origin</span></a><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-identifier hs-var">Nothing</span><span>
-</span><a name="line-85"></a><span class="hs-identifier">withOriginToMaybe</span><span> </span><span class="hs-special">(</span><a href="Cardano.Slotting.Slot.html#At"><span class="hs-identifier hs-var">At</span></a><span> </span><a name="local-6989586621679097623"><a href="#local-6989586621679097623"><span class="hs-identifier">t</span></a></a><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-identifier hs-var">Just</span><span> </span><a href="#local-6989586621679097623"><span class="hs-identifier hs-var">t</span></a><span>
-</span><a name="line-86"></a><span>
-</span><a name="line-87"></a><span class="hs-identifier">withOriginFromMaybe</span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">Maybe</span><span> </span><a href="#local-6989586621679097611"><span class="hs-identifier hs-type">t</span></a><span> </span><span class="hs-glyph">-&gt;</span><span> </span><a href="Cardano.Slotting.Slot.html#WithOrigin"><span class="hs-identifier hs-type">WithOrigin</span></a><span> </span><a href="#local-6989586621679097611"><span class="hs-identifier hs-type">t</span></a><span>
-</span><a name="line-88"></a><a name="withOriginFromMaybe"><a href="Cardano.Slotting.Slot.html#withOriginFromMaybe"><span class="hs-identifier">withOriginFromMaybe</span></a></a><span> </span><span class="hs-identifier hs-var">Nothing</span><span> </span><span class="hs-glyph">=</span><span> </span><a href="Cardano.Slotting.Slot.html#Origin"><span class="hs-identifier hs-var">Origin</span></a><span>
-</span><a name="line-89"></a><span class="hs-identifier">withOriginFromMaybe</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-var">Just</span><span> </span><a name="local-6989586621679097624"><a href="#local-6989586621679097624"><span class="hs-identifier">t</span></a></a><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><a href="Cardano.Slotting.Slot.html#At"><span class="hs-identifier hs-var">At</span></a><span> </span><a href="#local-6989586621679097624"><span class="hs-identifier hs-var">t</span></a><span>
-</span><a name="line-90"></a><span>
-</span><a name="line-91"></a><span class="hs-comment">{-------------------------------------------------------------------------------
+</span><span id="line-50"></span><span>
+</span><span id="line-51"></span><span id="local-6989586621679091674"><span id="local-6989586621679091675"></span></span><span class="hs-keyword">data</span><span> </span><span id="WithOrigin"><span class="annot"><a href="Cardano.Slotting.Slot.html#WithOrigin"><span class="hs-identifier hs-var">WithOrigin</span></a></span></span><span> </span><span id="local-6989586621679091828"><span class="annot"><a href="#local-6989586621679091828"><span class="hs-identifier hs-type">t</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="Origin"><span class="annot"><a href="Cardano.Slotting.Slot.html#Origin"><span class="hs-identifier hs-var">Origin</span></a></span></span><span> </span><span class="hs-glyph">|</span><span> </span><span id="At"><span class="annot"><a href="Cardano.Slotting.Slot.html#At"><span class="hs-identifier hs-var">At</span></a></span></span><span> </span><span class="hs-glyph">!</span><span class="annot"><a href="#local-6989586621679091828"><span class="hs-identifier hs-type">t</span></a></span><span>
+</span><span id="line-52"></span><span>  </span><span class="hs-keyword">deriving</span><span>
+</span><span id="line-53"></span><span>    </span><span class="hs-special">(</span><span> </span><span id="local-6989586621679091668"><span id="local-6989586621679091670"><span class="annot"><span class="annottext">WithOrigin t -&gt; WithOrigin t -&gt; Bool
+(WithOrigin t -&gt; WithOrigin t -&gt; Bool)
+-&gt; (WithOrigin t -&gt; WithOrigin t -&gt; Bool) -&gt; Eq (WithOrigin t)
+forall t. Eq t =&gt; WithOrigin t -&gt; WithOrigin t -&gt; Bool
+forall a. (a -&gt; a -&gt; Bool) -&gt; (a -&gt; a -&gt; Bool) -&gt; Eq a
+/= :: WithOrigin t -&gt; WithOrigin t -&gt; Bool
+$c/= :: forall t. Eq t =&gt; WithOrigin t -&gt; WithOrigin t -&gt; Bool
+== :: WithOrigin t -&gt; WithOrigin t -&gt; Bool
+$c== :: forall t. Eq t =&gt; WithOrigin t -&gt; WithOrigin t -&gt; Bool
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">,</span><span>
+</span><span id="line-54"></span><span>      </span><span id="local-6989586621679091653"><span id="local-6989586621679091655"><span id="local-6989586621679091657"><span id="local-6989586621679091659"><span id="local-6989586621679091661"><span id="local-6989586621679091663"><span id="local-6989586621679091665"><span class="annot"><span class="annottext">Eq (WithOrigin t)
+Eq (WithOrigin t)
+-&gt; (WithOrigin t -&gt; WithOrigin t -&gt; Ordering)
+-&gt; (WithOrigin t -&gt; WithOrigin t -&gt; Bool)
+-&gt; (WithOrigin t -&gt; WithOrigin t -&gt; Bool)
+-&gt; (WithOrigin t -&gt; WithOrigin t -&gt; Bool)
+-&gt; (WithOrigin t -&gt; WithOrigin t -&gt; Bool)
+-&gt; (WithOrigin t -&gt; WithOrigin t -&gt; WithOrigin t)
+-&gt; (WithOrigin t -&gt; WithOrigin t -&gt; WithOrigin t)
+-&gt; Ord (WithOrigin t)
+WithOrigin t -&gt; WithOrigin t -&gt; Bool
+WithOrigin t -&gt; WithOrigin t -&gt; Ordering
+WithOrigin t -&gt; WithOrigin t -&gt; WithOrigin t
+forall a.
+Eq a
+-&gt; (a -&gt; a -&gt; Ordering)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; a)
+-&gt; (a -&gt; a -&gt; a)
+-&gt; Ord a
+forall t. Ord t =&gt; Eq (WithOrigin t)
+forall t. Ord t =&gt; WithOrigin t -&gt; WithOrigin t -&gt; Bool
+forall t. Ord t =&gt; WithOrigin t -&gt; WithOrigin t -&gt; Ordering
+forall t. Ord t =&gt; WithOrigin t -&gt; WithOrigin t -&gt; WithOrigin t
+min :: WithOrigin t -&gt; WithOrigin t -&gt; WithOrigin t
+$cmin :: forall t. Ord t =&gt; WithOrigin t -&gt; WithOrigin t -&gt; WithOrigin t
+max :: WithOrigin t -&gt; WithOrigin t -&gt; WithOrigin t
+$cmax :: forall t. Ord t =&gt; WithOrigin t -&gt; WithOrigin t -&gt; WithOrigin t
+&gt;= :: WithOrigin t -&gt; WithOrigin t -&gt; Bool
+$c&gt;= :: forall t. Ord t =&gt; WithOrigin t -&gt; WithOrigin t -&gt; Bool
+&gt; :: WithOrigin t -&gt; WithOrigin t -&gt; Bool
+$c&gt; :: forall t. Ord t =&gt; WithOrigin t -&gt; WithOrigin t -&gt; Bool
+&lt;= :: WithOrigin t -&gt; WithOrigin t -&gt; Bool
+$c&lt;= :: forall t. Ord t =&gt; WithOrigin t -&gt; WithOrigin t -&gt; Bool
+&lt; :: WithOrigin t -&gt; WithOrigin t -&gt; Bool
+$c&lt; :: forall t. Ord t =&gt; WithOrigin t -&gt; WithOrigin t -&gt; Bool
+compare :: WithOrigin t -&gt; WithOrigin t -&gt; Ordering
+$ccompare :: forall t. Ord t =&gt; WithOrigin t -&gt; WithOrigin t -&gt; Ordering
+$cp1Ord :: forall t. Ord t =&gt; Eq (WithOrigin t)
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Ord</span></span></span></span></span></span></span></span></span><span class="hs-special">,</span><span>
+</span><span id="line-55"></span><span>      </span><span id="local-6989586621679091647"><span id="local-6989586621679091649"><span id="local-6989586621679091651"><span class="annot"><span class="annottext">Int -&gt; WithOrigin t -&gt; ShowS
+[WithOrigin t] -&gt; ShowS
+WithOrigin t -&gt; String
+(Int -&gt; WithOrigin t -&gt; ShowS)
+-&gt; (WithOrigin t -&gt; String)
+-&gt; ([WithOrigin t] -&gt; ShowS)
+-&gt; Show (WithOrigin t)
+forall t. Show t =&gt; Int -&gt; WithOrigin t -&gt; ShowS
+forall t. Show t =&gt; [WithOrigin t] -&gt; ShowS
+forall t. Show t =&gt; WithOrigin t -&gt; String
+forall a.
+(Int -&gt; a -&gt; ShowS) -&gt; (a -&gt; String) -&gt; ([a] -&gt; ShowS) -&gt; Show a
+showList :: [WithOrigin t] -&gt; ShowS
+$cshowList :: forall t. Show t =&gt; [WithOrigin t] -&gt; ShowS
+show :: WithOrigin t -&gt; String
+$cshow :: forall t. Show t =&gt; WithOrigin t -&gt; String
+showsPrec :: Int -&gt; WithOrigin t -&gt; ShowS
+$cshowsPrec :: forall t. Show t =&gt; Int -&gt; WithOrigin t -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">,</span><span>
+</span><span id="line-56"></span><span>      </span><span class="annot"><span class="annottext">(forall x. WithOrigin t -&gt; Rep (WithOrigin t) x)
+-&gt; (forall x. Rep (WithOrigin t) x -&gt; WithOrigin t)
+-&gt; Generic (WithOrigin t)
+forall x. Rep (WithOrigin t) x -&gt; WithOrigin t
+forall x. WithOrigin t -&gt; Rep (WithOrigin t) x
+forall a.
+(forall x. a -&gt; Rep a x) -&gt; (forall x. Rep a x -&gt; a) -&gt; Generic a
+forall t x. Rep (WithOrigin t) x -&gt; WithOrigin t
+forall t x. WithOrigin t -&gt; Rep (WithOrigin t) x
+$cto :: forall t x. Rep (WithOrigin t) x -&gt; WithOrigin t
+$cfrom :: forall t x. WithOrigin t -&gt; Rep (WithOrigin t) x
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">Generic</span></span><span class="hs-special">,</span><span>
+</span><span id="line-57"></span><span>      </span><span id="local-6989586621679091641"><span id="local-6989586621679091643"><span class="annot"><span class="annottext">a -&gt; WithOrigin b -&gt; WithOrigin a
+(a -&gt; b) -&gt; WithOrigin a -&gt; WithOrigin b
+(forall a b. (a -&gt; b) -&gt; WithOrigin a -&gt; WithOrigin b)
+-&gt; (forall a b. a -&gt; WithOrigin b -&gt; WithOrigin a)
+-&gt; Functor WithOrigin
+forall a b. a -&gt; WithOrigin b -&gt; WithOrigin a
+forall a b. (a -&gt; b) -&gt; WithOrigin a -&gt; WithOrigin b
+forall (f :: * -&gt; *).
+(forall a b. (a -&gt; b) -&gt; f a -&gt; f b)
+-&gt; (forall a b. a -&gt; f b -&gt; f a) -&gt; Functor f
+&lt;$ :: a -&gt; WithOrigin b -&gt; WithOrigin a
+$c&lt;$ :: forall a b. a -&gt; WithOrigin b -&gt; WithOrigin a
+fmap :: (a -&gt; b) -&gt; WithOrigin a -&gt; WithOrigin b
+$cfmap :: forall a b. (a -&gt; b) -&gt; WithOrigin a -&gt; WithOrigin b
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Functor</span></span></span></span><span class="hs-special">,</span><span>
+</span><span id="line-58"></span><span>      </span><span id="local-6989586621679091606"><span id="local-6989586621679091608"><span id="local-6989586621679091610"><span id="local-6989586621679091612"><span id="local-6989586621679091614"><span id="local-6989586621679091616"><span id="local-6989586621679091618"><span id="local-6989586621679091620"><span id="local-6989586621679091622"><span id="local-6989586621679091624"><span id="local-6989586621679091626"><span id="local-6989586621679091628"><span id="local-6989586621679091630"><span id="local-6989586621679091632"><span id="local-6989586621679091634"><span id="local-6989586621679091636"><span id="local-6989586621679091638"><span class="annot"><span class="annottext">WithOrigin a -&gt; Bool
+(a -&gt; m) -&gt; WithOrigin a -&gt; m
+(a -&gt; b -&gt; b) -&gt; b -&gt; WithOrigin a -&gt; b
+(forall m. Monoid m =&gt; WithOrigin m -&gt; m)
+-&gt; (forall m a. Monoid m =&gt; (a -&gt; m) -&gt; WithOrigin a -&gt; m)
+-&gt; (forall m a. Monoid m =&gt; (a -&gt; m) -&gt; WithOrigin a -&gt; m)
+-&gt; (forall a b. (a -&gt; b -&gt; b) -&gt; b -&gt; WithOrigin a -&gt; b)
+-&gt; (forall a b. (a -&gt; b -&gt; b) -&gt; b -&gt; WithOrigin a -&gt; b)
+-&gt; (forall b a. (b -&gt; a -&gt; b) -&gt; b -&gt; WithOrigin a -&gt; b)
+-&gt; (forall b a. (b -&gt; a -&gt; b) -&gt; b -&gt; WithOrigin a -&gt; b)
+-&gt; (forall a. (a -&gt; a -&gt; a) -&gt; WithOrigin a -&gt; a)
+-&gt; (forall a. (a -&gt; a -&gt; a) -&gt; WithOrigin a -&gt; a)
+-&gt; (forall a. WithOrigin a -&gt; [a])
+-&gt; (forall a. WithOrigin a -&gt; Bool)
+-&gt; (forall a. WithOrigin a -&gt; Int)
+-&gt; (forall a. Eq a =&gt; a -&gt; WithOrigin a -&gt; Bool)
+-&gt; (forall a. Ord a =&gt; WithOrigin a -&gt; a)
+-&gt; (forall a. Ord a =&gt; WithOrigin a -&gt; a)
+-&gt; (forall a. Num a =&gt; WithOrigin a -&gt; a)
+-&gt; (forall a. Num a =&gt; WithOrigin a -&gt; a)
+-&gt; Foldable WithOrigin
+forall a. Eq a =&gt; a -&gt; WithOrigin a -&gt; Bool
+forall a. Num a =&gt; WithOrigin a -&gt; a
+forall a. Ord a =&gt; WithOrigin a -&gt; a
+forall m. Monoid m =&gt; WithOrigin m -&gt; m
+forall a. WithOrigin a -&gt; Bool
+forall a. WithOrigin a -&gt; Int
+forall a. WithOrigin a -&gt; [a]
+forall a. (a -&gt; a -&gt; a) -&gt; WithOrigin a -&gt; a
+forall m a. Monoid m =&gt; (a -&gt; m) -&gt; WithOrigin a -&gt; m
+forall b a. (b -&gt; a -&gt; b) -&gt; b -&gt; WithOrigin a -&gt; b
+forall a b. (a -&gt; b -&gt; b) -&gt; b -&gt; WithOrigin a -&gt; b
+forall (t :: * -&gt; *).
+(forall m. Monoid m =&gt; t m -&gt; m)
+-&gt; (forall m a. Monoid m =&gt; (a -&gt; m) -&gt; t a -&gt; m)
+-&gt; (forall m a. Monoid m =&gt; (a -&gt; m) -&gt; t a -&gt; m)
+-&gt; (forall a b. (a -&gt; b -&gt; b) -&gt; b -&gt; t a -&gt; b)
+-&gt; (forall a b. (a -&gt; b -&gt; b) -&gt; b -&gt; t a -&gt; b)
+-&gt; (forall b a. (b -&gt; a -&gt; b) -&gt; b -&gt; t a -&gt; b)
+-&gt; (forall b a. (b -&gt; a -&gt; b) -&gt; b -&gt; t a -&gt; b)
+-&gt; (forall a. (a -&gt; a -&gt; a) -&gt; t a -&gt; a)
+-&gt; (forall a. (a -&gt; a -&gt; a) -&gt; t a -&gt; a)
+-&gt; (forall a. t a -&gt; [a])
+-&gt; (forall a. t a -&gt; Bool)
+-&gt; (forall a. t a -&gt; Int)
+-&gt; (forall a. Eq a =&gt; a -&gt; t a -&gt; Bool)
+-&gt; (forall a. Ord a =&gt; t a -&gt; a)
+-&gt; (forall a. Ord a =&gt; t a -&gt; a)
+-&gt; (forall a. Num a =&gt; t a -&gt; a)
+-&gt; (forall a. Num a =&gt; t a -&gt; a)
+-&gt; Foldable t
+product :: WithOrigin a -&gt; a
+$cproduct :: forall a. Num a =&gt; WithOrigin a -&gt; a
+sum :: WithOrigin a -&gt; a
+$csum :: forall a. Num a =&gt; WithOrigin a -&gt; a
+minimum :: WithOrigin a -&gt; a
+$cminimum :: forall a. Ord a =&gt; WithOrigin a -&gt; a
+maximum :: WithOrigin a -&gt; a
+$cmaximum :: forall a. Ord a =&gt; WithOrigin a -&gt; a
+elem :: a -&gt; WithOrigin a -&gt; Bool
+$celem :: forall a. Eq a =&gt; a -&gt; WithOrigin a -&gt; Bool
+length :: WithOrigin a -&gt; Int
+$clength :: forall a. WithOrigin a -&gt; Int
+null :: WithOrigin a -&gt; Bool
+$cnull :: forall a. WithOrigin a -&gt; Bool
+toList :: WithOrigin a -&gt; [a]
+$ctoList :: forall a. WithOrigin a -&gt; [a]
+foldl1 :: (a -&gt; a -&gt; a) -&gt; WithOrigin a -&gt; a
+$cfoldl1 :: forall a. (a -&gt; a -&gt; a) -&gt; WithOrigin a -&gt; a
+foldr1 :: (a -&gt; a -&gt; a) -&gt; WithOrigin a -&gt; a
+$cfoldr1 :: forall a. (a -&gt; a -&gt; a) -&gt; WithOrigin a -&gt; a
+foldl' :: (b -&gt; a -&gt; b) -&gt; b -&gt; WithOrigin a -&gt; b
+$cfoldl' :: forall b a. (b -&gt; a -&gt; b) -&gt; b -&gt; WithOrigin a -&gt; b
+foldl :: (b -&gt; a -&gt; b) -&gt; b -&gt; WithOrigin a -&gt; b
+$cfoldl :: forall b a. (b -&gt; a -&gt; b) -&gt; b -&gt; WithOrigin a -&gt; b
+foldr' :: (a -&gt; b -&gt; b) -&gt; b -&gt; WithOrigin a -&gt; b
+$cfoldr' :: forall a b. (a -&gt; b -&gt; b) -&gt; b -&gt; WithOrigin a -&gt; b
+foldr :: (a -&gt; b -&gt; b) -&gt; b -&gt; WithOrigin a -&gt; b
+$cfoldr :: forall a b. (a -&gt; b -&gt; b) -&gt; b -&gt; WithOrigin a -&gt; b
+foldMap' :: (a -&gt; m) -&gt; WithOrigin a -&gt; m
+$cfoldMap' :: forall m a. Monoid m =&gt; (a -&gt; m) -&gt; WithOrigin a -&gt; m
+foldMap :: (a -&gt; m) -&gt; WithOrigin a -&gt; m
+$cfoldMap :: forall m a. Monoid m =&gt; (a -&gt; m) -&gt; WithOrigin a -&gt; m
+fold :: WithOrigin m -&gt; m
+$cfold :: forall m. Monoid m =&gt; WithOrigin m -&gt; m
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Foldable</span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span><span class="hs-special">,</span><span>
+</span><span id="line-59"></span><span>      </span><span id="local-6989586621679091595"><span id="local-6989586621679091597"><span id="local-6989586621679091599"><span id="local-6989586621679091601"><span class="annot"><span class="annottext">Functor WithOrigin
+Foldable WithOrigin
+Functor WithOrigin
+-&gt; Foldable WithOrigin
+-&gt; (forall (f :: * -&gt; *) a b.
+    Applicative f =&gt;
+    (a -&gt; f b) -&gt; WithOrigin a -&gt; f (WithOrigin b))
+-&gt; (forall (f :: * -&gt; *) a.
+    Applicative f =&gt;
+    WithOrigin (f a) -&gt; f (WithOrigin a))
+-&gt; (forall (m :: * -&gt; *) a b.
+    Monad m =&gt;
+    (a -&gt; m b) -&gt; WithOrigin a -&gt; m (WithOrigin b))
+-&gt; (forall (m :: * -&gt; *) a.
+    Monad m =&gt;
+    WithOrigin (m a) -&gt; m (WithOrigin a))
+-&gt; Traversable WithOrigin
+(a -&gt; f b) -&gt; WithOrigin a -&gt; f (WithOrigin b)
+forall (t :: * -&gt; *).
+Functor t
+-&gt; Foldable t
+-&gt; (forall (f :: * -&gt; *) a b.
+    Applicative f =&gt;
+    (a -&gt; f b) -&gt; t a -&gt; f (t b))
+-&gt; (forall (f :: * -&gt; *) a. Applicative f =&gt; t (f a) -&gt; f (t a))
+-&gt; (forall (m :: * -&gt; *) a b.
+    Monad m =&gt;
+    (a -&gt; m b) -&gt; t a -&gt; m (t b))
+-&gt; (forall (m :: * -&gt; *) a. Monad m =&gt; t (m a) -&gt; m (t a))
+-&gt; Traversable t
+forall (m :: * -&gt; *) a.
+Monad m =&gt;
+WithOrigin (m a) -&gt; m (WithOrigin a)
+forall (f :: * -&gt; *) a.
+Applicative f =&gt;
+WithOrigin (f a) -&gt; f (WithOrigin a)
+forall (m :: * -&gt; *) a b.
+Monad m =&gt;
+(a -&gt; m b) -&gt; WithOrigin a -&gt; m (WithOrigin b)
+forall (f :: * -&gt; *) a b.
+Applicative f =&gt;
+(a -&gt; f b) -&gt; WithOrigin a -&gt; f (WithOrigin b)
+sequence :: WithOrigin (m a) -&gt; m (WithOrigin a)
+$csequence :: forall (m :: * -&gt; *) a.
+Monad m =&gt;
+WithOrigin (m a) -&gt; m (WithOrigin a)
+mapM :: (a -&gt; m b) -&gt; WithOrigin a -&gt; m (WithOrigin b)
+$cmapM :: forall (m :: * -&gt; *) a b.
+Monad m =&gt;
+(a -&gt; m b) -&gt; WithOrigin a -&gt; m (WithOrigin b)
+sequenceA :: WithOrigin (f a) -&gt; f (WithOrigin a)
+$csequenceA :: forall (f :: * -&gt; *) a.
+Applicative f =&gt;
+WithOrigin (f a) -&gt; f (WithOrigin a)
+traverse :: (a -&gt; f b) -&gt; WithOrigin a -&gt; f (WithOrigin b)
+$ctraverse :: forall (f :: * -&gt; *) a b.
+Applicative f =&gt;
+(a -&gt; f b) -&gt; WithOrigin a -&gt; f (WithOrigin b)
+$cp2Traversable :: Foldable WithOrigin
+$cp1Traversable :: Functor WithOrigin
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Traversable</span></span></span></span></span></span><span class="hs-special">,</span><span>
+</span><span id="line-60"></span><span>      </span><span id="local-6989586621679091586"><span id="local-6989586621679091588"><span id="local-6989586621679091590"><span id="local-6989586621679091592"><span class="annot"><span class="annottext">[WithOrigin t] -&gt; Encoding
+WithOrigin t -&gt; Encoding
+(WithOrigin t -&gt; Encoding)
+-&gt; (forall s. Decoder s (WithOrigin t))
+-&gt; ([WithOrigin t] -&gt; Encoding)
+-&gt; (forall s. Decoder s [WithOrigin t])
+-&gt; Serialise (WithOrigin t)
+forall s. Decoder s [WithOrigin t]
+forall s. Decoder s (WithOrigin t)
+forall t. Serialise t =&gt; [WithOrigin t] -&gt; Encoding
+forall t. Serialise t =&gt; WithOrigin t -&gt; Encoding
+forall t s. Serialise t =&gt; Decoder s [WithOrigin t]
+forall t s. Serialise t =&gt; Decoder s (WithOrigin t)
+forall a.
+(a -&gt; Encoding)
+-&gt; (forall s. Decoder s a)
+-&gt; ([a] -&gt; Encoding)
+-&gt; (forall s. Decoder s [a])
+-&gt; Serialise a
+decodeList :: Decoder s [WithOrigin t]
+$cdecodeList :: forall t s. Serialise t =&gt; Decoder s [WithOrigin t]
+encodeList :: [WithOrigin t] -&gt; Encoding
+$cencodeList :: forall t. Serialise t =&gt; [WithOrigin t] -&gt; Encoding
+decode :: Decoder s (WithOrigin t)
+$cdecode :: forall t s. Serialise t =&gt; Decoder s (WithOrigin t)
+encode :: WithOrigin t -&gt; Encoding
+$cencode :: forall t. Serialise t =&gt; WithOrigin t -&gt; Encoding
+</span><a href="#local-6989586621679091586"><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Serialise</span></a></span></span></span></span></span><span class="hs-special">,</span><span>
+</span><span id="line-61"></span><span>      </span><span id="local-6989586621679091580"><span id="local-6989586621679091582"><span id="local-6989586621679091584"><span class="annot"><span class="annottext">Context -&gt; WithOrigin t -&gt; IO (Maybe ThunkInfo)
+Proxy (WithOrigin t) -&gt; String
+(Context -&gt; WithOrigin t -&gt; IO (Maybe ThunkInfo))
+-&gt; (Context -&gt; WithOrigin t -&gt; IO (Maybe ThunkInfo))
+-&gt; (Proxy (WithOrigin t) -&gt; String)
+-&gt; NoThunks (WithOrigin t)
+forall t.
+NoThunks t =&gt;
+Context -&gt; WithOrigin t -&gt; IO (Maybe ThunkInfo)
+forall t. NoThunks t =&gt; Proxy (WithOrigin t) -&gt; String
+forall a.
+(Context -&gt; a -&gt; IO (Maybe ThunkInfo))
+-&gt; (Context -&gt; a -&gt; IO (Maybe ThunkInfo))
+-&gt; (Proxy a -&gt; String)
+-&gt; NoThunks a
+showTypeOf :: Proxy (WithOrigin t) -&gt; String
+$cshowTypeOf :: forall t. NoThunks t =&gt; Proxy (WithOrigin t) -&gt; String
+wNoThunks :: Context -&gt; WithOrigin t -&gt; IO (Maybe ThunkInfo)
+$cwNoThunks :: forall t.
+NoThunks t =&gt;
+Context -&gt; WithOrigin t -&gt; IO (Maybe ThunkInfo)
+noThunks :: Context -&gt; WithOrigin t -&gt; IO (Maybe ThunkInfo)
+$cnoThunks :: forall t.
+NoThunks t =&gt;
+Context -&gt; WithOrigin t -&gt; IO (Maybe ThunkInfo)
+</span><a href="#local-6989586621679091580"><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">NoThunks</span></a></span></span></span></span><span>
+</span><span id="line-62"></span><span>    </span><span class="hs-special">)</span><span>
+</span><span id="line-63"></span><span>
+</span><span id="line-64"></span><span id="local-6989586621679091579"><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679091573"><span id="local-6989586621679091575"><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Serialise</span></span><span> </span><span class="annot"><a href="#local-6989586621679091579"><span class="hs-identifier hs-type">t</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Typeable</span></span><span> </span><span class="annot"><a href="#local-6989586621679091579"><span class="hs-identifier hs-type">t</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src"><span class="hs-identifier hs-type">ToCBOR</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cardano.Slotting.Slot.html#WithOrigin"><span class="hs-identifier hs-type">WithOrigin</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679091579"><span class="hs-identifier hs-type">t</span></a></span><span class="hs-special">)</span></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-65"></span><span>  </span><span id="local-6989586621679091572"><span class="annot"><span class="annottext">toCBOR :: WithOrigin t -&gt; Encoding
+</span><a href="#local-6989586621679091572"><span class="hs-identifier hs-var hs-var hs-var hs-var">toCBOR</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">WithOrigin t -&gt; Encoding
+forall a. Serialise a =&gt; a -&gt; Encoding
+</span><span class="hs-identifier hs-var">encode</span></span></span><span>
+</span><span id="line-66"></span><span>
+</span><span id="line-67"></span><span id="local-6989586621679091571"><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679091567"><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Serialise</span></span><span> </span><span class="annot"><a href="#local-6989586621679091571"><span class="hs-identifier hs-type">t</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Typeable</span></span><span> </span><span class="annot"><a href="#local-6989586621679091571"><span class="hs-identifier hs-type">t</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src"><span class="hs-identifier hs-type">FromCBOR</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cardano.Slotting.Slot.html#WithOrigin"><span class="hs-identifier hs-type">WithOrigin</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679091571"><span class="hs-identifier hs-type">t</span></a></span><span class="hs-special">)</span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-68"></span><span>  </span><span id="local-6989586621679091566"><span class="annot"><span class="annottext">fromCBOR :: Decoder s (WithOrigin t)
+</span><a href="#local-6989586621679091566"><span class="hs-identifier hs-var hs-var hs-var hs-var">fromCBOR</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Decoder s (WithOrigin t)
+forall a s. Serialise a =&gt; Decoder s a
+</span><span class="hs-identifier hs-var">decode</span></span></span><span>
+</span><span id="line-69"></span><span>
+</span><span id="line-70"></span><span id="local-6989586621679091565"><span class="annot"><a href="Cardano.Slotting.Slot.html#at"><span class="hs-identifier hs-type">at</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="#local-6989586621679091565"><span class="hs-identifier hs-type">t</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cardano.Slotting.Slot.html#WithOrigin"><span class="hs-identifier hs-type">WithOrigin</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679091565"><span class="hs-identifier hs-type">t</span></a></span></span><span>
+</span><span id="line-71"></span><span id="at"><span class="annot"><span class="annottext">at :: t -&gt; WithOrigin t
+</span><a href="Cardano.Slotting.Slot.html#at"><span class="hs-identifier hs-var hs-var">at</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">t -&gt; WithOrigin t
+forall t. t -&gt; WithOrigin t
+</span><a href="Cardano.Slotting.Slot.html#At"><span class="hs-identifier hs-var">At</span></a></span><span>
+</span><span id="line-72"></span><span>
+</span><span id="line-73"></span><span id="local-6989586621679091564"><span class="annot"><a href="Cardano.Slotting.Slot.html#origin"><span class="hs-identifier hs-type">origin</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cardano.Slotting.Slot.html#WithOrigin"><span class="hs-identifier hs-type">WithOrigin</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679091564"><span class="hs-identifier hs-type">t</span></a></span></span><span>
+</span><span id="line-74"></span><span id="origin"><span class="annot"><span class="annottext">origin :: WithOrigin t
+</span><a href="Cardano.Slotting.Slot.html#origin"><span class="hs-identifier hs-var hs-var">origin</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">WithOrigin t
+forall t. WithOrigin t
+</span><a href="Cardano.Slotting.Slot.html#Origin"><span class="hs-identifier hs-var">Origin</span></a></span><span>
+</span><span id="line-75"></span><span>
+</span><span id="line-76"></span><span id="local-6989586621679091563"><span class="annot"><a href="Cardano.Slotting.Slot.html#fromWithOrigin"><span class="hs-identifier hs-type">fromWithOrigin</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="#local-6989586621679091563"><span class="hs-identifier hs-type">t</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cardano.Slotting.Slot.html#WithOrigin"><span class="hs-identifier hs-type">WithOrigin</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679091563"><span class="hs-identifier hs-type">t</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679091563"><span class="hs-identifier hs-type">t</span></a></span></span><span>
+</span><span id="line-77"></span><span id="fromWithOrigin"><span class="annot"><span class="annottext">fromWithOrigin :: t -&gt; WithOrigin t -&gt; t
+</span><a href="Cardano.Slotting.Slot.html#fromWithOrigin"><span class="hs-identifier hs-var hs-var">fromWithOrigin</span></a></span></span><span> </span><span id="local-6989586621679091562"><span class="annot"><span class="annottext">t
+</span><a href="#local-6989586621679091562"><span class="hs-identifier hs-var">t</span></a></span></span><span> </span><span class="annot"><span class="annottext">WithOrigin t
+</span><a href="Cardano.Slotting.Slot.html#Origin"><span class="hs-identifier hs-var">Origin</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">t
+</span><a href="#local-6989586621679091562"><span class="hs-identifier hs-var">t</span></a></span><span>
+</span><span id="line-78"></span><span class="annot"><a href="Cardano.Slotting.Slot.html#fromWithOrigin"><span class="hs-identifier hs-var">fromWithOrigin</span></a></span><span> </span><span class="annot"><span class="annottext">t
+</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cardano.Slotting.Slot.html#At"><span class="hs-identifier hs-type">At</span></a></span><span> </span><span id="local-6989586621679091561"><span class="annot"><span class="annottext">t
+</span><a href="#local-6989586621679091561"><span class="hs-identifier hs-var">t</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">t
+</span><a href="#local-6989586621679091561"><span class="hs-identifier hs-var">t</span></a></span><span>
+</span><span id="line-79"></span><span>
+</span><span id="line-80"></span><span id="local-6989586621679091559"><span id="local-6989586621679091560"><span class="annot"><a href="Cardano.Slotting.Slot.html#withOrigin"><span class="hs-identifier hs-type">withOrigin</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="#local-6989586621679091560"><span class="hs-identifier hs-type">b</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="#local-6989586621679091559"><span class="hs-identifier hs-type">t</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679091560"><span class="hs-identifier hs-type">b</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cardano.Slotting.Slot.html#WithOrigin"><span class="hs-identifier hs-type">WithOrigin</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679091559"><span class="hs-identifier hs-type">t</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679091560"><span class="hs-identifier hs-type">b</span></a></span></span></span><span>
+</span><span id="line-81"></span><span id="withOrigin"><span class="annot"><span class="annottext">withOrigin :: b -&gt; (t -&gt; b) -&gt; WithOrigin t -&gt; b
+</span><a href="Cardano.Slotting.Slot.html#withOrigin"><span class="hs-identifier hs-var hs-var">withOrigin</span></a></span></span><span> </span><span id="local-6989586621679091558"><span class="annot"><span class="annottext">b
+</span><a href="#local-6989586621679091558"><span class="hs-identifier hs-var">a</span></a></span></span><span> </span><span class="annot"><span class="annottext">t -&gt; b
+</span><span class="hs-identifier">_</span></span><span> </span><span class="annot"><span class="annottext">WithOrigin t
+</span><a href="Cardano.Slotting.Slot.html#Origin"><span class="hs-identifier hs-var">Origin</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">b
+</span><a href="#local-6989586621679091558"><span class="hs-identifier hs-var">a</span></a></span><span>
+</span><span id="line-82"></span><span class="annot"><a href="Cardano.Slotting.Slot.html#withOrigin"><span class="hs-identifier hs-var">withOrigin</span></a></span><span> </span><span class="annot"><span class="annottext">b
+</span><span class="hs-identifier">_</span></span><span> </span><span id="local-6989586621679091557"><span class="annot"><span class="annottext">t -&gt; b
+</span><a href="#local-6989586621679091557"><span class="hs-identifier hs-var">f</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cardano.Slotting.Slot.html#At"><span class="hs-identifier hs-type">At</span></a></span><span> </span><span id="local-6989586621679091556"><span class="annot"><span class="annottext">t
+</span><a href="#local-6989586621679091556"><span class="hs-identifier hs-var">t</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">t -&gt; b
+</span><a href="#local-6989586621679091557"><span class="hs-identifier hs-var">f</span></a></span><span> </span><span class="annot"><span class="annottext">t
+</span><a href="#local-6989586621679091556"><span class="hs-identifier hs-var">t</span></a></span><span>
+</span><span id="line-83"></span><span>
+</span><span id="line-84"></span><span id="local-6989586621679091555"><span class="annot"><a href="Cardano.Slotting.Slot.html#withOriginToMaybe"><span class="hs-identifier hs-type">withOriginToMaybe</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cardano.Slotting.Slot.html#WithOrigin"><span class="hs-identifier hs-type">WithOrigin</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679091555"><span class="hs-identifier hs-type">t</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><a href="#local-6989586621679091555"><span class="hs-identifier hs-type">t</span></a></span></span><span>
+</span><span id="line-85"></span><span id="withOriginToMaybe"><span class="annot"><span class="annottext">withOriginToMaybe :: WithOrigin t -&gt; Maybe t
+</span><a href="Cardano.Slotting.Slot.html#withOriginToMaybe"><span class="hs-identifier hs-var hs-var">withOriginToMaybe</span></a></span></span><span> </span><span class="annot"><span class="annottext">WithOrigin t
+</span><a href="Cardano.Slotting.Slot.html#Origin"><span class="hs-identifier hs-var">Origin</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Maybe t
+forall a. Maybe a
+</span><span class="hs-identifier hs-var">Nothing</span></span><span>
+</span><span id="line-86"></span><span class="annot"><a href="Cardano.Slotting.Slot.html#withOriginToMaybe"><span class="hs-identifier hs-var">withOriginToMaybe</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cardano.Slotting.Slot.html#At"><span class="hs-identifier hs-type">At</span></a></span><span> </span><span id="local-6989586621679091554"><span class="annot"><span class="annottext">t
+</span><a href="#local-6989586621679091554"><span class="hs-identifier hs-var">t</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">t -&gt; Maybe t
+forall a. a -&gt; Maybe a
+</span><span class="hs-identifier hs-var">Just</span></span><span> </span><span class="annot"><span class="annottext">t
+</span><a href="#local-6989586621679091554"><span class="hs-identifier hs-var">t</span></a></span><span>
+</span><span id="line-87"></span><span>
+</span><span id="line-88"></span><span id="local-6989586621679091553"><span class="annot"><a href="Cardano.Slotting.Slot.html#withOriginFromMaybe"><span class="hs-identifier hs-type">withOriginFromMaybe</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><a href="#local-6989586621679091553"><span class="hs-identifier hs-type">t</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cardano.Slotting.Slot.html#WithOrigin"><span class="hs-identifier hs-type">WithOrigin</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679091553"><span class="hs-identifier hs-type">t</span></a></span></span><span>
+</span><span id="line-89"></span><span id="withOriginFromMaybe"><span class="annot"><span class="annottext">withOriginFromMaybe :: Maybe t -&gt; WithOrigin t
+</span><a href="Cardano.Slotting.Slot.html#withOriginFromMaybe"><span class="hs-identifier hs-var hs-var">withOriginFromMaybe</span></a></span></span><span> </span><span class="annot"><span class="annottext">Maybe t
+</span><span class="hs-identifier hs-var">Nothing</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">WithOrigin t
+forall t. WithOrigin t
+</span><a href="Cardano.Slotting.Slot.html#Origin"><span class="hs-identifier hs-var">Origin</span></a></span><span>
+</span><span id="line-90"></span><span class="annot"><a href="Cardano.Slotting.Slot.html#withOriginFromMaybe"><span class="hs-identifier hs-var">withOriginFromMaybe</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Just</span></span><span> </span><span id="local-6989586621679091552"><span class="annot"><span class="annottext">t
+</span><a href="#local-6989586621679091552"><span class="hs-identifier hs-var">t</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">t -&gt; WithOrigin t
+forall t. t -&gt; WithOrigin t
+</span><a href="Cardano.Slotting.Slot.html#At"><span class="hs-identifier hs-var">At</span></a></span><span> </span><span class="annot"><span class="annottext">t
+</span><a href="#local-6989586621679091552"><span class="hs-identifier hs-var">t</span></a></span><span>
+</span><span id="line-91"></span><span>
+</span><span id="line-92"></span><span class="hs-comment">{-------------------------------------------------------------------------------
   Epochs
 -------------------------------------------------------------------------------}</span><span>
-</span><a name="line-94"></a><span>
-</span><a name="line-95"></a><span class="hs-comment">-- | An epoch, i.e. the number of the epoch.</span><span>
-</span><a name="line-96"></a><span class="hs-keyword">newtype</span><span> </span><a name="EpochNo"><a href="Cardano.Slotting.Slot.html#EpochNo"><span class="hs-identifier">EpochNo</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><a name="EpochNo"><a href="Cardano.Slotting.Slot.html#EpochNo"><span class="hs-identifier">EpochNo</span></a></a><span> </span><span class="hs-special">{</span><a name="unEpochNo"><a href="Cardano.Slotting.Slot.html#unEpochNo"><span class="hs-identifier">unEpochNo</span></a></a><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">Word64</span><span class="hs-special">}</span><span>
-</span><a name="line-97"></a><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-keyword">stock</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Eq</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Ord</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Generic</span><span class="hs-special">)</span><span>
-</span><a name="line-98"></a><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-identifier hs-type">Show</span><span> </span><span class="hs-keyword">via</span><span> </span><span class="hs-identifier hs-type">Quiet</span><span> </span><a href="Cardano.Slotting.Slot.html#EpochNo"><span class="hs-identifier hs-type">EpochNo</span></a><span>
-</span><a name="line-99"></a><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-keyword">newtype</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Enum</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Num</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Serialise</span><span class="hs-special">,</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.ToCBOR.html#ToCBOR"><span class="hs-identifier hs-type">ToCBOR</span></a><span class="hs-special">,</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.FromCBOR.html#FromCBOR"><span class="hs-identifier hs-type">FromCBOR</span></a><span class="hs-special">,</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-prelude-0.1.0.0/noopt/doc/html/cardano-prelude/src/Cardano.Prelude.GHC.Heap.NormalForm.Classy.html#NoUnexpectedThunks"><span class="hs-identifier hs-type">NoUnexpectedThunks</span></a><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">ToJSON</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">FromJSON</span><span class="hs-special">)</span><span>
-</span><a name="line-100"></a><span>
-</span><a name="line-101"></a><span class="hs-keyword">newtype</span><span> </span><a name="EpochSize"><a href="Cardano.Slotting.Slot.html#EpochSize"><span class="hs-identifier">EpochSize</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><a name="EpochSize"><a href="Cardano.Slotting.Slot.html#EpochSize"><span class="hs-identifier">EpochSize</span></a></a><span> </span><span class="hs-special">{</span><a name="unEpochSize"><a href="Cardano.Slotting.Slot.html#unEpochSize"><span class="hs-identifier">unEpochSize</span></a></a><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">Word64</span><span class="hs-special">}</span><span>
-</span><a name="line-102"></a><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-keyword">stock</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Eq</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Ord</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Generic</span><span class="hs-special">)</span><span>
-</span><a name="line-103"></a><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-identifier hs-type">Show</span><span> </span><span class="hs-keyword">via</span><span> </span><span class="hs-identifier hs-type">Quiet</span><span> </span><a href="Cardano.Slotting.Slot.html#EpochSize"><span class="hs-identifier hs-type">EpochSize</span></a><span>
-</span><a name="line-104"></a><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-keyword">newtype</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Enum</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Num</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Real</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Integral</span><span class="hs-special">,</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-prelude-0.1.0.0/noopt/doc/html/cardano-prelude/src/Cardano.Prelude.GHC.Heap.NormalForm.Classy.html#NoUnexpectedThunks"><span class="hs-identifier hs-type">NoUnexpectedThunks</span></a><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">ToJSON</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">FromJSON</span><span class="hs-special">)</span><span>
-</span><a name="line-105"></a></pre></body></html>
+</span><span id="line-95"></span><span>
+</span><span id="line-96"></span><span class="hs-comment">-- | An epoch, i.e. the number of the epoch.</span><span>
+</span><span id="line-97"></span><span id="local-6989586621679091550"><span id="local-6989586621679091551"></span></span><span class="hs-keyword">newtype</span><span> </span><span id="EpochNo"><span class="annot"><a href="Cardano.Slotting.Slot.html#EpochNo"><span class="hs-identifier hs-var">EpochNo</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="EpochNo"><span class="annot"><a href="Cardano.Slotting.Slot.html#EpochNo"><span class="hs-identifier hs-var">EpochNo</span></a></span></span><span> </span><span class="hs-special">{</span><span id="unEpochNo"><span class="annot"><span class="annottext">EpochNo -&gt; Word64
+</span><a href="Cardano.Slotting.Slot.html#unEpochNo"><span class="hs-identifier hs-var hs-var">unEpochNo</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Word64</span></span><span class="hs-special">}</span><span>
+</span><span id="line-98"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="annot"><span class="hs-keyword">stock</span></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679091544"><span id="local-6989586621679091546"><span class="annot"><span class="annottext">EpochNo -&gt; EpochNo -&gt; Bool
+(EpochNo -&gt; EpochNo -&gt; Bool)
+-&gt; (EpochNo -&gt; EpochNo -&gt; Bool) -&gt; Eq EpochNo
+forall a. (a -&gt; a -&gt; Bool) -&gt; (a -&gt; a -&gt; Bool) -&gt; Eq a
+/= :: EpochNo -&gt; EpochNo -&gt; Bool
+$c/= :: EpochNo -&gt; EpochNo -&gt; Bool
+== :: EpochNo -&gt; EpochNo -&gt; Bool
+$c== :: EpochNo -&gt; EpochNo -&gt; Bool
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679091529"><span id="local-6989586621679091531"><span id="local-6989586621679091533"><span id="local-6989586621679091535"><span id="local-6989586621679091537"><span id="local-6989586621679091539"><span id="local-6989586621679091541"><span class="annot"><span class="annottext">Eq EpochNo
+Eq EpochNo
+-&gt; (EpochNo -&gt; EpochNo -&gt; Ordering)
+-&gt; (EpochNo -&gt; EpochNo -&gt; Bool)
+-&gt; (EpochNo -&gt; EpochNo -&gt; Bool)
+-&gt; (EpochNo -&gt; EpochNo -&gt; Bool)
+-&gt; (EpochNo -&gt; EpochNo -&gt; Bool)
+-&gt; (EpochNo -&gt; EpochNo -&gt; EpochNo)
+-&gt; (EpochNo -&gt; EpochNo -&gt; EpochNo)
+-&gt; Ord EpochNo
+EpochNo -&gt; EpochNo -&gt; Bool
+EpochNo -&gt; EpochNo -&gt; Ordering
+EpochNo -&gt; EpochNo -&gt; EpochNo
+forall a.
+Eq a
+-&gt; (a -&gt; a -&gt; Ordering)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; a)
+-&gt; (a -&gt; a -&gt; a)
+-&gt; Ord a
+min :: EpochNo -&gt; EpochNo -&gt; EpochNo
+$cmin :: EpochNo -&gt; EpochNo -&gt; EpochNo
+max :: EpochNo -&gt; EpochNo -&gt; EpochNo
+$cmax :: EpochNo -&gt; EpochNo -&gt; EpochNo
+&gt;= :: EpochNo -&gt; EpochNo -&gt; Bool
+$c&gt;= :: EpochNo -&gt; EpochNo -&gt; Bool
+&gt; :: EpochNo -&gt; EpochNo -&gt; Bool
+$c&gt; :: EpochNo -&gt; EpochNo -&gt; Bool
+&lt;= :: EpochNo -&gt; EpochNo -&gt; Bool
+$c&lt;= :: EpochNo -&gt; EpochNo -&gt; Bool
+&lt; :: EpochNo -&gt; EpochNo -&gt; Bool
+$c&lt; :: EpochNo -&gt; EpochNo -&gt; Bool
+compare :: EpochNo -&gt; EpochNo -&gt; Ordering
+$ccompare :: EpochNo -&gt; EpochNo -&gt; Ordering
+$cp1Ord :: Eq EpochNo
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Ord</span></span></span></span></span></span></span></span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">(forall x. EpochNo -&gt; Rep EpochNo x)
+-&gt; (forall x. Rep EpochNo x -&gt; EpochNo) -&gt; Generic EpochNo
+forall x. Rep EpochNo x -&gt; EpochNo
+forall x. EpochNo -&gt; Rep EpochNo x
+forall a.
+(forall x. a -&gt; Rep a x) -&gt; (forall x. Rep a x -&gt; a) -&gt; Generic a
+$cto :: forall x. Rep EpochNo x -&gt; EpochNo
+$cfrom :: forall x. EpochNo -&gt; Rep EpochNo x
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">Generic</span></span><span class="hs-special">)</span><span>
+</span><span id="line-99"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span id="local-6989586621679091521"><span id="local-6989586621679091523"><span id="local-6989586621679091525"><span class="annot"><span class="annottext">Int -&gt; EpochNo -&gt; ShowS
+[EpochNo] -&gt; ShowS
+EpochNo -&gt; String
+(Int -&gt; EpochNo -&gt; ShowS)
+-&gt; (EpochNo -&gt; String) -&gt; ([EpochNo] -&gt; ShowS) -&gt; Show EpochNo
+forall a.
+(Int -&gt; a -&gt; ShowS) -&gt; (a -&gt; String) -&gt; ([a] -&gt; ShowS) -&gt; Show a
+showList :: [EpochNo] -&gt; ShowS
+$cshowList :: [EpochNo] -&gt; ShowS
+show :: EpochNo -&gt; String
+$cshow :: EpochNo -&gt; String
+showsPrec :: Int -&gt; EpochNo -&gt; ShowS
+$cshowsPrec :: Int -&gt; EpochNo -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span> </span><span class="hs-keyword">via</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Quiet</span></span><span> </span><span class="annot"><a href="Cardano.Slotting.Slot.html#EpochNo"><span class="hs-identifier hs-type">EpochNo</span></a></span><span>
+</span><span id="line-100"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="annot"><span class="hs-keyword">newtype</span></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679091505"><span id="local-6989586621679091507"><span id="local-6989586621679091509"><span id="local-6989586621679091511"><span id="local-6989586621679091513"><span id="local-6989586621679091515"><span id="local-6989586621679091517"><span id="local-6989586621679091519"><span class="annot"><span class="annottext">Int -&gt; EpochNo
+EpochNo -&gt; Int
+EpochNo -&gt; [EpochNo]
+EpochNo -&gt; EpochNo
+EpochNo -&gt; EpochNo -&gt; [EpochNo]
+EpochNo -&gt; EpochNo -&gt; EpochNo -&gt; [EpochNo]
+(EpochNo -&gt; EpochNo)
+-&gt; (EpochNo -&gt; EpochNo)
+-&gt; (Int -&gt; EpochNo)
+-&gt; (EpochNo -&gt; Int)
+-&gt; (EpochNo -&gt; [EpochNo])
+-&gt; (EpochNo -&gt; EpochNo -&gt; [EpochNo])
+-&gt; (EpochNo -&gt; EpochNo -&gt; [EpochNo])
+-&gt; (EpochNo -&gt; EpochNo -&gt; EpochNo -&gt; [EpochNo])
+-&gt; Enum EpochNo
+forall a.
+(a -&gt; a)
+-&gt; (a -&gt; a)
+-&gt; (Int -&gt; a)
+-&gt; (a -&gt; Int)
+-&gt; (a -&gt; [a])
+-&gt; (a -&gt; a -&gt; [a])
+-&gt; (a -&gt; a -&gt; [a])
+-&gt; (a -&gt; a -&gt; a -&gt; [a])
+-&gt; Enum a
+enumFromThenTo :: EpochNo -&gt; EpochNo -&gt; EpochNo -&gt; [EpochNo]
+$cenumFromThenTo :: EpochNo -&gt; EpochNo -&gt; EpochNo -&gt; [EpochNo]
+enumFromTo :: EpochNo -&gt; EpochNo -&gt; [EpochNo]
+$cenumFromTo :: EpochNo -&gt; EpochNo -&gt; [EpochNo]
+enumFromThen :: EpochNo -&gt; EpochNo -&gt; [EpochNo]
+$cenumFromThen :: EpochNo -&gt; EpochNo -&gt; [EpochNo]
+enumFrom :: EpochNo -&gt; [EpochNo]
+$cenumFrom :: EpochNo -&gt; [EpochNo]
+fromEnum :: EpochNo -&gt; Int
+$cfromEnum :: EpochNo -&gt; Int
+toEnum :: Int -&gt; EpochNo
+$ctoEnum :: Int -&gt; EpochNo
+pred :: EpochNo -&gt; EpochNo
+$cpred :: EpochNo -&gt; EpochNo
+succ :: EpochNo -&gt; EpochNo
+$csucc :: EpochNo -&gt; EpochNo
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Enum</span></span></span></span></span></span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679091491"><span id="local-6989586621679091493"><span id="local-6989586621679091495"><span id="local-6989586621679091497"><span id="local-6989586621679091499"><span id="local-6989586621679091501"><span id="local-6989586621679091503"><span class="annot"><span class="annottext">Integer -&gt; EpochNo
+EpochNo -&gt; EpochNo
+EpochNo -&gt; EpochNo -&gt; EpochNo
+(EpochNo -&gt; EpochNo -&gt; EpochNo)
+-&gt; (EpochNo -&gt; EpochNo -&gt; EpochNo)
+-&gt; (EpochNo -&gt; EpochNo -&gt; EpochNo)
+-&gt; (EpochNo -&gt; EpochNo)
+-&gt; (EpochNo -&gt; EpochNo)
+-&gt; (EpochNo -&gt; EpochNo)
+-&gt; (Integer -&gt; EpochNo)
+-&gt; Num EpochNo
+forall a.
+(a -&gt; a -&gt; a)
+-&gt; (a -&gt; a -&gt; a)
+-&gt; (a -&gt; a -&gt; a)
+-&gt; (a -&gt; a)
+-&gt; (a -&gt; a)
+-&gt; (a -&gt; a)
+-&gt; (Integer -&gt; a)
+-&gt; Num a
+fromInteger :: Integer -&gt; EpochNo
+$cfromInteger :: Integer -&gt; EpochNo
+signum :: EpochNo -&gt; EpochNo
+$csignum :: EpochNo -&gt; EpochNo
+abs :: EpochNo -&gt; EpochNo
+$cabs :: EpochNo -&gt; EpochNo
+negate :: EpochNo -&gt; EpochNo
+$cnegate :: EpochNo -&gt; EpochNo
+* :: EpochNo -&gt; EpochNo -&gt; EpochNo
+$c* :: EpochNo -&gt; EpochNo -&gt; EpochNo
+- :: EpochNo -&gt; EpochNo -&gt; EpochNo
+$c- :: EpochNo -&gt; EpochNo -&gt; EpochNo
++ :: EpochNo -&gt; EpochNo -&gt; EpochNo
+$c+ :: EpochNo -&gt; EpochNo -&gt; EpochNo
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Num</span></span></span></span></span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679091483"><span id="local-6989586621679091485"><span id="local-6989586621679091487"><span id="local-6989586621679091489"><span class="annot"><span class="annottext">Decoder s EpochNo
+Decoder s [EpochNo]
+[EpochNo] -&gt; Encoding
+EpochNo -&gt; Encoding
+(EpochNo -&gt; Encoding)
+-&gt; (forall s. Decoder s EpochNo)
+-&gt; ([EpochNo] -&gt; Encoding)
+-&gt; (forall s. Decoder s [EpochNo])
+-&gt; Serialise EpochNo
+forall s. Decoder s [EpochNo]
+forall s. Decoder s EpochNo
+forall a.
+(a -&gt; Encoding)
+-&gt; (forall s. Decoder s a)
+-&gt; ([a] -&gt; Encoding)
+-&gt; (forall s. Decoder s [a])
+-&gt; Serialise a
+decodeList :: Decoder s [EpochNo]
+$cdecodeList :: forall s. Decoder s [EpochNo]
+encodeList :: [EpochNo] -&gt; Encoding
+$cencodeList :: [EpochNo] -&gt; Encoding
+decode :: Decoder s EpochNo
+$cdecode :: forall s. Decoder s EpochNo
+encode :: EpochNo -&gt; Encoding
+$cencode :: EpochNo -&gt; Encoding
+</span><a href="#local-6989586621679091483"><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Serialise</span></a></span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679091476"><span id="local-6989586621679091478"><span id="local-6989586621679091480"><span class="annot"><span class="annottext">Typeable EpochNo
+Typeable EpochNo
+-&gt; (EpochNo -&gt; Encoding)
+-&gt; ((forall t. ToCBOR t =&gt; Proxy t -&gt; Size)
+    -&gt; Proxy EpochNo -&gt; Size)
+-&gt; ((forall t. ToCBOR t =&gt; Proxy t -&gt; Size)
+    -&gt; Proxy [EpochNo] -&gt; Size)
+-&gt; ToCBOR EpochNo
+EpochNo -&gt; Encoding
+(forall t. ToCBOR t =&gt; Proxy t -&gt; Size) -&gt; Proxy [EpochNo] -&gt; Size
+(forall t. ToCBOR t =&gt; Proxy t -&gt; Size) -&gt; Proxy EpochNo -&gt; Size
+forall a.
+Typeable a
+-&gt; (a -&gt; Encoding)
+-&gt; ((forall t. ToCBOR t =&gt; Proxy t -&gt; Size) -&gt; Proxy a -&gt; Size)
+-&gt; ((forall t. ToCBOR t =&gt; Proxy t -&gt; Size) -&gt; Proxy [a] -&gt; Size)
+-&gt; ToCBOR a
+encodedListSizeExpr :: (forall t. ToCBOR t =&gt; Proxy t -&gt; Size) -&gt; Proxy [EpochNo] -&gt; Size
+$cencodedListSizeExpr :: (forall t. ToCBOR t =&gt; Proxy t -&gt; Size) -&gt; Proxy [EpochNo] -&gt; Size
+encodedSizeExpr :: (forall t. ToCBOR t =&gt; Proxy t -&gt; Size) -&gt; Proxy EpochNo -&gt; Size
+$cencodedSizeExpr :: (forall t. ToCBOR t =&gt; Proxy t -&gt; Size) -&gt; Proxy EpochNo -&gt; Size
+toCBOR :: EpochNo -&gt; Encoding
+$ctoCBOR :: EpochNo -&gt; Encoding
+$cp1ToCBOR :: Typeable EpochNo
+</span><a href="#local-6989586621679091476"><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">ToCBOR</span></a></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679091471"><span id="local-6989586621679091473"><span class="annot"><span class="annottext">Typeable EpochNo
+Decoder s EpochNo
+Typeable EpochNo
+-&gt; (forall s. Decoder s EpochNo)
+-&gt; (Proxy EpochNo -&gt; Text)
+-&gt; FromCBOR EpochNo
+Proxy EpochNo -&gt; Text
+forall s. Decoder s EpochNo
+forall a.
+Typeable a
+-&gt; (forall s. Decoder s a) -&gt; (Proxy a -&gt; Text) -&gt; FromCBOR a
+label :: Proxy EpochNo -&gt; Text
+$clabel :: Proxy EpochNo -&gt; Text
+fromCBOR :: Decoder s EpochNo
+$cfromCBOR :: forall s. Decoder s EpochNo
+$cp1FromCBOR :: Typeable EpochNo
+</span><a href="#local-6989586621679091471"><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var">FromCBOR</span></a></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679091465"><span id="local-6989586621679091467"><span id="local-6989586621679091469"><span class="annot"><span class="annottext">Context -&gt; EpochNo -&gt; IO (Maybe ThunkInfo)
+Proxy EpochNo -&gt; String
+(Context -&gt; EpochNo -&gt; IO (Maybe ThunkInfo))
+-&gt; (Context -&gt; EpochNo -&gt; IO (Maybe ThunkInfo))
+-&gt; (Proxy EpochNo -&gt; String)
+-&gt; NoThunks EpochNo
+forall a.
+(Context -&gt; a -&gt; IO (Maybe ThunkInfo))
+-&gt; (Context -&gt; a -&gt; IO (Maybe ThunkInfo))
+-&gt; (Proxy a -&gt; String)
+-&gt; NoThunks a
+showTypeOf :: Proxy EpochNo -&gt; String
+$cshowTypeOf :: Proxy EpochNo -&gt; String
+wNoThunks :: Context -&gt; EpochNo -&gt; IO (Maybe ThunkInfo)
+$cwNoThunks :: Context -&gt; EpochNo -&gt; IO (Maybe ThunkInfo)
+noThunks :: Context -&gt; EpochNo -&gt; IO (Maybe ThunkInfo)
+$cnoThunks :: Context -&gt; EpochNo -&gt; IO (Maybe ThunkInfo)
+</span><a href="#local-6989586621679091465"><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">NoThunks</span></a></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679091457"><span id="local-6989586621679091459"><span id="local-6989586621679091461"><span id="local-6989586621679091463"><span class="annot"><span class="annottext">[EpochNo] -&gt; Value
+[EpochNo] -&gt; Encoding
+EpochNo -&gt; Value
+EpochNo -&gt; Encoding
+(EpochNo -&gt; Value)
+-&gt; (EpochNo -&gt; Encoding)
+-&gt; ([EpochNo] -&gt; Value)
+-&gt; ([EpochNo] -&gt; Encoding)
+-&gt; ToJSON EpochNo
+forall a.
+(a -&gt; Value)
+-&gt; (a -&gt; Encoding)
+-&gt; ([a] -&gt; Value)
+-&gt; ([a] -&gt; Encoding)
+-&gt; ToJSON a
+toEncodingList :: [EpochNo] -&gt; Encoding
+$ctoEncodingList :: [EpochNo] -&gt; Encoding
+toJSONList :: [EpochNo] -&gt; Value
+$ctoJSONList :: [EpochNo] -&gt; Value
+toEncoding :: EpochNo -&gt; Encoding
+$ctoEncoding :: EpochNo -&gt; Encoding
+toJSON :: EpochNo -&gt; Value
+$ctoJSON :: EpochNo -&gt; Value
+</span><a href="#local-6989586621679091457"><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">ToJSON</span></a></span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679091453"><span id="local-6989586621679091455"><span class="annot"><span class="annottext">Value -&gt; Parser [EpochNo]
+Value -&gt; Parser EpochNo
+(Value -&gt; Parser EpochNo)
+-&gt; (Value -&gt; Parser [EpochNo]) -&gt; FromJSON EpochNo
+forall a.
+(Value -&gt; Parser a) -&gt; (Value -&gt; Parser [a]) -&gt; FromJSON a
+parseJSONList :: Value -&gt; Parser [EpochNo]
+$cparseJSONList :: Value -&gt; Parser [EpochNo]
+parseJSON :: Value -&gt; Parser EpochNo
+$cparseJSON :: Value -&gt; Parser EpochNo
+</span><a href="#local-6989586621679091453"><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">FromJSON</span></a></span></span></span><span class="hs-special">)</span><span>
+</span><span id="line-101"></span><span>
+</span><span id="line-102"></span><span id="local-6989586621679091451"><span id="local-6989586621679091452"></span></span><span class="hs-keyword">newtype</span><span> </span><span id="EpochSize"><span class="annot"><a href="Cardano.Slotting.Slot.html#EpochSize"><span class="hs-identifier hs-var">EpochSize</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="EpochSize"><span class="annot"><a href="Cardano.Slotting.Slot.html#EpochSize"><span class="hs-identifier hs-var">EpochSize</span></a></span></span><span> </span><span class="hs-special">{</span><span id="unEpochSize"><span class="annot"><span class="annottext">EpochSize -&gt; Word64
+</span><a href="Cardano.Slotting.Slot.html#unEpochSize"><span class="hs-identifier hs-var hs-var">unEpochSize</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Word64</span></span><span class="hs-special">}</span><span>
+</span><span id="line-103"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="annot"><span class="hs-keyword">stock</span></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679091445"><span id="local-6989586621679091447"><span class="annot"><span class="annottext">EpochSize -&gt; EpochSize -&gt; Bool
+(EpochSize -&gt; EpochSize -&gt; Bool)
+-&gt; (EpochSize -&gt; EpochSize -&gt; Bool) -&gt; Eq EpochSize
+forall a. (a -&gt; a -&gt; Bool) -&gt; (a -&gt; a -&gt; Bool) -&gt; Eq a
+/= :: EpochSize -&gt; EpochSize -&gt; Bool
+$c/= :: EpochSize -&gt; EpochSize -&gt; Bool
+== :: EpochSize -&gt; EpochSize -&gt; Bool
+$c== :: EpochSize -&gt; EpochSize -&gt; Bool
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679091430"><span id="local-6989586621679091432"><span id="local-6989586621679091434"><span id="local-6989586621679091436"><span id="local-6989586621679091438"><span id="local-6989586621679091440"><span id="local-6989586621679091442"><span class="annot"><span class="annottext">Eq EpochSize
+Eq EpochSize
+-&gt; (EpochSize -&gt; EpochSize -&gt; Ordering)
+-&gt; (EpochSize -&gt; EpochSize -&gt; Bool)
+-&gt; (EpochSize -&gt; EpochSize -&gt; Bool)
+-&gt; (EpochSize -&gt; EpochSize -&gt; Bool)
+-&gt; (EpochSize -&gt; EpochSize -&gt; Bool)
+-&gt; (EpochSize -&gt; EpochSize -&gt; EpochSize)
+-&gt; (EpochSize -&gt; EpochSize -&gt; EpochSize)
+-&gt; Ord EpochSize
+EpochSize -&gt; EpochSize -&gt; Bool
+EpochSize -&gt; EpochSize -&gt; Ordering
+EpochSize -&gt; EpochSize -&gt; EpochSize
+forall a.
+Eq a
+-&gt; (a -&gt; a -&gt; Ordering)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; a)
+-&gt; (a -&gt; a -&gt; a)
+-&gt; Ord a
+min :: EpochSize -&gt; EpochSize -&gt; EpochSize
+$cmin :: EpochSize -&gt; EpochSize -&gt; EpochSize
+max :: EpochSize -&gt; EpochSize -&gt; EpochSize
+$cmax :: EpochSize -&gt; EpochSize -&gt; EpochSize
+&gt;= :: EpochSize -&gt; EpochSize -&gt; Bool
+$c&gt;= :: EpochSize -&gt; EpochSize -&gt; Bool
+&gt; :: EpochSize -&gt; EpochSize -&gt; Bool
+$c&gt; :: EpochSize -&gt; EpochSize -&gt; Bool
+&lt;= :: EpochSize -&gt; EpochSize -&gt; Bool
+$c&lt;= :: EpochSize -&gt; EpochSize -&gt; Bool
+&lt; :: EpochSize -&gt; EpochSize -&gt; Bool
+$c&lt; :: EpochSize -&gt; EpochSize -&gt; Bool
+compare :: EpochSize -&gt; EpochSize -&gt; Ordering
+$ccompare :: EpochSize -&gt; EpochSize -&gt; Ordering
+$cp1Ord :: Eq EpochSize
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Ord</span></span></span></span></span></span></span></span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">(forall x. EpochSize -&gt; Rep EpochSize x)
+-&gt; (forall x. Rep EpochSize x -&gt; EpochSize) -&gt; Generic EpochSize
+forall x. Rep EpochSize x -&gt; EpochSize
+forall x. EpochSize -&gt; Rep EpochSize x
+forall a.
+(forall x. a -&gt; Rep a x) -&gt; (forall x. Rep a x -&gt; a) -&gt; Generic a
+$cto :: forall x. Rep EpochSize x -&gt; EpochSize
+$cfrom :: forall x. EpochSize -&gt; Rep EpochSize x
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">Generic</span></span><span class="hs-special">)</span><span>
+</span><span id="line-104"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span id="local-6989586621679091422"><span id="local-6989586621679091424"><span id="local-6989586621679091426"><span class="annot"><span class="annottext">Int -&gt; EpochSize -&gt; ShowS
+[EpochSize] -&gt; ShowS
+EpochSize -&gt; String
+(Int -&gt; EpochSize -&gt; ShowS)
+-&gt; (EpochSize -&gt; String)
+-&gt; ([EpochSize] -&gt; ShowS)
+-&gt; Show EpochSize
+forall a.
+(Int -&gt; a -&gt; ShowS) -&gt; (a -&gt; String) -&gt; ([a] -&gt; ShowS) -&gt; Show a
+showList :: [EpochSize] -&gt; ShowS
+$cshowList :: [EpochSize] -&gt; ShowS
+show :: EpochSize -&gt; String
+$cshow :: EpochSize -&gt; String
+showsPrec :: Int -&gt; EpochSize -&gt; ShowS
+$cshowsPrec :: Int -&gt; EpochSize -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span> </span><span class="hs-keyword">via</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Quiet</span></span><span> </span><span class="annot"><a href="Cardano.Slotting.Slot.html#EpochSize"><span class="hs-identifier hs-type">EpochSize</span></a></span><span>
+</span><span id="line-105"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="annot"><span class="hs-keyword">newtype</span></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679091406"><span id="local-6989586621679091408"><span id="local-6989586621679091410"><span id="local-6989586621679091412"><span id="local-6989586621679091414"><span id="local-6989586621679091416"><span id="local-6989586621679091418"><span id="local-6989586621679091420"><span class="annot"><span class="annottext">Int -&gt; EpochSize
+EpochSize -&gt; Int
+EpochSize -&gt; [EpochSize]
+EpochSize -&gt; EpochSize
+EpochSize -&gt; EpochSize -&gt; [EpochSize]
+EpochSize -&gt; EpochSize -&gt; EpochSize -&gt; [EpochSize]
+(EpochSize -&gt; EpochSize)
+-&gt; (EpochSize -&gt; EpochSize)
+-&gt; (Int -&gt; EpochSize)
+-&gt; (EpochSize -&gt; Int)
+-&gt; (EpochSize -&gt; [EpochSize])
+-&gt; (EpochSize -&gt; EpochSize -&gt; [EpochSize])
+-&gt; (EpochSize -&gt; EpochSize -&gt; [EpochSize])
+-&gt; (EpochSize -&gt; EpochSize -&gt; EpochSize -&gt; [EpochSize])
+-&gt; Enum EpochSize
+forall a.
+(a -&gt; a)
+-&gt; (a -&gt; a)
+-&gt; (Int -&gt; a)
+-&gt; (a -&gt; Int)
+-&gt; (a -&gt; [a])
+-&gt; (a -&gt; a -&gt; [a])
+-&gt; (a -&gt; a -&gt; [a])
+-&gt; (a -&gt; a -&gt; a -&gt; [a])
+-&gt; Enum a
+enumFromThenTo :: EpochSize -&gt; EpochSize -&gt; EpochSize -&gt; [EpochSize]
+$cenumFromThenTo :: EpochSize -&gt; EpochSize -&gt; EpochSize -&gt; [EpochSize]
+enumFromTo :: EpochSize -&gt; EpochSize -&gt; [EpochSize]
+$cenumFromTo :: EpochSize -&gt; EpochSize -&gt; [EpochSize]
+enumFromThen :: EpochSize -&gt; EpochSize -&gt; [EpochSize]
+$cenumFromThen :: EpochSize -&gt; EpochSize -&gt; [EpochSize]
+enumFrom :: EpochSize -&gt; [EpochSize]
+$cenumFrom :: EpochSize -&gt; [EpochSize]
+fromEnum :: EpochSize -&gt; Int
+$cfromEnum :: EpochSize -&gt; Int
+toEnum :: Int -&gt; EpochSize
+$ctoEnum :: Int -&gt; EpochSize
+pred :: EpochSize -&gt; EpochSize
+$cpred :: EpochSize -&gt; EpochSize
+succ :: EpochSize -&gt; EpochSize
+$csucc :: EpochSize -&gt; EpochSize
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Enum</span></span></span></span></span></span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679091392"><span id="local-6989586621679091394"><span id="local-6989586621679091396"><span id="local-6989586621679091398"><span id="local-6989586621679091400"><span id="local-6989586621679091402"><span id="local-6989586621679091404"><span class="annot"><span class="annottext">Integer -&gt; EpochSize
+EpochSize -&gt; EpochSize
+EpochSize -&gt; EpochSize -&gt; EpochSize
+(EpochSize -&gt; EpochSize -&gt; EpochSize)
+-&gt; (EpochSize -&gt; EpochSize -&gt; EpochSize)
+-&gt; (EpochSize -&gt; EpochSize -&gt; EpochSize)
+-&gt; (EpochSize -&gt; EpochSize)
+-&gt; (EpochSize -&gt; EpochSize)
+-&gt; (EpochSize -&gt; EpochSize)
+-&gt; (Integer -&gt; EpochSize)
+-&gt; Num EpochSize
+forall a.
+(a -&gt; a -&gt; a)
+-&gt; (a -&gt; a -&gt; a)
+-&gt; (a -&gt; a -&gt; a)
+-&gt; (a -&gt; a)
+-&gt; (a -&gt; a)
+-&gt; (a -&gt; a)
+-&gt; (Integer -&gt; a)
+-&gt; Num a
+fromInteger :: Integer -&gt; EpochSize
+$cfromInteger :: Integer -&gt; EpochSize
+signum :: EpochSize -&gt; EpochSize
+$csignum :: EpochSize -&gt; EpochSize
+abs :: EpochSize -&gt; EpochSize
+$cabs :: EpochSize -&gt; EpochSize
+negate :: EpochSize -&gt; EpochSize
+$cnegate :: EpochSize -&gt; EpochSize
+* :: EpochSize -&gt; EpochSize -&gt; EpochSize
+$c* :: EpochSize -&gt; EpochSize -&gt; EpochSize
+- :: EpochSize -&gt; EpochSize -&gt; EpochSize
+$c- :: EpochSize -&gt; EpochSize -&gt; EpochSize
++ :: EpochSize -&gt; EpochSize -&gt; EpochSize
+$c+ :: EpochSize -&gt; EpochSize -&gt; EpochSize
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Num</span></span></span></span></span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679091388"><span class="annot"><span class="annottext">Num EpochSize
+Ord EpochSize
+Num EpochSize
+-&gt; Ord EpochSize -&gt; (EpochSize -&gt; Rational) -&gt; Real EpochSize
+EpochSize -&gt; Rational
+forall a. Num a -&gt; Ord a -&gt; (a -&gt; Rational) -&gt; Real a
+toRational :: EpochSize -&gt; Rational
+$ctoRational :: EpochSize -&gt; Rational
+$cp2Real :: Ord EpochSize
+$cp1Real :: Num EpochSize
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Real</span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679091371"><span id="local-6989586621679091373"><span id="local-6989586621679091375"><span id="local-6989586621679091377"><span id="local-6989586621679091379"><span id="local-6989586621679091381"><span id="local-6989586621679091383"><span class="annot"><span class="annottext">Enum EpochSize
+Real EpochSize
+Real EpochSize
+-&gt; Enum EpochSize
+-&gt; (EpochSize -&gt; EpochSize -&gt; EpochSize)
+-&gt; (EpochSize -&gt; EpochSize -&gt; EpochSize)
+-&gt; (EpochSize -&gt; EpochSize -&gt; EpochSize)
+-&gt; (EpochSize -&gt; EpochSize -&gt; EpochSize)
+-&gt; (EpochSize -&gt; EpochSize -&gt; (EpochSize, EpochSize))
+-&gt; (EpochSize -&gt; EpochSize -&gt; (EpochSize, EpochSize))
+-&gt; (EpochSize -&gt; Integer)
+-&gt; Integral EpochSize
+EpochSize -&gt; Integer
+EpochSize -&gt; EpochSize -&gt; (EpochSize, EpochSize)
+EpochSize -&gt; EpochSize -&gt; EpochSize
+forall a.
+Real a
+-&gt; Enum a
+-&gt; (a -&gt; a -&gt; a)
+-&gt; (a -&gt; a -&gt; a)
+-&gt; (a -&gt; a -&gt; a)
+-&gt; (a -&gt; a -&gt; a)
+-&gt; (a -&gt; a -&gt; (a, a))
+-&gt; (a -&gt; a -&gt; (a, a))
+-&gt; (a -&gt; Integer)
+-&gt; Integral a
+toInteger :: EpochSize -&gt; Integer
+$ctoInteger :: EpochSize -&gt; Integer
+divMod :: EpochSize -&gt; EpochSize -&gt; (EpochSize, EpochSize)
+$cdivMod :: EpochSize -&gt; EpochSize -&gt; (EpochSize, EpochSize)
+quotRem :: EpochSize -&gt; EpochSize -&gt; (EpochSize, EpochSize)
+$cquotRem :: EpochSize -&gt; EpochSize -&gt; (EpochSize, EpochSize)
+mod :: EpochSize -&gt; EpochSize -&gt; EpochSize
+$cmod :: EpochSize -&gt; EpochSize -&gt; EpochSize
+div :: EpochSize -&gt; EpochSize -&gt; EpochSize
+$cdiv :: EpochSize -&gt; EpochSize -&gt; EpochSize
+rem :: EpochSize -&gt; EpochSize -&gt; EpochSize
+$crem :: EpochSize -&gt; EpochSize -&gt; EpochSize
+quot :: EpochSize -&gt; EpochSize -&gt; EpochSize
+$cquot :: EpochSize -&gt; EpochSize -&gt; EpochSize
+$cp2Integral :: Enum EpochSize
+$cp1Integral :: Real EpochSize
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Integral</span></span></span></span></span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679091364"><span id="local-6989586621679091366"><span id="local-6989586621679091368"><span class="annot"><span class="annottext">Context -&gt; EpochSize -&gt; IO (Maybe ThunkInfo)
+Proxy EpochSize -&gt; String
+(Context -&gt; EpochSize -&gt; IO (Maybe ThunkInfo))
+-&gt; (Context -&gt; EpochSize -&gt; IO (Maybe ThunkInfo))
+-&gt; (Proxy EpochSize -&gt; String)
+-&gt; NoThunks EpochSize
+forall a.
+(Context -&gt; a -&gt; IO (Maybe ThunkInfo))
+-&gt; (Context -&gt; a -&gt; IO (Maybe ThunkInfo))
+-&gt; (Proxy a -&gt; String)
+-&gt; NoThunks a
+showTypeOf :: Proxy EpochSize -&gt; String
+$cshowTypeOf :: Proxy EpochSize -&gt; String
+wNoThunks :: Context -&gt; EpochSize -&gt; IO (Maybe ThunkInfo)
+$cwNoThunks :: Context -&gt; EpochSize -&gt; IO (Maybe ThunkInfo)
+noThunks :: Context -&gt; EpochSize -&gt; IO (Maybe ThunkInfo)
+$cnoThunks :: Context -&gt; EpochSize -&gt; IO (Maybe ThunkInfo)
+</span><a href="#local-6989586621679091364"><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">NoThunks</span></a></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679091356"><span id="local-6989586621679091358"><span id="local-6989586621679091360"><span id="local-6989586621679091362"><span class="annot"><span class="annottext">[EpochSize] -&gt; Value
+[EpochSize] -&gt; Encoding
+EpochSize -&gt; Value
+EpochSize -&gt; Encoding
+(EpochSize -&gt; Value)
+-&gt; (EpochSize -&gt; Encoding)
+-&gt; ([EpochSize] -&gt; Value)
+-&gt; ([EpochSize] -&gt; Encoding)
+-&gt; ToJSON EpochSize
+forall a.
+(a -&gt; Value)
+-&gt; (a -&gt; Encoding)
+-&gt; ([a] -&gt; Value)
+-&gt; ([a] -&gt; Encoding)
+-&gt; ToJSON a
+toEncodingList :: [EpochSize] -&gt; Encoding
+$ctoEncodingList :: [EpochSize] -&gt; Encoding
+toJSONList :: [EpochSize] -&gt; Value
+$ctoJSONList :: [EpochSize] -&gt; Value
+toEncoding :: EpochSize -&gt; Encoding
+$ctoEncoding :: EpochSize -&gt; Encoding
+toJSON :: EpochSize -&gt; Value
+$ctoJSON :: EpochSize -&gt; Value
+</span><a href="#local-6989586621679091356"><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">ToJSON</span></a></span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679091352"><span id="local-6989586621679091354"><span class="annot"><span class="annottext">Value -&gt; Parser [EpochSize]
+Value -&gt; Parser EpochSize
+(Value -&gt; Parser EpochSize)
+-&gt; (Value -&gt; Parser [EpochSize]) -&gt; FromJSON EpochSize
+forall a.
+(Value -&gt; Parser a) -&gt; (Value -&gt; Parser [a]) -&gt; FromJSON a
+parseJSONList :: Value -&gt; Parser [EpochSize]
+$cparseJSONList :: Value -&gt; Parser [EpochSize]
+parseJSON :: Value -&gt; Parser EpochSize
+$cparseJSON :: Value -&gt; Parser EpochSize
+</span><a href="#local-6989586621679091352"><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">FromJSON</span></a></span></span></span><span class="hs-special">)</span><span>
+</span><span id="line-106"></span></pre></body></html>

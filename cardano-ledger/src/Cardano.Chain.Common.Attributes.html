@@ -1,136 +1,536 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-pragma">{-# LANGUAGE DeriveAnyClass             #-}</span><span>
-</span><a name="line-2"></a><span class="hs-pragma">{-# LANGUAGE DeriveGeneric              #-}</span><span>
-</span><a name="line-3"></a><span class="hs-pragma">{-# LANGUAGE DerivingStrategies         #-}</span><span>
-</span><a name="line-4"></a><span class="hs-pragma">{-# LANGUAGE FlexibleInstances          #-}</span><span>
-</span><a name="line-5"></a><span class="hs-pragma">{-# LANGUAGE GeneralizedNewtypeDeriving #-}</span><span>
-</span><a name="line-6"></a><span class="hs-pragma">{-# LANGUAGE OverloadedStrings          #-}</span><span>
-</span><a name="line-7"></a><span class="hs-pragma">{-# LANGUAGE ScopedTypeVariables        #-}</span><span>
-</span><a name="line-8"></a><span class="hs-pragma">{-# LANGUAGE TemplateHaskell            #-}</span><span>
-</span><a name="line-9"></a><span class="hs-pragma">{-# LANGUAGE TypeApplications           #-}</span><span>
-</span><a name="line-10"></a><span>
-</span><a name="line-11"></a><span class="hs-comment">-- | Helper data type for block, tx attributes</span><span>
-</span><a name="line-12"></a><span class="hs-comment">--</span><span>
-</span><a name="line-13"></a><span class="hs-comment">--   Map with integer 1-byte keys, arbitrary-type polymorph values. Needed</span><span>
-</span><a name="line-14"></a><span class="hs-comment">--   primarily for partial serialization. Values are either parsed and put to</span><span>
-</span><a name="line-15"></a><span class="hs-comment">--   some constructor or left as unparsed.</span><span>
-</span><a name="line-16"></a><span>
-</span><a name="line-17"></a><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Cardano.Chain.Common.Attributes</span><span>
-</span><a name="line-18"></a><span>  </span><span class="hs-special">(</span><span> </span><a href="Cardano.Chain.Common.Attributes.html#UnparsedFields"><span class="hs-identifier hs-type">UnparsedFields</span></a><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
-</span><a name="line-19"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Cardano.Chain.Common.Attributes.html#Attributes"><span class="hs-identifier hs-type">Attributes</span></a><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
-</span><a name="line-20"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Cardano.Chain.Common.Attributes.html#attributesAreKnown"><span class="hs-identifier hs-var">attributesAreKnown</span></a><span>
-</span><a name="line-21"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Cardano.Chain.Common.Attributes.html#unknownAttributesLength"><span class="hs-identifier hs-var">unknownAttributesLength</span></a><span>
-</span><a name="line-22"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Cardano.Chain.Common.Attributes.html#toCBORAttributes"><span class="hs-identifier hs-var">toCBORAttributes</span></a><span>
-</span><a name="line-23"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Cardano.Chain.Common.Attributes.html#fromCBORAttributes"><span class="hs-identifier hs-var">fromCBORAttributes</span></a><span>
-</span><a name="line-24"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Cardano.Chain.Common.Attributes.html#mkAttributes"><span class="hs-identifier hs-var">mkAttributes</span></a><span>
-</span><a name="line-25"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Cardano.Chain.Common.Attributes.html#dropAttributes"><span class="hs-identifier hs-var">dropAttributes</span></a><span>
-</span><a name="line-26"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Cardano.Chain.Common.Attributes.html#dropEmptyAttributes"><span class="hs-identifier hs-var">dropEmptyAttributes</span></a><span>
-</span><a name="line-27"></a><span>  </span><span class="hs-special">)</span><span>
-</span><a name="line-28"></a><span class="hs-keyword">where</span><span>
-</span><a name="line-29"></a><span>
-</span><a name="line-30"></a><span class="hs-keyword">import</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-prelude-0.1.0.0/noopt/doc/html/cardano-prelude/src/Cardano.Prelude.html"><span class="hs-identifier">Cardano.Prelude</span></a><span>
-</span><a name="line-31"></a><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-identifier">Prelude</span><span>
-</span><a name="line-32"></a><span>
-</span><a name="line-33"></a><span class="hs-keyword">import</span><span> </span><span class="hs-identifier">Data.Aeson</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">ToJSON</span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
-</span><a name="line-34"></a><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-identifier">Data.ByteString.Lazy</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">LBS</span><span>
-</span><a name="line-35"></a><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-identifier">Data.ByteString.Lazy.Char8</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">LChar8</span><span>
-</span><a name="line-36"></a><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-identifier">Data.Map.Strict</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">M</span><span>
-</span><a name="line-37"></a><span class="hs-keyword">import</span><span> </span><span class="hs-identifier">Formatting</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-var">bprint</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-var">build</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-var">int</span><span class="hs-special">)</span><span>
-</span><a name="line-38"></a><span class="hs-keyword">import</span><span> </span><span class="hs-identifier">Formatting.Buildable</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Buildable</span><span class="hs-special">)</span><span>
-</span><a name="line-39"></a><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-identifier">Formatting.Buildable</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">Buildable</span><span>
-</span><a name="line-40"></a><span>
-</span><a name="line-41"></a><span class="hs-keyword">import</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.html"><span class="hs-identifier">Cardano.Binary</span></a><span>
-</span><a name="line-42"></a><span>  </span><span class="hs-special">(</span><span> </span><span class="hs-identifier hs-type">Decoder</span><span>
-</span><a name="line-43"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.FromCBOR.html#DecoderError"><span class="hs-identifier hs-type">DecoderError</span></a><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
-</span><a name="line-44"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.Drop.html#Dropper"><span class="hs-identifier hs-type">Dropper</span></a><span>
-</span><a name="line-45"></a><span>  </span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Encoding</span><span>
-</span><a name="line-46"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.FromCBOR.html#FromCBOR"><span class="hs-identifier hs-type">FromCBOR</span></a><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
-</span><a name="line-47"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.ToCBOR.html#ToCBOR"><span class="hs-identifier hs-type">ToCBOR</span></a><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
-</span><a name="line-48"></a><span>  </span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-var">decodeMapLen</span><span>
-</span><a name="line-49"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.Drop.html#dropBytes"><span class="hs-identifier hs-var">dropBytes</span></a><span>
-</span><a name="line-50"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.Drop.html#dropMap"><span class="hs-identifier hs-var">dropMap</span></a><span>
-</span><a name="line-51"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.Drop.html#dropWord8"><span class="hs-identifier hs-var">dropWord8</span></a><span>
-</span><a name="line-52"></a><span>  </span><span class="hs-special">)</span><span>
-</span><a name="line-53"></a><span>
-</span><a name="line-54"></a><span class="hs-comment">-- | Representation of unparsed fields in Attributes. Newtype wrapper is used</span><span>
-</span><a name="line-55"></a><span class="hs-comment">--   for clear backward compatibility between previous representation (which was</span><span>
-</span><a name="line-56"></a><span class="hs-comment">--   just a single ByteString) during transition from Store to CBOR.</span><span>
-</span><a name="line-57"></a><span class="hs-keyword">newtype</span><span> </span><a name="UnparsedFields"><a href="Cardano.Chain.Common.Attributes.html#UnparsedFields"><span class="hs-identifier">UnparsedFields</span></a></a><span> </span><span class="hs-glyph">=</span><span>
-</span><a name="line-58"></a><span>  </span><a name="UnparsedFields"><a href="Cardano.Chain.Common.Attributes.html#UnparsedFields"><span class="hs-identifier">UnparsedFields</span></a></a><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Map</span><span> </span><span class="hs-identifier hs-type">Word8</span><span> </span><span class="hs-identifier hs-type">LBS.ByteString</span><span class="hs-special">)</span><span>
-</span><a name="line-59"></a><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Eq</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Ord</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Show</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Generic</span><span class="hs-special">)</span><span>
-</span><a name="line-60"></a><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-keyword">newtype</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-prelude-0.1.0.0/noopt/doc/html/cardano-prelude/src/Cardano.Prelude.HeapWords.html#HeapWords"><span class="hs-identifier hs-type">HeapWords</span></a><span>
-</span><a name="line-61"></a><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-keyword">anyclass</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">NFData</span><span class="hs-special">,</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-prelude-0.1.0.0/noopt/doc/html/cardano-prelude/src/Cardano.Prelude.GHC.Heap.NormalForm.Classy.html#NoUnexpectedThunks"><span class="hs-identifier hs-type">NoUnexpectedThunks</span></a><span class="hs-special">)</span><span>
-</span><a name="line-62"></a><span>
-</span><a name="line-63"></a><span class="hs-comment">-- Used for debugging purposes only</span><span>
-</span><a name="line-64"></a><span class="hs-keyword">instance</span><span> </span><span class="hs-identifier hs-type">ToJSON</span><span> </span><a href="Cardano.Chain.Common.Attributes.html#UnparsedFields"><span class="hs-identifier hs-type">UnparsedFields</span></a><span> </span><span class="hs-keyword">where</span><span>
-</span><a name="line-65"></a><span>    </span><a name="local-8214565720323804728"><span class="hs-identifier">toJSON</span></a><span> </span><span class="hs-special">(</span><a href="Cardano.Chain.Common.Attributes.html#UnparsedFields"><span class="hs-identifier hs-var">UnparsedFields</span></a><span> </span><a name="local-6989586621679128267"><a href="#local-6989586621679128267"><span class="hs-identifier">map'</span></a></a><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-identifier hs-var">toJSON</span><span> </span><span class="hs-operator hs-var">$</span><span> </span><span class="hs-identifier hs-var">M.map</span><span> </span><span class="hs-identifier hs-var">LChar8.unpack</span><span> </span><a href="#local-6989586621679128267"><span class="hs-identifier hs-var">map'</span></a><span>
-</span><a name="line-66"></a><span>
-</span><a name="line-67"></a><span>
-</span><a name="line-68"></a><span class="hs-identifier">fromUnparsedFields</span><span> </span><span class="hs-glyph">::</span><span> </span><a href="Cardano.Chain.Common.Attributes.html#UnparsedFields"><span class="hs-identifier hs-type">UnparsedFields</span></a><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">Map</span><span> </span><span class="hs-identifier hs-type">Word8</span><span> </span><span class="hs-identifier hs-type">LBS.ByteString</span><span>
-</span><a name="line-69"></a><a name="fromUnparsedFields"><a href="Cardano.Chain.Common.Attributes.html#fromUnparsedFields"><span class="hs-identifier">fromUnparsedFields</span></a></a><span> </span><span class="hs-special">(</span><a href="Cardano.Chain.Common.Attributes.html#UnparsedFields"><span class="hs-identifier hs-var">UnparsedFields</span></a><span> </span><a name="local-6989586621679128395"><a href="#local-6989586621679128395"><span class="hs-identifier">m</span></a></a><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><a href="#local-6989586621679128395"><span class="hs-identifier hs-var">m</span></a><span>
-</span><a name="line-70"></a><span>
-</span><a name="line-71"></a><span class="hs-comment">----------------------------------------</span><span>
-</span><a name="line-72"></a><span>
-</span><a name="line-73"></a><span class="hs-identifier">mkAttributes</span><span> </span><span class="hs-glyph">::</span><span> </span><a href="#local-6989586621679128394"><span class="hs-identifier hs-type">h</span></a><span> </span><span class="hs-glyph">-&gt;</span><span> </span><a href="Cardano.Chain.Common.Attributes.html#Attributes"><span class="hs-identifier hs-type">Attributes</span></a><span> </span><a href="#local-6989586621679128394"><span class="hs-identifier hs-type">h</span></a><span>
-</span><a name="line-74"></a><a name="mkAttributes"><a href="Cardano.Chain.Common.Attributes.html#mkAttributes"><span class="hs-identifier">mkAttributes</span></a></a><span> </span><a name="local-6989586621679128396"><a href="#local-6989586621679128396"><span class="hs-identifier">dat</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><a href="Cardano.Chain.Common.Attributes.html#Attributes"><span class="hs-identifier hs-var">Attributes</span></a><span> </span><a href="#local-6989586621679128396"><span class="hs-identifier hs-var">dat</span></a><span> </span><span class="hs-special">(</span><a href="Cardano.Chain.Common.Attributes.html#UnparsedFields"><span class="hs-identifier hs-var">UnparsedFields</span></a><span> </span><span class="hs-identifier hs-var">M.empty</span><span class="hs-special">)</span><span>
-</span><a name="line-75"></a><span>
-</span><a name="line-76"></a><span class="hs-comment">-- | Convenient wrapper for the datatype to represent it (in binary format) as</span><span>
-</span><a name="line-77"></a><span class="hs-comment">--   k-v map</span><span>
-</span><a name="line-78"></a><span class="hs-keyword">data</span><span> </span><a name="Attributes"><a href="Cardano.Chain.Common.Attributes.html#Attributes"><span class="hs-identifier">Attributes</span></a></a><span> </span><a name="local-6989586621679128256"><a href="#local-6989586621679128256"><span class="hs-identifier">h</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><a name="Attributes"><a href="Cardano.Chain.Common.Attributes.html#Attributes"><span class="hs-identifier">Attributes</span></a></a><span>
-</span><a name="line-79"></a><span>  </span><span class="hs-special">{</span><span> </span><a name="attrData"><a href="Cardano.Chain.Common.Attributes.html#attrData"><span class="hs-identifier">attrData</span></a></a><span>   </span><span class="hs-glyph">::</span><span> </span><span class="hs-glyph">!</span><a href="#local-6989586621679128256"><span class="hs-identifier hs-type">h</span></a><span>
-</span><a name="line-80"></a><span>  </span><span class="hs-comment">-- ^ Data, containing known keys (deserialized)</span><span>
-</span><a name="line-81"></a><span>  </span><span class="hs-special">,</span><span> </span><a name="attrRemain"><a href="Cardano.Chain.Common.Attributes.html#attrRemain"><span class="hs-identifier">attrRemain</span></a></a><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-glyph">!</span><a href="Cardano.Chain.Common.Attributes.html#UnparsedFields"><span class="hs-identifier hs-type">UnparsedFields</span></a><span>
-</span><a name="line-82"></a><span>  </span><span class="hs-comment">-- ^ Remaining, unparsed fields</span><span>
-</span><a name="line-83"></a><span>  </span><span class="hs-special">}</span><span> </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Eq</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Ord</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Generic</span><span class="hs-special">,</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-prelude-0.1.0.0/noopt/doc/html/cardano-prelude/src/Cardano.Prelude.GHC.Heap.NormalForm.Classy.html#NoUnexpectedThunks"><span class="hs-identifier hs-type">NoUnexpectedThunks</span></a><span class="hs-special">)</span><span>
-</span><a name="line-84"></a><span>    </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-keyword">anyclass</span><span> </span><span class="hs-identifier hs-type">NFData</span><span>
-</span><a name="line-85"></a><span>
-</span><a name="line-86"></a><span class="hs-keyword">instance</span><span> </span><span class="hs-identifier hs-type">Show</span><span> </span><a href="#local-6989586621679128264"><span class="hs-identifier hs-type">h</span></a><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="hs-identifier hs-type">Show</span><span> </span><span class="hs-special">(</span><a href="Cardano.Chain.Common.Attributes.html#Attributes"><span class="hs-identifier hs-type">Attributes</span></a><span> </span><a href="#local-6989586621679128264"><span class="hs-identifier hs-type">h</span></a><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
-</span><a name="line-87"></a><span>  </span><a name="local-8214565720323790186"><span class="hs-identifier">show</span></a><span> </span><a name="local-6989586621679128265"><a href="#local-6989586621679128265"><span class="hs-identifier">attr</span></a></a><span> </span><span class="hs-glyph">=</span><span>
-</span><a name="line-88"></a><span>    </span><span class="hs-keyword">let</span><span>
-</span><a name="line-89"></a><span>      </span><span class="hs-identifier">remain</span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">Prelude.String</span><span>
-</span><a name="line-90"></a><span>      </span><a name="local-6989586621679128266"><a href="#local-6989586621679128266"><span class="hs-identifier">remain</span></a></a><span>
-</span><a name="line-91"></a><span>        </span><span class="hs-glyph">|</span><span> </span><a href="Cardano.Chain.Common.Attributes.html#attributesAreKnown"><span class="hs-identifier hs-var">attributesAreKnown</span></a><span> </span><a href="#local-6989586621679128265"><span class="hs-identifier hs-var">attr</span></a><span>
-</span><a name="line-92"></a><span>        </span><span class="hs-glyph">=</span><span> </span><span class="hs-string">&quot;&quot;</span><span>
-</span><a name="line-93"></a><span>        </span><span class="hs-glyph">|</span><span> </span><span class="hs-identifier hs-var">otherwise</span><span>
-</span><a name="line-94"></a><span>        </span><span class="hs-glyph">=</span><span> </span><span class="hs-string">&quot;, remain: &lt;&quot;</span><span> </span><span class="hs-operator hs-var">&lt;&gt;</span><span> </span><span class="hs-identifier hs-var">show</span><span> </span><span class="hs-special">(</span><a href="Cardano.Chain.Common.Attributes.html#unknownAttributesLength"><span class="hs-identifier hs-var">unknownAttributesLength</span></a><span> </span><a href="#local-6989586621679128265"><span class="hs-identifier hs-var">attr</span></a><span class="hs-special">)</span><span> </span><span class="hs-operator hs-var">&lt;&gt;</span><span> </span><span class="hs-string">&quot; bytes&gt;&quot;</span><span>
-</span><a name="line-95"></a><span>    </span><span class="hs-keyword">in</span><span> </span><span class="hs-identifier hs-var">mconcat</span><span> </span><span class="hs-special">[</span><span class="hs-string">&quot;Attributes { data: &quot;</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-var">show</span><span> </span><span class="hs-special">(</span><span class="hs-identifier">attrData</span><span> </span><a href="#local-6989586621679128265"><span class="hs-identifier hs-var">attr</span></a><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><a href="#local-6989586621679128266"><span class="hs-identifier hs-var">remain</span></a><span class="hs-special">,</span><span> </span><span class="hs-string">&quot; }&quot;</span><span class="hs-special">]</span><span>
-</span><a name="line-96"></a><span>
-</span><a name="line-97"></a><span class="hs-keyword">instance</span><span> </span><span class="hs-pragma">{-# OVERLAPPABLE</span><span> </span><span class="hs-pragma">#-}</span><span> </span><span class="hs-identifier hs-type">Buildable</span><span> </span><a href="#local-6989586621679128262"><span class="hs-identifier hs-type">h</span></a><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="hs-identifier hs-type">Buildable</span><span> </span><span class="hs-special">(</span><a href="Cardano.Chain.Common.Attributes.html#Attributes"><span class="hs-identifier hs-type">Attributes</span></a><span> </span><a href="#local-6989586621679128262"><span class="hs-identifier hs-type">h</span></a><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
-</span><a name="line-98"></a><span>  </span><a name="local-8214565720323804885"><span class="hs-identifier">build</span></a><span> </span><a name="local-6989586621679128263"><a href="#local-6989586621679128263"><span class="hs-identifier">attr</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">if</span><span> </span><a href="Cardano.Chain.Common.Attributes.html#attributesAreKnown"><span class="hs-identifier hs-var">attributesAreKnown</span></a><span> </span><a href="#local-6989586621679128263"><span class="hs-identifier hs-var">attr</span></a><span>
-</span><a name="line-99"></a><span>    </span><span class="hs-keyword">then</span><span> </span><span class="hs-identifier hs-var">Buildable.build</span><span> </span><span class="hs-special">(</span><span class="hs-identifier">attrData</span><span> </span><a href="#local-6989586621679128263"><span class="hs-identifier hs-var">attr</span></a><span class="hs-special">)</span><span>
-</span><a name="line-100"></a><span>    </span><span class="hs-keyword">else</span><span> </span><span class="hs-identifier hs-var">bprint</span><span>
-</span><a name="line-101"></a><span>      </span><span class="hs-special">(</span><span class="hs-string">&quot;Attributes { data: &quot;</span><span> </span><span class="hs-operator hs-var">.</span><span> </span><span class="hs-identifier hs-var">build</span><span> </span><span class="hs-operator hs-var">.</span><span> </span><span class="hs-string">&quot;, remain: &lt;&quot;</span><span> </span><span class="hs-operator hs-var">.</span><span> </span><span class="hs-identifier hs-var">int</span><span> </span><span class="hs-operator hs-var">.</span><span> </span><span class="hs-string">&quot; bytes&gt; }&quot;</span><span class="hs-special">)</span><span>
-</span><a name="line-102"></a><span>      </span><span class="hs-special">(</span><span class="hs-identifier">attrData</span><span> </span><a href="#local-6989586621679128263"><span class="hs-identifier hs-var">attr</span></a><span class="hs-special">)</span><span>
-</span><a name="line-103"></a><span>      </span><span class="hs-special">(</span><a href="Cardano.Chain.Common.Attributes.html#unknownAttributesLength"><span class="hs-identifier hs-var">unknownAttributesLength</span></a><span> </span><a href="#local-6989586621679128263"><span class="hs-identifier hs-var">attr</span></a><span class="hs-special">)</span><span>
-</span><a name="line-104"></a><span>
-</span><a name="line-105"></a><span class="hs-keyword">instance</span><span> </span><span class="hs-identifier hs-type">Buildable</span><span> </span><span class="hs-special">(</span><a href="Cardano.Chain.Common.Attributes.html#Attributes"><span class="hs-identifier hs-type">Attributes</span></a><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
-</span><a name="line-106"></a><span>  </span><a name="local-8214565720323804885"><span class="hs-identifier">build</span></a><span> </span><a name="local-6989586621679128261"><a href="#local-6989586621679128261"><span class="hs-identifier">attr</span></a></a><span>
-</span><a name="line-107"></a><span>    </span><span class="hs-glyph">|</span><span> </span><a href="Cardano.Chain.Common.Attributes.html#attributesAreKnown"><span class="hs-identifier hs-var">attributesAreKnown</span></a><span> </span><a href="#local-6989586621679128261"><span class="hs-identifier hs-var">attr</span></a><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-string">&quot;&lt;no attributes&gt;&quot;</span><span>
-</span><a name="line-108"></a><span>    </span><span class="hs-glyph">|</span><span> </span><span class="hs-identifier hs-var">otherwise</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-identifier hs-var">bprint</span><span>
-</span><a name="line-109"></a><span>      </span><span class="hs-special">(</span><span class="hs-string">&quot;Attributes { data: (), remain: &lt;&quot;</span><span> </span><span class="hs-operator hs-var">.</span><span> </span><span class="hs-identifier hs-var">int</span><span> </span><span class="hs-operator hs-var">.</span><span> </span><span class="hs-string">&quot; bytes&gt; }&quot;</span><span class="hs-special">)</span><span>
-</span><a name="line-110"></a><span>      </span><span class="hs-special">(</span><a href="Cardano.Chain.Common.Attributes.html#unknownAttributesLength"><span class="hs-identifier hs-var">unknownAttributesLength</span></a><span> </span><a href="#local-6989586621679128261"><span class="hs-identifier hs-var">attr</span></a><span class="hs-special">)</span><span>
-</span><a name="line-111"></a><span>
-</span><a name="line-112"></a><span class="hs-comment">-- Used for debugging purposes only</span><span>
-</span><a name="line-113"></a><span class="hs-keyword">instance</span><span> </span><span class="hs-identifier hs-type">ToJSON</span><span> </span><a href="#local-6989586621679128260"><span class="hs-identifier hs-type">a</span></a><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="hs-identifier hs-type">ToJSON</span><span> </span><span class="hs-special">(</span><a href="Cardano.Chain.Common.Attributes.html#Attributes"><span class="hs-identifier hs-type">Attributes</span></a><span> </span><a href="#local-6989586621679128260"><span class="hs-identifier hs-type">a</span></a><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
-</span><a name="line-114"></a><span>
-</span><a name="line-115"></a><span class="hs-keyword">instance</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.ToCBOR.html#ToCBOR"><span class="hs-identifier hs-type">ToCBOR</span></a><span> </span><span class="hs-special">(</span><a href="Cardano.Chain.Common.Attributes.html#Attributes"><span class="hs-identifier hs-type">Attributes</span></a><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
-</span><a name="line-116"></a><span>  </span><a name="local-8214565720323797072"><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.ToCBOR.html#toCBOR"><span class="hs-identifier">toCBOR</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><a href="Cardano.Chain.Common.Attributes.html#toCBORAttributes"><span class="hs-identifier hs-var">toCBORAttributes</span></a><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span>
-</span><a name="line-117"></a><span>
-</span><a name="line-118"></a><span class="hs-keyword">instance</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.FromCBOR.html#FromCBOR"><span class="hs-identifier hs-type">FromCBOR</span></a><span> </span><span class="hs-special">(</span><a href="Cardano.Chain.Common.Attributes.html#Attributes"><span class="hs-identifier hs-type">Attributes</span></a><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
-</span><a name="line-119"></a><span>  </span><a name="local-8214565720323797139"><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.FromCBOR.html#fromCBOR"><span class="hs-identifier">fromCBOR</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><a href="Cardano.Chain.Common.Attributes.html#fromCBORAttributes"><span class="hs-identifier hs-var">fromCBORAttributes</span></a><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span> </span><span class="hs-operator hs-var">$</span><span> </span><span class="hs-glyph">\</span><span class="hs-identifier">_</span><span> </span><span class="hs-identifier">_</span><span> </span><span class="hs-identifier">_</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-var">pure</span><span> </span><span class="hs-identifier hs-var">Nothing</span><span>
-</span><a name="line-120"></a><span>
-</span><a name="line-121"></a><span class="hs-keyword">instance</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-prelude-0.1.0.0/noopt/doc/html/cardano-prelude/src/Cardano.Prelude.HeapWords.html#HeapWords"><span class="hs-identifier hs-type">HeapWords</span></a><span> </span><a href="#local-6989586621679128257"><span class="hs-identifier hs-type">h</span></a><span> </span><span class="hs-glyph">=&gt;</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-prelude-0.1.0.0/noopt/doc/html/cardano-prelude/src/Cardano.Prelude.HeapWords.html#HeapWords"><span class="hs-identifier hs-type">HeapWords</span></a><span> </span><span class="hs-special">(</span><a href="Cardano.Chain.Common.Attributes.html#Attributes"><span class="hs-identifier hs-type">Attributes</span></a><span> </span><a href="#local-6989586621679128257"><span class="hs-identifier hs-type">h</span></a><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
-</span><a name="line-122"></a><span>  </span><a name="local-8214565720323797990"><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-prelude-0.1.0.0/noopt/doc/html/cardano-prelude/src/Cardano.Prelude.HeapWords.html#heapWords"><span class="hs-identifier">heapWords</span></a></a><span> </span><span class="hs-special">(</span><a href="Cardano.Chain.Common.Attributes.html#Attributes"><span class="hs-identifier hs-var">Attributes</span></a><span> </span><a name="local-6989586621679128258"><a href="#local-6989586621679128258"><span class="hs-identifier">dat</span></a></a><span> </span><a name="local-6989586621679128259"><a href="#local-6989586621679128259"><span class="hs-identifier">unparsed</span></a></a><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-prelude-0.1.0.0/noopt/doc/html/cardano-prelude/src/Cardano.Prelude.HeapWords.html#heapWords2"><span class="hs-identifier hs-var">heapWords2</span></a><span> </span><a href="#local-6989586621679128258"><span class="hs-identifier hs-var">dat</span></a><span> </span><a href="#local-6989586621679128259"><span class="hs-identifier hs-var">unparsed</span></a><span>
-</span><a name="line-123"></a><span>
-</span><a name="line-124"></a><span class="hs-comment">-- | Check whether all data from 'Attributes' is known, i. e. was successfully</span><span>
-</span><a name="line-125"></a><span class="hs-comment">--   parsed into some structured data</span><span>
-</span><a name="line-126"></a><span class="hs-identifier">attributesAreKnown</span><span> </span><span class="hs-glyph">::</span><span> </span><a href="Cardano.Chain.Common.Attributes.html#Attributes"><span class="hs-identifier hs-type">Attributes</span></a><span> </span><a href="#local-6989586621679128393"><span class="hs-identifier hs-type">a</span></a><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">Bool</span><span>
-</span><a name="line-127"></a><a name="attributesAreKnown"><a href="Cardano.Chain.Common.Attributes.html#attributesAreKnown"><span class="hs-identifier">attributesAreKnown</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-identifier hs-var">M.null</span><span> </span><span class="hs-operator hs-var">.</span><span> </span><a href="Cardano.Chain.Common.Attributes.html#fromUnparsedFields"><span class="hs-identifier hs-var">fromUnparsedFields</span></a><span> </span><span class="hs-operator hs-var">.</span><span> </span><span class="hs-identifier">attrRemain</span><span>
-</span><a name="line-128"></a><span>
-</span><a name="line-129"></a><span class="hs-identifier">unknownAttributesLength</span><span> </span><span class="hs-glyph">::</span><span> </span><a href="Cardano.Chain.Common.Attributes.html#Attributes"><span class="hs-identifier hs-type">Attributes</span></a><span> </span><a href="#local-6989586621679128392"><span class="hs-identifier hs-type">a</span></a><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">Int</span><span>
-</span><a name="line-130"></a><a name="unknownAttributesLength"><a href="Cardano.Chain.Common.Attributes.html#unknownAttributesLength"><span class="hs-identifier">unknownAttributesLength</span></a></a><span> </span><span class="hs-glyph">=</span><span>
-</span><a name="line-131"></a><span>  </span><span class="hs-identifier hs-var">fromIntegral</span><span> </span><span class="hs-operator hs-var">.</span><span> </span><span class="hs-identifier hs-var">sum</span><span> </span><span class="hs-operator hs-var">.</span><span> </span><span class="hs-identifier hs-var">map</span><span> </span><span class="hs-identifier hs-var">LBS.length</span><span> </span><span class="hs-operator hs-var">.</span><span> </span><a href="Cardano.Chain.Common.Attributes.html#fromUnparsedFields"><span class="hs-identifier hs-var">fromUnparsedFields</span></a><span> </span><span class="hs-operator hs-var">.</span><span> </span><span class="hs-identifier">attrRemain</span><span>
-</span><a name="line-132"></a><span>
-</span><a name="line-133"></a><span class="hs-comment">{- NOTE: Attributes serialization
+</span><span id="line-2"></span><span class="hs-pragma">{-# LANGUAGE DeriveGeneric              #-}</span><span>
+</span><span id="line-3"></span><span class="hs-pragma">{-# LANGUAGE DerivingStrategies         #-}</span><span>
+</span><span id="line-4"></span><span class="hs-pragma">{-# LANGUAGE FlexibleInstances          #-}</span><span>
+</span><span id="line-5"></span><span class="hs-pragma">{-# LANGUAGE GeneralizedNewtypeDeriving #-}</span><span>
+</span><span id="line-6"></span><span class="hs-pragma">{-# LANGUAGE OverloadedStrings          #-}</span><span>
+</span><span id="line-7"></span><span class="hs-pragma">{-# LANGUAGE ScopedTypeVariables        #-}</span><span>
+</span><span id="line-8"></span><span class="hs-pragma">{-# LANGUAGE TemplateHaskell            #-}</span><span>
+</span><span id="line-9"></span><span class="hs-pragma">{-# LANGUAGE TypeApplications           #-}</span><span>
+</span><span id="line-10"></span><span>
+</span><span id="line-11"></span><span class="hs-comment">-- | Helper data type for block, tx attributes</span><span>
+</span><span id="line-12"></span><span class="hs-comment">--</span><span>
+</span><span id="line-13"></span><span class="hs-comment">--   Map with integer 1-byte keys, arbitrary-type polymorph values. Needed</span><span>
+</span><span id="line-14"></span><span class="hs-comment">--   primarily for partial serialization. Values are either parsed and put to</span><span>
+</span><span id="line-15"></span><span class="hs-comment">--   some constructor or left as unparsed.</span><span>
+</span><span id="line-16"></span><span>
+</span><span id="line-17"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Cardano.Chain.Common.Attributes</span><span>
+</span><span id="line-18"></span><span>  </span><span class="hs-special">(</span><span> </span><span class="annot"><a href="Cardano.Chain.Common.Attributes.html#UnparsedFields"><span class="hs-identifier">UnparsedFields</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
+</span><span id="line-19"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cardano.Chain.Common.Attributes.html#Attributes"><span class="hs-identifier">Attributes</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
+</span><span id="line-20"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cardano.Chain.Common.Attributes.html#attributesAreKnown"><span class="hs-identifier">attributesAreKnown</span></a></span><span>
+</span><span id="line-21"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cardano.Chain.Common.Attributes.html#unknownAttributesLength"><span class="hs-identifier">unknownAttributesLength</span></a></span><span>
+</span><span id="line-22"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cardano.Chain.Common.Attributes.html#toCBORAttributes"><span class="hs-identifier">toCBORAttributes</span></a></span><span>
+</span><span id="line-23"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cardano.Chain.Common.Attributes.html#fromCBORAttributes"><span class="hs-identifier">fromCBORAttributes</span></a></span><span>
+</span><span id="line-24"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cardano.Chain.Common.Attributes.html#mkAttributes"><span class="hs-identifier">mkAttributes</span></a></span><span>
+</span><span id="line-25"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cardano.Chain.Common.Attributes.html#dropAttributes"><span class="hs-identifier">dropAttributes</span></a></span><span>
+</span><span id="line-26"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cardano.Chain.Common.Attributes.html#dropEmptyAttributes"><span class="hs-identifier">dropEmptyAttributes</span></a></span><span>
+</span><span id="line-27"></span><span>  </span><span class="hs-special">)</span><span>
+</span><span id="line-28"></span><span class="hs-keyword">where</span><span>
+</span><span id="line-29"></span><span>
+</span><span id="line-30"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-prelude-0.1.0.0/noopt/doc/html/cardano-prelude/src"><span class="hs-identifier">Cardano.Prelude</span></a></span><span>
+</span><span id="line-31"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Prelude</span></span><span>
+</span><span id="line-32"></span><span>
+</span><span id="line-33"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Aeson</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">ToJSON</span></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-34"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Data.ByteString.Lazy</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">LBS</span></span><span>
+</span><span id="line-35"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Data.ByteString.Lazy.Char8</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">LChar8</span></span><span>
+</span><span id="line-36"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Data.Map.Strict</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">M</span></span><span>
+</span><span id="line-37"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Formatting</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">bprint</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">build</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">int</span></span><span class="hs-special">)</span><span>
+</span><span id="line-38"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Formatting.Buildable</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Buildable</span></span><span class="hs-special">)</span><span>
+</span><span id="line-39"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Formatting.Buildable</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Buildable</span></span><span>
+</span><span id="line-40"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">NoThunks.Class</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">NoThunks</span></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-41"></span><span>
+</span><span id="line-42"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src"><span class="hs-identifier">Cardano.Binary</span></a></span><span>
+</span><span id="line-43"></span><span>  </span><span class="hs-special">(</span><span> </span><span class="annot"><span class="hs-identifier">Decoder</span></span><span>
+</span><span id="line-44"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src"><span class="hs-identifier">DecoderError</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
+</span><span id="line-45"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src"><span class="hs-identifier">Dropper</span></a></span><span>
+</span><span id="line-46"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">Encoding</span></span><span>
+</span><span id="line-47"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src"><span class="hs-identifier">FromCBOR</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
+</span><span id="line-48"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src"><span class="hs-identifier">ToCBOR</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
+</span><span id="line-49"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">decodeMapLen</span></span><span>
+</span><span id="line-50"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src"><span class="hs-identifier">dropBytes</span></a></span><span>
+</span><span id="line-51"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src"><span class="hs-identifier">dropMap</span></a></span><span>
+</span><span id="line-52"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src"><span class="hs-identifier">dropWord8</span></a></span><span>
+</span><span id="line-53"></span><span>  </span><span class="hs-special">)</span><span>
+</span><span id="line-54"></span><span>
+</span><span id="line-55"></span><span class="hs-comment">-- | Representation of unparsed fields in Attributes. Newtype wrapper is used</span><span>
+</span><span id="line-56"></span><span class="hs-comment">--   for clear backward compatibility between previous representation (which was</span><span>
+</span><span id="line-57"></span><span class="hs-comment">--   just a single ByteString) during transition from Store to CBOR.</span><span>
+</span><span id="line-58"></span><span id="local-6989586621679507539"><span id="local-6989586621679507540"></span></span><span class="hs-keyword">newtype</span><span> </span><span id="UnparsedFields"><span class="annot"><a href="Cardano.Chain.Common.Attributes.html#UnparsedFields"><span class="hs-identifier hs-var">UnparsedFields</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-59"></span><span>  </span><span id="UnparsedFields"><span class="annot"><a href="Cardano.Chain.Common.Attributes.html#UnparsedFields"><span class="hs-identifier hs-var">UnparsedFields</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Map</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Word8</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">LBS.ByteString</span></span><span class="hs-special">)</span><span>
+</span><span id="line-60"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679507534"><span id="local-6989586621679507536"><span class="annot"><span class="annottext">UnparsedFields -&gt; UnparsedFields -&gt; Bool
+(UnparsedFields -&gt; UnparsedFields -&gt; Bool)
+-&gt; (UnparsedFields -&gt; UnparsedFields -&gt; Bool) -&gt; Eq UnparsedFields
+forall a. (a -&gt; a -&gt; Bool) -&gt; (a -&gt; a -&gt; Bool) -&gt; Eq a
+/= :: UnparsedFields -&gt; UnparsedFields -&gt; Bool
+$c/= :: UnparsedFields -&gt; UnparsedFields -&gt; Bool
+== :: UnparsedFields -&gt; UnparsedFields -&gt; Bool
+$c== :: UnparsedFields -&gt; UnparsedFields -&gt; Bool
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679507518"><span id="local-6989586621679507520"><span id="local-6989586621679507522"><span id="local-6989586621679507524"><span id="local-6989586621679507526"><span id="local-6989586621679507528"><span id="local-6989586621679507530"><span class="annot"><span class="annottext">Eq UnparsedFields
+Eq UnparsedFields
+-&gt; (UnparsedFields -&gt; UnparsedFields -&gt; Ordering)
+-&gt; (UnparsedFields -&gt; UnparsedFields -&gt; Bool)
+-&gt; (UnparsedFields -&gt; UnparsedFields -&gt; Bool)
+-&gt; (UnparsedFields -&gt; UnparsedFields -&gt; Bool)
+-&gt; (UnparsedFields -&gt; UnparsedFields -&gt; Bool)
+-&gt; (UnparsedFields -&gt; UnparsedFields -&gt; UnparsedFields)
+-&gt; (UnparsedFields -&gt; UnparsedFields -&gt; UnparsedFields)
+-&gt; Ord UnparsedFields
+UnparsedFields -&gt; UnparsedFields -&gt; Bool
+UnparsedFields -&gt; UnparsedFields -&gt; Ordering
+UnparsedFields -&gt; UnparsedFields -&gt; UnparsedFields
+forall a.
+Eq a
+-&gt; (a -&gt; a -&gt; Ordering)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; a)
+-&gt; (a -&gt; a -&gt; a)
+-&gt; Ord a
+min :: UnparsedFields -&gt; UnparsedFields -&gt; UnparsedFields
+$cmin :: UnparsedFields -&gt; UnparsedFields -&gt; UnparsedFields
+max :: UnparsedFields -&gt; UnparsedFields -&gt; UnparsedFields
+$cmax :: UnparsedFields -&gt; UnparsedFields -&gt; UnparsedFields
+&gt;= :: UnparsedFields -&gt; UnparsedFields -&gt; Bool
+$c&gt;= :: UnparsedFields -&gt; UnparsedFields -&gt; Bool
+&gt; :: UnparsedFields -&gt; UnparsedFields -&gt; Bool
+$c&gt; :: UnparsedFields -&gt; UnparsedFields -&gt; Bool
+&lt;= :: UnparsedFields -&gt; UnparsedFields -&gt; Bool
+$c&lt;= :: UnparsedFields -&gt; UnparsedFields -&gt; Bool
+&lt; :: UnparsedFields -&gt; UnparsedFields -&gt; Bool
+$c&lt; :: UnparsedFields -&gt; UnparsedFields -&gt; Bool
+compare :: UnparsedFields -&gt; UnparsedFields -&gt; Ordering
+$ccompare :: UnparsedFields -&gt; UnparsedFields -&gt; Ordering
+$cp1Ord :: Eq UnparsedFields
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Ord</span></span></span></span></span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679507511"><span id="local-6989586621679507513"><span id="local-6989586621679507515"><span class="annot"><span class="annottext">Int -&gt; UnparsedFields -&gt; ShowS
+[UnparsedFields] -&gt; ShowS
+UnparsedFields -&gt; String
+(Int -&gt; UnparsedFields -&gt; ShowS)
+-&gt; (UnparsedFields -&gt; String)
+-&gt; ([UnparsedFields] -&gt; ShowS)
+-&gt; Show UnparsedFields
+forall a.
+(Int -&gt; a -&gt; ShowS) -&gt; (a -&gt; String) -&gt; ([a] -&gt; ShowS) -&gt; Show a
+showList :: [UnparsedFields] -&gt; ShowS
+$cshowList :: [UnparsedFields] -&gt; ShowS
+show :: UnparsedFields -&gt; String
+$cshow :: UnparsedFields -&gt; String
+showsPrec :: Int -&gt; UnparsedFields -&gt; ShowS
+$cshowsPrec :: Int -&gt; UnparsedFields -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">(forall x. UnparsedFields -&gt; Rep UnparsedFields x)
+-&gt; (forall x. Rep UnparsedFields x -&gt; UnparsedFields)
+-&gt; Generic UnparsedFields
+forall x. Rep UnparsedFields x -&gt; UnparsedFields
+forall x. UnparsedFields -&gt; Rep UnparsedFields x
+forall a.
+(forall x. a -&gt; Rep a x) -&gt; (forall x. Rep a x -&gt; a) -&gt; Generic a
+$cto :: forall x. Rep UnparsedFields x -&gt; UnparsedFields
+$cfrom :: forall x. UnparsedFields -&gt; Rep UnparsedFields x
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">Generic</span></span><span class="hs-special">)</span><span>
+</span><span id="line-61"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="annot"><span class="hs-keyword">newtype</span></span><span> </span><span id="local-6989586621679507505"><span class="annot"><span class="annottext">UnparsedFields -&gt; Int
+(UnparsedFields -&gt; Int) -&gt; HeapWords UnparsedFields
+forall a. (a -&gt; Int) -&gt; HeapWords a
+heapWords :: UnparsedFields -&gt; Int
+$cheapWords :: UnparsedFields -&gt; Int
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-prelude-0.1.0.0/noopt/doc/html/cardano-prelude/src"><span class="hs-identifier hs-var hs-var hs-var hs-var">HeapWords</span></a></span></span><span>
+</span><span id="line-62"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="annot"><span class="hs-keyword">anyclass</span></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679507502"><span class="annot"><span class="annottext">UnparsedFields -&gt; ()
+(UnparsedFields -&gt; ()) -&gt; NFData UnparsedFields
+forall a. (a -&gt; ()) -&gt; NFData a
+rnf :: UnparsedFields -&gt; ()
+$crnf :: UnparsedFields -&gt; ()
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">NFData</span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679507495"><span id="local-6989586621679507497"><span id="local-6989586621679507499"><span class="annot"><span class="annottext">Context -&gt; UnparsedFields -&gt; IO (Maybe ThunkInfo)
+Proxy UnparsedFields -&gt; String
+(Context -&gt; UnparsedFields -&gt; IO (Maybe ThunkInfo))
+-&gt; (Context -&gt; UnparsedFields -&gt; IO (Maybe ThunkInfo))
+-&gt; (Proxy UnparsedFields -&gt; String)
+-&gt; NoThunks UnparsedFields
+forall a.
+(Context -&gt; a -&gt; IO (Maybe ThunkInfo))
+-&gt; (Context -&gt; a -&gt; IO (Maybe ThunkInfo))
+-&gt; (Proxy a -&gt; String)
+-&gt; NoThunks a
+showTypeOf :: Proxy UnparsedFields -&gt; String
+$cshowTypeOf :: Proxy UnparsedFields -&gt; String
+wNoThunks :: Context -&gt; UnparsedFields -&gt; IO (Maybe ThunkInfo)
+$cwNoThunks :: Context -&gt; UnparsedFields -&gt; IO (Maybe ThunkInfo)
+noThunks :: Context -&gt; UnparsedFields -&gt; IO (Maybe ThunkInfo)
+$cnoThunks :: Context -&gt; UnparsedFields -&gt; IO (Maybe ThunkInfo)
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">NoThunks</span></span></span></span></span><span class="hs-special">)</span><span>
+</span><span id="line-63"></span><span>
+</span><span id="line-64"></span><span class="hs-comment">-- Used for debugging purposes only</span><span>
+</span><span id="line-65"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679507487"><span id="local-6989586621679507489"><span id="local-6989586621679507491"><span class="annot"><span class="hs-identifier hs-type">ToJSON</span></span><span> </span><span class="annot"><a href="Cardano.Chain.Common.Attributes.html#UnparsedFields"><span class="hs-identifier hs-type">UnparsedFields</span></a></span></span></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-66"></span><span>    </span><span id="local-6989586621679507485"><span class="annot"><span class="annottext">toJSON :: UnparsedFields -&gt; Value
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">toJSON</span></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cardano.Chain.Common.Attributes.html#UnparsedFields"><span class="hs-identifier hs-type">UnparsedFields</span></a></span><span> </span><span id="local-6989586621679507483"><span class="annot"><span class="annottext">Map Word8 ByteString
+</span><a href="#local-6989586621679507483"><span class="hs-identifier hs-var">map'</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Map Word8 String -&gt; Value
+forall a. ToJSON a =&gt; a -&gt; Value
+</span><span class="hs-identifier hs-var">toJSON</span></span><span> </span><span class="annot"><span class="annottext">(Map Word8 String -&gt; Value) -&gt; Map Word8 String -&gt; Value
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">(ByteString -&gt; String) -&gt; Map Word8 ByteString -&gt; Map Word8 String
+forall a b k. (a -&gt; b) -&gt; Map k a -&gt; Map k b
+</span><span class="hs-identifier hs-var">M.map</span></span><span> </span><span class="annot"><span class="annottext">ByteString -&gt; String
+</span><span class="hs-identifier hs-var">LChar8.unpack</span></span><span> </span><span class="annot"><span class="annottext">Map Word8 ByteString
+</span><a href="#local-6989586621679507483"><span class="hs-identifier hs-var">map'</span></a></span><span>
+</span><span id="line-67"></span><span>
+</span><span id="line-68"></span><span>
+</span><span id="line-69"></span><span class="annot"><a href="Cardano.Chain.Common.Attributes.html#fromUnparsedFields"><span class="hs-identifier hs-type">fromUnparsedFields</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cardano.Chain.Common.Attributes.html#UnparsedFields"><span class="hs-identifier hs-type">UnparsedFields</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Map</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Word8</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">LBS.ByteString</span></span><span>
+</span><span id="line-70"></span><span id="fromUnparsedFields"><span class="annot"><span class="annottext">fromUnparsedFields :: UnparsedFields -&gt; Map Word8 ByteString
+</span><a href="Cardano.Chain.Common.Attributes.html#fromUnparsedFields"><span class="hs-identifier hs-var hs-var">fromUnparsedFields</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cardano.Chain.Common.Attributes.html#UnparsedFields"><span class="hs-identifier hs-type">UnparsedFields</span></a></span><span> </span><span id="local-6989586621679507479"><span class="annot"><span class="annottext">Map Word8 ByteString
+</span><a href="#local-6989586621679507479"><span class="hs-identifier hs-var">m</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Map Word8 ByteString
+</span><a href="#local-6989586621679507479"><span class="hs-identifier hs-var">m</span></a></span><span>
+</span><span id="line-71"></span><span>
+</span><span id="line-72"></span><span class="hs-comment">----------------------------------------</span><span>
+</span><span id="line-73"></span><span>
+</span><span id="line-74"></span><span id="local-6989586621679507478"><span class="annot"><a href="Cardano.Chain.Common.Attributes.html#mkAttributes"><span class="hs-identifier hs-type">mkAttributes</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="#local-6989586621679507478"><span class="hs-identifier hs-type">h</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cardano.Chain.Common.Attributes.html#Attributes"><span class="hs-identifier hs-type">Attributes</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679507478"><span class="hs-identifier hs-type">h</span></a></span></span><span>
+</span><span id="line-75"></span><span id="mkAttributes"><span class="annot"><span class="annottext">mkAttributes :: h -&gt; Attributes h
+</span><a href="Cardano.Chain.Common.Attributes.html#mkAttributes"><span class="hs-identifier hs-var hs-var">mkAttributes</span></a></span></span><span> </span><span id="local-6989586621679507477"><span class="annot"><span class="annottext">h
+</span><a href="#local-6989586621679507477"><span class="hs-identifier hs-var">dat</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">h -&gt; UnparsedFields -&gt; Attributes h
+forall h. h -&gt; UnparsedFields -&gt; Attributes h
+</span><a href="Cardano.Chain.Common.Attributes.html#Attributes"><span class="hs-identifier hs-var">Attributes</span></a></span><span> </span><span class="annot"><span class="annottext">h
+</span><a href="#local-6989586621679507477"><span class="hs-identifier hs-var">dat</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Map Word8 ByteString -&gt; UnparsedFields
+</span><a href="Cardano.Chain.Common.Attributes.html#UnparsedFields"><span class="hs-identifier hs-var">UnparsedFields</span></a></span><span> </span><span class="annot"><span class="annottext">Map Word8 ByteString
+forall k a. Map k a
+</span><span class="hs-identifier hs-var">M.empty</span></span><span class="hs-special">)</span><span>
+</span><span id="line-76"></span><span>
+</span><span id="line-77"></span><span class="hs-comment">-- | Convenient wrapper for the datatype to represent it (in binary format) as</span><span>
+</span><span id="line-78"></span><span class="hs-comment">--   k-v map</span><span>
+</span><span id="line-79"></span><span id="local-6989586621679507473"><span id="local-6989586621679507474"></span></span><span class="hs-keyword">data</span><span> </span><span id="Attributes"><span class="annot"><a href="Cardano.Chain.Common.Attributes.html#Attributes"><span class="hs-identifier hs-var">Attributes</span></a></span></span><span> </span><span id="local-6989586621679507653"><span class="annot"><a href="#local-6989586621679507653"><span class="hs-identifier hs-type">h</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="Attributes"><span class="annot"><a href="Cardano.Chain.Common.Attributes.html#Attributes"><span class="hs-identifier hs-var">Attributes</span></a></span></span><span>
+</span><span id="line-80"></span><span>  </span><span class="hs-special">{</span><span> </span><span id="attrData"><span class="annot"><span class="annottext">Attributes h -&gt; h
+</span><a href="Cardano.Chain.Common.Attributes.html#attrData"><span class="hs-identifier hs-var hs-var">attrData</span></a></span></span><span>   </span><span class="hs-glyph">::</span><span> </span><span class="hs-glyph">!</span><span class="annot"><a href="#local-6989586621679507653"><span class="hs-identifier hs-type">h</span></a></span><span>
+</span><span id="line-81"></span><span>  </span><span class="hs-comment">-- ^ Data, containing known keys (deserialized)</span><span>
+</span><span id="line-82"></span><span>  </span><span class="hs-special">,</span><span> </span><span id="attrRemain"><span class="annot"><span class="annottext">Attributes h -&gt; UnparsedFields
+</span><a href="Cardano.Chain.Common.Attributes.html#attrRemain"><span class="hs-identifier hs-var hs-var">attrRemain</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-glyph">!</span><span class="annot"><a href="Cardano.Chain.Common.Attributes.html#UnparsedFields"><span class="hs-identifier hs-type">UnparsedFields</span></a></span><span>
+</span><span id="line-83"></span><span>  </span><span class="hs-comment">-- ^ Remaining, unparsed fields</span><span>
+</span><span id="line-84"></span><span>  </span><span class="hs-special">}</span><span> </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679507467"><span id="local-6989586621679507469"><span class="annot"><span class="annottext">Attributes h -&gt; Attributes h -&gt; Bool
+(Attributes h -&gt; Attributes h -&gt; Bool)
+-&gt; (Attributes h -&gt; Attributes h -&gt; Bool) -&gt; Eq (Attributes h)
+forall h. Eq h =&gt; Attributes h -&gt; Attributes h -&gt; Bool
+forall a. (a -&gt; a -&gt; Bool) -&gt; (a -&gt; a -&gt; Bool) -&gt; Eq a
+/= :: Attributes h -&gt; Attributes h -&gt; Bool
+$c/= :: forall h. Eq h =&gt; Attributes h -&gt; Attributes h -&gt; Bool
+== :: Attributes h -&gt; Attributes h -&gt; Bool
+$c== :: forall h. Eq h =&gt; Attributes h -&gt; Attributes h -&gt; Bool
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679507452"><span id="local-6989586621679507454"><span id="local-6989586621679507456"><span id="local-6989586621679507458"><span id="local-6989586621679507460"><span id="local-6989586621679507462"><span id="local-6989586621679507464"><span class="annot"><span class="annottext">Eq (Attributes h)
+Eq (Attributes h)
+-&gt; (Attributes h -&gt; Attributes h -&gt; Ordering)
+-&gt; (Attributes h -&gt; Attributes h -&gt; Bool)
+-&gt; (Attributes h -&gt; Attributes h -&gt; Bool)
+-&gt; (Attributes h -&gt; Attributes h -&gt; Bool)
+-&gt; (Attributes h -&gt; Attributes h -&gt; Bool)
+-&gt; (Attributes h -&gt; Attributes h -&gt; Attributes h)
+-&gt; (Attributes h -&gt; Attributes h -&gt; Attributes h)
+-&gt; Ord (Attributes h)
+Attributes h -&gt; Attributes h -&gt; Bool
+Attributes h -&gt; Attributes h -&gt; Ordering
+Attributes h -&gt; Attributes h -&gt; Attributes h
+forall a.
+Eq a
+-&gt; (a -&gt; a -&gt; Ordering)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; a)
+-&gt; (a -&gt; a -&gt; a)
+-&gt; Ord a
+forall h. Ord h =&gt; Eq (Attributes h)
+forall h. Ord h =&gt; Attributes h -&gt; Attributes h -&gt; Bool
+forall h. Ord h =&gt; Attributes h -&gt; Attributes h -&gt; Ordering
+forall h. Ord h =&gt; Attributes h -&gt; Attributes h -&gt; Attributes h
+min :: Attributes h -&gt; Attributes h -&gt; Attributes h
+$cmin :: forall h. Ord h =&gt; Attributes h -&gt; Attributes h -&gt; Attributes h
+max :: Attributes h -&gt; Attributes h -&gt; Attributes h
+$cmax :: forall h. Ord h =&gt; Attributes h -&gt; Attributes h -&gt; Attributes h
+&gt;= :: Attributes h -&gt; Attributes h -&gt; Bool
+$c&gt;= :: forall h. Ord h =&gt; Attributes h -&gt; Attributes h -&gt; Bool
+&gt; :: Attributes h -&gt; Attributes h -&gt; Bool
+$c&gt; :: forall h. Ord h =&gt; Attributes h -&gt; Attributes h -&gt; Bool
+&lt;= :: Attributes h -&gt; Attributes h -&gt; Bool
+$c&lt;= :: forall h. Ord h =&gt; Attributes h -&gt; Attributes h -&gt; Bool
+&lt; :: Attributes h -&gt; Attributes h -&gt; Bool
+$c&lt; :: forall h. Ord h =&gt; Attributes h -&gt; Attributes h -&gt; Bool
+compare :: Attributes h -&gt; Attributes h -&gt; Ordering
+$ccompare :: forall h. Ord h =&gt; Attributes h -&gt; Attributes h -&gt; Ordering
+$cp1Ord :: forall h. Ord h =&gt; Eq (Attributes h)
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Ord</span></span></span></span></span></span></span></span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">(forall x. Attributes h -&gt; Rep (Attributes h) x)
+-&gt; (forall x. Rep (Attributes h) x -&gt; Attributes h)
+-&gt; Generic (Attributes h)
+forall x. Rep (Attributes h) x -&gt; Attributes h
+forall x. Attributes h -&gt; Rep (Attributes h) x
+forall a.
+(forall x. a -&gt; Rep a x) -&gt; (forall x. Rep a x -&gt; a) -&gt; Generic a
+forall h x. Rep (Attributes h) x -&gt; Attributes h
+forall h x. Attributes h -&gt; Rep (Attributes h) x
+$cto :: forall h x. Rep (Attributes h) x -&gt; Attributes h
+$cfrom :: forall h x. Attributes h -&gt; Rep (Attributes h) x
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">Generic</span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679507444"><span id="local-6989586621679507446"><span id="local-6989586621679507448"><span class="annot"><span class="annottext">Context -&gt; Attributes h -&gt; IO (Maybe ThunkInfo)
+Proxy (Attributes h) -&gt; String
+(Context -&gt; Attributes h -&gt; IO (Maybe ThunkInfo))
+-&gt; (Context -&gt; Attributes h -&gt; IO (Maybe ThunkInfo))
+-&gt; (Proxy (Attributes h) -&gt; String)
+-&gt; NoThunks (Attributes h)
+forall h.
+NoThunks h =&gt;
+Context -&gt; Attributes h -&gt; IO (Maybe ThunkInfo)
+forall h. NoThunks h =&gt; Proxy (Attributes h) -&gt; String
+forall a.
+(Context -&gt; a -&gt; IO (Maybe ThunkInfo))
+-&gt; (Context -&gt; a -&gt; IO (Maybe ThunkInfo))
+-&gt; (Proxy a -&gt; String)
+-&gt; NoThunks a
+showTypeOf :: Proxy (Attributes h) -&gt; String
+$cshowTypeOf :: forall h. NoThunks h =&gt; Proxy (Attributes h) -&gt; String
+wNoThunks :: Context -&gt; Attributes h -&gt; IO (Maybe ThunkInfo)
+$cwNoThunks :: forall h.
+NoThunks h =&gt;
+Context -&gt; Attributes h -&gt; IO (Maybe ThunkInfo)
+noThunks :: Context -&gt; Attributes h -&gt; IO (Maybe ThunkInfo)
+$cnoThunks :: forall h.
+NoThunks h =&gt;
+Context -&gt; Attributes h -&gt; IO (Maybe ThunkInfo)
+</span><a href="#local-6989586621679507444"><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">NoThunks</span></a></span></span></span></span><span class="hs-special">)</span><span>
+</span><span id="line-85"></span><span>    </span><span class="hs-keyword">deriving</span><span> </span><span class="annot"><span class="hs-keyword">anyclass</span></span><span> </span><span id="local-6989586621679507442"><span class="annot"><span class="annottext">Attributes h -&gt; ()
+(Attributes h -&gt; ()) -&gt; NFData (Attributes h)
+forall h. NFData h =&gt; Attributes h -&gt; ()
+forall a. (a -&gt; ()) -&gt; NFData a
+rnf :: Attributes h -&gt; ()
+$crnf :: forall h. NFData h =&gt; Attributes h -&gt; ()
+</span><a href="#local-6989586621679507442"><span class="hs-identifier hs-var hs-var hs-var hs-var">NFData</span></a></span></span><span>
+</span><span id="line-86"></span><span>
+</span><span id="line-87"></span><span id="local-6989586621679507441"><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679507436"><span id="local-6989586621679507439"><span class="annot"><span class="hs-identifier hs-type">Show</span></span><span> </span><span class="annot"><a href="#local-6989586621679507441"><span class="hs-identifier hs-type">h</span></a></span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Show</span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cardano.Chain.Common.Attributes.html#Attributes"><span class="hs-identifier hs-type">Attributes</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679507441"><span class="hs-identifier hs-type">h</span></a></span><span class="hs-special">)</span></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-88"></span><span>  </span><span id="local-6989586621679507435"><span class="annot"><span class="annottext">show :: Attributes h -&gt; String
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">show</span></span></span><span> </span><span id="local-6989586621679507433"><span class="annot"><span class="annottext">Attributes h
+</span><a href="#local-6989586621679507433"><span class="hs-identifier hs-var">attr</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-89"></span><span>    </span><span class="hs-keyword">let</span><span>
+</span><span id="line-90"></span><span>      </span><span class="annot"><a href="#local-6989586621679507432"><span class="hs-identifier hs-type">remain</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Prelude.String</span></span><span>
+</span><span id="line-91"></span><span>      </span><span id="local-6989586621679507432"><span class="annot"><span class="annottext">remain :: String
+</span><a href="#local-6989586621679507432"><span class="hs-identifier hs-var hs-var">remain</span></a></span></span><span>
+</span><span id="line-92"></span><span>        </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Attributes h -&gt; Bool
+forall a. Attributes a -&gt; Bool
+</span><a href="Cardano.Chain.Common.Attributes.html#attributesAreKnown"><span class="hs-identifier hs-var">attributesAreKnown</span></a></span><span> </span><span class="annot"><span class="annottext">Attributes h
+</span><a href="#local-6989586621679507433"><span class="hs-identifier hs-var">attr</span></a></span><span>
+</span><span id="line-93"></span><span>        </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;&quot;</span></span><span>
+</span><span id="line-94"></span><span>        </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">otherwise</span></span><span>
+</span><span id="line-95"></span><span>        </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;, remain: &lt;&quot;</span></span><span> </span><span class="annot"><span class="annottext">String -&gt; ShowS
+forall a. Semigroup a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">&lt;&gt;</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; String
+forall a b. (Show a, ConvertText String b) =&gt; a -&gt; b
+</span><span class="hs-identifier hs-var">show</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Attributes h -&gt; Int
+forall a. Attributes a -&gt; Int
+</span><a href="Cardano.Chain.Common.Attributes.html#unknownAttributesLength"><span class="hs-identifier hs-var">unknownAttributesLength</span></a></span><span> </span><span class="annot"><span class="annottext">Attributes h
+</span><a href="#local-6989586621679507433"><span class="hs-identifier hs-var">attr</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">String -&gt; ShowS
+forall a. Semigroup a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">&lt;&gt;</span></span><span> </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot; bytes&gt;&quot;</span></span><span>
+</span><span id="line-96"></span><span>    </span><span class="hs-keyword">in</span><span> </span><span class="annot"><span class="annottext">Context -&gt; String
+forall a. Monoid a =&gt; [a] -&gt; a
+</span><span class="hs-identifier hs-var">mconcat</span></span><span> </span><span class="hs-special">[</span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;Attributes { data: &quot;</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">h -&gt; String
+forall a b. (Show a, ConvertText String b) =&gt; a -&gt; b
+</span><span class="hs-identifier hs-var">show</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Attributes h -&gt; h
+forall h. Attributes h -&gt; h
+</span><a href="Cardano.Chain.Common.Attributes.html#attrData"><span class="hs-identifier hs-var hs-var">attrData</span></a></span><span> </span><span class="annot"><span class="annottext">Attributes h
+</span><a href="#local-6989586621679507433"><span class="hs-identifier hs-var">attr</span></a></span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">String
+</span><a href="#local-6989586621679507432"><span class="hs-identifier hs-var">remain</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot; }&quot;</span></span><span class="hs-special">]</span></span><span>
+</span><span id="line-97"></span><span>
+</span><span id="line-98"></span><span id="local-6989586621679507430"><span class="hs-keyword">instance</span><span> </span><span class="hs-pragma">{-# OVERLAPPABLE</span><span> </span><span class="hs-pragma">#-}</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Buildable</span></span><span> </span><span class="annot"><a href="#local-6989586621679507430"><span class="hs-identifier hs-type">h</span></a></span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Buildable</span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cardano.Chain.Common.Attributes.html#Attributes"><span class="hs-identifier hs-type">Attributes</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679507430"><span class="hs-identifier hs-type">h</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-99"></span><span>  </span><span id="local-6989586621679507427"><span class="annot"><span class="annottext">build :: Attributes h -&gt; Builder
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">build</span></span></span><span> </span><span id="local-6989586621679507425"><span class="annot"><span class="annottext">Attributes h
+</span><a href="#local-6989586621679507425"><span class="hs-identifier hs-var">attr</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">if</span><span> </span><span class="annot"><span class="annottext">Attributes h -&gt; Bool
+forall a. Attributes a -&gt; Bool
+</span><a href="Cardano.Chain.Common.Attributes.html#attributesAreKnown"><span class="hs-identifier hs-var">attributesAreKnown</span></a></span><span> </span><span class="annot"><span class="annottext">Attributes h
+</span><a href="#local-6989586621679507425"><span class="hs-identifier hs-var">attr</span></a></span><span>
+</span><span id="line-100"></span><span>    </span><span class="hs-keyword">then</span><span> </span><span class="annot"><span class="annottext">h -&gt; Builder
+forall p. Buildable p =&gt; p -&gt; Builder
+</span><span class="hs-identifier hs-var">Buildable.build</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Attributes h -&gt; h
+forall h. Attributes h -&gt; h
+</span><a href="Cardano.Chain.Common.Attributes.html#attrData"><span class="hs-identifier hs-var hs-var">attrData</span></a></span><span> </span><span class="annot"><span class="annottext">Attributes h
+</span><a href="#local-6989586621679507425"><span class="hs-identifier hs-var">attr</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-101"></span><span>    </span><span class="hs-keyword">else</span><span> </span><span class="annot"><span class="annottext">Format Builder (h -&gt; Int -&gt; Builder) -&gt; h -&gt; Int -&gt; Builder
+forall a. Format Builder a -&gt; a
+</span><span class="hs-identifier hs-var">bprint</span></span><span>
+</span><span id="line-102"></span><span>      </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Format (h -&gt; Int -&gt; Builder) (h -&gt; Int -&gt; Builder)
+</span><span class="hs-string">&quot;Attributes { data: &quot;</span></span><span> </span><span class="annot"><span class="annottext">Format (h -&gt; Int -&gt; Builder) (h -&gt; Int -&gt; Builder)
+-&gt; Format Builder (h -&gt; Int -&gt; Builder)
+-&gt; Format Builder (h -&gt; Int -&gt; Builder)
+forall k (cat :: k -&gt; k -&gt; *) (b :: k) (c :: k) (a :: k).
+Category cat =&gt;
+cat b c -&gt; cat a b -&gt; cat a c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Format (Int -&gt; Builder) (h -&gt; Int -&gt; Builder)
+forall a r. Buildable a =&gt; Format r (a -&gt; r)
+</span><span class="hs-identifier hs-var">build</span></span><span> </span><span class="annot"><span class="annottext">Format (Int -&gt; Builder) (h -&gt; Int -&gt; Builder)
+-&gt; Format Builder (Int -&gt; Builder)
+-&gt; Format Builder (h -&gt; Int -&gt; Builder)
+forall k (cat :: k -&gt; k -&gt; *) (b :: k) (c :: k) (a :: k).
+Category cat =&gt;
+cat b c -&gt; cat a b -&gt; cat a c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Format (Int -&gt; Builder) (Int -&gt; Builder)
+</span><span class="hs-string">&quot;, remain: &lt;&quot;</span></span><span> </span><span class="annot"><span class="annottext">Format (Int -&gt; Builder) (Int -&gt; Builder)
+-&gt; Format Builder (Int -&gt; Builder)
+-&gt; Format Builder (Int -&gt; Builder)
+forall k (cat :: k -&gt; k -&gt; *) (b :: k) (c :: k) (a :: k).
+Category cat =&gt;
+cat b c -&gt; cat a b -&gt; cat a c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Format Builder (Int -&gt; Builder)
+forall a r. Integral a =&gt; Format r (a -&gt; r)
+</span><span class="hs-identifier hs-var">int</span></span><span> </span><span class="annot"><span class="annottext">Format Builder (Int -&gt; Builder)
+-&gt; Format Builder Builder -&gt; Format Builder (Int -&gt; Builder)
+forall k (cat :: k -&gt; k -&gt; *) (b :: k) (c :: k) (a :: k).
+Category cat =&gt;
+cat b c -&gt; cat a b -&gt; cat a c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Format Builder Builder
+</span><span class="hs-string">&quot; bytes&gt; }&quot;</span></span><span class="hs-special">)</span><span>
+</span><span id="line-103"></span><span>      </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Attributes h -&gt; h
+forall h. Attributes h -&gt; h
+</span><a href="Cardano.Chain.Common.Attributes.html#attrData"><span class="hs-identifier hs-var hs-var">attrData</span></a></span><span> </span><span class="annot"><span class="annottext">Attributes h
+</span><a href="#local-6989586621679507425"><span class="hs-identifier hs-var">attr</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-104"></span><span>      </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Attributes h -&gt; Int
+forall a. Attributes a -&gt; Int
+</span><a href="Cardano.Chain.Common.Attributes.html#unknownAttributesLength"><span class="hs-identifier hs-var">unknownAttributesLength</span></a></span><span> </span><span class="annot"><span class="annottext">Attributes h
+</span><a href="#local-6989586621679507425"><span class="hs-identifier hs-var">attr</span></a></span><span class="hs-special">)</span></span><span>
+</span><span id="line-105"></span><span>
+</span><span id="line-106"></span><span class="hs-keyword">instance</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Buildable</span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cardano.Chain.Common.Attributes.html#Attributes"><span class="hs-identifier hs-type">Attributes</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-107"></span><span>  </span><span id="local-6989586621679507422"><span class="annot"><span class="annottext">build :: Attributes () -&gt; Builder
+</span><a href="#local-6989586621679507422"><span class="hs-identifier hs-var hs-var hs-var hs-var">build</span></a></span></span><span> </span><span id="local-6989586621679507421"><span class="annot"><span class="annottext">Attributes ()
+</span><a href="#local-6989586621679507421"><span class="hs-identifier hs-var">attr</span></a></span></span><span>
+</span><span id="line-108"></span><span>    </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Attributes () -&gt; Bool
+forall a. Attributes a -&gt; Bool
+</span><a href="Cardano.Chain.Common.Attributes.html#attributesAreKnown"><span class="hs-identifier hs-var">attributesAreKnown</span></a></span><span> </span><span class="annot"><span class="annottext">Attributes ()
+</span><a href="#local-6989586621679507421"><span class="hs-identifier hs-var">attr</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Builder
+</span><span class="hs-string">&quot;&lt;no attributes&gt;&quot;</span></span><span>
+</span><span id="line-109"></span><span>    </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">otherwise</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Format Builder (Int -&gt; Builder) -&gt; Int -&gt; Builder
+forall a. Format Builder a -&gt; a
+</span><span class="hs-identifier hs-var">bprint</span></span><span>
+</span><span id="line-110"></span><span>      </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Format (Int -&gt; Builder) (Int -&gt; Builder)
+</span><span class="hs-string">&quot;Attributes { data: (), remain: &lt;&quot;</span></span><span> </span><span class="annot"><span class="annottext">Format (Int -&gt; Builder) (Int -&gt; Builder)
+-&gt; Format Builder (Int -&gt; Builder)
+-&gt; Format Builder (Int -&gt; Builder)
+forall k (cat :: k -&gt; k -&gt; *) (b :: k) (c :: k) (a :: k).
+Category cat =&gt;
+cat b c -&gt; cat a b -&gt; cat a c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Format Builder (Int -&gt; Builder)
+forall a r. Integral a =&gt; Format r (a -&gt; r)
+</span><span class="hs-identifier hs-var">int</span></span><span> </span><span class="annot"><span class="annottext">Format Builder (Int -&gt; Builder)
+-&gt; Format Builder Builder -&gt; Format Builder (Int -&gt; Builder)
+forall k (cat :: k -&gt; k -&gt; *) (b :: k) (c :: k) (a :: k).
+Category cat =&gt;
+cat b c -&gt; cat a b -&gt; cat a c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Format Builder Builder
+</span><span class="hs-string">&quot; bytes&gt; }&quot;</span></span><span class="hs-special">)</span><span>
+</span><span id="line-111"></span><span>      </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Attributes () -&gt; Int
+forall a. Attributes a -&gt; Int
+</span><a href="Cardano.Chain.Common.Attributes.html#unknownAttributesLength"><span class="hs-identifier hs-var">unknownAttributesLength</span></a></span><span> </span><span class="annot"><span class="annottext">Attributes ()
+</span><a href="#local-6989586621679507421"><span class="hs-identifier hs-var">attr</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-112"></span><span>
+</span><span id="line-113"></span><span class="hs-comment">-- Used for debugging purposes only</span><span>
+</span><span id="line-114"></span><span id="local-6989586621679507420"><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679507412"><span id="local-6989586621679507414"><span id="local-6989586621679507416"><span id="local-6989586621679507418"><span class="annot"><span class="hs-identifier hs-type">ToJSON</span></span><span> </span><span class="annot"><a href="#local-6989586621679507420"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">ToJSON</span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cardano.Chain.Common.Attributes.html#Attributes"><span class="hs-identifier hs-type">Attributes</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679507420"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span></span></span></span></span><span> </span><span class="hs-keyword">where</span></span><span>
+</span><span id="line-115"></span><span>
+</span><span id="line-116"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679507406"><span id="local-6989586621679507408"><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src"><span class="hs-identifier hs-type">ToCBOR</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cardano.Chain.Common.Attributes.html#Attributes"><span class="hs-identifier hs-type">Attributes</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span class="hs-special">)</span></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-117"></span><span>  </span><span id="local-6989586621679507404"><span class="annot"><span class="annottext">toCBOR :: Attributes () -&gt; Encoding
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src"><span class="hs-identifier hs-var hs-var hs-var hs-var">toCBOR</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[(Word8, () -&gt; ByteString)] -&gt; Attributes () -&gt; Encoding
+forall t. [(Word8, t -&gt; ByteString)] -&gt; Attributes t -&gt; Encoding
+</span><a href="Cardano.Chain.Common.Attributes.html#toCBORAttributes"><span class="hs-identifier hs-var">toCBORAttributes</span></a></span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span>
+</span><span id="line-118"></span><span>
+</span><span id="line-119"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679507399"><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src"><span class="hs-identifier hs-type">FromCBOR</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cardano.Chain.Common.Attributes.html#Attributes"><span class="hs-identifier hs-type">Attributes</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span class="hs-special">)</span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-120"></span><span>  </span><span id="local-6989586621679507397"><span class="annot"><span class="annottext">fromCBOR :: Decoder s (Attributes ())
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src"><span class="hs-identifier hs-var hs-var hs-var hs-var">fromCBOR</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">()
+-&gt; (Word8 -&gt; ByteString -&gt; () -&gt; Decoder s (Maybe ()))
+-&gt; Decoder s (Attributes ())
+forall t s.
+t
+-&gt; (Word8 -&gt; ByteString -&gt; t -&gt; Decoder s (Maybe t))
+-&gt; Decoder s (Attributes t)
+</span><a href="Cardano.Chain.Common.Attributes.html#fromCBORAttributes"><span class="hs-identifier hs-var">fromCBORAttributes</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">((Word8 -&gt; ByteString -&gt; () -&gt; Decoder s (Maybe ()))
+ -&gt; Decoder s (Attributes ()))
+-&gt; (Word8 -&gt; ByteString -&gt; () -&gt; Decoder s (Maybe ()))
+-&gt; Decoder s (Attributes ())
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-glyph">\</span><span class="annot"><span class="annottext">Word8
+</span><span class="hs-identifier">_</span></span><span> </span><span class="annot"><span class="annottext">ByteString
+</span><span class="hs-identifier">_</span></span><span> </span><span class="annot"><span class="annottext">()
+</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Maybe () -&gt; Decoder s (Maybe ())
+forall (f :: * -&gt; *) a. Applicative f =&gt; a -&gt; f a
+</span><span class="hs-identifier hs-var">pure</span></span><span> </span><span class="annot"><span class="annottext">Maybe ()
+forall a. Maybe a
+</span><span class="hs-identifier hs-var">Nothing</span></span><span>
+</span><span id="line-121"></span><span>
+</span><span id="line-122"></span><span id="local-6989586621679507395"><span class="hs-keyword">instance</span><span> </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-prelude-0.1.0.0/noopt/doc/html/cardano-prelude/src"><span class="hs-identifier hs-type">HeapWords</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679507395"><span class="hs-identifier hs-type">h</span></a></span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-prelude-0.1.0.0/noopt/doc/html/cardano-prelude/src"><span class="hs-identifier hs-type">HeapWords</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cardano.Chain.Common.Attributes.html#Attributes"><span class="hs-identifier hs-type">Attributes</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679507395"><span class="hs-identifier hs-type">h</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-123"></span><span>  </span><span id="local-6989586621679507393"><span class="annot"><span class="annottext">heapWords :: Attributes h -&gt; Int
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-prelude-0.1.0.0/noopt/doc/html/cardano-prelude/src"><span class="hs-identifier hs-var hs-var hs-var hs-var">heapWords</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cardano.Chain.Common.Attributes.html#Attributes"><span class="hs-identifier hs-type">Attributes</span></a></span><span> </span><span id="local-6989586621679507391"><span class="annot"><span class="annottext">h
+</span><a href="#local-6989586621679507391"><span class="hs-identifier hs-var">dat</span></a></span></span><span> </span><span id="local-6989586621679507390"><span class="annot"><span class="annottext">UnparsedFields
+</span><a href="#local-6989586621679507390"><span class="hs-identifier hs-var">unparsed</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">h -&gt; UnparsedFields -&gt; Int
+forall a1 a. (HeapWords a1, HeapWords a) =&gt; a -&gt; a1 -&gt; Int
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-prelude-0.1.0.0/noopt/doc/html/cardano-prelude/src"><span class="hs-identifier hs-var">heapWords2</span></a></span><span> </span><span class="annot"><span class="annottext">h
+</span><a href="#local-6989586621679507391"><span class="hs-identifier hs-var">dat</span></a></span><span> </span><span class="annot"><span class="annottext">UnparsedFields
+</span><a href="#local-6989586621679507390"><span class="hs-identifier hs-var">unparsed</span></a></span></span><span>
+</span><span id="line-124"></span><span>
+</span><span id="line-125"></span><span class="hs-comment">-- | Check whether all data from 'Attributes' is known, i. e. was successfully</span><span>
+</span><span id="line-126"></span><span class="hs-comment">--   parsed into some structured data</span><span>
+</span><span id="line-127"></span><span id="local-6989586621679507640"><span class="annot"><a href="Cardano.Chain.Common.Attributes.html#attributesAreKnown"><span class="hs-identifier hs-type">attributesAreKnown</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cardano.Chain.Common.Attributes.html#Attributes"><span class="hs-identifier hs-type">Attributes</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679507640"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span></span><span>
+</span><span id="line-128"></span><span id="attributesAreKnown"><span class="annot"><span class="annottext">attributesAreKnown :: Attributes a -&gt; Bool
+</span><a href="Cardano.Chain.Common.Attributes.html#attributesAreKnown"><span class="hs-identifier hs-var hs-var">attributesAreKnown</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Map Word8 ByteString -&gt; Bool
+forall k a. Map k a -&gt; Bool
+</span><span class="hs-identifier hs-var">M.null</span></span><span> </span><span class="annot"><span class="annottext">(Map Word8 ByteString -&gt; Bool)
+-&gt; (Attributes a -&gt; Map Word8 ByteString) -&gt; Attributes a -&gt; Bool
+forall k (cat :: k -&gt; k -&gt; *) (b :: k) (c :: k) (a :: k).
+Category cat =&gt;
+cat b c -&gt; cat a b -&gt; cat a c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">UnparsedFields -&gt; Map Word8 ByteString
+</span><a href="Cardano.Chain.Common.Attributes.html#fromUnparsedFields"><span class="hs-identifier hs-var">fromUnparsedFields</span></a></span><span> </span><span class="annot"><span class="annottext">(UnparsedFields -&gt; Map Word8 ByteString)
+-&gt; (Attributes a -&gt; UnparsedFields)
+-&gt; Attributes a
+-&gt; Map Word8 ByteString
+forall k (cat :: k -&gt; k -&gt; *) (b :: k) (c :: k) (a :: k).
+Category cat =&gt;
+cat b c -&gt; cat a b -&gt; cat a c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Attributes a -&gt; UnparsedFields
+forall h. Attributes h -&gt; UnparsedFields
+</span><a href="Cardano.Chain.Common.Attributes.html#attrRemain"><span class="hs-identifier hs-var hs-var">attrRemain</span></a></span><span>
+</span><span id="line-129"></span><span>
+</span><span id="line-130"></span><span id="local-6989586621679507635"><span class="annot"><a href="Cardano.Chain.Common.Attributes.html#unknownAttributesLength"><span class="hs-identifier hs-type">unknownAttributesLength</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cardano.Chain.Common.Attributes.html#Attributes"><span class="hs-identifier hs-type">Attributes</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679507635"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span></span><span>
+</span><span id="line-131"></span><span id="unknownAttributesLength"><span class="annot"><span class="annottext">unknownAttributesLength :: Attributes a -&gt; Int
+</span><a href="Cardano.Chain.Common.Attributes.html#unknownAttributesLength"><span class="hs-identifier hs-var hs-var">unknownAttributesLength</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-132"></span><span>  </span><span class="annot"><span class="annottext">Int64 -&gt; Int
+forall a b. (Integral a, Num b) =&gt; a -&gt; b
+</span><span class="hs-identifier hs-var">fromIntegral</span></span><span> </span><span class="annot"><span class="annottext">(Int64 -&gt; Int) -&gt; (Attributes a -&gt; Int64) -&gt; Attributes a -&gt; Int
+forall k (cat :: k -&gt; k -&gt; *) (b :: k) (c :: k) (a :: k).
+Category cat =&gt;
+cat b c -&gt; cat a b -&gt; cat a c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Map Word8 Int64 -&gt; Int64
+forall (f :: * -&gt; *) a. (Foldable f, Num a) =&gt; f a -&gt; a
+</span><span class="hs-identifier hs-var">sum</span></span><span> </span><span class="annot"><span class="annottext">(Map Word8 Int64 -&gt; Int64)
+-&gt; (Attributes a -&gt; Map Word8 Int64) -&gt; Attributes a -&gt; Int64
+forall k (cat :: k -&gt; k -&gt; *) (b :: k) (c :: k) (a :: k).
+Category cat =&gt;
+cat b c -&gt; cat a b -&gt; cat a c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">(ByteString -&gt; Int64) -&gt; Map Word8 ByteString -&gt; Map Word8 Int64
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-identifier hs-var">map</span></span><span> </span><span class="annot"><span class="annottext">ByteString -&gt; Int64
+</span><span class="hs-identifier hs-var">LBS.length</span></span><span> </span><span class="annot"><span class="annottext">(Map Word8 ByteString -&gt; Map Word8 Int64)
+-&gt; (Attributes a -&gt; Map Word8 ByteString)
+-&gt; Attributes a
+-&gt; Map Word8 Int64
+forall k (cat :: k -&gt; k -&gt; *) (b :: k) (c :: k) (a :: k).
+Category cat =&gt;
+cat b c -&gt; cat a b -&gt; cat a c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">UnparsedFields -&gt; Map Word8 ByteString
+</span><a href="Cardano.Chain.Common.Attributes.html#fromUnparsedFields"><span class="hs-identifier hs-var">fromUnparsedFields</span></a></span><span> </span><span class="annot"><span class="annottext">(UnparsedFields -&gt; Map Word8 ByteString)
+-&gt; (Attributes a -&gt; UnparsedFields)
+-&gt; Attributes a
+-&gt; Map Word8 ByteString
+forall k (cat :: k -&gt; k -&gt; *) (b :: k) (c :: k) (a :: k).
+Category cat =&gt;
+cat b c -&gt; cat a b -&gt; cat a c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Attributes a -&gt; UnparsedFields
+forall h. Attributes h -&gt; UnparsedFields
+</span><a href="Cardano.Chain.Common.Attributes.html#attrRemain"><span class="hs-identifier hs-var hs-var">attrRemain</span></a></span><span>
+</span><span id="line-133"></span><span>
+</span><span id="line-134"></span><span class="hs-comment">{- NOTE: Attributes serialization
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Attributes are a way to add fields to datatypes while maintaining backwards
@@ -177,55 +577,235 @@ it would just put @attrRemain@ back after other attributes and the new
 version would be able to parse it).
 
 -}</span><span>
-</span><a name="line-180"></a><span>
-</span><a name="line-181"></a><span class="hs-identifier">toCBORAttributes</span><span>
-</span><a name="line-182"></a><span>  </span><span class="hs-glyph">::</span><span> </span><span class="hs-keyword">forall</span><span> </span><a name="local-6989586621679128391"><a href="#local-6989586621679128391"><span class="hs-identifier">t</span></a></a><span> </span><span class="hs-operator">.</span><span> </span><span class="hs-special">[</span><span class="hs-special">(</span><span class="hs-identifier hs-type">Word8</span><span class="hs-special">,</span><span> </span><a href="#local-6989586621679128391"><span class="hs-identifier hs-type">t</span></a><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">LBS.ByteString</span><span class="hs-special">)</span><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><a href="Cardano.Chain.Common.Attributes.html#Attributes"><span class="hs-identifier hs-type">Attributes</span></a><span> </span><a href="#local-6989586621679128391"><span class="hs-identifier hs-type">t</span></a><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">Encoding</span><span>
-</span><a name="line-183"></a><a name="toCBORAttributes"><a href="Cardano.Chain.Common.Attributes.html#toCBORAttributes"><span class="hs-identifier">toCBORAttributes</span></a></a><span> </span><a name="local-6989586621679128415"><a href="#local-6989586621679128415"><span class="hs-identifier">encs</span></a></a><span> </span><a name="local-6989586621679128416"><a href="#local-6989586621679128416"><span class="hs-identifier">attr</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.ToCBOR.html#toCBOR"><span class="hs-identifier hs-var">toCBOR</span></a><span>
-</span><a name="line-184"></a><span>  </span><span class="hs-operator hs-var">$</span><span> </span><span class="hs-identifier hs-var">foldr</span><span> </span><a href="#local-6989586621679128417"><span class="hs-identifier hs-var">go</span></a><span> </span><span class="hs-special">(</span><a href="Cardano.Chain.Common.Attributes.html#fromUnparsedFields"><span class="hs-identifier hs-var">fromUnparsedFields</span></a><span> </span><span class="hs-operator hs-var">$</span><span> </span><span class="hs-identifier">attrRemain</span><span> </span><a href="#local-6989586621679128416"><span class="hs-identifier hs-var">attr</span></a><span class="hs-special">)</span><span> </span><a href="#local-6989586621679128415"><span class="hs-identifier hs-var">encs</span></a><span>
-</span><a name="line-185"></a><span> </span><span class="hs-keyword">where</span><span>
-</span><a name="line-186"></a><span>  </span><span class="hs-identifier">go</span><span>
-</span><a name="line-187"></a><span>    </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Word8</span><span class="hs-special">,</span><span> </span><a href="#local-6989586621679128391"><span class="hs-identifier hs-type">t</span></a><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">LBS.ByteString</span><span class="hs-special">)</span><span>
-</span><a name="line-188"></a><span>    </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">Map</span><span> </span><span class="hs-identifier hs-type">Word8</span><span> </span><span class="hs-identifier hs-type">LBS.ByteString</span><span>
-</span><a name="line-189"></a><span>    </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">Map</span><span> </span><span class="hs-identifier hs-type">Word8</span><span> </span><span class="hs-identifier hs-type">LBS.ByteString</span><span>
-</span><a name="line-190"></a><span>  </span><a name="local-6989586621679128417"><a href="#local-6989586621679128417"><span class="hs-identifier">go</span></a></a><span> </span><span class="hs-special">(</span><a name="local-6989586621679128418"><a href="#local-6989586621679128418"><span class="hs-identifier">k</span></a></a><span class="hs-special">,</span><span> </span><a name="local-6989586621679128419"><a href="#local-6989586621679128419"><span class="hs-identifier">f</span></a></a><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-identifier hs-var">M.alter</span><span> </span><span class="hs-special">(</span><a href="#local-6989586621679128420"><span class="hs-identifier hs-var">insertCheck</span></a><span> </span><span class="hs-operator hs-var">$</span><span> </span><a href="#local-6989586621679128419"><span class="hs-identifier hs-var">f</span></a><span> </span><span class="hs-special">(</span><span class="hs-identifier">attrData</span><span> </span><a href="#local-6989586621679128416"><span class="hs-identifier hs-var">attr</span></a><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><a href="#local-6989586621679128418"><span class="hs-identifier hs-var">k</span></a><span>
-</span><a name="line-191"></a><span>   </span><span class="hs-keyword">where</span><span>
-</span><a name="line-192"></a><span>    </span><span class="hs-identifier">insertCheck</span><span> </span><span class="hs-glyph">::</span><span> </span><a href="#local-6989586621679128421"><span class="hs-identifier hs-type">a</span></a><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">Maybe</span><span> </span><span class="hs-identifier hs-type">LByteString</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">Maybe</span><span> </span><a href="#local-6989586621679128421"><span class="hs-identifier hs-type">a</span></a><span>
-</span><a name="line-193"></a><span>    </span><a name="local-6989586621679128420"><a href="#local-6989586621679128420"><span class="hs-identifier">insertCheck</span></a></a><span> </span><a name="local-6989586621679128422"><a href="#local-6989586621679128422"><span class="hs-identifier">v</span></a></a><span> </span><span class="hs-identifier hs-var">Nothing</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-identifier hs-var">Just</span><span> </span><a href="#local-6989586621679128422"><span class="hs-identifier hs-var">v</span></a><span>
-</span><a name="line-194"></a><span>    </span><span class="hs-identifier">insertCheck</span><span> </span><span class="hs-identifier">_</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-var">Just</span><span> </span><a name="local-6989586621679128423"><a href="#local-6989586621679128423"><span class="hs-identifier">v'</span></a></a><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span>
-</span><a name="line-195"></a><span>      </span><span class="hs-identifier hs-var">panic</span><span>
-</span><a name="line-196"></a><span>        </span><span class="hs-operator hs-var">$</span><span>  </span><span class="hs-string">&quot;toCBORAttributes: impossible: field no. &quot;</span><span>
-</span><a name="line-197"></a><span>        </span><span class="hs-operator hs-var">&lt;&gt;</span><span> </span><span class="hs-identifier hs-var">show</span><span> </span><a href="#local-6989586621679128418"><span class="hs-identifier hs-var">k</span></a><span>
-</span><a name="line-198"></a><span>        </span><span class="hs-operator hs-var">&lt;&gt;</span><span> </span><span class="hs-string">&quot; is already encoded as unparsed field: &quot;</span><span>
-</span><a name="line-199"></a><span>        </span><span class="hs-operator hs-var">&lt;&gt;</span><span> </span><span class="hs-identifier hs-var">show</span><span> </span><a href="#local-6989586621679128423"><span class="hs-identifier hs-var">v'</span></a><span>
-</span><a name="line-200"></a><span>
-</span><a name="line-201"></a><span class="hs-identifier">fromCBORAttributes</span><span>
-</span><a name="line-202"></a><span>  </span><span class="hs-glyph">::</span><span> </span><span class="hs-keyword">forall</span><span> </span><a name="local-6989586621679128389"><a href="#local-6989586621679128389"><span class="hs-identifier">t</span></a></a><span> </span><a name="local-6989586621679128390"><a href="#local-6989586621679128390"><span class="hs-identifier">s</span></a></a><span>
-</span><a name="line-203"></a><span>   </span><span class="hs-operator">.</span><span> </span><a href="#local-6989586621679128389"><span class="hs-identifier hs-type">t</span></a><span>
-</span><a name="line-204"></a><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Word8</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">LBS.ByteString</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><a href="#local-6989586621679128389"><span class="hs-identifier hs-type">t</span></a><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">Decoder</span><span> </span><a href="#local-6989586621679128390"><span class="hs-identifier hs-type">s</span></a><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Maybe</span><span> </span><a href="#local-6989586621679128389"><span class="hs-identifier hs-type">t</span></a><span class="hs-special">)</span><span class="hs-special">)</span><span>
-</span><a name="line-205"></a><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">Decoder</span><span> </span><a href="#local-6989586621679128390"><span class="hs-identifier hs-type">s</span></a><span> </span><span class="hs-special">(</span><a href="Cardano.Chain.Common.Attributes.html#Attributes"><span class="hs-identifier hs-type">Attributes</span></a><span> </span><a href="#local-6989586621679128389"><span class="hs-identifier hs-type">t</span></a><span class="hs-special">)</span><span>
-</span><a name="line-206"></a><a name="fromCBORAttributes"><a href="Cardano.Chain.Common.Attributes.html#fromCBORAttributes"><span class="hs-identifier">fromCBORAttributes</span></a></a><span> </span><a name="local-6989586621679129602"><a href="#local-6989586621679129602"><span class="hs-identifier">initval</span></a></a><span> </span><a name="local-6989586621679129603"><a href="#local-6989586621679129603"><span class="hs-identifier">updater</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
-</span><a name="line-207"></a><span>  </span><a name="local-6989586621679129610"><a href="#local-6989586621679129610"><span class="hs-identifier">raw</span></a></a><span> </span><span class="hs-glyph">&lt;-</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.FromCBOR.html#fromCBOR"><span class="hs-identifier hs-var">fromCBOR</span></a><span> </span><span class="hs-glyph">@</span><span class="hs-special">(</span><span class="hs-identifier hs-type">Map</span><span> </span><span class="hs-identifier hs-type">Word8</span><span> </span><span class="hs-identifier hs-type">LBS.ByteString</span><span class="hs-special">)</span><span>
-</span><a name="line-208"></a><span>  </span><span class="hs-identifier hs-var">foldrM</span><span> </span><a href="#local-6989586621679129604"><span class="hs-identifier hs-var">go</span></a><span> </span><span class="hs-special">(</span><a href="Cardano.Chain.Common.Attributes.html#Attributes"><span class="hs-identifier hs-var">Attributes</span></a><span> </span><a href="#local-6989586621679129602"><span class="hs-identifier hs-var">initval</span></a><span> </span><span class="hs-operator hs-var">$</span><span> </span><a href="Cardano.Chain.Common.Attributes.html#UnparsedFields"><span class="hs-identifier hs-var">UnparsedFields</span></a><span> </span><a href="#local-6989586621679129610"><span class="hs-identifier hs-var">raw</span></a><span class="hs-special">)</span><span> </span><span class="hs-operator hs-var">$</span><span> </span><span class="hs-identifier hs-var">M.toList</span><span> </span><a href="#local-6989586621679129610"><span class="hs-identifier hs-var">raw</span></a><span>
-</span><a name="line-209"></a><span> </span><span class="hs-keyword">where</span><span>
-</span><a name="line-210"></a><span>  </span><span class="hs-identifier">go</span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Word8</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">LBS.ByteString</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><a href="Cardano.Chain.Common.Attributes.html#Attributes"><span class="hs-identifier hs-type">Attributes</span></a><span> </span><a href="#local-6989586621679128389"><span class="hs-identifier hs-type">t</span></a><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">Decoder</span><span> </span><a href="#local-6989586621679128390"><span class="hs-identifier hs-type">s</span></a><span> </span><span class="hs-special">(</span><a href="Cardano.Chain.Common.Attributes.html#Attributes"><span class="hs-identifier hs-type">Attributes</span></a><span> </span><a href="#local-6989586621679128389"><span class="hs-identifier hs-type">t</span></a><span class="hs-special">)</span><span>
-</span><a name="line-211"></a><span>  </span><a name="local-6989586621679129604"><a href="#local-6989586621679129604"><span class="hs-identifier">go</span></a></a><span> </span><span class="hs-special">(</span><a name="local-6989586621679129605"><a href="#local-6989586621679129605"><span class="hs-identifier">k</span></a></a><span class="hs-special">,</span><span> </span><a name="local-6989586621679129606"><a href="#local-6989586621679129606"><span class="hs-identifier">v</span></a></a><span class="hs-special">)</span><span> </span><a name="local-6989586621679129607"><a href="#local-6989586621679129607"><span class="hs-identifier">attr</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
-</span><a name="line-212"></a><span>    </span><a name="local-6989586621679129608"><a href="#local-6989586621679129608"><span class="hs-identifier">updaterData</span></a></a><span> </span><span class="hs-glyph">&lt;-</span><span> </span><a href="#local-6989586621679129603"><span class="hs-identifier hs-var">updater</span></a><span> </span><a href="#local-6989586621679129605"><span class="hs-identifier hs-var">k</span></a><span> </span><a href="#local-6989586621679129606"><span class="hs-identifier hs-var">v</span></a><span> </span><span class="hs-operator hs-var">$</span><span> </span><span class="hs-identifier">attrData</span><span> </span><a href="#local-6989586621679129607"><span class="hs-identifier hs-var">attr</span></a><span>
-</span><a name="line-213"></a><span>    </span><span class="hs-identifier hs-var">pure</span><span> </span><span class="hs-operator hs-var">$</span><span> </span><span class="hs-keyword">case</span><span> </span><a href="#local-6989586621679129608"><span class="hs-identifier hs-var">updaterData</span></a><span> </span><span class="hs-keyword">of</span><span>
-</span><a name="line-214"></a><span>      </span><span class="hs-identifier hs-var">Nothing</span><span>      </span><span class="hs-glyph">-&gt;</span><span> </span><a href="#local-6989586621679129607"><span class="hs-identifier hs-var">attr</span></a><span>
-</span><a name="line-215"></a><span>      </span><span class="hs-identifier hs-var">Just</span><span> </span><a name="local-6989586621679129609"><a href="#local-6989586621679129609"><span class="hs-identifier">newData</span></a></a><span> </span><span class="hs-glyph">-&gt;</span><span> </span><a href="Cardano.Chain.Common.Attributes.html#Attributes"><span class="hs-identifier hs-var">Attributes</span></a><span>
-</span><a name="line-216"></a><span>        </span><span class="hs-special">{</span><span> </span><span class="hs-identifier">attrData</span><span>   </span><span class="hs-glyph">=</span><span> </span><a href="#local-6989586621679129609"><span class="hs-identifier hs-var">newData</span></a><span>
-</span><a name="line-217"></a><span>        </span><span class="hs-special">,</span><span> </span><span class="hs-identifier">attrRemain</span><span> </span><span class="hs-glyph">=</span><span> </span><a href="Cardano.Chain.Common.Attributes.html#UnparsedFields"><span class="hs-identifier hs-var">UnparsedFields</span></a><span>
-</span><a name="line-218"></a><span>          </span><span class="hs-operator hs-var">.</span><span> </span><span class="hs-identifier hs-var">M.delete</span><span> </span><a href="#local-6989586621679129605"><span class="hs-identifier hs-var">k</span></a><span>
-</span><a name="line-219"></a><span>          </span><span class="hs-operator hs-var">.</span><span> </span><a href="Cardano.Chain.Common.Attributes.html#fromUnparsedFields"><span class="hs-identifier hs-var">fromUnparsedFields</span></a><span>
-</span><a name="line-220"></a><span>          </span><span class="hs-operator hs-var">$</span><span> </span><span class="hs-identifier">attrRemain</span><span> </span><a href="#local-6989586621679129607"><span class="hs-identifier hs-var">attr</span></a><span>
-</span><a name="line-221"></a><span>        </span><span class="hs-special">}</span><span>
-</span><a name="line-222"></a><span>
-</span><a name="line-223"></a><span class="hs-identifier">dropAttributes</span><span> </span><span class="hs-glyph">::</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.Drop.html#Dropper"><span class="hs-identifier hs-type">Dropper</span></a><span> </span><a href="#local-6989586621679128388"><span class="hs-identifier hs-type">s</span></a><span>
-</span><a name="line-224"></a><a name="dropAttributes"><a href="Cardano.Chain.Common.Attributes.html#dropAttributes"><span class="hs-identifier">dropAttributes</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.Drop.html#dropMap"><span class="hs-identifier hs-var">dropMap</span></a><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.Drop.html#dropWord8"><span class="hs-identifier hs-var">dropWord8</span></a><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.Drop.html#dropBytes"><span class="hs-identifier hs-var">dropBytes</span></a><span>
-</span><a name="line-225"></a><span>
-</span><a name="line-226"></a><span class="hs-comment">-- | Drop `Attributes ()` making sure that the `UnparsedFields` are empty</span><span>
-</span><a name="line-227"></a><span class="hs-identifier">dropEmptyAttributes</span><span> </span><span class="hs-glyph">::</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.Drop.html#Dropper"><span class="hs-identifier hs-type">Dropper</span></a><span> </span><a href="#local-6989586621679128375"><span class="hs-identifier hs-type">s</span></a><span>
-</span><a name="line-228"></a><a name="dropEmptyAttributes"><a href="Cardano.Chain.Common.Attributes.html#dropEmptyAttributes"><span class="hs-identifier">dropEmptyAttributes</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
-</span><a name="line-229"></a><span>  </span><a name="local-6989586621679129611"><a href="#local-6989586621679129611"><span class="hs-identifier">len</span></a></a><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="hs-identifier hs-var">decodeMapLen</span><span>
-</span><a name="line-230"></a><span>  </span><span class="hs-identifier hs-var">unless</span><span> </span><span class="hs-special">(</span><a href="#local-6989586621679129611"><span class="hs-identifier hs-var">len</span></a><span> </span><span class="hs-operator hs-var">==</span><span> </span><span class="hs-number">0</span><span class="hs-special">)</span><span> </span><span class="hs-operator hs-var">$</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-prelude-0.1.0.0/noopt/doc/html/cardano-prelude/src/Cardano.Prelude.Error.html#cborError"><span class="hs-identifier hs-var">cborError</span></a><span> </span><span class="hs-operator hs-var">$</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.FromCBOR.html#DecoderErrorSizeMismatch"><span class="hs-identifier hs-var">DecoderErrorSizeMismatch</span></a><span> </span><span class="hs-string">&quot;Attributes&quot;</span><span> </span><span class="hs-number">0</span><span> </span><a href="#local-6989586621679129611"><span class="hs-identifier hs-var">len</span></a><span>
-</span><a name="line-231"></a></pre></body></html>
+</span><span id="line-181"></span><span>
+</span><span id="line-182"></span><span class="annot"><a href="Cardano.Chain.Common.Attributes.html#toCBORAttributes"><span class="hs-identifier hs-type">toCBORAttributes</span></a></span><span>
+</span><span id="line-183"></span><span>  </span><span class="hs-glyph">::</span><span> </span><span class="hs-keyword">forall</span><span> </span><span id="local-6989586621679507611"><span class="annot"><a href="#local-6989586621679507611"><span class="hs-identifier hs-type">t</span></a></span></span><span> </span><span class="hs-operator">.</span><span> </span><span class="hs-special">[</span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Word8</span></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="#local-6989586621679507611"><span class="hs-identifier hs-type">t</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">LBS.ByteString</span></span><span class="hs-special">)</span><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cardano.Chain.Common.Attributes.html#Attributes"><span class="hs-identifier hs-type">Attributes</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679507611"><span class="hs-identifier hs-type">t</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Encoding</span></span><span>
+</span><span id="line-184"></span><span id="toCBORAttributes"><span class="annot"><span class="annottext">toCBORAttributes :: [(Word8, t -&gt; ByteString)] -&gt; Attributes t -&gt; Encoding
+</span><a href="Cardano.Chain.Common.Attributes.html#toCBORAttributes"><span class="hs-identifier hs-var hs-var">toCBORAttributes</span></a></span></span><span> </span><span id="local-6989586621679507384"><span class="annot"><span class="annottext">[(Word8, t -&gt; ByteString)]
+</span><a href="#local-6989586621679507384"><span class="hs-identifier hs-var">encs</span></a></span></span><span> </span><span id="local-6989586621679507383"><span class="annot"><span class="annottext">Attributes t
+</span><a href="#local-6989586621679507383"><span class="hs-identifier hs-var">attr</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Map Word8 ByteString -&gt; Encoding
+forall a. ToCBOR a =&gt; a -&gt; Encoding
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src"><span class="hs-identifier hs-var">toCBOR</span></a></span><span>
+</span><span id="line-185"></span><span>  </span><span class="annot"><span class="annottext">(Map Word8 ByteString -&gt; Encoding)
+-&gt; Map Word8 ByteString -&gt; Encoding
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">((Word8, t -&gt; ByteString)
+ -&gt; Map Word8 ByteString -&gt; Map Word8 ByteString)
+-&gt; Map Word8 ByteString
+-&gt; [(Word8, t -&gt; ByteString)]
+-&gt; Map Word8 ByteString
+forall (t :: * -&gt; *) a b.
+Foldable t =&gt;
+(a -&gt; b -&gt; b) -&gt; b -&gt; t a -&gt; b
+</span><span class="hs-identifier hs-var">foldr</span></span><span> </span><span class="annot"><span class="annottext">(Word8, t -&gt; ByteString)
+-&gt; Map Word8 ByteString -&gt; Map Word8 ByteString
+</span><a href="#local-6989586621679507381"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">UnparsedFields -&gt; Map Word8 ByteString
+</span><a href="Cardano.Chain.Common.Attributes.html#fromUnparsedFields"><span class="hs-identifier hs-var">fromUnparsedFields</span></a></span><span> </span><span class="annot"><span class="annottext">(UnparsedFields -&gt; Map Word8 ByteString)
+-&gt; UnparsedFields -&gt; Map Word8 ByteString
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Attributes t -&gt; UnparsedFields
+forall h. Attributes h -&gt; UnparsedFields
+</span><a href="Cardano.Chain.Common.Attributes.html#attrRemain"><span class="hs-identifier hs-var hs-var">attrRemain</span></a></span><span> </span><span class="annot"><span class="annottext">Attributes t
+</span><a href="#local-6989586621679507383"><span class="hs-identifier hs-var">attr</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">[(Word8, t -&gt; ByteString)]
+</span><a href="#local-6989586621679507384"><span class="hs-identifier hs-var">encs</span></a></span><span>
+</span><span id="line-186"></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-187"></span><span>  </span><span class="annot"><a href="#local-6989586621679507381"><span class="hs-identifier hs-type">go</span></a></span><span>
+</span><span id="line-188"></span><span>    </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Word8</span></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="#local-6989586621679507611"><span class="hs-identifier hs-type">t</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">LBS.ByteString</span></span><span class="hs-special">)</span><span>
+</span><span id="line-189"></span><span>    </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Map</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Word8</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">LBS.ByteString</span></span><span>
+</span><span id="line-190"></span><span>    </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Map</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Word8</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">LBS.ByteString</span></span><span>
+</span><span id="line-191"></span><span>  </span><span id="local-6989586621679507381"><span class="annot"><span class="annottext">go :: (Word8, t -&gt; ByteString)
+-&gt; Map Word8 ByteString -&gt; Map Word8 ByteString
+</span><a href="#local-6989586621679507381"><span class="hs-identifier hs-var hs-var">go</span></a></span></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679507380"><span class="annot"><span class="annottext">Word8
+</span><a href="#local-6989586621679507380"><span class="hs-identifier hs-var">k</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679507379"><span class="annot"><span class="annottext">t -&gt; ByteString
+</span><a href="#local-6989586621679507379"><span class="hs-identifier hs-var">f</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(Maybe ByteString -&gt; Maybe ByteString)
+-&gt; Word8 -&gt; Map Word8 ByteString -&gt; Map Word8 ByteString
+forall k a.
+Ord k =&gt;
+(Maybe a -&gt; Maybe a) -&gt; k -&gt; Map k a -&gt; Map k a
+</span><span class="hs-identifier hs-var">M.alter</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">ByteString -&gt; Maybe ByteString -&gt; Maybe ByteString
+forall a. a -&gt; Maybe ByteString -&gt; Maybe a
+</span><a href="#local-6989586621679507377"><span class="hs-identifier hs-var">insertCheck</span></a></span><span> </span><span class="annot"><span class="annottext">(ByteString -&gt; Maybe ByteString -&gt; Maybe ByteString)
+-&gt; ByteString -&gt; Maybe ByteString -&gt; Maybe ByteString
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">t -&gt; ByteString
+</span><a href="#local-6989586621679507379"><span class="hs-identifier hs-var">f</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Attributes t -&gt; t
+forall h. Attributes h -&gt; h
+</span><a href="Cardano.Chain.Common.Attributes.html#attrData"><span class="hs-identifier hs-var hs-var">attrData</span></a></span><span> </span><span class="annot"><span class="annottext">Attributes t
+</span><a href="#local-6989586621679507383"><span class="hs-identifier hs-var">attr</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Word8
+</span><a href="#local-6989586621679507380"><span class="hs-identifier hs-var">k</span></a></span><span>
+</span><span id="line-192"></span><span>   </span><span class="hs-keyword">where</span><span>
+</span><span id="line-193"></span><span>    </span><span id="local-6989586621679507579"><span class="annot"><a href="#local-6989586621679507377"><span class="hs-identifier hs-type">insertCheck</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="#local-6989586621679507579"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">LByteString</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><a href="#local-6989586621679507579"><span class="hs-identifier hs-type">a</span></a></span></span><span>
+</span><span id="line-194"></span><span>    </span><span id="local-6989586621679507377"><span class="annot"><span class="annottext">insertCheck :: a -&gt; Maybe ByteString -&gt; Maybe a
+</span><a href="#local-6989586621679507377"><span class="hs-identifier hs-var hs-var">insertCheck</span></a></span></span><span> </span><span id="local-6989586621679507375"><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679507375"><span class="hs-identifier hs-var">v</span></a></span></span><span> </span><span class="annot"><span class="annottext">Maybe ByteString
+</span><span class="hs-identifier hs-var">Nothing</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">a -&gt; Maybe a
+forall a. a -&gt; Maybe a
+</span><span class="hs-identifier hs-var">Just</span></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679507375"><span class="hs-identifier hs-var">v</span></a></span><span>
+</span><span id="line-195"></span><span>    </span><span class="annot"><a href="#local-6989586621679507377"><span class="hs-identifier hs-var">insertCheck</span></a></span><span> </span><span class="annot"><span class="annottext">a
+</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Just</span></span><span> </span><span id="local-6989586621679507374"><span class="annot"><span class="annottext">ByteString
+</span><a href="#local-6989586621679507374"><span class="hs-identifier hs-var">v'</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-196"></span><span>      </span><span class="annot"><span class="annottext">Text -&gt; Maybe a
+forall a. HasCallStack =&gt; Text -&gt; a
+</span><span class="hs-identifier hs-var">panic</span></span><span>
+</span><span id="line-197"></span><span>        </span><span class="annot"><span class="annottext">(Text -&gt; Maybe a) -&gt; Text -&gt; Maybe a
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span>  </span><span class="annot"><span class="annottext">Text
+</span><span class="hs-string">&quot;toCBORAttributes: impossible: field no. &quot;</span></span><span>
+</span><span id="line-198"></span><span>        </span><span class="annot"><span class="annottext">Text -&gt; Text -&gt; Text
+forall a. Semigroup a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">&lt;&gt;</span></span><span> </span><span class="annot"><span class="annottext">Word8 -&gt; Text
+forall a b. (Show a, ConvertText String b) =&gt; a -&gt; b
+</span><span class="hs-identifier hs-var">show</span></span><span> </span><span class="annot"><span class="annottext">Word8
+</span><a href="#local-6989586621679507380"><span class="hs-identifier hs-var">k</span></a></span><span>
+</span><span id="line-199"></span><span>        </span><span class="annot"><span class="annottext">Text -&gt; Text -&gt; Text
+forall a. Semigroup a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">&lt;&gt;</span></span><span> </span><span class="annot"><span class="annottext">Text
+</span><span class="hs-string">&quot; is already encoded as unparsed field: &quot;</span></span><span>
+</span><span id="line-200"></span><span>        </span><span class="annot"><span class="annottext">Text -&gt; Text -&gt; Text
+forall a. Semigroup a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">&lt;&gt;</span></span><span> </span><span class="annot"><span class="annottext">ByteString -&gt; Text
+forall a b. (Show a, ConvertText String b) =&gt; a -&gt; b
+</span><span class="hs-identifier hs-var">show</span></span><span> </span><span class="annot"><span class="annottext">ByteString
+</span><a href="#local-6989586621679507374"><span class="hs-identifier hs-var">v'</span></a></span><span>
+</span><span id="line-201"></span><span>
+</span><span id="line-202"></span><span class="annot"><a href="Cardano.Chain.Common.Attributes.html#fromCBORAttributes"><span class="hs-identifier hs-type">fromCBORAttributes</span></a></span><span>
+</span><span id="line-203"></span><span>  </span><span class="hs-glyph">::</span><span> </span><span class="hs-keyword">forall</span><span> </span><span id="local-6989586621679507603"><span class="annot"><a href="#local-6989586621679507603"><span class="hs-identifier hs-type">t</span></a></span></span><span> </span><span id="local-6989586621679507602"><span class="annot"><a href="#local-6989586621679507602"><span class="hs-identifier hs-type">s</span></a></span></span><span>
+</span><span id="line-204"></span><span>   </span><span class="hs-operator">.</span><span> </span><span class="annot"><a href="#local-6989586621679507603"><span class="hs-identifier hs-type">t</span></a></span><span>
+</span><span id="line-205"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Word8</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">LBS.ByteString</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679507603"><span class="hs-identifier hs-type">t</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Decoder</span></span><span> </span><span class="annot"><a href="#local-6989586621679507602"><span class="hs-identifier hs-type">s</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><a href="#local-6989586621679507603"><span class="hs-identifier hs-type">t</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-206"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Decoder</span></span><span> </span><span class="annot"><a href="#local-6989586621679507602"><span class="hs-identifier hs-type">s</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cardano.Chain.Common.Attributes.html#Attributes"><span class="hs-identifier hs-type">Attributes</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679507603"><span class="hs-identifier hs-type">t</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-207"></span><span id="fromCBORAttributes"><span class="annot"><span class="annottext">fromCBORAttributes :: t
+-&gt; (Word8 -&gt; ByteString -&gt; t -&gt; Decoder s (Maybe t))
+-&gt; Decoder s (Attributes t)
+</span><a href="Cardano.Chain.Common.Attributes.html#fromCBORAttributes"><span class="hs-identifier hs-var hs-var">fromCBORAttributes</span></a></span></span><span> </span><span id="local-6989586621679507372"><span class="annot"><span class="annottext">t
+</span><a href="#local-6989586621679507372"><span class="hs-identifier hs-var">initval</span></a></span></span><span> </span><span id="local-6989586621679507371"><span class="annot"><span class="annottext">Word8 -&gt; ByteString -&gt; t -&gt; Decoder s (Maybe t)
+</span><a href="#local-6989586621679507371"><span class="hs-identifier hs-var">updater</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-208"></span><span>  </span><span id="local-6989586621679507370"><span class="annot"><span class="annottext">Map Word8 ByteString
+</span><a href="#local-6989586621679507370"><span class="hs-identifier hs-var">raw</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">forall s.
+FromCBOR (Map Word8 ByteString) =&gt;
+Decoder s (Map Word8 ByteString)
+forall a s. FromCBOR a =&gt; Decoder s a
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src"><span class="hs-identifier hs-var">fromCBOR</span></a></span><span> </span><span class="hs-glyph">@</span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Map</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Word8</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">LBS.ByteString</span></span><span class="hs-special">)</span><span>
+</span><span id="line-209"></span><span>  </span><span class="annot"><span class="annottext">((Word8, ByteString) -&gt; Attributes t -&gt; Decoder s (Attributes t))
+-&gt; Attributes t
+-&gt; [(Word8, ByteString)]
+-&gt; Decoder s (Attributes t)
+forall (t :: * -&gt; *) (m :: * -&gt; *) a b.
+(Foldable t, Monad m) =&gt;
+(a -&gt; b -&gt; m b) -&gt; b -&gt; t a -&gt; m b
+</span><span class="hs-identifier hs-var">foldrM</span></span><span> </span><span class="annot"><span class="annottext">(Word8, ByteString) -&gt; Attributes t -&gt; Decoder s (Attributes t)
+</span><a href="#local-6989586621679507368"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">t -&gt; UnparsedFields -&gt; Attributes t
+forall h. h -&gt; UnparsedFields -&gt; Attributes h
+</span><a href="Cardano.Chain.Common.Attributes.html#Attributes"><span class="hs-identifier hs-var">Attributes</span></a></span><span> </span><span class="annot"><span class="annottext">t
+</span><a href="#local-6989586621679507372"><span class="hs-identifier hs-var">initval</span></a></span><span> </span><span class="annot"><span class="annottext">(UnparsedFields -&gt; Attributes t) -&gt; UnparsedFields -&gt; Attributes t
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Map Word8 ByteString -&gt; UnparsedFields
+</span><a href="Cardano.Chain.Common.Attributes.html#UnparsedFields"><span class="hs-identifier hs-var">UnparsedFields</span></a></span><span> </span><span class="annot"><span class="annottext">Map Word8 ByteString
+</span><a href="#local-6989586621679507370"><span class="hs-identifier hs-var">raw</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">([(Word8, ByteString)] -&gt; Decoder s (Attributes t))
+-&gt; [(Word8, ByteString)] -&gt; Decoder s (Attributes t)
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Map Word8 ByteString -&gt; [(Word8, ByteString)]
+forall k a. Map k a -&gt; [(k, a)]
+</span><span class="hs-identifier hs-var">M.toList</span></span><span> </span><span class="annot"><span class="annottext">Map Word8 ByteString
+</span><a href="#local-6989586621679507370"><span class="hs-identifier hs-var">raw</span></a></span><span>
+</span><span id="line-210"></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-211"></span><span>  </span><span class="annot"><a href="#local-6989586621679507368"><span class="hs-identifier hs-type">go</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Word8</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">LBS.ByteString</span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cardano.Chain.Common.Attributes.html#Attributes"><span class="hs-identifier hs-type">Attributes</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679507603"><span class="hs-identifier hs-type">t</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Decoder</span></span><span> </span><span class="annot"><a href="#local-6989586621679507602"><span class="hs-identifier hs-type">s</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cardano.Chain.Common.Attributes.html#Attributes"><span class="hs-identifier hs-type">Attributes</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679507603"><span class="hs-identifier hs-type">t</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-212"></span><span>  </span><span id="local-6989586621679507368"><span class="annot"><span class="annottext">go :: (Word8, ByteString) -&gt; Attributes t -&gt; Decoder s (Attributes t)
+</span><a href="#local-6989586621679507368"><span class="hs-identifier hs-var hs-var">go</span></a></span></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679507366"><span class="annot"><span class="annottext">Word8
+</span><a href="#local-6989586621679507366"><span class="hs-identifier hs-var">k</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679507365"><span class="annot"><span class="annottext">ByteString
+</span><a href="#local-6989586621679507365"><span class="hs-identifier hs-var">v</span></a></span></span><span class="hs-special">)</span><span> </span><span id="local-6989586621679507364"><span class="annot"><span class="annottext">Attributes t
+</span><a href="#local-6989586621679507364"><span class="hs-identifier hs-var">attr</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-213"></span><span>    </span><span id="local-6989586621679507363"><span class="annot"><span class="annottext">Maybe t
+</span><a href="#local-6989586621679507363"><span class="hs-identifier hs-var">updaterData</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Word8 -&gt; ByteString -&gt; t -&gt; Decoder s (Maybe t)
+</span><a href="#local-6989586621679507371"><span class="hs-identifier hs-var">updater</span></a></span><span> </span><span class="annot"><span class="annottext">Word8
+</span><a href="#local-6989586621679507366"><span class="hs-identifier hs-var">k</span></a></span><span> </span><span class="annot"><span class="annottext">ByteString
+</span><a href="#local-6989586621679507365"><span class="hs-identifier hs-var">v</span></a></span><span> </span><span class="annot"><span class="annottext">(t -&gt; Decoder s (Maybe t)) -&gt; t -&gt; Decoder s (Maybe t)
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Attributes t -&gt; t
+forall h. Attributes h -&gt; h
+</span><a href="Cardano.Chain.Common.Attributes.html#attrData"><span class="hs-identifier hs-var hs-var">attrData</span></a></span><span> </span><span class="annot"><span class="annottext">Attributes t
+</span><a href="#local-6989586621679507364"><span class="hs-identifier hs-var">attr</span></a></span><span>
+</span><span id="line-214"></span><span>    </span><span class="annot"><span class="annottext">Attributes t -&gt; Decoder s (Attributes t)
+forall (f :: * -&gt; *) a. Applicative f =&gt; a -&gt; f a
+</span><span class="hs-identifier hs-var">pure</span></span><span> </span><span class="annot"><span class="annottext">(Attributes t -&gt; Decoder s (Attributes t))
+-&gt; Attributes t -&gt; Decoder s (Attributes t)
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">Maybe t
+</span><a href="#local-6989586621679507363"><span class="hs-identifier hs-var">updaterData</span></a></span><span> </span><span class="hs-keyword">of</span><span>
+</span><span id="line-215"></span><span>      </span><span class="annot"><span class="annottext">Maybe t
+</span><span class="hs-identifier hs-var">Nothing</span></span><span>      </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Attributes t
+</span><a href="#local-6989586621679507364"><span class="hs-identifier hs-var">attr</span></a></span><span>
+</span><span id="line-216"></span><span>      </span><span class="annot"><span class="hs-identifier hs-type">Just</span></span><span> </span><span id="local-6989586621679507362"><span class="annot"><span class="annottext">t
+</span><a href="#local-6989586621679507362"><span class="hs-identifier hs-var">newData</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Attributes :: forall h. h -&gt; UnparsedFields -&gt; Attributes h
+</span><a href="Cardano.Chain.Common.Attributes.html#Attributes"><span class="hs-identifier hs-type">Attributes</span></a></span><span>
+</span><span id="line-217"></span><span>        </span><span class="hs-special">{</span><span> </span><span class="annot"><span class="annottext">attrData :: t
+</span><a href="Cardano.Chain.Common.Attributes.html#attrData"><span class="hs-identifier hs-var">attrData</span></a></span><span>   </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">t
+</span><a href="#local-6989586621679507362"><span class="hs-identifier hs-var">newData</span></a></span><span>
+</span><span id="line-218"></span><span>        </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">attrRemain :: UnparsedFields
+</span><a href="Cardano.Chain.Common.Attributes.html#attrRemain"><span class="hs-identifier hs-var">attrRemain</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Map Word8 ByteString -&gt; UnparsedFields
+</span><a href="Cardano.Chain.Common.Attributes.html#UnparsedFields"><span class="hs-identifier hs-var">UnparsedFields</span></a></span><span>
+</span><span id="line-219"></span><span>          </span><span class="annot"><span class="annottext">(Map Word8 ByteString -&gt; UnparsedFields)
+-&gt; (UnparsedFields -&gt; Map Word8 ByteString)
+-&gt; UnparsedFields
+-&gt; UnparsedFields
+forall k (cat :: k -&gt; k -&gt; *) (b :: k) (c :: k) (a :: k).
+Category cat =&gt;
+cat b c -&gt; cat a b -&gt; cat a c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Word8 -&gt; Map Word8 ByteString -&gt; Map Word8 ByteString
+forall k a. Ord k =&gt; k -&gt; Map k a -&gt; Map k a
+</span><span class="hs-identifier hs-var">M.delete</span></span><span> </span><span class="annot"><span class="annottext">Word8
+</span><a href="#local-6989586621679507366"><span class="hs-identifier hs-var">k</span></a></span><span>
+</span><span id="line-220"></span><span>          </span><span class="annot"><span class="annottext">(Map Word8 ByteString -&gt; Map Word8 ByteString)
+-&gt; (UnparsedFields -&gt; Map Word8 ByteString)
+-&gt; UnparsedFields
+-&gt; Map Word8 ByteString
+forall k (cat :: k -&gt; k -&gt; *) (b :: k) (c :: k) (a :: k).
+Category cat =&gt;
+cat b c -&gt; cat a b -&gt; cat a c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">UnparsedFields -&gt; Map Word8 ByteString
+</span><a href="Cardano.Chain.Common.Attributes.html#fromUnparsedFields"><span class="hs-identifier hs-var">fromUnparsedFields</span></a></span><span>
+</span><span id="line-221"></span><span>          </span><span class="annot"><span class="annottext">(UnparsedFields -&gt; UnparsedFields)
+-&gt; UnparsedFields -&gt; UnparsedFields
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Attributes t -&gt; UnparsedFields
+forall h. Attributes h -&gt; UnparsedFields
+</span><a href="Cardano.Chain.Common.Attributes.html#attrRemain"><span class="hs-identifier hs-var hs-var">attrRemain</span></a></span><span> </span><span class="annot"><span class="annottext">Attributes t
+</span><a href="#local-6989586621679507364"><span class="hs-identifier hs-var">attr</span></a></span><span>
+</span><span id="line-222"></span><span>        </span><span class="hs-special">}</span><span>
+</span><span id="line-223"></span><span>
+</span><span id="line-224"></span><span id="local-6989586621679507360"><span class="annot"><a href="Cardano.Chain.Common.Attributes.html#dropAttributes"><span class="hs-identifier hs-type">dropAttributes</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src"><span class="hs-identifier hs-type">Dropper</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679507360"><span class="hs-identifier hs-type">s</span></a></span></span><span>
+</span><span id="line-225"></span><span id="dropAttributes"><span class="annot"><span class="annottext">dropAttributes :: Dropper s
+</span><a href="Cardano.Chain.Common.Attributes.html#dropAttributes"><span class="hs-identifier hs-var hs-var">dropAttributes</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Dropper s -&gt; Dropper s -&gt; Dropper s
+forall s. Dropper s -&gt; Dropper s -&gt; Dropper s
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src"><span class="hs-identifier hs-var">dropMap</span></a></span><span> </span><span class="annot"><span class="annottext">Dropper s
+forall s. Dropper s
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src"><span class="hs-identifier hs-var">dropWord8</span></a></span><span> </span><span class="annot"><span class="annottext">Dropper s
+forall s. Dropper s
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src"><span class="hs-identifier hs-var">dropBytes</span></a></span><span>
+</span><span id="line-226"></span><span>
+</span><span id="line-227"></span><span class="hs-comment">-- | Drop `Attributes ()` making sure that the `UnparsedFields` are empty</span><span>
+</span><span id="line-228"></span><span id="local-6989586621679507359"><span class="annot"><a href="Cardano.Chain.Common.Attributes.html#dropEmptyAttributes"><span class="hs-identifier hs-type">dropEmptyAttributes</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src"><span class="hs-identifier hs-type">Dropper</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679507359"><span class="hs-identifier hs-type">s</span></a></span></span><span>
+</span><span id="line-229"></span><span id="dropEmptyAttributes"><span class="annot"><span class="annottext">dropEmptyAttributes :: Dropper s
+</span><a href="Cardano.Chain.Common.Attributes.html#dropEmptyAttributes"><span class="hs-identifier hs-var hs-var">dropEmptyAttributes</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-230"></span><span>  </span><span id="local-6989586621679507358"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679507358"><span class="hs-identifier hs-var">len</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Decoder s Int
+forall s. Decoder s Int
+</span><span class="hs-identifier hs-var">decodeMapLen</span></span><span>
+</span><span id="line-231"></span><span>  </span><span class="annot"><span class="annottext">Bool -&gt; Dropper s -&gt; Dropper s
+forall (f :: * -&gt; *). Applicative f =&gt; Bool -&gt; f () -&gt; f ()
+</span><span class="hs-identifier hs-var">unless</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679507358"><span class="hs-identifier hs-var">len</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+forall a. Eq a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">==</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(Dropper s -&gt; Dropper s) -&gt; Dropper s -&gt; Dropper s
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">DecoderError -&gt; Dropper s
+forall e s a. Buildable e =&gt; e -&gt; Decoder s a
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-prelude-0.1.0.0/noopt/doc/html/cardano-prelude/src"><span class="hs-identifier hs-var">cborError</span></a></span><span> </span><span class="annot"><span class="annottext">(DecoderError -&gt; Dropper s) -&gt; DecoderError -&gt; Dropper s
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Text -&gt; Int -&gt; Int -&gt; DecoderError
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src"><span class="hs-identifier hs-var">DecoderErrorSizeMismatch</span></a></span><span> </span><span class="annot"><span class="annottext">Text
+</span><span class="hs-string">&quot;Attributes&quot;</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679507358"><span class="hs-identifier hs-var">len</span></a></span><span>
+</span><span id="line-232"></span></pre></body></html>

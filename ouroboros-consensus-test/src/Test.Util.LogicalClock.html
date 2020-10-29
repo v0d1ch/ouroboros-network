@@ -1,198 +1,681 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-pragma">{-# LANGUAGE DerivingStrategies         #-}</span><span>
-</span><a name="line-2"></a><span class="hs-pragma">{-# LANGUAGE GeneralizedNewtypeDeriving #-}</span><span>
-</span><a name="line-3"></a><span>
-</span><a name="line-4"></a><span class="hs-comment">-- | Logical time (in terms of abstract &quot; ticks &quot;)</span><span>
-</span><a name="line-5"></a><span class="hs-comment">--</span><span>
-</span><a name="line-6"></a><span class="hs-comment">-- Intended for qualified import</span><span>
-</span><a name="line-7"></a><span class="hs-comment">--</span><span>
-</span><a name="line-8"></a><span class="hs-comment">-- &gt; import Test.Util.LogicalClock (LogicalClock)</span><span>
-</span><a name="line-9"></a><span class="hs-comment">-- &gt; import qualified Test.Util.LogicalClock as LogicalClock</span><span>
-</span><a name="line-10"></a><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Test.Util.LogicalClock</span><span> </span><span class="hs-special">(</span><span>
-</span><a name="line-11"></a><span>    </span><span class="hs-comment">-- * API</span><span>
-</span><a name="line-12"></a><span>    </span><a href="Test.Util.LogicalClock.html#LogicalClock"><span class="hs-identifier hs-type">LogicalClock</span></a><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
-</span><a name="line-13"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Test.Util.LogicalClock.html#Tick"><span class="hs-identifier hs-type">Tick</span></a><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
-</span><a name="line-14"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Test.Util.LogicalClock.html#NumTicks"><span class="hs-identifier hs-type">NumTicks</span></a><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
-</span><a name="line-15"></a><span>    </span><span class="hs-comment">-- * Construction</span><span>
-</span><a name="line-16"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Test.Util.LogicalClock.html#new"><span class="hs-identifier hs-var">new</span></a><span>
-</span><a name="line-17"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Test.Util.LogicalClock.html#sufficientTimeFor"><span class="hs-identifier hs-var">sufficientTimeFor</span></a><span>
-</span><a name="line-18"></a><span>    </span><span class="hs-comment">-- * Scheduling actions</span><span>
-</span><a name="line-19"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Test.Util.LogicalClock.html#onEachTick"><span class="hs-identifier hs-var">onEachTick</span></a><span>
-</span><a name="line-20"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Test.Util.LogicalClock.html#onTick"><span class="hs-identifier hs-var">onTick</span></a><span>
-</span><a name="line-21"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Test.Util.LogicalClock.html#blockUntilTick"><span class="hs-identifier hs-var">blockUntilTick</span></a><span>
-</span><a name="line-22"></a><span>  </span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
-</span><a name="line-23"></a><span>
-</span><a name="line-24"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Control.Monad</span><span>
-</span><a name="line-25"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data.Time</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">NominalDiffTime</span><span class="hs-special">)</span><span>
-</span><a name="line-26"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data.Word</span><span>
-</span><a name="line-27"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">GHC.Stack</span><span>
-</span><a name="line-28"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">System.Random</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Random</span><span class="hs-special">)</span><span>
-</span><a name="line-29"></a><span>
-</span><a name="line-30"></a><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src/Ouroboros.Consensus.BlockchainTime.html"><span class="hs-identifier">Ouroboros.Consensus.BlockchainTime</span></a><span> </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">BTime</span><span>
-</span><a name="line-31"></a><span class="hs-keyword">import</span><span>           </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src/Ouroboros.Consensus.Util.IOLike.html"><span class="hs-identifier">Ouroboros.Consensus.Util.IOLike</span></a><span>
-</span><a name="line-32"></a><span class="hs-keyword">import</span><span>           </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src/Ouroboros.Consensus.Util.ResourceRegistry.html"><span class="hs-identifier">Ouroboros.Consensus.Util.ResourceRegistry</span></a><span>
-</span><a name="line-33"></a><span class="hs-keyword">import</span><span>           </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src/Ouroboros.Consensus.Util.STM.html"><span class="hs-identifier">Ouroboros.Consensus.Util.STM</span></a><span>
-</span><a name="line-34"></a><span class="hs-keyword">import</span><span>           </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src/Ouroboros.Consensus.Util.Time.html"><span class="hs-identifier">Ouroboros.Consensus.Util.Time</span></a><span>
-</span><a name="line-35"></a><span>
-</span><a name="line-36"></a><span class="hs-comment">{-------------------------------------------------------------------------------
+</span><span id="line-2"></span><span class="hs-pragma">{-# LANGUAGE GeneralizedNewtypeDeriving #-}</span><span>
+</span><span id="line-3"></span><span>
+</span><span id="line-4"></span><span class="hs-comment">-- | Logical time (in terms of abstract &quot; ticks &quot;)</span><span>
+</span><span id="line-5"></span><span class="hs-comment">--</span><span>
+</span><span id="line-6"></span><span class="hs-comment">-- Intended for qualified import</span><span>
+</span><span id="line-7"></span><span class="hs-comment">--</span><span>
+</span><span id="line-8"></span><span class="hs-comment">-- &gt; import Test.Util.LogicalClock (LogicalClock)</span><span>
+</span><span id="line-9"></span><span class="hs-comment">-- &gt; import qualified Test.Util.LogicalClock as LogicalClock</span><span>
+</span><span id="line-10"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Test.Util.LogicalClock</span><span> </span><span class="hs-special">(</span><span>
+</span><span id="line-11"></span><span>    </span><span class="annot"><span class="hs-comment">-- * API</span></span><span>
+</span><span id="line-12"></span><span>    </span><span class="annot"><a href="Test.Util.LogicalClock.html#LogicalClock"><span class="hs-identifier">LogicalClock</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
+</span><span id="line-13"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Test.Util.LogicalClock.html#Tick"><span class="hs-identifier">Tick</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
+</span><span id="line-14"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Test.Util.LogicalClock.html#NumTicks"><span class="hs-identifier">NumTicks</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
+</span><span id="line-15"></span><span>    </span><span class="annot"><span class="hs-comment">-- * Construction</span></span><span>
+</span><span id="line-16"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Test.Util.LogicalClock.html#new"><span class="hs-identifier">new</span></a></span><span>
+</span><span id="line-17"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Test.Util.LogicalClock.html#sufficientTimeFor"><span class="hs-identifier">sufficientTimeFor</span></a></span><span>
+</span><span id="line-18"></span><span>    </span><span class="annot"><span class="hs-comment">-- * Scheduling actions</span></span><span>
+</span><span id="line-19"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Test.Util.LogicalClock.html#onEachTick"><span class="hs-identifier">onEachTick</span></a></span><span>
+</span><span id="line-20"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Test.Util.LogicalClock.html#onTick"><span class="hs-identifier">onTick</span></a></span><span>
+</span><span id="line-21"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Test.Util.LogicalClock.html#blockUntilTick"><span class="hs-identifier">blockUntilTick</span></a></span><span>
+</span><span id="line-22"></span><span>  </span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-23"></span><span>
+</span><span id="line-24"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><span class="hs-identifier">Control.Monad</span></span><span>
+</span><span id="line-25"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><span class="hs-identifier">Data.Time</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">NominalDiffTime</span></span><span class="hs-special">)</span><span>
+</span><span id="line-26"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><span class="hs-identifier">Data.Word</span></span><span>
+</span><span id="line-27"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><span class="hs-identifier">GHC.Stack</span></span><span>
+</span><span id="line-28"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><span class="hs-identifier">System.Random</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Random</span></span><span class="hs-special">)</span><span>
+</span><span id="line-29"></span><span>
+</span><span id="line-30"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier">Ouroboros.Consensus.BlockchainTime</span></a></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">BTime</span></span><span>
+</span><span id="line-31"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier">Ouroboros.Consensus.Util.IOLike</span></a></span><span>
+</span><span id="line-32"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier">Ouroboros.Consensus.Util.ResourceRegistry</span></a></span><span>
+</span><span id="line-33"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier">Ouroboros.Consensus.Util.STM</span></a></span><span>
+</span><span id="line-34"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier">Ouroboros.Consensus.Util.Time</span></a></span><span>
+</span><span id="line-35"></span><span>
+</span><span id="line-36"></span><span class="hs-comment">{-------------------------------------------------------------------------------
   API
 -------------------------------------------------------------------------------}</span><span>
-</span><a name="line-39"></a><span>
-</span><a name="line-40"></a><span class="hs-comment">-- | Logical time unit</span><span>
-</span><a name="line-41"></a><span class="hs-keyword">newtype</span><span> </span><a name="Tick"><a href="Test.Util.LogicalClock.html#Tick"><span class="hs-identifier">Tick</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><a name="Tick"><a href="Test.Util.LogicalClock.html#Tick"><span class="hs-identifier">Tick</span></a></a><span> </span><span class="hs-special">{</span><span> </span><a name="tickToWord64"><a href="Test.Util.LogicalClock.html#tickToWord64"><span class="hs-identifier">tickToWord64</span></a></a><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">Word64</span><span> </span><span class="hs-special">}</span><span>
-</span><a name="line-42"></a><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-keyword">stock</span><span>   </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Show</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Eq</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Ord</span><span class="hs-special">)</span><span>
-</span><a name="line-43"></a><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-keyword">newtype</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Num</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Enum</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Random</span><span class="hs-special">)</span><span>
-</span><a name="line-44"></a><span>
-</span><a name="line-45"></a><span class="hs-comment">-- | Number of ticks the test will run for</span><span>
-</span><a name="line-46"></a><span class="hs-keyword">newtype</span><span> </span><a name="NumTicks"><a href="Test.Util.LogicalClock.html#NumTicks"><span class="hs-identifier">NumTicks</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><a name="NumTicks"><a href="Test.Util.LogicalClock.html#NumTicks"><span class="hs-identifier">NumTicks</span></a></a><span> </span><span class="hs-identifier hs-type">Word64</span><span>
-</span><a name="line-47"></a><span>
-</span><a name="line-48"></a><span class="hs-comment">-- | Logical clock (in terms of ticks rather than actual 'UTCTime')</span><span>
-</span><a name="line-49"></a><span class="hs-keyword">data</span><span> </span><a name="LogicalClock"><a href="Test.Util.LogicalClock.html#LogicalClock"><span class="hs-identifier">LogicalClock</span></a></a><span> </span><a name="local-6989586621679158069"><a href="#local-6989586621679158069"><span class="hs-identifier">m</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><a name="LogicalClock"><a href="Test.Util.LogicalClock.html#LogicalClock"><span class="hs-identifier">LogicalClock</span></a></a><span> </span><span class="hs-special">{</span><span>
-</span><a name="line-50"></a><span>      </span><span class="hs-comment">-- | Get the current &quot; time &quot;</span><span>
-</span><a name="line-51"></a><span>      </span><a name="getCurrentTick"><a href="Test.Util.LogicalClock.html#getCurrentTick"><span class="hs-identifier">getCurrentTick</span></a></a><span> </span><span class="hs-glyph">::</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/io-sim-classes-0.1.0.0/noopt/doc/html/io-sim-classes/src/Control.Monad.Class.MonadSTM.html#STM"><span class="hs-identifier hs-type">STM</span></a><span> </span><a href="#local-6989586621679158069"><span class="hs-identifier hs-type">m</span></a><span> </span><a href="Test.Util.LogicalClock.html#Tick"><span class="hs-identifier hs-type">Tick</span></a><span>
-</span><a name="line-52"></a><span>
-</span><a name="line-53"></a><span>      </span><span class="hs-comment">-- | Wait for the end of time (each clock has a maximum number of ticks)</span><span>
-</span><a name="line-54"></a><span>    </span><span class="hs-special">,</span><span> </span><a name="waitUntilDone"><a href="Test.Util.LogicalClock.html#waitUntilDone"><span class="hs-identifier">waitUntilDone</span></a></a><span>  </span><span class="hs-glyph">::</span><span> </span><a href="#local-6989586621679158069"><span class="hs-identifier hs-type">m</span></a><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
-</span><a name="line-55"></a><span>
-</span><a name="line-56"></a><span>      </span><span class="hs-comment">-- | Translate the logical clock to mock 'SystemTime'</span><span>
-</span><a name="line-57"></a><span>    </span><span class="hs-special">,</span><span> </span><a name="mockSystemTime"><a href="Test.Util.LogicalClock.html#mockSystemTime"><span class="hs-identifier">mockSystemTime</span></a></a><span> </span><span class="hs-glyph">::</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src/Ouroboros.Consensus.BlockchainTime.WallClock.Types.html#SystemTime"><span class="hs-identifier hs-type">BTime.SystemTime</span></a><span> </span><a href="#local-6989586621679158069"><span class="hs-identifier hs-type">m</span></a><span>
-</span><a name="line-58"></a><span>    </span><span class="hs-special">}</span><span>
-</span><a name="line-59"></a><span>
-</span><a name="line-60"></a><span class="hs-comment">{-------------------------------------------------------------------------------
+</span><span id="line-39"></span><span>
+</span><span id="line-40"></span><span class="hs-comment">-- | Logical time unit</span><span>
+</span><span id="line-41"></span><span class="hs-keyword">newtype</span><span> </span><span id="Tick"><span class="annot"><a href="Test.Util.LogicalClock.html#Tick"><span class="hs-identifier hs-var">Tick</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="Tick"><span class="annot"><a href="Test.Util.LogicalClock.html#Tick"><span class="hs-identifier hs-var">Tick</span></a></span></span><span> </span><span class="hs-special">{</span><span> </span><span id="tickToWord64"><span class="annot"><span class="annottext">Tick -&gt; Word64
+</span><a href="Test.Util.LogicalClock.html#tickToWord64"><span class="hs-identifier hs-var hs-var">tickToWord64</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Word64</span></span><span> </span><span class="hs-special">}</span><span>
+</span><span id="line-42"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="annot"><span class="hs-keyword">stock</span></span><span>   </span><span class="hs-special">(</span><span id="local-6989586621679250607"><span id="local-6989586621679250609"><span id="local-6989586621679250611"><span class="annot"><span class="annottext">Int -&gt; Tick -&gt; ShowS
+[Tick] -&gt; ShowS
+Tick -&gt; String
+(Int -&gt; Tick -&gt; ShowS)
+-&gt; (Tick -&gt; String) -&gt; ([Tick] -&gt; ShowS) -&gt; Show Tick
+forall a.
+(Int -&gt; a -&gt; ShowS) -&gt; (a -&gt; String) -&gt; ([a] -&gt; ShowS) -&gt; Show a
+showList :: [Tick] -&gt; ShowS
+$cshowList :: [Tick] -&gt; ShowS
+show :: Tick -&gt; String
+$cshow :: Tick -&gt; String
+showsPrec :: Int -&gt; Tick -&gt; ShowS
+$cshowsPrec :: Int -&gt; Tick -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679250602"><span id="local-6989586621679250604"><span class="annot"><span class="annottext">Tick -&gt; Tick -&gt; Bool
+(Tick -&gt; Tick -&gt; Bool) -&gt; (Tick -&gt; Tick -&gt; Bool) -&gt; Eq Tick
+forall a. (a -&gt; a -&gt; Bool) -&gt; (a -&gt; a -&gt; Bool) -&gt; Eq a
+/= :: Tick -&gt; Tick -&gt; Bool
+$c/= :: Tick -&gt; Tick -&gt; Bool
+== :: Tick -&gt; Tick -&gt; Bool
+$c== :: Tick -&gt; Tick -&gt; Bool
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679250586"><span id="local-6989586621679250588"><span id="local-6989586621679250590"><span id="local-6989586621679250592"><span id="local-6989586621679250594"><span id="local-6989586621679250596"><span id="local-6989586621679250598"><span class="annot"><span class="annottext">Eq Tick
+Eq Tick
+-&gt; (Tick -&gt; Tick -&gt; Ordering)
+-&gt; (Tick -&gt; Tick -&gt; Bool)
+-&gt; (Tick -&gt; Tick -&gt; Bool)
+-&gt; (Tick -&gt; Tick -&gt; Bool)
+-&gt; (Tick -&gt; Tick -&gt; Bool)
+-&gt; (Tick -&gt; Tick -&gt; Tick)
+-&gt; (Tick -&gt; Tick -&gt; Tick)
+-&gt; Ord Tick
+Tick -&gt; Tick -&gt; Bool
+Tick -&gt; Tick -&gt; Ordering
+Tick -&gt; Tick -&gt; Tick
+forall a.
+Eq a
+-&gt; (a -&gt; a -&gt; Ordering)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; a)
+-&gt; (a -&gt; a -&gt; a)
+-&gt; Ord a
+min :: Tick -&gt; Tick -&gt; Tick
+$cmin :: Tick -&gt; Tick -&gt; Tick
+max :: Tick -&gt; Tick -&gt; Tick
+$cmax :: Tick -&gt; Tick -&gt; Tick
+&gt;= :: Tick -&gt; Tick -&gt; Bool
+$c&gt;= :: Tick -&gt; Tick -&gt; Bool
+&gt; :: Tick -&gt; Tick -&gt; Bool
+$c&gt; :: Tick -&gt; Tick -&gt; Bool
+&lt;= :: Tick -&gt; Tick -&gt; Bool
+$c&lt;= :: Tick -&gt; Tick -&gt; Bool
+&lt; :: Tick -&gt; Tick -&gt; Bool
+$c&lt; :: Tick -&gt; Tick -&gt; Bool
+compare :: Tick -&gt; Tick -&gt; Ordering
+$ccompare :: Tick -&gt; Tick -&gt; Ordering
+$cp1Ord :: Eq Tick
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Ord</span></span></span></span></span></span></span></span></span><span class="hs-special">)</span><span>
+</span><span id="line-43"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="annot"><span class="hs-keyword">newtype</span></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679250571"><span id="local-6989586621679250573"><span id="local-6989586621679250575"><span id="local-6989586621679250577"><span id="local-6989586621679250579"><span id="local-6989586621679250581"><span id="local-6989586621679250583"><span class="annot"><span class="annottext">Integer -&gt; Tick
+Tick -&gt; Tick
+Tick -&gt; Tick -&gt; Tick
+(Tick -&gt; Tick -&gt; Tick)
+-&gt; (Tick -&gt; Tick -&gt; Tick)
+-&gt; (Tick -&gt; Tick -&gt; Tick)
+-&gt; (Tick -&gt; Tick)
+-&gt; (Tick -&gt; Tick)
+-&gt; (Tick -&gt; Tick)
+-&gt; (Integer -&gt; Tick)
+-&gt; Num Tick
+forall a.
+(a -&gt; a -&gt; a)
+-&gt; (a -&gt; a -&gt; a)
+-&gt; (a -&gt; a -&gt; a)
+-&gt; (a -&gt; a)
+-&gt; (a -&gt; a)
+-&gt; (a -&gt; a)
+-&gt; (Integer -&gt; a)
+-&gt; Num a
+fromInteger :: Integer -&gt; Tick
+$cfromInteger :: Integer -&gt; Tick
+signum :: Tick -&gt; Tick
+$csignum :: Tick -&gt; Tick
+abs :: Tick -&gt; Tick
+$cabs :: Tick -&gt; Tick
+negate :: Tick -&gt; Tick
+$cnegate :: Tick -&gt; Tick
+* :: Tick -&gt; Tick -&gt; Tick
+$c* :: Tick -&gt; Tick -&gt; Tick
+- :: Tick -&gt; Tick -&gt; Tick
+$c- :: Tick -&gt; Tick -&gt; Tick
++ :: Tick -&gt; Tick -&gt; Tick
+$c+ :: Tick -&gt; Tick -&gt; Tick
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Num</span></span></span></span></span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679250554"><span id="local-6989586621679250556"><span id="local-6989586621679250558"><span id="local-6989586621679250560"><span id="local-6989586621679250562"><span id="local-6989586621679250564"><span id="local-6989586621679250566"><span id="local-6989586621679250568"><span class="annot"><span class="annottext">Int -&gt; Tick
+Tick -&gt; Int
+Tick -&gt; [Tick]
+Tick -&gt; Tick
+Tick -&gt; Tick -&gt; [Tick]
+Tick -&gt; Tick -&gt; Tick -&gt; [Tick]
+(Tick -&gt; Tick)
+-&gt; (Tick -&gt; Tick)
+-&gt; (Int -&gt; Tick)
+-&gt; (Tick -&gt; Int)
+-&gt; (Tick -&gt; [Tick])
+-&gt; (Tick -&gt; Tick -&gt; [Tick])
+-&gt; (Tick -&gt; Tick -&gt; [Tick])
+-&gt; (Tick -&gt; Tick -&gt; Tick -&gt; [Tick])
+-&gt; Enum Tick
+forall a.
+(a -&gt; a)
+-&gt; (a -&gt; a)
+-&gt; (Int -&gt; a)
+-&gt; (a -&gt; Int)
+-&gt; (a -&gt; [a])
+-&gt; (a -&gt; a -&gt; [a])
+-&gt; (a -&gt; a -&gt; [a])
+-&gt; (a -&gt; a -&gt; a -&gt; [a])
+-&gt; Enum a
+enumFromThenTo :: Tick -&gt; Tick -&gt; Tick -&gt; [Tick]
+$cenumFromThenTo :: Tick -&gt; Tick -&gt; Tick -&gt; [Tick]
+enumFromTo :: Tick -&gt; Tick -&gt; [Tick]
+$cenumFromTo :: Tick -&gt; Tick -&gt; [Tick]
+enumFromThen :: Tick -&gt; Tick -&gt; [Tick]
+$cenumFromThen :: Tick -&gt; Tick -&gt; [Tick]
+enumFrom :: Tick -&gt; [Tick]
+$cenumFrom :: Tick -&gt; [Tick]
+fromEnum :: Tick -&gt; Int
+$cfromEnum :: Tick -&gt; Int
+toEnum :: Int -&gt; Tick
+$ctoEnum :: Int -&gt; Tick
+pred :: Tick -&gt; Tick
+$cpred :: Tick -&gt; Tick
+succ :: Tick -&gt; Tick
+$csucc :: Tick -&gt; Tick
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Enum</span></span></span></span></span></span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679250541"><span id="local-6989586621679250543"><span id="local-6989586621679250545"><span id="local-6989586621679250547"><span id="local-6989586621679250549"><span id="local-6989586621679250551"><span class="annot"><span class="annottext">IO Tick
+g -&gt; (Tick, g)
+g -&gt; [Tick]
+(Tick, Tick) -&gt; IO Tick
+(Tick, Tick) -&gt; g -&gt; (Tick, g)
+(Tick, Tick) -&gt; g -&gt; [Tick]
+(forall g. RandomGen g =&gt; (Tick, Tick) -&gt; g -&gt; (Tick, g))
+-&gt; (forall g. RandomGen g =&gt; g -&gt; (Tick, g))
+-&gt; (forall g. RandomGen g =&gt; (Tick, Tick) -&gt; g -&gt; [Tick])
+-&gt; (forall g. RandomGen g =&gt; g -&gt; [Tick])
+-&gt; ((Tick, Tick) -&gt; IO Tick)
+-&gt; IO Tick
+-&gt; Random Tick
+forall g. RandomGen g =&gt; g -&gt; [Tick]
+forall g. RandomGen g =&gt; g -&gt; (Tick, g)
+forall g. RandomGen g =&gt; (Tick, Tick) -&gt; g -&gt; [Tick]
+forall g. RandomGen g =&gt; (Tick, Tick) -&gt; g -&gt; (Tick, g)
+forall a.
+(forall g. RandomGen g =&gt; (a, a) -&gt; g -&gt; (a, g))
+-&gt; (forall g. RandomGen g =&gt; g -&gt; (a, g))
+-&gt; (forall g. RandomGen g =&gt; (a, a) -&gt; g -&gt; [a])
+-&gt; (forall g. RandomGen g =&gt; g -&gt; [a])
+-&gt; ((a, a) -&gt; IO a)
+-&gt; IO a
+-&gt; Random a
+randomIO :: IO Tick
+$crandomIO :: IO Tick
+randomRIO :: (Tick, Tick) -&gt; IO Tick
+$crandomRIO :: (Tick, Tick) -&gt; IO Tick
+randoms :: g -&gt; [Tick]
+$crandoms :: forall g. RandomGen g =&gt; g -&gt; [Tick]
+randomRs :: (Tick, Tick) -&gt; g -&gt; [Tick]
+$crandomRs :: forall g. RandomGen g =&gt; (Tick, Tick) -&gt; g -&gt; [Tick]
+random :: g -&gt; (Tick, g)
+$crandom :: forall g. RandomGen g =&gt; g -&gt; (Tick, g)
+randomR :: (Tick, Tick) -&gt; g -&gt; (Tick, g)
+$crandomR :: forall g. RandomGen g =&gt; (Tick, Tick) -&gt; g -&gt; (Tick, g)
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Random</span></span></span></span></span></span></span></span><span class="hs-special">)</span><span>
+</span><span id="line-44"></span><span>
+</span><span id="line-45"></span><span class="hs-comment">-- | Number of ticks the test will run for</span><span>
+</span><span id="line-46"></span><span class="hs-keyword">newtype</span><span> </span><span id="NumTicks"><span class="annot"><a href="Test.Util.LogicalClock.html#NumTicks"><span class="hs-identifier hs-var">NumTicks</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="NumTicks"><span class="annot"><a href="Test.Util.LogicalClock.html#NumTicks"><span class="hs-identifier hs-var">NumTicks</span></a></span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Word64</span></span><span>
+</span><span id="line-47"></span><span>
+</span><span id="line-48"></span><span class="hs-comment">-- | Logical clock (in terms of ticks rather than actual 'UTCTime')</span><span>
+</span><span id="line-49"></span><span class="hs-keyword">data</span><span> </span><span id="LogicalClock"><span class="annot"><a href="Test.Util.LogicalClock.html#LogicalClock"><span class="hs-identifier hs-var">LogicalClock</span></a></span></span><span> </span><span id="local-6989586621679250672"><span class="annot"><a href="#local-6989586621679250672"><span class="hs-identifier hs-type">m</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="LogicalClock"><span class="annot"><a href="Test.Util.LogicalClock.html#LogicalClock"><span class="hs-identifier hs-var">LogicalClock</span></a></span></span><span> </span><span class="hs-special">{</span><span>
+</span><span id="line-50"></span><span>      </span><span class="hs-comment">-- | Get the current &quot; time &quot;</span><span>
+</span><span id="line-51"></span><span>      </span><span id="getCurrentTick"><span class="annot"><span class="annottext">LogicalClock m -&gt; STM m Tick
+</span><a href="Test.Util.LogicalClock.html#getCurrentTick"><span class="hs-identifier hs-var hs-var">getCurrentTick</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/io-sim-classes-0.2.0.0/noopt/doc/html/io-sim-classes/src"><span class="hs-identifier hs-type">STM</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679250672"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><a href="Test.Util.LogicalClock.html#Tick"><span class="hs-identifier hs-type">Tick</span></a></span><span>
+</span><span id="line-52"></span><span>
+</span><span id="line-53"></span><span>      </span><span class="hs-comment">-- | Wait for the end of time (each clock has a maximum number of ticks)</span><span>
+</span><span id="line-54"></span><span>    </span><span class="hs-special">,</span><span> </span><span id="waitUntilDone"><span class="annot"><span class="annottext">LogicalClock m -&gt; m ()
+</span><a href="Test.Util.LogicalClock.html#waitUntilDone"><span class="hs-identifier hs-var hs-var">waitUntilDone</span></a></span></span><span>  </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="#local-6989586621679250672"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
+</span><span id="line-55"></span><span>
+</span><span id="line-56"></span><span>      </span><span class="hs-comment">-- | Translate the logical clock to mock 'SystemTime'</span><span>
+</span><span id="line-57"></span><span>    </span><span class="hs-special">,</span><span> </span><span id="mockSystemTime"><span class="annot"><span class="annottext">LogicalClock m -&gt; SystemTime m
+</span><a href="Test.Util.LogicalClock.html#mockSystemTime"><span class="hs-identifier hs-var hs-var">mockSystemTime</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier hs-type">BTime.SystemTime</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679250672"><span class="hs-identifier hs-type">m</span></a></span><span>
+</span><span id="line-58"></span><span>    </span><span class="hs-special">}</span><span>
+</span><span id="line-59"></span><span>
+</span><span id="line-60"></span><span class="hs-comment">{-------------------------------------------------------------------------------
   Construction
 -------------------------------------------------------------------------------}</span><span>
-</span><a name="line-63"></a><span>
-</span><a name="line-64"></a><span class="hs-identifier">new</span><span> </span><span class="hs-glyph">::</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src/Ouroboros.Consensus.Util.IOLike.html#IOLike"><span class="hs-identifier hs-type">IOLike</span></a><span> </span><a href="#local-6989586621679158160"><span class="hs-identifier hs-type">m</span></a><span> </span><span class="hs-glyph">=&gt;</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src/Ouroboros.Consensus.Util.ResourceRegistry.html#ResourceRegistry"><span class="hs-identifier hs-type">ResourceRegistry</span></a><span> </span><a href="#local-6989586621679158160"><span class="hs-identifier hs-type">m</span></a><span> </span><span class="hs-glyph">-&gt;</span><span> </span><a href="Test.Util.LogicalClock.html#NumTicks"><span class="hs-identifier hs-type">NumTicks</span></a><span> </span><span class="hs-glyph">-&gt;</span><span> </span><a href="#local-6989586621679158160"><span class="hs-identifier hs-type">m</span></a><span> </span><span class="hs-special">(</span><a href="Test.Util.LogicalClock.html#LogicalClock"><span class="hs-identifier hs-type">LogicalClock</span></a><span> </span><a href="#local-6989586621679158160"><span class="hs-identifier hs-type">m</span></a><span class="hs-special">)</span><span>
-</span><a name="line-65"></a><a name="new"><a href="Test.Util.LogicalClock.html#new"><span class="hs-identifier">new</span></a></a><span> </span><a name="local-6989586621679158161"><a href="#local-6989586621679158161"><span class="hs-identifier">registry</span></a></a><span> </span><a name="local-6989586621679158162"><a href="#local-6989586621679158162"><span class="hs-identifier">numTicks</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><a href="Test.Util.LogicalClock.html#newWithDelay"><span class="hs-identifier hs-var">newWithDelay</span></a><span> </span><a href="#local-6989586621679158161"><span class="hs-identifier hs-var">registry</span></a><span> </span><a href="#local-6989586621679158162"><span class="hs-identifier hs-var">numTicks</span></a><span> </span><a href="Test.Util.LogicalClock.html#tickDelay"><span class="hs-identifier hs-var">tickDelay</span></a><span>
-</span><a name="line-66"></a><span>
-</span><a name="line-67"></a><span class="hs-comment">-- | Set 'NumTicks' such that we will have seen all of the specified 'Tick's</span><span>
-</span><a name="line-68"></a><span class="hs-identifier">sufficientTimeFor</span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">HasCallStack</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="hs-special">[</span><a href="Test.Util.LogicalClock.html#Tick"><span class="hs-identifier hs-type">Tick</span></a><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><a href="Test.Util.LogicalClock.html#NumTicks"><span class="hs-identifier hs-type">NumTicks</span></a><span>
-</span><a name="line-69"></a><a name="sufficientTimeFor"><a href="Test.Util.LogicalClock.html#sufficientTimeFor"><span class="hs-identifier">sufficientTimeFor</span></a></a><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-identifier hs-var">error</span><span> </span><span class="hs-string">&quot;sufficientTimeFor: empty list&quot;</span><span>
-</span><a name="line-70"></a><span class="hs-identifier">sufficientTimeFor</span><span> </span><a name="local-6989586621679158163"><a href="#local-6989586621679158163"><span class="hs-identifier">ts</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><a href="Test.Util.LogicalClock.html#NumTicks"><span class="hs-identifier hs-var">NumTicks</span></a><span> </span><span class="hs-operator hs-var">.</span><span> </span><span class="hs-identifier hs-var">maximum</span><span> </span><span class="hs-operator hs-var">.</span><span> </span><span class="hs-identifier hs-var">map</span><span> </span><span class="hs-identifier hs-var">succ</span><span> </span><span class="hs-operator hs-var">.</span><span> </span><span class="hs-identifier hs-var">map</span><span> </span><span class="hs-identifier">tickToWord64</span><span> </span><span class="hs-operator hs-var">$</span><span> </span><a href="#local-6989586621679158163"><span class="hs-identifier hs-var">ts</span></a><span>
-</span><a name="line-71"></a><span>
-</span><a name="line-72"></a><span class="hs-comment">-- | Time of a single tick</span><span>
-</span><a name="line-73"></a><span class="hs-comment">--</span><span>
-</span><a name="line-74"></a><span class="hs-comment">-- The exact value of 'tickDelay' delay is not very important, but the scale</span><span>
-</span><a name="line-75"></a><span class="hs-comment">-- should be somewhat on par with the &quot;real time&quot; (for example, the relation</span><span>
-</span><a name="line-76"></a><span class="hs-comment">-- between GC delay and slot length, which would in turn depend on some kind of</span><span>
-</span><a name="line-77"></a><span class="hs-comment">-- relation between ticks and slots).</span><span>
-</span><a name="line-78"></a><span class="hs-identifier">tickDelay</span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">NominalDiffTime</span><span>
-</span><a name="line-79"></a><a name="tickDelay"><a href="Test.Util.LogicalClock.html#tickDelay"><span class="hs-identifier">tickDelay</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-number">0.5</span><span>
-</span><a name="line-80"></a><span>
-</span><a name="line-81"></a><span class="hs-comment">{-------------------------------------------------------------------------------
+</span><span id="line-63"></span><span>
+</span><span id="line-64"></span><span id="local-6989586621679250534"><span class="annot"><a href="Test.Util.LogicalClock.html#new"><span class="hs-identifier hs-type">new</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier hs-type">IOLike</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679250534"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier hs-type">ResourceRegistry</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679250534"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Test.Util.LogicalClock.html#NumTicks"><span class="hs-identifier hs-type">NumTicks</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679250534"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Test.Util.LogicalClock.html#LogicalClock"><span class="hs-identifier hs-type">LogicalClock</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679250534"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span></span><span>
+</span><span id="line-65"></span><span id="new"><span class="annot"><span class="annottext">new :: ResourceRegistry m -&gt; NumTicks -&gt; m (LogicalClock m)
+</span><a href="Test.Util.LogicalClock.html#new"><span class="hs-identifier hs-var hs-var">new</span></a></span></span><span> </span><span id="local-6989586621679250533"><span class="annot"><span class="annottext">ResourceRegistry m
+</span><a href="#local-6989586621679250533"><span class="hs-identifier hs-var">registry</span></a></span></span><span> </span><span id="local-6989586621679250532"><span class="annot"><span class="annottext">NumTicks
+</span><a href="#local-6989586621679250532"><span class="hs-identifier hs-var">numTicks</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">ResourceRegistry m
+-&gt; NumTicks -&gt; NominalDiffTime -&gt; m (LogicalClock m)
+forall (m :: * -&gt; *).
+(IOLike m, HasCallStack) =&gt;
+ResourceRegistry m
+-&gt; NumTicks -&gt; NominalDiffTime -&gt; m (LogicalClock m)
+</span><a href="Test.Util.LogicalClock.html#newWithDelay"><span class="hs-identifier hs-var">newWithDelay</span></a></span><span> </span><span class="annot"><span class="annottext">ResourceRegistry m
+</span><a href="#local-6989586621679250533"><span class="hs-identifier hs-var">registry</span></a></span><span> </span><span class="annot"><span class="annottext">NumTicks
+</span><a href="#local-6989586621679250532"><span class="hs-identifier hs-var">numTicks</span></a></span><span> </span><span class="annot"><span class="annottext">NominalDiffTime
+</span><a href="Test.Util.LogicalClock.html#tickDelay"><span class="hs-identifier hs-var">tickDelay</span></a></span><span>
+</span><span id="line-66"></span><span>
+</span><span id="line-67"></span><span class="hs-comment">-- | Set 'NumTicks' such that we will have seen all of the specified 'Tick's</span><span>
+</span><span id="line-68"></span><span class="annot"><a href="Test.Util.LogicalClock.html#sufficientTimeFor"><span class="hs-identifier hs-type">sufficientTimeFor</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">HasCallStack</span></span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="hs-special">[</span><span class="annot"><a href="Test.Util.LogicalClock.html#Tick"><span class="hs-identifier hs-type">Tick</span></a></span><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Test.Util.LogicalClock.html#NumTicks"><span class="hs-identifier hs-type">NumTicks</span></a></span><span>
+</span><span id="line-69"></span><span id="sufficientTimeFor"><span class="annot"><span class="annottext">sufficientTimeFor :: [Tick] -&gt; NumTicks
+</span><a href="Test.Util.LogicalClock.html#sufficientTimeFor"><span class="hs-identifier hs-var hs-var">sufficientTimeFor</span></a></span></span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">String -&gt; NumTicks
+forall a. HasCallStack =&gt; String -&gt; a
+</span><span class="hs-identifier hs-var">error</span></span><span> </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;sufficientTimeFor: empty list&quot;</span></span><span>
+</span><span id="line-70"></span><span class="annot"><a href="Test.Util.LogicalClock.html#sufficientTimeFor"><span class="hs-identifier hs-var">sufficientTimeFor</span></a></span><span> </span><span id="local-6989586621679250528"><span class="annot"><span class="annottext">[Tick]
+</span><a href="#local-6989586621679250528"><span class="hs-identifier hs-var">ts</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Word64 -&gt; NumTicks
+</span><a href="Test.Util.LogicalClock.html#NumTicks"><span class="hs-identifier hs-var">NumTicks</span></a></span><span> </span><span class="annot"><span class="annottext">(Word64 -&gt; NumTicks) -&gt; ([Tick] -&gt; Word64) -&gt; [Tick] -&gt; NumTicks
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">[Word64] -&gt; Word64
+forall (t :: * -&gt; *) a. (Foldable t, Ord a) =&gt; t a -&gt; a
+</span><span class="hs-identifier hs-var">maximum</span></span><span> </span><span class="annot"><span class="annottext">([Word64] -&gt; Word64) -&gt; ([Tick] -&gt; [Word64]) -&gt; [Tick] -&gt; Word64
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">(Word64 -&gt; Word64) -&gt; [Word64] -&gt; [Word64]
+forall a b. (a -&gt; b) -&gt; [a] -&gt; [b]
+</span><span class="hs-identifier hs-var">map</span></span><span> </span><span class="annot"><span class="annottext">Word64 -&gt; Word64
+forall a. Enum a =&gt; a -&gt; a
+</span><span class="hs-identifier hs-var">succ</span></span><span> </span><span class="annot"><span class="annottext">([Word64] -&gt; [Word64])
+-&gt; ([Tick] -&gt; [Word64]) -&gt; [Tick] -&gt; [Word64]
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">(Tick -&gt; Word64) -&gt; [Tick] -&gt; [Word64]
+forall a b. (a -&gt; b) -&gt; [a] -&gt; [b]
+</span><span class="hs-identifier hs-var">map</span></span><span> </span><span class="annot"><span class="annottext">Tick -&gt; Word64
+</span><a href="Test.Util.LogicalClock.html#tickToWord64"><span class="hs-identifier hs-var hs-var">tickToWord64</span></a></span><span> </span><span class="annot"><span class="annottext">([Tick] -&gt; NumTicks) -&gt; [Tick] -&gt; NumTicks
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">[Tick]
+</span><a href="#local-6989586621679250528"><span class="hs-identifier hs-var">ts</span></a></span><span>
+</span><span id="line-71"></span><span>
+</span><span id="line-72"></span><span class="hs-comment">-- | Time of a single tick</span><span>
+</span><span id="line-73"></span><span class="hs-comment">--</span><span>
+</span><span id="line-74"></span><span class="hs-comment">-- The exact value of 'tickDelay' delay is not very important, but the scale</span><span>
+</span><span id="line-75"></span><span class="hs-comment">-- should be somewhat on par with the &quot;real time&quot; (for example, the relation</span><span>
+</span><span id="line-76"></span><span class="hs-comment">-- between GC delay and slot length, which would in turn depend on some kind of</span><span>
+</span><span id="line-77"></span><span class="hs-comment">-- relation between ticks and slots).</span><span>
+</span><span id="line-78"></span><span class="annot"><a href="Test.Util.LogicalClock.html#tickDelay"><span class="hs-identifier hs-type">tickDelay</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">NominalDiffTime</span></span><span>
+</span><span id="line-79"></span><span id="tickDelay"><span class="annot"><span class="annottext">tickDelay :: NominalDiffTime
+</span><a href="Test.Util.LogicalClock.html#tickDelay"><span class="hs-identifier hs-var hs-var">tickDelay</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">NominalDiffTime
+</span><span class="hs-number">0.5</span></span><span>
+</span><span id="line-80"></span><span>
+</span><span id="line-81"></span><span class="hs-comment">{-------------------------------------------------------------------------------
   Scheduling actions
 -------------------------------------------------------------------------------}</span><span>
-</span><a name="line-84"></a><span>
-</span><a name="line-85"></a><span class="hs-comment">-- | Execute action on every clock tick</span><span>
-</span><a name="line-86"></a><span class="hs-comment">--</span><span>
-</span><a name="line-87"></a><span class="hs-comment">-- Returns a handle to cancel the thread.</span><span>
-</span><a name="line-88"></a><span class="hs-identifier">onEachTick</span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src/Ouroboros.Consensus.Util.IOLike.html#IOLike"><span class="hs-identifier hs-type">IOLike</span></a><span> </span><a href="#local-6989586621679158159"><span class="hs-identifier hs-type">m</span></a><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">HasCallStack</span><span class="hs-special">)</span><span>
-</span><a name="line-89"></a><span>           </span><span class="hs-glyph">=&gt;</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src/Ouroboros.Consensus.Util.ResourceRegistry.html#ResourceRegistry"><span class="hs-identifier hs-type">ResourceRegistry</span></a><span> </span><a href="#local-6989586621679158159"><span class="hs-identifier hs-type">m</span></a><span>
-</span><a name="line-90"></a><span>           </span><span class="hs-glyph">-&gt;</span><span> </span><a href="Test.Util.LogicalClock.html#LogicalClock"><span class="hs-identifier hs-type">LogicalClock</span></a><span> </span><a href="#local-6989586621679158159"><span class="hs-identifier hs-type">m</span></a><span>
-</span><a name="line-91"></a><span>           </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">String</span><span>
-</span><a name="line-92"></a><span>           </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">(</span><a href="Test.Util.LogicalClock.html#Tick"><span class="hs-identifier hs-type">Tick</span></a><span> </span><span class="hs-glyph">-&gt;</span><span> </span><a href="#local-6989586621679158159"><span class="hs-identifier hs-type">m</span></a><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
-</span><a name="line-93"></a><span>           </span><span class="hs-glyph">-&gt;</span><span> </span><a href="#local-6989586621679158159"><span class="hs-identifier hs-type">m</span></a><span> </span><span class="hs-special">(</span><a href="#local-6989586621679158159"><span class="hs-identifier hs-type">m</span></a><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
-</span><a name="line-94"></a><a name="onEachTick"><a href="Test.Util.LogicalClock.html#onEachTick"><span class="hs-identifier">onEachTick</span></a></a><span> </span><a name="local-6989586621679158164"><a href="#local-6989586621679158164"><span class="hs-identifier">registry</span></a></a><span> </span><a name="local-6989586621679158165"><a href="#local-6989586621679158165"><span class="hs-identifier">clock</span></a></a><span> </span><a name="local-6989586621679158166"><a href="#local-6989586621679158166"><span class="hs-identifier">threadLabel</span></a></a><span> </span><a name="local-6989586621679158167"><a href="#local-6989586621679158167"><span class="hs-identifier">action</span></a></a><span> </span><span class="hs-glyph">=</span><span>
-</span><a name="line-95"></a><span>    </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src/Ouroboros.Consensus.Util.ResourceRegistry.html#cancelThread"><span class="hs-identifier hs-var">cancelThread</span></a><span> </span><span class="hs-operator hs-var">&lt;$&gt;</span><span>
-</span><a name="line-96"></a><span>      </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src/Ouroboros.Consensus.Util.STM.html#onEachChange"><span class="hs-identifier hs-var">onEachChange</span></a><span>
-</span><a name="line-97"></a><span>        </span><a href="#local-6989586621679158164"><span class="hs-identifier hs-var">registry</span></a><span>
-</span><a name="line-98"></a><span>        </span><a href="#local-6989586621679158166"><span class="hs-identifier hs-var">threadLabel</span></a><span>
-</span><a name="line-99"></a><span>        </span><span class="hs-identifier hs-var">id</span><span>
-</span><a name="line-100"></a><span>        </span><span class="hs-identifier hs-var">Nothing</span><span>
-</span><a name="line-101"></a><span>        </span><span class="hs-special">(</span><span class="hs-identifier">getCurrentTick</span><span> </span><a href="#local-6989586621679158165"><span class="hs-identifier hs-var">clock</span></a><span class="hs-special">)</span><span>
-</span><a name="line-102"></a><span>        </span><a href="#local-6989586621679158167"><span class="hs-identifier hs-var">action</span></a><span>
-</span><a name="line-103"></a><span>
-</span><a name="line-104"></a><span class="hs-comment">-- | Execute action once at the specified tick</span><span>
-</span><a name="line-105"></a><span class="hs-identifier">onTick</span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src/Ouroboros.Consensus.Util.IOLike.html#IOLike"><span class="hs-identifier hs-type">IOLike</span></a><span> </span><a href="#local-6989586621679158158"><span class="hs-identifier hs-type">m</span></a><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">HasCallStack</span><span class="hs-special">)</span><span>
-</span><a name="line-106"></a><span>       </span><span class="hs-glyph">=&gt;</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src/Ouroboros.Consensus.Util.ResourceRegistry.html#ResourceRegistry"><span class="hs-identifier hs-type">ResourceRegistry</span></a><span> </span><a href="#local-6989586621679158158"><span class="hs-identifier hs-type">m</span></a><span>
-</span><a name="line-107"></a><span>       </span><span class="hs-glyph">-&gt;</span><span> </span><a href="Test.Util.LogicalClock.html#LogicalClock"><span class="hs-identifier hs-type">LogicalClock</span></a><span> </span><a href="#local-6989586621679158158"><span class="hs-identifier hs-type">m</span></a><span>
-</span><a name="line-108"></a><span>       </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">String</span><span>
-</span><a name="line-109"></a><span>       </span><span class="hs-glyph">-&gt;</span><span> </span><a href="Test.Util.LogicalClock.html#Tick"><span class="hs-identifier hs-type">Tick</span></a><span>
-</span><a name="line-110"></a><span>       </span><span class="hs-glyph">-&gt;</span><span> </span><a href="#local-6989586621679158158"><span class="hs-identifier hs-type">m</span></a><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
-</span><a name="line-111"></a><span>       </span><span class="hs-glyph">-&gt;</span><span> </span><a href="#local-6989586621679158158"><span class="hs-identifier hs-type">m</span></a><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
-</span><a name="line-112"></a><a name="onTick"><a href="Test.Util.LogicalClock.html#onTick"><span class="hs-identifier">onTick</span></a></a><span> </span><a name="local-6989586621679158168"><a href="#local-6989586621679158168"><span class="hs-identifier">registry</span></a></a><span> </span><a name="local-6989586621679158169"><a href="#local-6989586621679158169"><span class="hs-identifier">clock</span></a></a><span> </span><a name="local-6989586621679158170"><a href="#local-6989586621679158170"><span class="hs-identifier">threadLabel</span></a></a><span> </span><a name="local-6989586621679158171"><a href="#local-6989586621679158171"><span class="hs-identifier">tick</span></a></a><span> </span><a name="local-6989586621679158172"><a href="#local-6989586621679158172"><span class="hs-identifier">action</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
-</span><a name="line-113"></a><span>    </span><span class="hs-identifier hs-var">void</span><span> </span><span class="hs-operator hs-var">$</span><span>
-</span><a name="line-114"></a><span>      </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src/Ouroboros.Consensus.Util.ResourceRegistry.html#forkLinkedThread"><span class="hs-identifier hs-var">forkLinkedThread</span></a><span>
-</span><a name="line-115"></a><span>        </span><a href="#local-6989586621679158168"><span class="hs-identifier hs-var">registry</span></a><span>
-</span><a name="line-116"></a><span>        </span><a href="#local-6989586621679158170"><span class="hs-identifier hs-var">threadLabel</span></a><span>
-</span><a name="line-117"></a><span>        </span><span class="hs-special">(</span><a href="Test.Util.LogicalClock.html#waitForTick"><span class="hs-identifier hs-var">waitForTick</span></a><span> </span><a href="#local-6989586621679158169"><span class="hs-identifier hs-var">clock</span></a><span> </span><a href="#local-6989586621679158171"><span class="hs-identifier hs-var">tick</span></a><span> </span><span class="hs-operator hs-var">&gt;&gt;</span><span> </span><a href="#local-6989586621679158172"><span class="hs-identifier hs-var">action</span></a><span class="hs-special">)</span><span>
-</span><a name="line-118"></a><span>
-</span><a name="line-119"></a><span class="hs-comment">-- | Block until the specified tick</span><span>
-</span><a name="line-120"></a><span class="hs-comment">--</span><span>
-</span><a name="line-121"></a><span class="hs-comment">-- Returns 'False' if the current tick is later than the requested one, or</span><span>
-</span><a name="line-122"></a><span class="hs-comment">-- 'True' if they were equal.</span><span>
-</span><a name="line-123"></a><span class="hs-identifier">blockUntilTick</span><span> </span><span class="hs-glyph">::</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/io-sim-classes-0.1.0.0/noopt/doc/html/io-sim-classes/src/Control.Monad.Class.MonadSTM.html#MonadSTM"><span class="hs-identifier hs-type">MonadSTM</span></a><span> </span><a href="#local-6989586621679158157"><span class="hs-identifier hs-type">m</span></a><span> </span><span class="hs-glyph">=&gt;</span><span> </span><a href="Test.Util.LogicalClock.html#LogicalClock"><span class="hs-identifier hs-type">LogicalClock</span></a><span> </span><a href="#local-6989586621679158157"><span class="hs-identifier hs-type">m</span></a><span> </span><span class="hs-glyph">-&gt;</span><span> </span><a href="Test.Util.LogicalClock.html#Tick"><span class="hs-identifier hs-type">Tick</span></a><span> </span><span class="hs-glyph">-&gt;</span><span> </span><a href="#local-6989586621679158157"><span class="hs-identifier hs-type">m</span></a><span> </span><span class="hs-identifier hs-type">Bool</span><span>
-</span><a name="line-124"></a><a name="blockUntilTick"><a href="Test.Util.LogicalClock.html#blockUntilTick"><span class="hs-identifier">blockUntilTick</span></a></a><span> </span><a name="local-6989586621679158173"><a href="#local-6989586621679158173"><span class="hs-identifier">clock</span></a></a><span> </span><a name="local-6989586621679158174"><a href="#local-6989586621679158174"><span class="hs-identifier">tick</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/io-sim-classes-0.1.0.0/noopt/doc/html/io-sim-classes/src/Control.Monad.Class.MonadSTM.html#atomically"><span class="hs-identifier hs-var">atomically</span></a><span> </span><span class="hs-operator hs-var">$</span><span> </span><span class="hs-keyword">do</span><span>
-</span><a name="line-125"></a><span>    </span><a name="local-6989586621679158175"><a href="#local-6989586621679158175"><span class="hs-identifier">now</span></a></a><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="hs-identifier">getCurrentTick</span><span> </span><a href="#local-6989586621679158173"><span class="hs-identifier hs-var">clock</span></a><span>
-</span><a name="line-126"></a><span>    </span><span class="hs-keyword">if</span><span> </span><a href="#local-6989586621679158175"><span class="hs-identifier hs-var">now</span></a><span> </span><span class="hs-operator hs-var">&gt;</span><span> </span><a href="#local-6989586621679158174"><span class="hs-identifier hs-var">tick</span></a><span> </span><span class="hs-keyword">then</span><span>
-</span><a name="line-127"></a><span>      </span><span class="hs-identifier hs-var">return</span><span> </span><span class="hs-identifier hs-var">True</span><span>
-</span><a name="line-128"></a><span>    </span><span class="hs-keyword">else</span><span> </span><span class="hs-keyword">do</span><span>
-</span><a name="line-129"></a><span>      </span><span class="hs-identifier hs-var">when</span><span> </span><span class="hs-special">(</span><a href="#local-6989586621679158175"><span class="hs-identifier hs-var">now</span></a><span> </span><span class="hs-operator hs-var">&lt;</span><span> </span><a href="#local-6989586621679158174"><span class="hs-identifier hs-var">tick</span></a><span class="hs-special">)</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/io-sim-classes-0.1.0.0/noopt/doc/html/io-sim-classes/src/Control.Monad.Class.MonadSTM.html#retry"><span class="hs-identifier hs-var">retry</span></a><span>
-</span><a name="line-130"></a><span>      </span><span class="hs-identifier hs-var">return</span><span> </span><span class="hs-identifier hs-var">False</span><span>
-</span><a name="line-131"></a><span>
-</span><a name="line-132"></a><span class="hs-comment">{-------------------------------------------------------------------------------
+</span><span id="line-84"></span><span>
+</span><span id="line-85"></span><span class="hs-comment">-- | Execute action on every clock tick</span><span>
+</span><span id="line-86"></span><span class="hs-comment">--</span><span>
+</span><span id="line-87"></span><span class="hs-comment">-- Returns a handle to cancel the thread.</span><span>
+</span><span id="line-88"></span><span id="local-6989586621679250524"><span class="annot"><a href="Test.Util.LogicalClock.html#onEachTick"><span class="hs-identifier hs-type">onEachTick</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier hs-type">IOLike</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679250524"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">HasCallStack</span></span><span class="hs-special">)</span><span>
+</span><span id="line-89"></span><span>           </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier hs-type">ResourceRegistry</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679250524"><span class="hs-identifier hs-type">m</span></a></span><span>
+</span><span id="line-90"></span><span>           </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Test.Util.LogicalClock.html#LogicalClock"><span class="hs-identifier hs-type">LogicalClock</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679250524"><span class="hs-identifier hs-type">m</span></a></span><span>
+</span><span id="line-91"></span><span>           </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">String</span></span><span>
+</span><span id="line-92"></span><span>           </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Test.Util.LogicalClock.html#Tick"><span class="hs-identifier hs-type">Tick</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679250524"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-93"></span><span>           </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679250524"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="#local-6989586621679250524"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span class="hs-special">)</span></span><span>
+</span><span id="line-94"></span><span id="onEachTick"><span class="annot"><span class="annottext">onEachTick :: ResourceRegistry m
+-&gt; LogicalClock m -&gt; String -&gt; (Tick -&gt; m ()) -&gt; m (m ())
+</span><a href="Test.Util.LogicalClock.html#onEachTick"><span class="hs-identifier hs-var hs-var">onEachTick</span></a></span></span><span> </span><span id="local-6989586621679250523"><span class="annot"><span class="annottext">ResourceRegistry m
+</span><a href="#local-6989586621679250523"><span class="hs-identifier hs-var">registry</span></a></span></span><span> </span><span id="local-6989586621679250522"><span class="annot"><span class="annottext">LogicalClock m
+</span><a href="#local-6989586621679250522"><span class="hs-identifier hs-var">clock</span></a></span></span><span> </span><span id="local-6989586621679250521"><span class="annot"><span class="annottext">String
+</span><a href="#local-6989586621679250521"><span class="hs-identifier hs-var">threadLabel</span></a></span></span><span> </span><span id="local-6989586621679250520"><span class="annot"><span class="annottext">Tick -&gt; m ()
+</span><a href="#local-6989586621679250520"><span class="hs-identifier hs-var">action</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-95"></span><span>    </span><span class="annot"><span class="annottext">Thread m Void -&gt; m ()
+forall (m :: * -&gt; *) a. IOLike m =&gt; Thread m a -&gt; m ()
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier hs-var">cancelThread</span></a></span><span> </span><span class="annot"><span class="annottext">(Thread m Void -&gt; m ()) -&gt; m (Thread m Void) -&gt; m (m ())
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span>
+</span><span id="line-96"></span><span>      </span><span class="annot"><span class="annottext">ResourceRegistry m
+-&gt; String
+-&gt; (Tick -&gt; Tick)
+-&gt; Maybe Tick
+-&gt; STM m Tick
+-&gt; (Tick -&gt; m ())
+-&gt; m (Thread m Void)
+forall (m :: * -&gt; *) a b.
+(IOLike m, Eq b, HasCallStack) =&gt;
+ResourceRegistry m
+-&gt; String
+-&gt; (a -&gt; b)
+-&gt; Maybe b
+-&gt; STM m a
+-&gt; (a -&gt; m ())
+-&gt; m (Thread m Void)
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier hs-var">onEachChange</span></a></span><span>
+</span><span id="line-97"></span><span>        </span><span class="annot"><span class="annottext">ResourceRegistry m
+</span><a href="#local-6989586621679250523"><span class="hs-identifier hs-var">registry</span></a></span><span>
+</span><span id="line-98"></span><span>        </span><span class="annot"><span class="annottext">String
+</span><a href="#local-6989586621679250521"><span class="hs-identifier hs-var">threadLabel</span></a></span><span>
+</span><span id="line-99"></span><span>        </span><span class="annot"><span class="annottext">Tick -&gt; Tick
+forall a. a -&gt; a
+</span><span class="hs-identifier hs-var">id</span></span><span>
+</span><span id="line-100"></span><span>        </span><span class="annot"><span class="annottext">Maybe Tick
+forall a. Maybe a
+</span><span class="hs-identifier hs-var">Nothing</span></span><span>
+</span><span id="line-101"></span><span>        </span><span class="hs-special">(</span><span class="annot"><span class="annottext">LogicalClock m -&gt; STM m Tick
+forall (m :: * -&gt; *). LogicalClock m -&gt; STM m Tick
+</span><a href="Test.Util.LogicalClock.html#getCurrentTick"><span class="hs-identifier hs-var hs-var">getCurrentTick</span></a></span><span> </span><span class="annot"><span class="annottext">LogicalClock m
+</span><a href="#local-6989586621679250522"><span class="hs-identifier hs-var">clock</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-102"></span><span>        </span><span class="annot"><span class="annottext">Tick -&gt; m ()
+</span><a href="#local-6989586621679250520"><span class="hs-identifier hs-var">action</span></a></span><span>
+</span><span id="line-103"></span><span>
+</span><span id="line-104"></span><span class="hs-comment">-- | Execute action once at the specified tick</span><span>
+</span><span id="line-105"></span><span id="local-6989586621679250515"><span class="annot"><a href="Test.Util.LogicalClock.html#onTick"><span class="hs-identifier hs-type">onTick</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier hs-type">IOLike</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679250515"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">HasCallStack</span></span><span class="hs-special">)</span><span>
+</span><span id="line-106"></span><span>       </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier hs-type">ResourceRegistry</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679250515"><span class="hs-identifier hs-type">m</span></a></span><span>
+</span><span id="line-107"></span><span>       </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Test.Util.LogicalClock.html#LogicalClock"><span class="hs-identifier hs-type">LogicalClock</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679250515"><span class="hs-identifier hs-type">m</span></a></span><span>
+</span><span id="line-108"></span><span>       </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">String</span></span><span>
+</span><span id="line-109"></span><span>       </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Test.Util.LogicalClock.html#Tick"><span class="hs-identifier hs-type">Tick</span></a></span><span>
+</span><span id="line-110"></span><span>       </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679250515"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
+</span><span id="line-111"></span><span>       </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679250515"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span></span><span>
+</span><span id="line-112"></span><span id="onTick"><span class="annot"><span class="annottext">onTick :: ResourceRegistry m
+-&gt; LogicalClock m -&gt; String -&gt; Tick -&gt; m () -&gt; m ()
+</span><a href="Test.Util.LogicalClock.html#onTick"><span class="hs-identifier hs-var hs-var">onTick</span></a></span></span><span> </span><span id="local-6989586621679250514"><span class="annot"><span class="annottext">ResourceRegistry m
+</span><a href="#local-6989586621679250514"><span class="hs-identifier hs-var">registry</span></a></span></span><span> </span><span id="local-6989586621679250513"><span class="annot"><span class="annottext">LogicalClock m
+</span><a href="#local-6989586621679250513"><span class="hs-identifier hs-var">clock</span></a></span></span><span> </span><span id="local-6989586621679250512"><span class="annot"><span class="annottext">String
+</span><a href="#local-6989586621679250512"><span class="hs-identifier hs-var">threadLabel</span></a></span></span><span> </span><span id="local-6989586621679250511"><span class="annot"><span class="annottext">Tick
+</span><a href="#local-6989586621679250511"><span class="hs-identifier hs-var">tick</span></a></span></span><span> </span><span id="local-6989586621679250510"><span class="annot"><span class="annottext">m ()
+</span><a href="#local-6989586621679250510"><span class="hs-identifier hs-var">action</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-113"></span><span>    </span><span class="annot"><span class="annottext">m (Thread m ()) -&gt; m ()
+forall (f :: * -&gt; *) a. Functor f =&gt; f a -&gt; f ()
+</span><span class="hs-identifier hs-var">void</span></span><span> </span><span class="annot"><span class="annottext">(m (Thread m ()) -&gt; m ()) -&gt; m (Thread m ()) -&gt; m ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span>
+</span><span id="line-114"></span><span>      </span><span class="annot"><span class="annottext">ResourceRegistry m -&gt; String -&gt; m () -&gt; m (Thread m ())
+forall (m :: * -&gt; *) a.
+(IOLike m, HasCallStack) =&gt;
+ResourceRegistry m -&gt; String -&gt; m a -&gt; m (Thread m a)
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier hs-var">forkLinkedThread</span></a></span><span>
+</span><span id="line-115"></span><span>        </span><span class="annot"><span class="annottext">ResourceRegistry m
+</span><a href="#local-6989586621679250514"><span class="hs-identifier hs-var">registry</span></a></span><span>
+</span><span id="line-116"></span><span>        </span><span class="annot"><span class="annottext">String
+</span><a href="#local-6989586621679250512"><span class="hs-identifier hs-var">threadLabel</span></a></span><span>
+</span><span id="line-117"></span><span>        </span><span class="hs-special">(</span><span class="annot"><span class="annottext">LogicalClock m -&gt; Tick -&gt; m ()
+forall (m :: * -&gt; *). IOLike m =&gt; LogicalClock m -&gt; Tick -&gt; m ()
+</span><a href="Test.Util.LogicalClock.html#waitForTick"><span class="hs-identifier hs-var">waitForTick</span></a></span><span> </span><span class="annot"><span class="annottext">LogicalClock m
+</span><a href="#local-6989586621679250513"><span class="hs-identifier hs-var">clock</span></a></span><span> </span><span class="annot"><span class="annottext">Tick
+</span><a href="#local-6989586621679250511"><span class="hs-identifier hs-var">tick</span></a></span><span> </span><span class="annot"><span class="annottext">m () -&gt; m () -&gt; m ()
+forall (m :: * -&gt; *) a b. Monad m =&gt; m a -&gt; m b -&gt; m b
+</span><span class="hs-operator hs-var">&gt;&gt;</span></span><span> </span><span class="annot"><span class="annottext">m ()
+</span><a href="#local-6989586621679250510"><span class="hs-identifier hs-var">action</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-118"></span><span>
+</span><span id="line-119"></span><span class="hs-comment">-- | Block until the specified tick</span><span>
+</span><span id="line-120"></span><span class="hs-comment">--</span><span>
+</span><span id="line-121"></span><span class="hs-comment">-- Returns 'False' if the current tick is later than the requested one, or</span><span>
+</span><span id="line-122"></span><span class="hs-comment">-- 'True' if they were equal.</span><span>
+</span><span id="line-123"></span><span id="local-6989586621679250506"><span class="annot"><a href="Test.Util.LogicalClock.html#blockUntilTick"><span class="hs-identifier hs-type">blockUntilTick</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/io-sim-classes-0.2.0.0/noopt/doc/html/io-sim-classes/src"><span class="hs-identifier hs-type">MonadSTM</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679250506"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Test.Util.LogicalClock.html#LogicalClock"><span class="hs-identifier hs-type">LogicalClock</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679250506"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Test.Util.LogicalClock.html#Tick"><span class="hs-identifier hs-type">Tick</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679250506"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span></span><span>
+</span><span id="line-124"></span><span id="blockUntilTick"><span class="annot"><span class="annottext">blockUntilTick :: LogicalClock m -&gt; Tick -&gt; m Bool
+</span><a href="Test.Util.LogicalClock.html#blockUntilTick"><span class="hs-identifier hs-var hs-var">blockUntilTick</span></a></span></span><span> </span><span id="local-6989586621679250505"><span class="annot"><span class="annottext">LogicalClock m
+</span><a href="#local-6989586621679250505"><span class="hs-identifier hs-var">clock</span></a></span></span><span> </span><span id="local-6989586621679250504"><span class="annot"><span class="annottext">Tick
+</span><a href="#local-6989586621679250504"><span class="hs-identifier hs-var">tick</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">STM m Bool -&gt; m Bool
+forall (m :: * -&gt; *) a.
+(MonadSTM m, HasCallStack) =&gt;
+STM m a -&gt; m a
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/io-sim-classes-0.2.0.0/noopt/doc/html/io-sim-classes/src"><span class="hs-identifier hs-var">atomically</span></a></span><span> </span><span class="annot"><span class="annottext">(STM m Bool -&gt; m Bool) -&gt; STM m Bool -&gt; m Bool
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-125"></span><span>    </span><span id="local-6989586621679250502"><span class="annot"><span class="annottext">Tick
+</span><a href="#local-6989586621679250502"><span class="hs-identifier hs-var">now</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">LogicalClock m -&gt; STM m Tick
+forall (m :: * -&gt; *). LogicalClock m -&gt; STM m Tick
+</span><a href="Test.Util.LogicalClock.html#getCurrentTick"><span class="hs-identifier hs-var hs-var">getCurrentTick</span></a></span><span> </span><span class="annot"><span class="annottext">LogicalClock m
+</span><a href="#local-6989586621679250505"><span class="hs-identifier hs-var">clock</span></a></span><span>
+</span><span id="line-126"></span><span>    </span><span class="hs-keyword">if</span><span> </span><span class="annot"><span class="annottext">Tick
+</span><a href="#local-6989586621679250502"><span class="hs-identifier hs-var">now</span></a></span><span> </span><span class="annot"><span class="annottext">Tick -&gt; Tick -&gt; Bool
+forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">&gt;</span></span><span> </span><span class="annot"><span class="annottext">Tick
+</span><a href="#local-6989586621679250504"><span class="hs-identifier hs-var">tick</span></a></span><span> </span><span class="hs-keyword">then</span><span>
+</span><span id="line-127"></span><span>      </span><span class="annot"><span class="annottext">Bool -&gt; STM m Bool
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">True</span></span><span>
+</span><span id="line-128"></span><span>    </span><span class="hs-keyword">else</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-129"></span><span>      </span><span class="annot"><span class="annottext">Bool -&gt; STM m () -&gt; STM m ()
+forall (f :: * -&gt; *). Applicative f =&gt; Bool -&gt; f () -&gt; f ()
+</span><span class="hs-identifier hs-var">when</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Tick
+</span><a href="#local-6989586621679250502"><span class="hs-identifier hs-var">now</span></a></span><span> </span><span class="annot"><span class="annottext">Tick -&gt; Tick -&gt; Bool
+forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">&lt;</span></span><span> </span><span class="annot"><span class="annottext">Tick
+</span><a href="#local-6989586621679250504"><span class="hs-identifier hs-var">tick</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">STM m ()
+forall (stm :: * -&gt; *) a. MonadSTMTx stm =&gt; stm a
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/io-sim-classes-0.2.0.0/noopt/doc/html/io-sim-classes/src"><span class="hs-identifier hs-var">retry</span></a></span><span>
+</span><span id="line-130"></span><span>      </span><span class="annot"><span class="annottext">Bool -&gt; STM m Bool
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">False</span></span><span>
+</span><span id="line-131"></span><span>
+</span><span id="line-132"></span><span class="hs-comment">{-------------------------------------------------------------------------------
   Internal
 -------------------------------------------------------------------------------}</span><span>
-</span><a name="line-135"></a><span>
-</span><a name="line-136"></a><span class="hs-comment">-- | Generalization of 'new' that allows to override the 'tickDelay'</span><span>
-</span><a name="line-137"></a><span class="hs-comment">--</span><span>
-</span><a name="line-138"></a><span class="hs-comment">-- NOTE: Tests using the logical clock really should not need to know what the</span><span>
-</span><a name="line-139"></a><span class="hs-comment">-- tick delay is; that's kind of the point of a /logical/ clock after all.</span><span>
-</span><a name="line-140"></a><span class="hs-identifier">newWithDelay</span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src/Ouroboros.Consensus.Util.IOLike.html#IOLike"><span class="hs-identifier hs-type">IOLike</span></a><span> </span><a href="#local-6989586621679158156"><span class="hs-identifier hs-type">m</span></a><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">HasCallStack</span><span class="hs-special">)</span><span>
-</span><a name="line-141"></a><span>             </span><span class="hs-glyph">=&gt;</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src/Ouroboros.Consensus.Util.ResourceRegistry.html#ResourceRegistry"><span class="hs-identifier hs-type">ResourceRegistry</span></a><span> </span><a href="#local-6989586621679158156"><span class="hs-identifier hs-type">m</span></a><span>
-</span><a name="line-142"></a><span>             </span><span class="hs-glyph">-&gt;</span><span> </span><a href="Test.Util.LogicalClock.html#NumTicks"><span class="hs-identifier hs-type">NumTicks</span></a><span>
-</span><a name="line-143"></a><span>             </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">NominalDiffTime</span><span>
-</span><a name="line-144"></a><span>             </span><span class="hs-glyph">-&gt;</span><span> </span><a href="#local-6989586621679158156"><span class="hs-identifier hs-type">m</span></a><span> </span><span class="hs-special">(</span><a href="Test.Util.LogicalClock.html#LogicalClock"><span class="hs-identifier hs-type">LogicalClock</span></a><span> </span><a href="#local-6989586621679158156"><span class="hs-identifier hs-type">m</span></a><span class="hs-special">)</span><span>
-</span><a name="line-145"></a><a name="newWithDelay"><a href="Test.Util.LogicalClock.html#newWithDelay"><span class="hs-identifier">newWithDelay</span></a></a><span> </span><a name="local-6989586621679158176"><a href="#local-6989586621679158176"><span class="hs-identifier">registry</span></a></a><span> </span><span class="hs-special">(</span><a href="Test.Util.LogicalClock.html#NumTicks"><span class="hs-identifier hs-var">NumTicks</span></a><span> </span><a name="local-6989586621679158177"><a href="#local-6989586621679158177"><span class="hs-identifier">numTicks</span></a></a><span class="hs-special">)</span><span> </span><a name="local-6989586621679158178"><a href="#local-6989586621679158178"><span class="hs-identifier">tickLen</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
-</span><a name="line-146"></a><span>    </span><a name="local-6989586621679158179"><a href="#local-6989586621679158179"><span class="hs-identifier">current</span></a></a><span> </span><span class="hs-glyph">&lt;-</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src/Ouroboros.Consensus.Util.MonadSTM.NormalForm.html#newTVarM"><span class="hs-identifier hs-var">newTVarM</span></a><span> </span><span class="hs-number">0</span><span>
-</span><a name="line-147"></a><span>    </span><a name="local-6989586621679158180"><a href="#local-6989586621679158180"><span class="hs-identifier">done</span></a></a><span>    </span><span class="hs-glyph">&lt;-</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src/Ouroboros.Consensus.Util.MonadSTM.NormalForm.html#newEmptyMVar"><span class="hs-identifier hs-var">newEmptyMVar</span></a><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
-</span><a name="line-148"></a><span>    </span><a name="local-6989586621679158211"><a href="#local-6989586621679158211"><span class="hs-identifier">_thread</span></a></a><span> </span><span class="hs-glyph">&lt;-</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src/Ouroboros.Consensus.Util.ResourceRegistry.html#forkThread"><span class="hs-identifier hs-var">forkThread</span></a><span> </span><a href="#local-6989586621679158176"><span class="hs-identifier hs-var">registry</span></a><span> </span><span class="hs-string">&quot;ticker&quot;</span><span> </span><span class="hs-operator hs-var">$</span><span> </span><span class="hs-keyword">do</span><span>
-</span><a name="line-149"></a><span>                 </span><span class="hs-comment">-- Tick 0 is the first tick, so increment @numTicks - 1@ times</span><span>
-</span><a name="line-150"></a><span>                 </span><span class="hs-identifier hs-var">replicateM_</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-var">fromIntegral</span><span> </span><a href="#local-6989586621679158177"><span class="hs-identifier hs-var">numTicks</span></a><span> </span><span class="hs-glyph">-</span><span> </span><span class="hs-number">1</span><span class="hs-special">)</span><span> </span><span class="hs-operator hs-var">$</span><span> </span><span class="hs-keyword">do</span><span>
-</span><a name="line-151"></a><span>                   </span><span class="hs-comment">-- Give simulator chance to execute other threads</span><span>
-</span><a name="line-152"></a><span>                   </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/io-sim-classes-0.1.0.0/noopt/doc/html/io-sim-classes/src/Control.Monad.Class.MonadTimer.html#threadDelay"><span class="hs-identifier hs-var">threadDelay</span></a><span> </span><span class="hs-special">(</span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src/Ouroboros.Consensus.Util.Time.html#nominalDelay"><span class="hs-identifier hs-var">nominalDelay</span></a><span> </span><a href="#local-6989586621679158178"><span class="hs-identifier hs-var">tickLen</span></a><span class="hs-special">)</span><span>
-</span><a name="line-153"></a><span>                   </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/io-sim-classes-0.1.0.0/noopt/doc/html/io-sim-classes/src/Control.Monad.Class.MonadSTM.html#atomically"><span class="hs-identifier hs-var">atomically</span></a><span> </span><span class="hs-operator hs-var">$</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/io-sim-classes-0.1.0.0/noopt/doc/html/io-sim-classes/src/Control.Monad.Class.MonadSTM.Strict.html#modifyTVar"><span class="hs-identifier hs-var">modifyTVar</span></a><span> </span><a href="#local-6989586621679158179"><span class="hs-identifier hs-var">current</span></a><span> </span><span class="hs-special">(</span><span class="hs-operator hs-var">+</span><span> </span><span class="hs-number">1</span><span class="hs-special">)</span><span>
-</span><a name="line-154"></a><span>
-</span><a name="line-155"></a><span>                 </span><span class="hs-comment">-- Give tests that need to do some final processing on the last</span><span>
-</span><a name="line-156"></a><span>                 </span><span class="hs-comment">-- tick a chance to do that before we indicate completion.</span><span>
-</span><a name="line-157"></a><span>                 </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/io-sim-classes-0.1.0.0/noopt/doc/html/io-sim-classes/src/Control.Monad.Class.MonadTimer.html#threadDelay"><span class="hs-identifier hs-var">threadDelay</span></a><span> </span><span class="hs-special">(</span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src/Ouroboros.Consensus.Util.Time.html#nominalDelay"><span class="hs-identifier hs-var">nominalDelay</span></a><span> </span><a href="#local-6989586621679158178"><span class="hs-identifier hs-var">tickLen</span></a><span class="hs-special">)</span><span>
-</span><a name="line-158"></a><span>                 </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src/Ouroboros.Consensus.Util.MonadSTM.StrictMVar.html#putMVar"><span class="hs-identifier hs-var">putMVar</span></a><span> </span><a href="#local-6989586621679158180"><span class="hs-identifier hs-var">done</span></a><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
-</span><a name="line-159"></a><span>
-</span><a name="line-160"></a><span>    </span><span class="hs-identifier hs-var">return</span><span> </span><a href="Test.Util.LogicalClock.html#LogicalClock"><span class="hs-identifier hs-var">LogicalClock</span></a><span> </span><span class="hs-special">{</span><span>
-</span><a name="line-161"></a><span>        </span><span class="hs-identifier">getCurrentTick</span><span> </span><span class="hs-glyph">=</span><span> </span><a href="Test.Util.LogicalClock.html#Tick"><span class="hs-identifier hs-var">Tick</span></a><span> </span><span class="hs-operator hs-var">&lt;$&gt;</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/io-sim-classes-0.1.0.0/noopt/doc/html/io-sim-classes/src/Control.Monad.Class.MonadSTM.Strict.html#readTVar"><span class="hs-identifier hs-var">readTVar</span></a><span> </span><a href="#local-6989586621679158179"><span class="hs-identifier hs-var">current</span></a><span>
-</span><a name="line-162"></a><span>      </span><span class="hs-special">,</span><span> </span><span class="hs-identifier">waitUntilDone</span><span>  </span><span class="hs-glyph">=</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src/Ouroboros.Consensus.Util.MonadSTM.StrictMVar.html#readMVar"><span class="hs-identifier hs-var">readMVar</span></a><span> </span><a href="#local-6989586621679158180"><span class="hs-identifier hs-var">done</span></a><span>
-</span><a name="line-163"></a><span>      </span><span class="hs-special">,</span><span> </span><span class="hs-identifier">mockSystemTime</span><span> </span><span class="hs-glyph">=</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src/Ouroboros.Consensus.BlockchainTime.WallClock.Types.html#SystemTime"><span class="hs-identifier hs-var">BTime.SystemTime</span></a><span> </span><span class="hs-special">{</span><span>
-</span><a name="line-164"></a><span>            </span><span class="hs-identifier">BTime.systemTimeCurrent</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
-</span><a name="line-165"></a><span>              </span><a name="local-6989586621679158212"><a href="#local-6989586621679158212"><span class="hs-identifier">tick</span></a></a><span> </span><span class="hs-glyph">&lt;-</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/io-sim-classes-0.1.0.0/noopt/doc/html/io-sim-classes/src/Control.Monad.Class.MonadSTM.html#atomically"><span class="hs-identifier hs-var">atomically</span></a><span> </span><span class="hs-operator hs-var">$</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/io-sim-classes-0.1.0.0/noopt/doc/html/io-sim-classes/src/Control.Monad.Class.MonadSTM.Strict.html#readTVar"><span class="hs-identifier hs-var">readTVar</span></a><span> </span><a href="#local-6989586621679158179"><span class="hs-identifier hs-var">current</span></a><span>
-</span><a name="line-166"></a><span>              </span><span class="hs-identifier hs-var">return</span><span> </span><span class="hs-operator hs-var">$</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src/Ouroboros.Consensus.BlockchainTime.WallClock.Types.html#RelativeTime"><span class="hs-identifier hs-var">BTime.RelativeTime</span></a><span> </span><span class="hs-operator hs-var">$</span><span> </span><span class="hs-identifier hs-var">fromIntegral</span><span> </span><a href="#local-6989586621679158212"><span class="hs-identifier hs-var">tick</span></a><span> </span><span class="hs-operator hs-var">*</span><span> </span><a href="#local-6989586621679158178"><span class="hs-identifier hs-var">tickLen</span></a><span>
-</span><a name="line-167"></a><span>          </span><span class="hs-special">,</span><span> </span><span class="hs-identifier">BTime.systemTimeWait</span><span> </span><span class="hs-glyph">=</span><span>
-</span><a name="line-168"></a><span>              </span><span class="hs-identifier hs-var">return</span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
-</span><a name="line-169"></a><span>          </span><span class="hs-special">}</span><span>
-</span><a name="line-170"></a><span>      </span><span class="hs-special">}</span><span>
-</span><a name="line-171"></a><span>
-</span><a name="line-172"></a><span class="hs-comment">-- | Wait for the specified tick (blocking the current thread)</span><span>
-</span><a name="line-173"></a><span class="hs-identifier">waitForTick</span><span> </span><span class="hs-glyph">::</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src/Ouroboros.Consensus.Util.IOLike.html#IOLike"><span class="hs-identifier hs-type">IOLike</span></a><span> </span><a href="#local-6989586621679158155"><span class="hs-identifier hs-type">m</span></a><span> </span><span class="hs-glyph">=&gt;</span><span> </span><a href="Test.Util.LogicalClock.html#LogicalClock"><span class="hs-identifier hs-type">LogicalClock</span></a><span> </span><a href="#local-6989586621679158155"><span class="hs-identifier hs-type">m</span></a><span> </span><span class="hs-glyph">-&gt;</span><span> </span><a href="Test.Util.LogicalClock.html#Tick"><span class="hs-identifier hs-type">Tick</span></a><span> </span><span class="hs-glyph">-&gt;</span><span> </span><a href="#local-6989586621679158155"><span class="hs-identifier hs-type">m</span></a><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
-</span><a name="line-174"></a><a name="waitForTick"><a href="Test.Util.LogicalClock.html#waitForTick"><span class="hs-identifier">waitForTick</span></a></a><span> </span><a name="local-6989586621679158213"><a href="#local-6989586621679158213"><span class="hs-identifier">clock</span></a></a><span> </span><a name="local-6989586621679158214"><a href="#local-6989586621679158214"><span class="hs-identifier">tick</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
-</span><a name="line-175"></a><span>    </span><a name="local-6989586621679158215"><a href="#local-6989586621679158215"><span class="hs-identifier">start</span></a></a><span> </span><span class="hs-glyph">&lt;-</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/io-sim-classes-0.1.0.0/noopt/doc/html/io-sim-classes/src/Control.Monad.Class.MonadSTM.html#atomically"><span class="hs-identifier hs-var">atomically</span></a><span> </span><span class="hs-operator hs-var">$</span><span> </span><span class="hs-identifier">getCurrentTick</span><span> </span><a href="#local-6989586621679158213"><span class="hs-identifier hs-var">clock</span></a><span>
-</span><a name="line-176"></a><span>    </span><span class="hs-identifier hs-var">when</span><span> </span><span class="hs-special">(</span><a href="#local-6989586621679158215"><span class="hs-identifier hs-var">start</span></a><span> </span><span class="hs-operator hs-var">&gt;=</span><span> </span><a href="#local-6989586621679158214"><span class="hs-identifier hs-var">tick</span></a><span class="hs-special">)</span><span> </span><span class="hs-operator hs-var">$</span><span>
-</span><a name="line-177"></a><span>      </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/io-sim-classes-0.1.0.0/noopt/doc/html/io-sim-classes/src/Control.Monad.Class.MonadThrow.html#throwM"><span class="hs-identifier hs-var">throwM</span></a><span> </span><span class="hs-operator hs-var">$</span><span> </span><a href="Test.Util.LogicalClock.html#WaitForTickTooLate"><span class="hs-identifier hs-var">WaitForTickTooLate</span></a><span> </span><span class="hs-special">{</span><span>
-</span><a name="line-178"></a><span>          </span><span class="hs-identifier">tickRequest</span><span> </span><span class="hs-glyph">=</span><span> </span><a href="#local-6989586621679158214"><span class="hs-identifier hs-var">tick</span></a><span>
-</span><a name="line-179"></a><span>        </span><span class="hs-special">,</span><span> </span><span class="hs-identifier">tickCurrent</span><span> </span><span class="hs-glyph">=</span><span> </span><a href="#local-6989586621679158215"><span class="hs-identifier hs-var">start</span></a><span>
-</span><a name="line-180"></a><span>        </span><span class="hs-special">}</span><span>
-</span><a name="line-181"></a><span>
-</span><a name="line-182"></a><span>    </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/io-sim-classes-0.1.0.0/noopt/doc/html/io-sim-classes/src/Control.Monad.Class.MonadSTM.html#atomically"><span class="hs-identifier hs-var">atomically</span></a><span> </span><span class="hs-operator hs-var">$</span><span> </span><span class="hs-keyword">do</span><span>
-</span><a name="line-183"></a><span>      </span><a name="local-6989586621679158216"><a href="#local-6989586621679158216"><span class="hs-identifier">now</span></a></a><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="hs-identifier">getCurrentTick</span><span> </span><a href="#local-6989586621679158213"><span class="hs-identifier hs-var">clock</span></a><span>
-</span><a name="line-184"></a><span>      </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/io-sim-classes-0.1.0.0/noopt/doc/html/io-sim-classes/src/Control.Monad.Class.MonadSTM.html#check"><span class="hs-identifier hs-var">check</span></a><span> </span><span class="hs-special">(</span><a href="#local-6989586621679158216"><span class="hs-identifier hs-var">now</span></a><span> </span><span class="hs-operator hs-var">&gt;=</span><span> </span><a href="#local-6989586621679158214"><span class="hs-identifier hs-var">tick</span></a><span class="hs-special">)</span><span>
-</span><a name="line-185"></a><span>
-</span><a name="line-186"></a><span class="hs-comment">-- | Thrown by 'waitForTick' (and hence 'onTick')</span><span>
-</span><a name="line-187"></a><span class="hs-keyword">data</span><span> </span><a name="WaitForTickException"><a href="Test.Util.LogicalClock.html#WaitForTickException"><span class="hs-identifier">WaitForTickException</span></a></a><span> </span><span class="hs-glyph">=</span><span>
-</span><a name="line-188"></a><span>    </span><a name="WaitForTickTooLate"><a href="Test.Util.LogicalClock.html#WaitForTickTooLate"><span class="hs-identifier">WaitForTickTooLate</span></a></a><span> </span><span class="hs-special">{</span><span>
-</span><a name="line-189"></a><span>        </span><span class="hs-comment">-- | The time the action should have run at</span><span>
-</span><a name="line-190"></a><span>        </span><a name="tickRequest"><a href="Test.Util.LogicalClock.html#tickRequest"><span class="hs-identifier">tickRequest</span></a></a><span> </span><span class="hs-glyph">::</span><span> </span><a href="Test.Util.LogicalClock.html#Tick"><span class="hs-identifier hs-type">Tick</span></a><span>
-</span><a name="line-191"></a><span>
-</span><a name="line-192"></a><span>        </span><span class="hs-comment">-- | The time when 'onTick' was called</span><span>
-</span><a name="line-193"></a><span>      </span><span class="hs-special">,</span><span> </span><a name="tickCurrent"><a href="Test.Util.LogicalClock.html#tickCurrent"><span class="hs-identifier">tickCurrent</span></a></a><span> </span><span class="hs-glyph">::</span><span> </span><a href="Test.Util.LogicalClock.html#Tick"><span class="hs-identifier hs-type">Tick</span></a><span>
-</span><a name="line-194"></a><span>      </span><span class="hs-special">}</span><span>
-</span><a name="line-195"></a><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Eq</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Show</span><span class="hs-special">)</span><span>
-</span><a name="line-196"></a><span>
-</span><a name="line-197"></a><span class="hs-keyword">instance</span><span> </span><span class="hs-identifier hs-type">Exception</span><span> </span><a href="Test.Util.LogicalClock.html#WaitForTickException"><span class="hs-identifier hs-type">WaitForTickException</span></a><span>
-</span><a name="line-198"></a></pre></body></html>
+</span><span id="line-135"></span><span>
+</span><span id="line-136"></span><span class="hs-comment">-- | Generalization of 'new' that allows to override the 'tickDelay'</span><span>
+</span><span id="line-137"></span><span class="hs-comment">--</span><span>
+</span><span id="line-138"></span><span class="hs-comment">-- NOTE: Tests using the logical clock really should not need to know what the</span><span>
+</span><span id="line-139"></span><span class="hs-comment">-- tick delay is; that's kind of the point of a /logical/ clock after all.</span><span>
+</span><span id="line-140"></span><span id="local-6989586621679250700"><span class="annot"><a href="Test.Util.LogicalClock.html#newWithDelay"><span class="hs-identifier hs-type">newWithDelay</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier hs-type">IOLike</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679250700"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">HasCallStack</span></span><span class="hs-special">)</span><span>
+</span><span id="line-141"></span><span>             </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier hs-type">ResourceRegistry</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679250700"><span class="hs-identifier hs-type">m</span></a></span><span>
+</span><span id="line-142"></span><span>             </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Test.Util.LogicalClock.html#NumTicks"><span class="hs-identifier hs-type">NumTicks</span></a></span><span>
+</span><span id="line-143"></span><span>             </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">NominalDiffTime</span></span><span>
+</span><span id="line-144"></span><span>             </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679250700"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Test.Util.LogicalClock.html#LogicalClock"><span class="hs-identifier hs-type">LogicalClock</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679250700"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span></span><span>
+</span><span id="line-145"></span><span id="newWithDelay"><span class="annot"><span class="annottext">newWithDelay :: ResourceRegistry m
+-&gt; NumTicks -&gt; NominalDiffTime -&gt; m (LogicalClock m)
+</span><a href="Test.Util.LogicalClock.html#newWithDelay"><span class="hs-identifier hs-var hs-var">newWithDelay</span></a></span></span><span> </span><span id="local-6989586621679250497"><span class="annot"><span class="annottext">ResourceRegistry m
+</span><a href="#local-6989586621679250497"><span class="hs-identifier hs-var">registry</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Test.Util.LogicalClock.html#NumTicks"><span class="hs-identifier hs-type">NumTicks</span></a></span><span> </span><span id="local-6989586621679250496"><span class="annot"><span class="annottext">Word64
+</span><a href="#local-6989586621679250496"><span class="hs-identifier hs-var">numTicks</span></a></span></span><span class="hs-special">)</span><span> </span><span id="local-6989586621679250495"><span class="annot"><span class="annottext">NominalDiffTime
+</span><a href="#local-6989586621679250495"><span class="hs-identifier hs-var">tickLen</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-146"></span><span>    </span><span id="local-6989586621679250494"><span class="annot"><span class="annottext">StrictTVar m Word64
+</span><a href="#local-6989586621679250494"><span class="hs-identifier hs-var">current</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Word64 -&gt; m (StrictTVar m Word64)
+forall (m :: * -&gt; *) a.
+(MonadSTM m, HasCallStack, NoThunks a) =&gt;
+a -&gt; m (StrictTVar m a)
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier hs-var">newTVarIO</span></a></span><span> </span><span class="annot"><span class="annottext">Word64
+</span><span class="hs-number">0</span></span><span>
+</span><span id="line-147"></span><span>    </span><span id="local-6989586621679250492"><span class="annot"><span class="annottext">StrictMVar m ()
+</span><a href="#local-6989586621679250492"><span class="hs-identifier hs-var">done</span></a></span></span><span>    </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">() -&gt; m (StrictMVar m ())
+forall (m :: * -&gt; *) a.
+(MonadSTM m, NoThunks a) =&gt;
+a -&gt; m (StrictMVar m a)
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier hs-var">newEmptyMVar</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
+</span><span id="line-148"></span><span>    </span><span id="local-6989586621679250490"><span class="annot"><span class="annottext">Thread m ()
+</span><a href="#local-6989586621679250490"><span class="hs-identifier hs-var">_thread</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">ResourceRegistry m -&gt; String -&gt; m () -&gt; m (Thread m ())
+forall (m :: * -&gt; *) a.
+(IOLike m, HasCallStack) =&gt;
+ResourceRegistry m -&gt; String -&gt; m a -&gt; m (Thread m a)
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier hs-var">forkThread</span></a></span><span> </span><span class="annot"><span class="annottext">ResourceRegistry m
+</span><a href="#local-6989586621679250497"><span class="hs-identifier hs-var">registry</span></a></span><span> </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;ticker&quot;</span></span><span> </span><span class="annot"><span class="annottext">(m () -&gt; m (Thread m ())) -&gt; m () -&gt; m (Thread m ())
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-149"></span><span>                 </span><span class="hs-comment">-- Tick 0 is the first tick, so increment @numTicks - 1@ times</span><span>
+</span><span id="line-150"></span><span>                 </span><span class="annot"><span class="annottext">Int -&gt; m () -&gt; m ()
+forall (m :: * -&gt; *) a. Applicative m =&gt; Int -&gt; m a -&gt; m ()
+</span><span class="hs-identifier hs-var">replicateM_</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Word64 -&gt; Int
+forall a b. (Integral a, Num b) =&gt; a -&gt; b
+</span><span class="hs-identifier hs-var">fromIntegral</span></span><span> </span><span class="annot"><span class="annottext">Word64
+</span><a href="#local-6989586621679250496"><span class="hs-identifier hs-var">numTicks</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-glyph hs-var">-</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">1</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(m () -&gt; m ()) -&gt; m () -&gt; m ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-151"></span><span>                   </span><span class="hs-comment">-- Give simulator chance to execute other threads</span><span>
+</span><span id="line-152"></span><span>                   </span><span class="annot"><span class="annottext">DiffTime -&gt; m ()
+forall (m :: * -&gt; *). MonadDelay m =&gt; DiffTime -&gt; m ()
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/io-sim-classes-0.2.0.0/noopt/doc/html/io-sim-classes/src"><span class="hs-identifier hs-var">threadDelay</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">NominalDiffTime -&gt; DiffTime
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier hs-var">nominalDelay</span></a></span><span> </span><span class="annot"><span class="annottext">NominalDiffTime
+</span><a href="#local-6989586621679250495"><span class="hs-identifier hs-var">tickLen</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-153"></span><span>                   </span><span class="annot"><span class="annottext">STM m () -&gt; m ()
+forall (m :: * -&gt; *) a.
+(MonadSTM m, HasCallStack) =&gt;
+STM m a -&gt; m a
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/io-sim-classes-0.2.0.0/noopt/doc/html/io-sim-classes/src"><span class="hs-identifier hs-var">atomically</span></a></span><span> </span><span class="annot"><span class="annottext">(STM m () -&gt; m ()) -&gt; STM m () -&gt; m ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">StrictTVar m Word64 -&gt; (Word64 -&gt; Word64) -&gt; STM m ()
+forall (m :: * -&gt; *) a.
+MonadSTM m =&gt;
+StrictTVar m a -&gt; (a -&gt; a) -&gt; STM m ()
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/io-sim-classes-0.2.0.0/noopt/doc/html/io-sim-classes/src"><span class="hs-identifier hs-var">modifyTVar</span></a></span><span> </span><span class="annot"><span class="annottext">StrictTVar m Word64
+</span><a href="#local-6989586621679250494"><span class="hs-identifier hs-var">current</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Word64 -&gt; Word64 -&gt; Word64
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="annottext">Word64
+</span><span class="hs-number">1</span></span><span class="hs-special">)</span><span>
+</span><span id="line-154"></span><span>
+</span><span id="line-155"></span><span>                 </span><span class="hs-comment">-- Give tests that need to do some final processing on the last</span><span>
+</span><span id="line-156"></span><span>                 </span><span class="hs-comment">-- tick a chance to do that before we indicate completion.</span><span>
+</span><span id="line-157"></span><span>                 </span><span class="annot"><span class="annottext">DiffTime -&gt; m ()
+forall (m :: * -&gt; *). MonadDelay m =&gt; DiffTime -&gt; m ()
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/io-sim-classes-0.2.0.0/noopt/doc/html/io-sim-classes/src"><span class="hs-identifier hs-var">threadDelay</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">NominalDiffTime -&gt; DiffTime
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier hs-var">nominalDelay</span></a></span><span> </span><span class="annot"><span class="annottext">NominalDiffTime
+</span><a href="#local-6989586621679250495"><span class="hs-identifier hs-var">tickLen</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-158"></span><span>                 </span><span class="annot"><span class="annottext">StrictMVar m () -&gt; () -&gt; m ()
+forall (m :: * -&gt; *) a.
+(MonadSTM m, HasCallStack) =&gt;
+StrictMVar m a -&gt; a -&gt; m ()
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier hs-var">putMVar</span></a></span><span> </span><span class="annot"><span class="annottext">StrictMVar m ()
+</span><a href="#local-6989586621679250492"><span class="hs-identifier hs-var">done</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
+</span><span id="line-159"></span><span>
+</span><span id="line-160"></span><span>    </span><span class="annot"><span class="annottext">LogicalClock m -&gt; m (LogicalClock m)
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">LogicalClock :: forall (m :: * -&gt; *).
+STM m Tick -&gt; m () -&gt; SystemTime m -&gt; LogicalClock m
+</span><a href="Test.Util.LogicalClock.html#LogicalClock"><span class="hs-identifier hs-type">LogicalClock</span></a></span><span> </span><span class="hs-special">{</span><span>
+</span><span id="line-161"></span><span>        </span><span class="annot"><span class="annottext">getCurrentTick :: STM m Tick
+</span><a href="Test.Util.LogicalClock.html#getCurrentTick"><span class="hs-identifier hs-var">getCurrentTick</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Word64 -&gt; Tick
+</span><a href="Test.Util.LogicalClock.html#Tick"><span class="hs-identifier hs-var">Tick</span></a></span><span> </span><span class="annot"><span class="annottext">(Word64 -&gt; Tick) -&gt; STM m Word64 -&gt; STM m Tick
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">StrictTVar m Word64 -&gt; STM m Word64
+forall (m :: * -&gt; *) a. MonadSTM m =&gt; StrictTVar m a -&gt; STM m a
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/io-sim-classes-0.2.0.0/noopt/doc/html/io-sim-classes/src"><span class="hs-identifier hs-var">readTVar</span></a></span><span> </span><span class="annot"><span class="annottext">StrictTVar m Word64
+</span><a href="#local-6989586621679250494"><span class="hs-identifier hs-var">current</span></a></span><span>
+</span><span id="line-162"></span><span>      </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">waitUntilDone :: m ()
+</span><a href="Test.Util.LogicalClock.html#waitUntilDone"><span class="hs-identifier hs-var">waitUntilDone</span></a></span><span>  </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">StrictMVar m () -&gt; m ()
+forall (m :: * -&gt; *) a. MonadSTM m =&gt; StrictMVar m a -&gt; m a
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier hs-var">readMVar</span></a></span><span> </span><span class="annot"><span class="annottext">StrictMVar m ()
+</span><a href="#local-6989586621679250492"><span class="hs-identifier hs-var">done</span></a></span><span>
+</span><span id="line-163"></span><span>      </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">mockSystemTime :: SystemTime m
+</span><a href="Test.Util.LogicalClock.html#mockSystemTime"><span class="hs-identifier hs-var">mockSystemTime</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">SystemTime :: forall (m :: * -&gt; *). m RelativeTime -&gt; m () -&gt; SystemTime m
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier hs-type">BTime.SystemTime</span></a></span><span> </span><span class="hs-special">{</span><span>
+</span><span id="line-164"></span><span>            </span><span class="annot"><span class="annottext">systemTimeCurrent :: m RelativeTime
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier hs-var">BTime.systemTimeCurrent</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-165"></span><span>              </span><span id="local-6989586621679250478"><span class="annot"><span class="annottext">Word64
+</span><a href="#local-6989586621679250478"><span class="hs-identifier hs-var">tick</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">STM m Word64 -&gt; m Word64
+forall (m :: * -&gt; *) a.
+(MonadSTM m, HasCallStack) =&gt;
+STM m a -&gt; m a
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/io-sim-classes-0.2.0.0/noopt/doc/html/io-sim-classes/src"><span class="hs-identifier hs-var">atomically</span></a></span><span> </span><span class="annot"><span class="annottext">(STM m Word64 -&gt; m Word64) -&gt; STM m Word64 -&gt; m Word64
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">StrictTVar m Word64 -&gt; STM m Word64
+forall (m :: * -&gt; *) a. MonadSTM m =&gt; StrictTVar m a -&gt; STM m a
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/io-sim-classes-0.2.0.0/noopt/doc/html/io-sim-classes/src"><span class="hs-identifier hs-var">readTVar</span></a></span><span> </span><span class="annot"><span class="annottext">StrictTVar m Word64
+</span><a href="#local-6989586621679250494"><span class="hs-identifier hs-var">current</span></a></span><span>
+</span><span id="line-166"></span><span>              </span><span class="annot"><span class="annottext">RelativeTime -&gt; m RelativeTime
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">(RelativeTime -&gt; m RelativeTime) -&gt; RelativeTime -&gt; m RelativeTime
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">NominalDiffTime -&gt; RelativeTime
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier hs-var">BTime.RelativeTime</span></a></span><span> </span><span class="annot"><span class="annottext">(NominalDiffTime -&gt; RelativeTime)
+-&gt; NominalDiffTime -&gt; RelativeTime
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Word64 -&gt; NominalDiffTime
+forall a b. (Integral a, Num b) =&gt; a -&gt; b
+</span><span class="hs-identifier hs-var">fromIntegral</span></span><span> </span><span class="annot"><span class="annottext">Word64
+</span><a href="#local-6989586621679250478"><span class="hs-identifier hs-var">tick</span></a></span><span> </span><span class="annot"><span class="annottext">NominalDiffTime -&gt; NominalDiffTime -&gt; NominalDiffTime
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">*</span></span><span> </span><span class="annot"><span class="annottext">NominalDiffTime
+</span><a href="#local-6989586621679250495"><span class="hs-identifier hs-var">tickLen</span></a></span><span>
+</span><span id="line-167"></span><span>          </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">systemTimeWait :: m ()
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier hs-var">BTime.systemTimeWait</span></a></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-168"></span><span>              </span><span class="annot"><span class="annottext">() -&gt; m ()
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
+</span><span id="line-169"></span><span>          </span><span class="hs-special">}</span><span>
+</span><span id="line-170"></span><span>      </span><span class="hs-special">}</span><span>
+</span><span id="line-171"></span><span>
+</span><span id="line-172"></span><span class="hs-comment">-- | Wait for the specified tick (blocking the current thread)</span><span>
+</span><span id="line-173"></span><span id="local-6989586621679250666"><span class="annot"><a href="Test.Util.LogicalClock.html#waitForTick"><span class="hs-identifier hs-type">waitForTick</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier hs-type">IOLike</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679250666"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Test.Util.LogicalClock.html#LogicalClock"><span class="hs-identifier hs-type">LogicalClock</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679250666"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Test.Util.LogicalClock.html#Tick"><span class="hs-identifier hs-type">Tick</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679250666"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span></span><span>
+</span><span id="line-174"></span><span id="waitForTick"><span class="annot"><span class="annottext">waitForTick :: LogicalClock m -&gt; Tick -&gt; m ()
+</span><a href="Test.Util.LogicalClock.html#waitForTick"><span class="hs-identifier hs-var hs-var">waitForTick</span></a></span></span><span> </span><span id="local-6989586621679250474"><span class="annot"><span class="annottext">LogicalClock m
+</span><a href="#local-6989586621679250474"><span class="hs-identifier hs-var">clock</span></a></span></span><span> </span><span id="local-6989586621679250473"><span class="annot"><span class="annottext">Tick
+</span><a href="#local-6989586621679250473"><span class="hs-identifier hs-var">tick</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-175"></span><span>    </span><span id="local-6989586621679250472"><span class="annot"><span class="annottext">Tick
+</span><a href="#local-6989586621679250472"><span class="hs-identifier hs-var">start</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">STM m Tick -&gt; m Tick
+forall (m :: * -&gt; *) a.
+(MonadSTM m, HasCallStack) =&gt;
+STM m a -&gt; m a
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/io-sim-classes-0.2.0.0/noopt/doc/html/io-sim-classes/src"><span class="hs-identifier hs-var">atomically</span></a></span><span> </span><span class="annot"><span class="annottext">(STM m Tick -&gt; m Tick) -&gt; STM m Tick -&gt; m Tick
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">LogicalClock m -&gt; STM m Tick
+forall (m :: * -&gt; *). LogicalClock m -&gt; STM m Tick
+</span><a href="Test.Util.LogicalClock.html#getCurrentTick"><span class="hs-identifier hs-var hs-var">getCurrentTick</span></a></span><span> </span><span class="annot"><span class="annottext">LogicalClock m
+</span><a href="#local-6989586621679250474"><span class="hs-identifier hs-var">clock</span></a></span><span>
+</span><span id="line-176"></span><span>    </span><span class="annot"><span class="annottext">Bool -&gt; m () -&gt; m ()
+forall (f :: * -&gt; *). Applicative f =&gt; Bool -&gt; f () -&gt; f ()
+</span><span class="hs-identifier hs-var">when</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Tick
+</span><a href="#local-6989586621679250472"><span class="hs-identifier hs-var">start</span></a></span><span> </span><span class="annot"><span class="annottext">Tick -&gt; Tick -&gt; Bool
+forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">&gt;=</span></span><span> </span><span class="annot"><span class="annottext">Tick
+</span><a href="#local-6989586621679250473"><span class="hs-identifier hs-var">tick</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(m () -&gt; m ()) -&gt; m () -&gt; m ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span>
+</span><span id="line-177"></span><span>      </span><span class="annot"><span class="annottext">WaitForTickException -&gt; m ()
+forall (m :: * -&gt; *) e a. (MonadThrow m, Exception e) =&gt; e -&gt; m a
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/io-sim-classes-0.2.0.0/noopt/doc/html/io-sim-classes/src"><span class="hs-identifier hs-var">throwIO</span></a></span><span> </span><span class="annot"><span class="annottext">(WaitForTickException -&gt; m ()) -&gt; WaitForTickException -&gt; m ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">WaitForTickTooLate :: Tick -&gt; Tick -&gt; WaitForTickException
+</span><a href="Test.Util.LogicalClock.html#WaitForTickTooLate"><span class="hs-identifier hs-type">WaitForTickTooLate</span></a></span><span> </span><span class="hs-special">{</span><span>
+</span><span id="line-178"></span><span>          </span><span class="annot"><span class="annottext">tickRequest :: Tick
+</span><a href="Test.Util.LogicalClock.html#tickRequest"><span class="hs-identifier hs-var">tickRequest</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Tick
+</span><a href="#local-6989586621679250473"><span class="hs-identifier hs-var">tick</span></a></span><span>
+</span><span id="line-179"></span><span>        </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">tickCurrent :: Tick
+</span><a href="Test.Util.LogicalClock.html#tickCurrent"><span class="hs-identifier hs-var">tickCurrent</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Tick
+</span><a href="#local-6989586621679250472"><span class="hs-identifier hs-var">start</span></a></span><span>
+</span><span id="line-180"></span><span>        </span><span class="hs-special">}</span><span>
+</span><span id="line-181"></span><span>
+</span><span id="line-182"></span><span>    </span><span class="annot"><span class="annottext">STM m () -&gt; m ()
+forall (m :: * -&gt; *) a.
+(MonadSTM m, HasCallStack) =&gt;
+STM m a -&gt; m a
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/io-sim-classes-0.2.0.0/noopt/doc/html/io-sim-classes/src"><span class="hs-identifier hs-var">atomically</span></a></span><span> </span><span class="annot"><span class="annottext">(STM m () -&gt; m ()) -&gt; STM m () -&gt; m ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-183"></span><span>      </span><span id="local-6989586621679250467"><span class="annot"><span class="annottext">Tick
+</span><a href="#local-6989586621679250467"><span class="hs-identifier hs-var">now</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">LogicalClock m -&gt; STM m Tick
+forall (m :: * -&gt; *). LogicalClock m -&gt; STM m Tick
+</span><a href="Test.Util.LogicalClock.html#getCurrentTick"><span class="hs-identifier hs-var hs-var">getCurrentTick</span></a></span><span> </span><span class="annot"><span class="annottext">LogicalClock m
+</span><a href="#local-6989586621679250474"><span class="hs-identifier hs-var">clock</span></a></span><span>
+</span><span id="line-184"></span><span>      </span><span class="annot"><span class="annottext">Bool -&gt; STM m ()
+forall (stm :: * -&gt; *). MonadSTMTx stm =&gt; Bool -&gt; stm ()
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/io-sim-classes-0.2.0.0/noopt/doc/html/io-sim-classes/src"><span class="hs-identifier hs-var">check</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Tick
+</span><a href="#local-6989586621679250467"><span class="hs-identifier hs-var">now</span></a></span><span> </span><span class="annot"><span class="annottext">Tick -&gt; Tick -&gt; Bool
+forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">&gt;=</span></span><span> </span><span class="annot"><span class="annottext">Tick
+</span><a href="#local-6989586621679250473"><span class="hs-identifier hs-var">tick</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-185"></span><span>
+</span><span id="line-186"></span><span class="hs-comment">-- | Thrown by 'waitForTick' (and hence 'onTick')</span><span>
+</span><span id="line-187"></span><span class="hs-keyword">data</span><span> </span><span id="WaitForTickException"><span class="annot"><a href="Test.Util.LogicalClock.html#WaitForTickException"><span class="hs-identifier hs-var">WaitForTickException</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-188"></span><span>    </span><span id="WaitForTickTooLate"><span class="annot"><a href="Test.Util.LogicalClock.html#WaitForTickTooLate"><span class="hs-identifier hs-var">WaitForTickTooLate</span></a></span></span><span> </span><span class="hs-special">{</span><span>
+</span><span id="line-189"></span><span>        </span><span class="hs-comment">-- | The time the action should have run at</span><span>
+</span><span id="line-190"></span><span>        </span><span id="tickRequest"><span class="annot"><span class="annottext">WaitForTickException -&gt; Tick
+</span><a href="Test.Util.LogicalClock.html#tickRequest"><span class="hs-identifier hs-var hs-var">tickRequest</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Test.Util.LogicalClock.html#Tick"><span class="hs-identifier hs-type">Tick</span></a></span><span>
+</span><span id="line-191"></span><span>
+</span><span id="line-192"></span><span>        </span><span class="hs-comment">-- | The time when 'onTick' was called</span><span>
+</span><span id="line-193"></span><span>      </span><span class="hs-special">,</span><span> </span><span id="tickCurrent"><span class="annot"><span class="annottext">WaitForTickException -&gt; Tick
+</span><a href="Test.Util.LogicalClock.html#tickCurrent"><span class="hs-identifier hs-var hs-var">tickCurrent</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Test.Util.LogicalClock.html#Tick"><span class="hs-identifier hs-type">Tick</span></a></span><span>
+</span><span id="line-194"></span><span>      </span><span class="hs-special">}</span><span>
+</span><span id="line-195"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679250462"><span id="local-6989586621679250464"><span class="annot"><span class="annottext">WaitForTickException -&gt; WaitForTickException -&gt; Bool
+(WaitForTickException -&gt; WaitForTickException -&gt; Bool)
+-&gt; (WaitForTickException -&gt; WaitForTickException -&gt; Bool)
+-&gt; Eq WaitForTickException
+forall a. (a -&gt; a -&gt; Bool) -&gt; (a -&gt; a -&gt; Bool) -&gt; Eq a
+/= :: WaitForTickException -&gt; WaitForTickException -&gt; Bool
+$c/= :: WaitForTickException -&gt; WaitForTickException -&gt; Bool
+== :: WaitForTickException -&gt; WaitForTickException -&gt; Bool
+$c== :: WaitForTickException -&gt; WaitForTickException -&gt; Bool
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679250456"><span id="local-6989586621679250458"><span id="local-6989586621679250460"><span class="annot"><span class="annottext">Int -&gt; WaitForTickException -&gt; ShowS
+[WaitForTickException] -&gt; ShowS
+WaitForTickException -&gt; String
+(Int -&gt; WaitForTickException -&gt; ShowS)
+-&gt; (WaitForTickException -&gt; String)
+-&gt; ([WaitForTickException] -&gt; ShowS)
+-&gt; Show WaitForTickException
+forall a.
+(Int -&gt; a -&gt; ShowS) -&gt; (a -&gt; String) -&gt; ([a] -&gt; ShowS) -&gt; Show a
+showList :: [WaitForTickException] -&gt; ShowS
+$cshowList :: [WaitForTickException] -&gt; ShowS
+show :: WaitForTickException -&gt; String
+$cshow :: WaitForTickException -&gt; String
+showsPrec :: Int -&gt; WaitForTickException -&gt; ShowS
+$cshowsPrec :: Int -&gt; WaitForTickException -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">)</span><span>
+</span><span id="line-196"></span><span>
+</span><span id="line-197"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679250448"><span id="local-6989586621679250450"><span id="local-6989586621679250452"><span class="annot"><span class="hs-identifier hs-type">Exception</span></span><span> </span><span class="annot"><a href="Test.Util.LogicalClock.html#WaitForTickException"><span class="hs-identifier hs-type">WaitForTickException</span></a></span></span></span></span><span>
+</span><span id="line-198"></span></pre></body></html>

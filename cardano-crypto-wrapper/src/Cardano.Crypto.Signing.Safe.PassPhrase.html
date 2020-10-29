@@ -1,64 +1,281 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-pragma">{-# LANGUAGE GeneralizedNewtypeDeriving #-}</span><span>
-</span><a name="line-2"></a><span class="hs-pragma">{-# LANGUAGE OverloadedStrings          #-}</span><span>
-</span><a name="line-3"></a><span class="hs-pragma">{-# LANGUAGE TypeApplications           #-}</span><span>
-</span><a name="line-4"></a><span>
-</span><a name="line-5"></a><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Cardano.Crypto.Signing.Safe.PassPhrase</span><span>
-</span><a name="line-6"></a><span>  </span><span class="hs-special">(</span><span> </span><a href="Cardano.Crypto.Signing.Safe.PassPhrase.html#PassPhrase"><span class="hs-identifier hs-type">PassPhrase</span></a><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
-</span><a name="line-7"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Cardano.Crypto.Signing.Safe.PassPhrase.html#emptyPassphrase"><span class="hs-identifier hs-var">emptyPassphrase</span></a><span>
-</span><a name="line-8"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Cardano.Crypto.Signing.Safe.PassPhrase.html#passphraseLength"><span class="hs-identifier hs-var">passphraseLength</span></a><span>
-</span><a name="line-9"></a><span>  </span><span class="hs-special">)</span><span>
-</span><a name="line-10"></a><span class="hs-keyword">where</span><span>
-</span><a name="line-11"></a><span>
-</span><a name="line-12"></a><span class="hs-keyword">import</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-prelude-0.1.0.0/noopt/doc/html/cardano-prelude/src/Cardano.Prelude.html"><span class="hs-identifier">Cardano.Prelude</span></a><span>
-</span><a name="line-13"></a><span>
-</span><a name="line-14"></a><span class="hs-keyword">import</span><span> </span><span class="hs-identifier">Data.ByteArray</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">ByteArray</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">ByteArrayAccess</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">ScrubbedBytes</span><span class="hs-special">)</span><span>
-</span><a name="line-15"></a><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-identifier">Data.ByteArray</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">ByteArray</span><span>
-</span><a name="line-16"></a><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-identifier">Data.ByteString</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">BS</span><span>
-</span><a name="line-17"></a><span class="hs-keyword">import</span><span> </span><span class="hs-identifier">Data.Default</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Default</span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
-</span><a name="line-18"></a><span class="hs-keyword">import</span><span> </span><span class="hs-identifier">Formatting</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-var">int</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-var">sformat</span><span class="hs-special">)</span><span>
-</span><a name="line-19"></a><span class="hs-keyword">import</span><span> </span><span class="hs-identifier">Formatting.Buildable</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Buildable</span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
-</span><a name="line-20"></a><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-identifier">Prelude</span><span>
-</span><a name="line-21"></a><span>
-</span><a name="line-22"></a><span class="hs-keyword">import</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.html"><span class="hs-identifier">Cardano.Binary</span></a><span> </span><span class="hs-special">(</span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.FromCBOR.html#FromCBOR"><span class="hs-identifier hs-type">FromCBOR</span></a><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.ToCBOR.html#ToCBOR"><span class="hs-identifier hs-type">ToCBOR</span></a><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
-</span><a name="line-23"></a><span>
-</span><a name="line-24"></a><span>
-</span><a name="line-25"></a><span class="hs-keyword">newtype</span><span> </span><a name="PassPhrase"><a href="Cardano.Crypto.Signing.Safe.PassPhrase.html#PassPhrase"><span class="hs-identifier">PassPhrase</span></a></a><span> </span><span class="hs-glyph">=</span><span>
-</span><a name="line-26"></a><span>  </span><a name="PassPhrase"><a href="Cardano.Crypto.Signing.Safe.PassPhrase.html#PassPhrase"><span class="hs-identifier">PassPhrase</span></a></a><span> </span><span class="hs-identifier hs-type">ScrubbedBytes</span><span>
-</span><a name="line-27"></a><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Eq</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Ord</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Semigroup</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Monoid</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">NFData</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">ByteArray</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">ByteArrayAccess</span><span class="hs-special">)</span><span>
-</span><a name="line-28"></a><span>
-</span><a name="line-29"></a><span class="hs-identifier">passphraseLength</span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">Int</span><span>
-</span><a name="line-30"></a><a name="passphraseLength"><a href="Cardano.Crypto.Signing.Safe.PassPhrase.html#passphraseLength"><span class="hs-identifier">passphraseLength</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-number">32</span><span>
-</span><a name="line-31"></a><span>
-</span><a name="line-32"></a><span class="hs-comment">-- | Empty passphrase used in development</span><span>
-</span><a name="line-33"></a><span class="hs-identifier">emptyPassphrase</span><span> </span><span class="hs-glyph">::</span><span> </span><a href="Cardano.Crypto.Signing.Safe.PassPhrase.html#PassPhrase"><span class="hs-identifier hs-type">PassPhrase</span></a><span>
-</span><a name="line-34"></a><a name="emptyPassphrase"><a href="Cardano.Crypto.Signing.Safe.PassPhrase.html#emptyPassphrase"><span class="hs-identifier">emptyPassphrase</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><a href="Cardano.Crypto.Signing.Safe.PassPhrase.html#PassPhrase"><span class="hs-identifier hs-var">PassPhrase</span></a><span> </span><span class="hs-identifier hs-var">mempty</span><span>
-</span><a name="line-35"></a><span>
-</span><a name="line-36"></a><span class="hs-keyword">instance</span><span> </span><span class="hs-identifier hs-type">Show</span><span> </span><a href="Cardano.Crypto.Signing.Safe.PassPhrase.html#PassPhrase"><span class="hs-identifier hs-type">PassPhrase</span></a><span> </span><span class="hs-keyword">where</span><span>
-</span><a name="line-37"></a><span>  </span><a name="local-8214565720323790323"><span class="hs-identifier">show</span></a><span> </span><span class="hs-identifier">_</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-string">&quot;&lt;passphrase&gt;&quot;</span><span>
-</span><a name="line-38"></a><span>
-</span><a name="line-39"></a><span class="hs-keyword">instance</span><span> </span><span class="hs-identifier hs-type">Buildable</span><span> </span><a href="Cardano.Crypto.Signing.Safe.PassPhrase.html#PassPhrase"><span class="hs-identifier hs-type">PassPhrase</span></a><span> </span><span class="hs-keyword">where</span><span>
-</span><a name="line-40"></a><span>  </span><a name="local-8214565720323799971"><span class="hs-identifier">build</span></a><span> </span><span class="hs-identifier">_</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-string">&quot;&lt;passphrase&gt;&quot;</span><span>
-</span><a name="line-41"></a><span>
-</span><a name="line-42"></a><span class="hs-keyword">instance</span><span> </span><span class="hs-identifier hs-type">Default</span><span> </span><a href="Cardano.Crypto.Signing.Safe.PassPhrase.html#PassPhrase"><span class="hs-identifier hs-type">PassPhrase</span></a><span> </span><span class="hs-keyword">where</span><span>
-</span><a name="line-43"></a><span>  </span><a name="local-8214565720323935873"><span class="hs-identifier">def</span></a><span> </span><span class="hs-glyph">=</span><span> </span><a href="Cardano.Crypto.Signing.Safe.PassPhrase.html#emptyPassphrase"><span class="hs-identifier hs-var">emptyPassphrase</span></a><span>
-</span><a name="line-44"></a><span>
-</span><a name="line-45"></a><span class="hs-keyword">instance</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.ToCBOR.html#ToCBOR"><span class="hs-identifier hs-type">ToCBOR</span></a><span> </span><a href="Cardano.Crypto.Signing.Safe.PassPhrase.html#PassPhrase"><span class="hs-identifier hs-type">PassPhrase</span></a><span> </span><span class="hs-keyword">where</span><span>
-</span><a name="line-46"></a><span>  </span><a name="local-8214565720323791715"><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.ToCBOR.html#toCBOR"><span class="hs-identifier">toCBOR</span></a></a><span> </span><a name="local-6989586621679161289"><a href="#local-6989586621679161289"><span class="hs-identifier">pp</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.ToCBOR.html#toCBOR"><span class="hs-identifier hs-var">toCBOR</span></a><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-var">ByteArray.convert</span><span> </span><a href="#local-6989586621679161289"><span class="hs-identifier hs-var">pp</span></a><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">ByteString</span><span class="hs-special">)</span><span>
-</span><a name="line-47"></a><span>
-</span><a name="line-48"></a><span class="hs-keyword">instance</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.FromCBOR.html#FromCBOR"><span class="hs-identifier hs-type">FromCBOR</span></a><span> </span><a href="Cardano.Crypto.Signing.Safe.PassPhrase.html#PassPhrase"><span class="hs-identifier hs-type">PassPhrase</span></a><span> </span><span class="hs-keyword">where</span><span>
-</span><a name="line-49"></a><span>  </span><a name="local-8214565720323791782"><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.FromCBOR.html#fromCBOR"><span class="hs-identifier">fromCBOR</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
-</span><a name="line-50"></a><span>    </span><a name="local-6989586621679161287"><a href="#local-6989586621679161287"><span class="hs-identifier">bs</span></a></a><span> </span><span class="hs-glyph">&lt;-</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.FromCBOR.html#fromCBOR"><span class="hs-identifier hs-var">fromCBOR</span></a><span> </span><span class="hs-glyph">@</span><span class="hs-identifier hs-type">ByteString</span><span>
-</span><a name="line-51"></a><span>    </span><span class="hs-keyword">let</span><span> </span><a name="local-6989586621679161288"><a href="#local-6989586621679161288"><span class="hs-identifier">bl</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-identifier hs-var">BS.length</span><span> </span><a href="#local-6989586621679161287"><span class="hs-identifier hs-var">bs</span></a><span>
-</span><a name="line-52"></a><span>    </span><span class="hs-comment">-- Currently passphrase may be either 32-byte long or empty (for</span><span>
-</span><a name="line-53"></a><span>    </span><span class="hs-comment">-- unencrypted keys).</span><span>
-</span><a name="line-54"></a><span>    </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-prelude-0.1.0.0/noopt/doc/html/cardano-prelude/src/Cardano.Prelude.Error.html#toCborError"><span class="hs-identifier hs-var">toCborError</span></a><span> </span><span class="hs-operator hs-var">$</span><span> </span><span class="hs-keyword">if</span><span> </span><a href="#local-6989586621679161288"><span class="hs-identifier hs-var">bl</span></a><span> </span><span class="hs-operator hs-var">==</span><span> </span><span class="hs-number">0</span><span> </span><span class="hs-operator hs-var">||</span><span> </span><a href="#local-6989586621679161288"><span class="hs-identifier hs-var">bl</span></a><span> </span><span class="hs-operator hs-var">==</span><span> </span><a href="Cardano.Crypto.Signing.Safe.PassPhrase.html#passphraseLength"><span class="hs-identifier hs-var">passphraseLength</span></a><span>
-</span><a name="line-55"></a><span>      </span><span class="hs-keyword">then</span><span> </span><span class="hs-identifier hs-var">Right</span><span> </span><span class="hs-operator hs-var">$</span><span> </span><span class="hs-identifier hs-var">ByteArray.convert</span><span> </span><a href="#local-6989586621679161287"><span class="hs-identifier hs-var">bs</span></a><span>
-</span><a name="line-56"></a><span>      </span><span class="hs-keyword">else</span><span> </span><span class="hs-identifier hs-var">Left</span><span> </span><span class="hs-operator hs-var">$</span><span> </span><span class="hs-identifier hs-var">sformat</span><span>
-</span><a name="line-57"></a><span>        </span><span class="hs-special">(</span><span class="hs-string">&quot;put@PassPhrase: expected length 0 or &quot;</span><span> </span><span class="hs-operator hs-var">.</span><span> </span><span class="hs-identifier hs-var">int</span><span> </span><span class="hs-operator hs-var">.</span><span> </span><span class="hs-string">&quot;, not &quot;</span><span> </span><span class="hs-operator hs-var">.</span><span> </span><span class="hs-identifier hs-var">int</span><span class="hs-special">)</span><span>
-</span><a name="line-58"></a><span>        </span><a href="Cardano.Crypto.Signing.Safe.PassPhrase.html#passphraseLength"><span class="hs-identifier hs-var">passphraseLength</span></a><span>
-</span><a name="line-59"></a><span>        </span><a href="#local-6989586621679161288"><span class="hs-identifier hs-var">bl</span></a><span>
-</span><a name="line-60"></a><span>
-</span><a name="line-61"></a><span class="hs-comment">{-instance Monoid PassPhrase where
+</span><span id="line-2"></span><span class="hs-pragma">{-# LANGUAGE OverloadedStrings          #-}</span><span>
+</span><span id="line-3"></span><span class="hs-pragma">{-# LANGUAGE TypeApplications           #-}</span><span>
+</span><span id="line-4"></span><span>
+</span><span id="line-5"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Cardano.Crypto.Signing.Safe.PassPhrase</span><span>
+</span><span id="line-6"></span><span>  </span><span class="hs-special">(</span><span> </span><span class="annot"><a href="Cardano.Crypto.Signing.Safe.PassPhrase.html#PassPhrase"><span class="hs-identifier">PassPhrase</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
+</span><span id="line-7"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cardano.Crypto.Signing.Safe.PassPhrase.html#emptyPassphrase"><span class="hs-identifier">emptyPassphrase</span></a></span><span>
+</span><span id="line-8"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cardano.Crypto.Signing.Safe.PassPhrase.html#passphraseLength"><span class="hs-identifier">passphraseLength</span></a></span><span>
+</span><span id="line-9"></span><span>  </span><span class="hs-special">)</span><span>
+</span><span id="line-10"></span><span class="hs-keyword">where</span><span>
+</span><span id="line-11"></span><span>
+</span><span id="line-12"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-prelude-0.1.0.0/noopt/doc/html/cardano-prelude/src"><span class="hs-identifier">Cardano.Prelude</span></a></span><span>
+</span><span id="line-13"></span><span>
+</span><span id="line-14"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.ByteArray</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">ByteArray</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">ByteArrayAccess</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">ScrubbedBytes</span></span><span class="hs-special">)</span><span>
+</span><span id="line-15"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Data.ByteArray</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">ByteArray</span></span><span>
+</span><span id="line-16"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Data.ByteString</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">BS</span></span><span>
+</span><span id="line-17"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Default</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Default</span></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-18"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Formatting</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">int</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">sformat</span></span><span class="hs-special">)</span><span>
+</span><span id="line-19"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Formatting.Buildable</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Buildable</span></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-20"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Prelude</span></span><span>
+</span><span id="line-21"></span><span>
+</span><span id="line-22"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src"><span class="hs-identifier">Cardano.Binary</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src"><span class="hs-identifier">FromCBOR</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src"><span class="hs-identifier">ToCBOR</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-23"></span><span>
+</span><span id="line-24"></span><span>
+</span><span id="line-25"></span><span class="hs-keyword">newtype</span><span> </span><span id="PassPhrase"><span class="annot"><a href="Cardano.Crypto.Signing.Safe.PassPhrase.html#PassPhrase"><span class="hs-identifier hs-var">PassPhrase</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-26"></span><span>  </span><span id="PassPhrase"><span class="annot"><a href="Cardano.Crypto.Signing.Safe.PassPhrase.html#PassPhrase"><span class="hs-identifier hs-var">PassPhrase</span></a></span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">ScrubbedBytes</span></span><span>
+</span><span id="line-27"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679146299"><span id="local-6989586621679146301"><span class="annot"><span class="annottext">PassPhrase -&gt; PassPhrase -&gt; Bool
+(PassPhrase -&gt; PassPhrase -&gt; Bool)
+-&gt; (PassPhrase -&gt; PassPhrase -&gt; Bool) -&gt; Eq PassPhrase
+forall a. (a -&gt; a -&gt; Bool) -&gt; (a -&gt; a -&gt; Bool) -&gt; Eq a
+/= :: PassPhrase -&gt; PassPhrase -&gt; Bool
+$c/= :: PassPhrase -&gt; PassPhrase -&gt; Bool
+== :: PassPhrase -&gt; PassPhrase -&gt; Bool
+$c== :: PassPhrase -&gt; PassPhrase -&gt; Bool
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679146283"><span id="local-6989586621679146285"><span id="local-6989586621679146287"><span id="local-6989586621679146289"><span id="local-6989586621679146291"><span id="local-6989586621679146293"><span id="local-6989586621679146295"><span class="annot"><span class="annottext">Eq PassPhrase
+Eq PassPhrase
+-&gt; (PassPhrase -&gt; PassPhrase -&gt; Ordering)
+-&gt; (PassPhrase -&gt; PassPhrase -&gt; Bool)
+-&gt; (PassPhrase -&gt; PassPhrase -&gt; Bool)
+-&gt; (PassPhrase -&gt; PassPhrase -&gt; Bool)
+-&gt; (PassPhrase -&gt; PassPhrase -&gt; Bool)
+-&gt; (PassPhrase -&gt; PassPhrase -&gt; PassPhrase)
+-&gt; (PassPhrase -&gt; PassPhrase -&gt; PassPhrase)
+-&gt; Ord PassPhrase
+PassPhrase -&gt; PassPhrase -&gt; Bool
+PassPhrase -&gt; PassPhrase -&gt; Ordering
+PassPhrase -&gt; PassPhrase -&gt; PassPhrase
+forall a.
+Eq a
+-&gt; (a -&gt; a -&gt; Ordering)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; a)
+-&gt; (a -&gt; a -&gt; a)
+-&gt; Ord a
+min :: PassPhrase -&gt; PassPhrase -&gt; PassPhrase
+$cmin :: PassPhrase -&gt; PassPhrase -&gt; PassPhrase
+max :: PassPhrase -&gt; PassPhrase -&gt; PassPhrase
+$cmax :: PassPhrase -&gt; PassPhrase -&gt; PassPhrase
+&gt;= :: PassPhrase -&gt; PassPhrase -&gt; Bool
+$c&gt;= :: PassPhrase -&gt; PassPhrase -&gt; Bool
+&gt; :: PassPhrase -&gt; PassPhrase -&gt; Bool
+$c&gt; :: PassPhrase -&gt; PassPhrase -&gt; Bool
+&lt;= :: PassPhrase -&gt; PassPhrase -&gt; Bool
+$c&lt;= :: PassPhrase -&gt; PassPhrase -&gt; Bool
+&lt; :: PassPhrase -&gt; PassPhrase -&gt; Bool
+$c&lt; :: PassPhrase -&gt; PassPhrase -&gt; Bool
+compare :: PassPhrase -&gt; PassPhrase -&gt; Ordering
+$ccompare :: PassPhrase -&gt; PassPhrase -&gt; Ordering
+$cp1Ord :: Eq PassPhrase
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Ord</span></span></span></span></span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679146276"><span id="local-6989586621679146278"><span id="local-6989586621679146280"><span class="annot"><span class="annottext">b -&gt; PassPhrase -&gt; PassPhrase
+NonEmpty PassPhrase -&gt; PassPhrase
+PassPhrase -&gt; PassPhrase -&gt; PassPhrase
+(PassPhrase -&gt; PassPhrase -&gt; PassPhrase)
+-&gt; (NonEmpty PassPhrase -&gt; PassPhrase)
+-&gt; (forall b. Integral b =&gt; b -&gt; PassPhrase -&gt; PassPhrase)
+-&gt; Semigroup PassPhrase
+forall b. Integral b =&gt; b -&gt; PassPhrase -&gt; PassPhrase
+forall a.
+(a -&gt; a -&gt; a)
+-&gt; (NonEmpty a -&gt; a)
+-&gt; (forall b. Integral b =&gt; b -&gt; a -&gt; a)
+-&gt; Semigroup a
+stimes :: b -&gt; PassPhrase -&gt; PassPhrase
+$cstimes :: forall b. Integral b =&gt; b -&gt; PassPhrase -&gt; PassPhrase
+sconcat :: NonEmpty PassPhrase -&gt; PassPhrase
+$csconcat :: NonEmpty PassPhrase -&gt; PassPhrase
+&lt;&gt; :: PassPhrase -&gt; PassPhrase -&gt; PassPhrase
+$c&lt;&gt; :: PassPhrase -&gt; PassPhrase -&gt; PassPhrase
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Semigroup</span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679146268"><span id="local-6989586621679146270"><span id="local-6989586621679146272"><span class="annot"><span class="annottext">Semigroup PassPhrase
+PassPhrase
+Semigroup PassPhrase
+-&gt; PassPhrase
+-&gt; (PassPhrase -&gt; PassPhrase -&gt; PassPhrase)
+-&gt; ([PassPhrase] -&gt; PassPhrase)
+-&gt; Monoid PassPhrase
+[PassPhrase] -&gt; PassPhrase
+PassPhrase -&gt; PassPhrase -&gt; PassPhrase
+forall a.
+Semigroup a -&gt; a -&gt; (a -&gt; a -&gt; a) -&gt; ([a] -&gt; a) -&gt; Monoid a
+mconcat :: [PassPhrase] -&gt; PassPhrase
+$cmconcat :: [PassPhrase] -&gt; PassPhrase
+mappend :: PassPhrase -&gt; PassPhrase -&gt; PassPhrase
+$cmappend :: PassPhrase -&gt; PassPhrase -&gt; PassPhrase
+mempty :: PassPhrase
+$cmempty :: PassPhrase
+$cp1Monoid :: Semigroup PassPhrase
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Monoid</span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679146265"><span class="annot"><span class="annottext">PassPhrase -&gt; ()
+(PassPhrase -&gt; ()) -&gt; NFData PassPhrase
+forall a. (a -&gt; ()) -&gt; NFData a
+rnf :: PassPhrase -&gt; ()
+$crnf :: PassPhrase -&gt; ()
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">NFData</span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679146258"><span class="annot"><span class="annottext">Eq PassPhrase
+Ord PassPhrase
+Monoid PassPhrase
+ByteArrayAccess PassPhrase
+Eq PassPhrase
+-&gt; Ord PassPhrase
+-&gt; Monoid PassPhrase
+-&gt; ByteArrayAccess PassPhrase
+-&gt; (forall p a. Int -&gt; (Ptr p -&gt; IO a) -&gt; IO (a, PassPhrase))
+-&gt; ByteArray PassPhrase
+Int -&gt; (Ptr p -&gt; IO a) -&gt; IO (a, PassPhrase)
+forall ba.
+Eq ba
+-&gt; Ord ba
+-&gt; Monoid ba
+-&gt; ByteArrayAccess ba
+-&gt; (forall p a. Int -&gt; (Ptr p -&gt; IO a) -&gt; IO (a, ba))
+-&gt; ByteArray ba
+forall p a. Int -&gt; (Ptr p -&gt; IO a) -&gt; IO (a, PassPhrase)
+allocRet :: Int -&gt; (Ptr p -&gt; IO a) -&gt; IO (a, PassPhrase)
+$callocRet :: forall p a. Int -&gt; (Ptr p -&gt; IO a) -&gt; IO (a, PassPhrase)
+$cp4ByteArray :: ByteArrayAccess PassPhrase
+$cp3ByteArray :: Monoid PassPhrase
+$cp2ByteArray :: Ord PassPhrase
+$cp1ByteArray :: Eq PassPhrase
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">ByteArray</span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679146251"><span id="local-6989586621679146253"><span id="local-6989586621679146255"><span class="annot"><span class="annottext">PassPhrase -&gt; Int
+PassPhrase -&gt; Ptr p -&gt; IO ()
+PassPhrase -&gt; (Ptr p -&gt; IO a) -&gt; IO a
+(PassPhrase -&gt; Int)
+-&gt; (forall p a. PassPhrase -&gt; (Ptr p -&gt; IO a) -&gt; IO a)
+-&gt; (forall p. PassPhrase -&gt; Ptr p -&gt; IO ())
+-&gt; ByteArrayAccess PassPhrase
+forall p. PassPhrase -&gt; Ptr p -&gt; IO ()
+forall ba.
+(ba -&gt; Int)
+-&gt; (forall p a. ba -&gt; (Ptr p -&gt; IO a) -&gt; IO a)
+-&gt; (forall p. ba -&gt; Ptr p -&gt; IO ())
+-&gt; ByteArrayAccess ba
+forall p a. PassPhrase -&gt; (Ptr p -&gt; IO a) -&gt; IO a
+copyByteArrayToPtr :: PassPhrase -&gt; Ptr p -&gt; IO ()
+$ccopyByteArrayToPtr :: forall p. PassPhrase -&gt; Ptr p -&gt; IO ()
+withByteArray :: PassPhrase -&gt; (Ptr p -&gt; IO a) -&gt; IO a
+$cwithByteArray :: forall p a. PassPhrase -&gt; (Ptr p -&gt; IO a) -&gt; IO a
+length :: PassPhrase -&gt; Int
+$clength :: PassPhrase -&gt; Int
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">ByteArrayAccess</span></span></span></span></span><span class="hs-special">)</span><span>
+</span><span id="line-28"></span><span>
+</span><span id="line-29"></span><span class="annot"><a href="Cardano.Crypto.Signing.Safe.PassPhrase.html#passphraseLength"><span class="hs-identifier hs-type">passphraseLength</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span>
+</span><span id="line-30"></span><span id="passphraseLength"><span class="annot"><span class="annottext">passphraseLength :: Int
+</span><a href="Cardano.Crypto.Signing.Safe.PassPhrase.html#passphraseLength"><span class="hs-identifier hs-var hs-var">passphraseLength</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">32</span></span><span>
+</span><span id="line-31"></span><span>
+</span><span id="line-32"></span><span class="hs-comment">-- | Empty passphrase used in development</span><span>
+</span><span id="line-33"></span><span class="annot"><a href="Cardano.Crypto.Signing.Safe.PassPhrase.html#emptyPassphrase"><span class="hs-identifier hs-type">emptyPassphrase</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cardano.Crypto.Signing.Safe.PassPhrase.html#PassPhrase"><span class="hs-identifier hs-type">PassPhrase</span></a></span><span>
+</span><span id="line-34"></span><span id="emptyPassphrase"><span class="annot"><span class="annottext">emptyPassphrase :: PassPhrase
+</span><a href="Cardano.Crypto.Signing.Safe.PassPhrase.html#emptyPassphrase"><span class="hs-identifier hs-var hs-var">emptyPassphrase</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">ScrubbedBytes -&gt; PassPhrase
+</span><a href="Cardano.Crypto.Signing.Safe.PassPhrase.html#PassPhrase"><span class="hs-identifier hs-var">PassPhrase</span></a></span><span> </span><span class="annot"><span class="annottext">ScrubbedBytes
+forall a. Monoid a =&gt; a
+</span><span class="hs-identifier hs-var">mempty</span></span><span>
+</span><span id="line-35"></span><span>
+</span><span id="line-36"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679146245"><span id="local-6989586621679146248"><span class="annot"><span class="hs-identifier hs-type">Show</span></span><span> </span><span class="annot"><a href="Cardano.Crypto.Signing.Safe.PassPhrase.html#PassPhrase"><span class="hs-identifier hs-type">PassPhrase</span></a></span></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-37"></span><span>  </span><span id="local-6989586621679146243"><span class="annot"><span class="annottext">show :: PassPhrase -&gt; String
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">show</span></span></span><span> </span><span class="annot"><span class="annottext">PassPhrase
+</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;&lt;passphrase&gt;&quot;</span></span><span>
+</span><span id="line-38"></span><span>
+</span><span id="line-39"></span><span class="hs-keyword">instance</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Buildable</span></span><span> </span><span class="annot"><a href="Cardano.Crypto.Signing.Safe.PassPhrase.html#PassPhrase"><span class="hs-identifier hs-type">PassPhrase</span></a></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-40"></span><span>  </span><span id="local-6989586621679146239"><span class="annot"><span class="annottext">build :: PassPhrase -&gt; Builder
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">build</span></span></span><span> </span><span class="annot"><span class="annottext">PassPhrase
+</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Builder
+</span><span class="hs-string">&quot;&lt;passphrase&gt;&quot;</span></span><span>
+</span><span id="line-41"></span><span>
+</span><span id="line-42"></span><span class="hs-keyword">instance</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Default</span></span><span> </span><span class="annot"><a href="Cardano.Crypto.Signing.Safe.PassPhrase.html#PassPhrase"><span class="hs-identifier hs-type">PassPhrase</span></a></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-43"></span><span>  </span><span id="local-6989586621679146235"><span class="annot"><span class="annottext">def :: PassPhrase
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">def</span></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">PassPhrase
+</span><a href="Cardano.Crypto.Signing.Safe.PassPhrase.html#emptyPassphrase"><span class="hs-identifier hs-var">emptyPassphrase</span></a></span><span>
+</span><span id="line-44"></span><span>
+</span><span id="line-45"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679146228"><span id="local-6989586621679146230"><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src"><span class="hs-identifier hs-type">ToCBOR</span></a></span><span> </span><span class="annot"><a href="Cardano.Crypto.Signing.Safe.PassPhrase.html#PassPhrase"><span class="hs-identifier hs-type">PassPhrase</span></a></span></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-46"></span><span>  </span><span id="local-6989586621679146226"><span class="annot"><span class="annottext">toCBOR :: PassPhrase -&gt; Encoding
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src"><span class="hs-identifier hs-var hs-var hs-var hs-var">toCBOR</span></a></span></span><span> </span><span id="local-6989586621679146224"><span class="annot"><span class="annottext">PassPhrase
+</span><a href="#local-6989586621679146224"><span class="hs-identifier hs-var">pp</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">ByteString -&gt; Encoding
+forall a. ToCBOR a =&gt; a -&gt; Encoding
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src"><span class="hs-identifier hs-var">toCBOR</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">PassPhrase -&gt; ByteString
+forall bin bout.
+(ByteArrayAccess bin, ByteArray bout) =&gt;
+bin -&gt; bout
+</span><span class="hs-identifier hs-var">ByteArray.convert</span></span><span> </span><span class="annot"><span class="annottext">PassPhrase
+</span><a href="#local-6989586621679146224"><span class="hs-identifier hs-var">pp</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">ByteString</span></span><span class="hs-special">)</span><span>
+</span><span id="line-47"></span><span>
+</span><span id="line-48"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679146219"><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src"><span class="hs-identifier hs-type">FromCBOR</span></a></span><span> </span><span class="annot"><a href="Cardano.Crypto.Signing.Safe.PassPhrase.html#PassPhrase"><span class="hs-identifier hs-type">PassPhrase</span></a></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-49"></span><span>  </span><span id="local-6989586621679146217"><span class="annot"><span class="annottext">fromCBOR :: Decoder s PassPhrase
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src"><span class="hs-identifier hs-var hs-var hs-var hs-var">fromCBOR</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-50"></span><span>    </span><span id="local-6989586621679146215"><span class="annot"><span class="annottext">ByteString
+</span><a href="#local-6989586621679146215"><span class="hs-identifier hs-var">bs</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">forall s. FromCBOR ByteString =&gt; Decoder s ByteString
+forall a s. FromCBOR a =&gt; Decoder s a
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src"><span class="hs-identifier hs-var">fromCBOR</span></a></span><span> </span><span class="hs-glyph">@</span><span class="annot"><span class="hs-identifier hs-type">ByteString</span></span><span>
+</span><span id="line-51"></span><span>    </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679146214"><span class="annot"><span class="annottext">bl :: Int
+</span><a href="#local-6989586621679146214"><span class="hs-identifier hs-var hs-var">bl</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">ByteString -&gt; Int
+</span><span class="hs-identifier hs-var">BS.length</span></span><span> </span><span class="annot"><span class="annottext">ByteString
+</span><a href="#local-6989586621679146215"><span class="hs-identifier hs-var">bs</span></a></span><span>
+</span><span id="line-52"></span><span>    </span><span class="hs-comment">-- Currently passphrase may be either 32-byte long or empty (for</span><span>
+</span><span id="line-53"></span><span>    </span><span class="hs-comment">-- unencrypted keys).</span><span>
+</span><span id="line-54"></span><span>    </span><span class="annot"><span class="annottext">Either Text PassPhrase -&gt; Decoder s PassPhrase
+forall e a s. Buildable e =&gt; Either e a -&gt; Decoder s a
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-prelude-0.1.0.0/noopt/doc/html/cardano-prelude/src"><span class="hs-identifier hs-var">toCborError</span></a></span><span> </span><span class="annot"><span class="annottext">(Either Text PassPhrase -&gt; Decoder s PassPhrase)
+-&gt; Either Text PassPhrase -&gt; Decoder s PassPhrase
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-keyword">if</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679146214"><span class="hs-identifier hs-var">bl</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+forall a. Eq a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">==</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span> </span><span class="annot"><span class="annottext">Bool -&gt; Bool -&gt; Bool
+</span><span class="hs-operator hs-var">||</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679146214"><span class="hs-identifier hs-var">bl</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+forall a. Eq a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">==</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="Cardano.Crypto.Signing.Safe.PassPhrase.html#passphraseLength"><span class="hs-identifier hs-var">passphraseLength</span></a></span><span>
+</span><span id="line-55"></span><span>      </span><span class="hs-keyword">then</span><span> </span><span class="annot"><span class="annottext">PassPhrase -&gt; Either Text PassPhrase
+forall a b. b -&gt; Either a b
+</span><span class="hs-identifier hs-var">Right</span></span><span> </span><span class="annot"><span class="annottext">(PassPhrase -&gt; Either Text PassPhrase)
+-&gt; PassPhrase -&gt; Either Text PassPhrase
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">ByteString -&gt; PassPhrase
+forall bin bout.
+(ByteArrayAccess bin, ByteArray bout) =&gt;
+bin -&gt; bout
+</span><span class="hs-identifier hs-var">ByteArray.convert</span></span><span> </span><span class="annot"><span class="annottext">ByteString
+</span><a href="#local-6989586621679146215"><span class="hs-identifier hs-var">bs</span></a></span><span>
+</span><span id="line-56"></span><span>      </span><span class="hs-keyword">else</span><span> </span><span class="annot"><span class="annottext">Text -&gt; Either Text PassPhrase
+forall a b. a -&gt; Either a b
+</span><span class="hs-identifier hs-var">Left</span></span><span> </span><span class="annot"><span class="annottext">(Text -&gt; Either Text PassPhrase) -&gt; Text -&gt; Either Text PassPhrase
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Format Text (Int -&gt; Int -&gt; Text) -&gt; Int -&gt; Int -&gt; Text
+forall a. Format Text a -&gt; a
+</span><span class="hs-identifier hs-var">sformat</span></span><span>
+</span><span id="line-57"></span><span>        </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Format (Int -&gt; Int -&gt; Text) (Int -&gt; Int -&gt; Text)
+</span><span class="hs-string">&quot;put@PassPhrase: expected length 0 or &quot;</span></span><span> </span><span class="annot"><span class="annottext">Format (Int -&gt; Int -&gt; Text) (Int -&gt; Int -&gt; Text)
+-&gt; Format Text (Int -&gt; Int -&gt; Text)
+-&gt; Format Text (Int -&gt; Int -&gt; Text)
+forall k (cat :: k -&gt; k -&gt; *) (b :: k) (c :: k) (a :: k).
+Category cat =&gt;
+cat b c -&gt; cat a b -&gt; cat a c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Format (Int -&gt; Text) (Int -&gt; Int -&gt; Text)
+forall a r. Integral a =&gt; Format r (a -&gt; r)
+</span><span class="hs-identifier hs-var">int</span></span><span> </span><span class="annot"><span class="annottext">Format (Int -&gt; Text) (Int -&gt; Int -&gt; Text)
+-&gt; Format Text (Int -&gt; Text) -&gt; Format Text (Int -&gt; Int -&gt; Text)
+forall k (cat :: k -&gt; k -&gt; *) (b :: k) (c :: k) (a :: k).
+Category cat =&gt;
+cat b c -&gt; cat a b -&gt; cat a c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Format (Int -&gt; Text) (Int -&gt; Text)
+</span><span class="hs-string">&quot;, not &quot;</span></span><span> </span><span class="annot"><span class="annottext">Format (Int -&gt; Text) (Int -&gt; Text)
+-&gt; Format Text (Int -&gt; Text) -&gt; Format Text (Int -&gt; Text)
+forall k (cat :: k -&gt; k -&gt; *) (b :: k) (c :: k) (a :: k).
+Category cat =&gt;
+cat b c -&gt; cat a b -&gt; cat a c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Format Text (Int -&gt; Text)
+forall a r. Integral a =&gt; Format r (a -&gt; r)
+</span><span class="hs-identifier hs-var">int</span></span><span class="hs-special">)</span><span>
+</span><span id="line-58"></span><span>        </span><span class="annot"><span class="annottext">Int
+</span><a href="Cardano.Crypto.Signing.Safe.PassPhrase.html#passphraseLength"><span class="hs-identifier hs-var">passphraseLength</span></a></span><span>
+</span><span id="line-59"></span><span>        </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679146214"><span class="hs-identifier hs-var">bl</span></a></span><span>
+</span><span id="line-60"></span><span>
+</span><span id="line-61"></span><span class="hs-comment">{-instance Monoid PassPhrase where
     mempty = PassPhrase mempty
     mappend (PassPhrase p1) (PassPhrase p2) = PassPhrase (p1 `mappend` p2)-}</span><span>
-</span><a name="line-64"></a></pre></body></html>
+</span><span id="line-64"></span></pre></body></html>

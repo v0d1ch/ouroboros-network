@@ -1,166 +1,747 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-pragma">{-# LANGUAGE BangPatterns #-}</span><span>
-</span><a name="line-2"></a><span class="hs-pragma">{-# LANGUAGE ConstraintKinds #-}</span><span>
-</span><a name="line-3"></a><span class="hs-pragma">{-# LANGUAGE DeriveAnyClass #-}</span><span>
-</span><a name="line-4"></a><span class="hs-pragma">{-# LANGUAGE DeriveGeneric #-}</span><span>
-</span><a name="line-5"></a><span class="hs-pragma">{-# LANGUAGE DerivingStrategies #-}</span><span>
-</span><a name="line-6"></a><span class="hs-pragma">{-# LANGUAGE FlexibleInstances #-}</span><span>
-</span><a name="line-7"></a><span class="hs-pragma">{-# LANGUAGE GeneralizedNewtypeDeriving #-}</span><span>
-</span><a name="line-8"></a><span class="hs-pragma">{-# LANGUAGE TypeApplications #-}</span><span>
-</span><a name="line-9"></a><span class="hs-pragma">{-# LANGUAGE TypeFamilies #-}</span><span>
-</span><a name="line-10"></a><span>
-</span><a name="line-11"></a><span class="hs-comment">-- | Mock implementation of digital signatures.</span><span>
-</span><a name="line-12"></a><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Cardano.Crypto.DSIGN.Mock</span><span>
-</span><a name="line-13"></a><span>  </span><span class="hs-special">(</span><span> </span><a href="Cardano.Crypto.DSIGN.Mock.html#MockDSIGN"><span class="hs-identifier hs-type">MockDSIGN</span></a><span>
-</span><a name="line-14"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Cardano.Crypto.DSIGN.Class.html#SignKeyDSIGN"><span class="hs-identifier hs-type">SignKeyDSIGN</span></a><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
-</span><a name="line-15"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Cardano.Crypto.DSIGN.Class.html#VerKeyDSIGN"><span class="hs-identifier hs-type">VerKeyDSIGN</span></a><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
-</span><a name="line-16"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Cardano.Crypto.DSIGN.Class.html#SigDSIGN"><span class="hs-identifier hs-type">SigDSIGN</span></a><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
-</span><a name="line-17"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Cardano.Crypto.DSIGN.Mock.html#mockSign"><span class="hs-identifier hs-var">mockSign</span></a><span>
-</span><a name="line-18"></a><span>  </span><span class="hs-special">)</span><span>
-</span><a name="line-19"></a><span class="hs-keyword">where</span><span>
-</span><a name="line-20"></a><span>
-</span><a name="line-21"></a><span class="hs-keyword">import</span><span> </span><span class="hs-identifier">Data.Word</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Word64</span><span class="hs-special">)</span><span>
-</span><a name="line-22"></a><span class="hs-keyword">import</span><span> </span><span class="hs-identifier">GHC.Generics</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Generic</span><span class="hs-special">)</span><span>
-</span><a name="line-23"></a><span class="hs-keyword">import</span><span> </span><span class="hs-identifier">GHC.Stack</span><span>
-</span><a name="line-24"></a><span>
-</span><a name="line-25"></a><span class="hs-keyword">import</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-prelude-0.1.0.0/noopt/doc/html/cardano-prelude/src/Cardano.Prelude.html"><span class="hs-identifier">Cardano.Prelude</span></a><span> </span><span class="hs-special">(</span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-prelude-0.1.0.0/noopt/doc/html/cardano-prelude/src/Cardano.Prelude.GHC.Heap.NormalForm.Classy.html#NoUnexpectedThunks"><span class="hs-identifier hs-type">NoUnexpectedThunks</span></a><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Proxy</span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
-</span><a name="line-26"></a><span class="hs-keyword">import</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.html"><span class="hs-identifier">Cardano.Binary</span></a><span> </span><span class="hs-special">(</span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.FromCBOR.html#FromCBOR"><span class="hs-identifier hs-type">FromCBOR</span></a><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.ToCBOR.html#ToCBOR"><span class="hs-identifier hs-type">ToCBOR</span></a><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
-</span><a name="line-27"></a><span>
-</span><a name="line-28"></a><span class="hs-keyword">import</span><span> </span><a href="Cardano.Crypto.DSIGN.Class.html"><span class="hs-identifier">Cardano.Crypto.DSIGN.Class</span></a><span>
-</span><a name="line-29"></a><span class="hs-keyword">import</span><span> </span><a href="Cardano.Crypto.Seed.html"><span class="hs-identifier">Cardano.Crypto.Seed</span></a><span>
-</span><a name="line-30"></a><span class="hs-keyword">import</span><span> </span><a href="Cardano.Crypto.Hash.html"><span class="hs-identifier">Cardano.Crypto.Hash</span></a><span>
-</span><a name="line-31"></a><span class="hs-keyword">import</span><span> </span><a href="Cardano.Crypto.Util.html"><span class="hs-identifier">Cardano.Crypto.Util</span></a><span>
-</span><a name="line-32"></a><span>
-</span><a name="line-33"></a><span>
-</span><a name="line-34"></a><span class="hs-keyword">data</span><span> </span><a name="MockDSIGN"><a href="Cardano.Crypto.DSIGN.Mock.html#MockDSIGN"><span class="hs-identifier">MockDSIGN</span></a></a><span>
-</span><a name="line-35"></a><span>
-</span><a name="line-36"></a><span class="hs-keyword">instance</span><span> </span><a href="Cardano.Crypto.DSIGN.Class.html#DSIGNAlgorithm"><span class="hs-identifier hs-type">DSIGNAlgorithm</span></a><span> </span><a href="Cardano.Crypto.DSIGN.Mock.html#MockDSIGN"><span class="hs-identifier hs-type">MockDSIGN</span></a><span> </span><span class="hs-keyword">where</span><span>
-</span><a name="line-37"></a><span>
-</span><a name="line-38"></a><span>    </span><span class="hs-comment">--</span><span>
-</span><a name="line-39"></a><span>    </span><span class="hs-comment">-- Key and signature types</span><span>
-</span><a name="line-40"></a><span>    </span><span class="hs-comment">--</span><span>
-</span><a name="line-41"></a><span>
-</span><a name="line-42"></a><span>    </span><span class="hs-keyword">newtype</span><span> </span><span class="hs-identifier">VerKeyDSIGN</span><span> </span><a href="Cardano.Crypto.DSIGN.Mock.html#MockDSIGN"><span class="hs-identifier hs-type">MockDSIGN</span></a><span> </span><span class="hs-glyph">=</span><span> </span><a name="VerKeyMockDSIGN"><a href="Cardano.Crypto.DSIGN.Mock.html#VerKeyMockDSIGN"><span class="hs-identifier">VerKeyMockDSIGN</span></a></a><span> </span><span class="hs-identifier hs-type">Word64</span><span>
-</span><a name="line-43"></a><span>        </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-keyword">stock</span><span>   </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Show</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Eq</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Ord</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Generic</span><span class="hs-special">)</span><span>
-</span><a name="line-44"></a><span>        </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-keyword">newtype</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Num</span><span class="hs-special">,</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-prelude-0.1.0.0/noopt/doc/html/cardano-prelude/src/Cardano.Prelude.GHC.Heap.NormalForm.Classy.html#NoUnexpectedThunks"><span class="hs-identifier hs-type">NoUnexpectedThunks</span></a><span class="hs-special">)</span><span>
-</span><a name="line-45"></a><span>
-</span><a name="line-46"></a><span>    </span><span class="hs-keyword">newtype</span><span> </span><span class="hs-identifier">SignKeyDSIGN</span><span> </span><a href="Cardano.Crypto.DSIGN.Mock.html#MockDSIGN"><span class="hs-identifier hs-type">MockDSIGN</span></a><span> </span><span class="hs-glyph">=</span><span> </span><a name="SignKeyMockDSIGN"><a href="Cardano.Crypto.DSIGN.Mock.html#SignKeyMockDSIGN"><span class="hs-identifier">SignKeyMockDSIGN</span></a></a><span> </span><span class="hs-identifier hs-type">Word64</span><span>
-</span><a name="line-47"></a><span>        </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-keyword">stock</span><span>   </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Show</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Eq</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Ord</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Generic</span><span class="hs-special">)</span><span>
-</span><a name="line-48"></a><span>        </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-keyword">newtype</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Num</span><span class="hs-special">,</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-prelude-0.1.0.0/noopt/doc/html/cardano-prelude/src/Cardano.Prelude.GHC.Heap.NormalForm.Classy.html#NoUnexpectedThunks"><span class="hs-identifier hs-type">NoUnexpectedThunks</span></a><span class="hs-special">)</span><span>
-</span><a name="line-49"></a><span>
-</span><a name="line-50"></a><span>    </span><span class="hs-keyword">data</span><span> </span><span class="hs-identifier">SigDSIGN</span><span> </span><a href="Cardano.Crypto.DSIGN.Mock.html#MockDSIGN"><span class="hs-identifier hs-type">MockDSIGN</span></a><span> </span><span class="hs-glyph">=</span><span> </span><a name="SigMockDSIGN"><a href="Cardano.Crypto.DSIGN.Mock.html#SigMockDSIGN"><span class="hs-identifier">SigMockDSIGN</span></a></a><span> </span><span class="hs-glyph">!</span><span class="hs-special">(</span><a href="Cardano.Crypto.Hash.Class.html#Hash"><span class="hs-identifier hs-type">Hash</span></a><span> </span><a href="Cardano.Crypto.Hash.Short.html#ShortHash"><span class="hs-identifier hs-type">ShortHash</span></a><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">!</span><span class="hs-identifier hs-type">Word64</span><span>
-</span><a name="line-51"></a><span>        </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-keyword">stock</span><span>    </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Show</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Eq</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Ord</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Generic</span><span class="hs-special">)</span><span>
-</span><a name="line-52"></a><span>        </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-keyword">anyclass</span><span> </span><span class="hs-special">(</span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-prelude-0.1.0.0/noopt/doc/html/cardano-prelude/src/Cardano.Prelude.GHC.Heap.NormalForm.Classy.html#NoUnexpectedThunks"><span class="hs-identifier hs-type">NoUnexpectedThunks</span></a><span class="hs-special">)</span><span>
-</span><a name="line-53"></a><span>
-</span><a name="line-54"></a><span>    </span><span class="hs-comment">--</span><span>
-</span><a name="line-55"></a><span>    </span><span class="hs-comment">-- Metadata and basic key operations</span><span>
-</span><a name="line-56"></a><span>    </span><span class="hs-comment">--</span><span>
-</span><a name="line-57"></a><span>
-</span><a name="line-58"></a><span>    </span><a name="local-8214565720323901964"><a href="Cardano.Crypto.DSIGN.Class.html#algorithmNameDSIGN"><span class="hs-identifier">algorithmNameDSIGN</span></a></a><span> </span><span class="hs-identifier">_</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-string">&quot;mock&quot;</span><span>
-</span><a name="line-59"></a><span>
-</span><a name="line-60"></a><span>    </span><a name="local-8214565720323901965"><a href="Cardano.Crypto.DSIGN.Class.html#deriveVerKeyDSIGN"><span class="hs-identifier">deriveVerKeyDSIGN</span></a></a><span> </span><span class="hs-special">(</span><a href="Cardano.Crypto.DSIGN.Mock.html#SignKeyMockDSIGN"><span class="hs-identifier hs-var">SignKeyMockDSIGN</span></a><span> </span><a name="local-6989586621679130147"><a href="#local-6989586621679130147"><span class="hs-identifier">n</span></a></a><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><a href="Cardano.Crypto.DSIGN.Mock.html#VerKeyMockDSIGN"><span class="hs-identifier hs-var">VerKeyMockDSIGN</span></a><span> </span><a href="#local-6989586621679130147"><span class="hs-identifier hs-var">n</span></a><span>
-</span><a name="line-61"></a><span>
-</span><a name="line-62"></a><span>    </span><span class="hs-comment">--</span><span>
-</span><a name="line-63"></a><span>    </span><span class="hs-comment">-- Core algorithm operations</span><span>
-</span><a name="line-64"></a><span>    </span><span class="hs-comment">--</span><span>
-</span><a name="line-65"></a><span>
-</span><a name="line-66"></a><span>    </span><span class="hs-keyword">type</span><span> </span><span class="hs-identifier">Signable</span><span> </span><a href="Cardano.Crypto.DSIGN.Mock.html#MockDSIGN"><span class="hs-identifier hs-type">MockDSIGN</span></a><span> </span><span class="hs-glyph">=</span><span> </span><a href="Cardano.Crypto.Util.html#SignableRepresentation"><span class="hs-identifier hs-type">SignableRepresentation</span></a><span>
-</span><a name="line-67"></a><span>
-</span><a name="line-68"></a><span>    </span><a name="local-8214565720323901967"><a href="Cardano.Crypto.DSIGN.Class.html#signDSIGN"><span class="hs-identifier">signDSIGN</span></a></a><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span> </span><a name="local-6989586621679130148"><a href="#local-6989586621679130148"><span class="hs-identifier">a</span></a></a><span> </span><a name="local-6989586621679130149"><a href="#local-6989586621679130149"><span class="hs-identifier">sk</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><a href="Cardano.Crypto.DSIGN.Mock.html#mockSign"><span class="hs-identifier hs-var">mockSign</span></a><span> </span><a href="#local-6989586621679130148"><span class="hs-identifier hs-var">a</span></a><span> </span><a href="#local-6989586621679130149"><span class="hs-identifier hs-var">sk</span></a><span>
-</span><a name="line-69"></a><span>
-</span><a name="line-70"></a><span>    </span><a name="local-8214565720323901968"><a href="Cardano.Crypto.DSIGN.Class.html#verifyDSIGN"><span class="hs-identifier">verifyDSIGN</span></a></a><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><a href="Cardano.Crypto.DSIGN.Mock.html#VerKeyMockDSIGN"><span class="hs-identifier hs-var">VerKeyMockDSIGN</span></a><span> </span><a name="local-6989586621679130150"><a href="#local-6989586621679130150"><span class="hs-identifier">n</span></a></a><span class="hs-special">)</span><span> </span><a name="local-6989586621679130151"><a href="#local-6989586621679130151"><span class="hs-identifier">a</span></a></a><span> </span><a name="local-6989586621679130152"><a href="#local-6989586621679130152"><span class="hs-identifier">s</span></a></a><span> </span><span class="hs-glyph">=</span><span>
-</span><a name="line-71"></a><span>      </span><span class="hs-keyword">if</span><span> </span><a href="#local-6989586621679130152"><span class="hs-identifier hs-var">s</span></a><span> </span><span class="hs-operator hs-var">==</span><span> </span><a href="Cardano.Crypto.DSIGN.Mock.html#mockSign"><span class="hs-identifier hs-var">mockSign</span></a><span> </span><a href="#local-6989586621679130151"><span class="hs-identifier hs-var">a</span></a><span> </span><span class="hs-special">(</span><a href="Cardano.Crypto.DSIGN.Mock.html#SignKeyMockDSIGN"><span class="hs-identifier hs-var">SignKeyMockDSIGN</span></a><span> </span><a href="#local-6989586621679130150"><span class="hs-identifier hs-var">n</span></a><span class="hs-special">)</span><span>
-</span><a name="line-72"></a><span>        </span><span class="hs-keyword">then</span><span> </span><span class="hs-identifier hs-var">Right</span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
-</span><a name="line-73"></a><span>        </span><span class="hs-keyword">else</span><span> </span><span class="hs-identifier hs-var">Left</span><span> </span><span class="hs-operator hs-var">$</span><span> </span><span class="hs-identifier hs-var">show</span><span> </span><span class="hs-operator hs-var">$</span><span> </span><a href="Cardano.Crypto.DSIGN.Mock.html#MockVerificationFailure"><span class="hs-identifier hs-var">MockVerificationFailure</span></a><span> </span><span class="hs-special">{</span><span>
-</span><a name="line-74"></a><span>                 </span><span class="hs-identifier">vErrVerKey</span><span>    </span><span class="hs-glyph">=</span><span> </span><a href="Cardano.Crypto.DSIGN.Mock.html#VerKeyMockDSIGN"><span class="hs-identifier hs-var">VerKeyMockDSIGN</span></a><span> </span><a href="#local-6989586621679130150"><span class="hs-identifier hs-var">n</span></a><span>
-</span><a name="line-75"></a><span>               </span><span class="hs-special">,</span><span> </span><span class="hs-identifier">vErrSignature</span><span> </span><span class="hs-glyph">=</span><span> </span><a href="#local-6989586621679130152"><span class="hs-identifier hs-var">s</span></a><span>
-</span><a name="line-76"></a><span>               </span><span class="hs-special">,</span><span> </span><span class="hs-identifier">vErrCallStack</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-identifier hs-var">prettyCallStack</span><span> </span><span class="hs-identifier hs-var">callStack</span><span>
-</span><a name="line-77"></a><span>               </span><span class="hs-special">}</span><span>
-</span><a name="line-78"></a><span>
-</span><a name="line-79"></a><span>    </span><span class="hs-comment">--</span><span>
-</span><a name="line-80"></a><span>    </span><span class="hs-comment">-- Key generation</span><span>
-</span><a name="line-81"></a><span>    </span><span class="hs-comment">--</span><span>
-</span><a name="line-82"></a><span>
-</span><a name="line-83"></a><span>    </span><a name="local-8214565720323901970"><a href="Cardano.Crypto.DSIGN.Class.html#seedSizeDSIGN"><span class="hs-identifier">seedSizeDSIGN</span></a></a><span> </span><span class="hs-identifier">_</span><span>    </span><span class="hs-glyph">=</span><span> </span><span class="hs-number">8</span><span>
-</span><a name="line-84"></a><span>    </span><a name="local-8214565720323901969"><a href="Cardano.Crypto.DSIGN.Class.html#genKeyDSIGN"><span class="hs-identifier">genKeyDSIGN</span></a></a><span> </span><a name="local-6989586621679130153"><a href="#local-6989586621679130153"><span class="hs-identifier">seed</span></a></a><span>   </span><span class="hs-glyph">=</span><span>
-</span><a name="line-85"></a><span>      </span><a href="Cardano.Crypto.DSIGN.Mock.html#SignKeyMockDSIGN"><span class="hs-identifier hs-var">SignKeyMockDSIGN</span></a><span> </span><span class="hs-special">(</span><a href="Cardano.Crypto.Seed.html#runMonadRandomWithSeed"><span class="hs-identifier hs-var">runMonadRandomWithSeed</span></a><span> </span><a href="#local-6989586621679130153"><span class="hs-identifier hs-var">seed</span></a><span> </span><a href="Cardano.Crypto.Util.html#getRandomWord64"><span class="hs-identifier hs-var">getRandomWord64</span></a><span class="hs-special">)</span><span>
-</span><a name="line-86"></a><span>
-</span><a name="line-87"></a><span>
-</span><a name="line-88"></a><span>    </span><span class="hs-comment">--</span><span>
-</span><a name="line-89"></a><span>    </span><span class="hs-comment">-- raw serialise/deserialise</span><span>
-</span><a name="line-90"></a><span>    </span><span class="hs-comment">--</span><span>
-</span><a name="line-91"></a><span>
-</span><a name="line-92"></a><span>    </span><a name="local-8214565720323901971"><a href="Cardano.Crypto.DSIGN.Class.html#sizeVerKeyDSIGN"><span class="hs-identifier">sizeVerKeyDSIGN</span></a></a><span>  </span><span class="hs-identifier">_</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-number">8</span><span> </span><span class="hs-comment">-- for 64 bit Int</span><span>
-</span><a name="line-93"></a><span>    </span><a name="local-8214565720323901972"><a href="Cardano.Crypto.DSIGN.Class.html#sizeSignKeyDSIGN"><span class="hs-identifier">sizeSignKeyDSIGN</span></a></a><span> </span><span class="hs-identifier">_</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-number">8</span><span>
-</span><a name="line-94"></a><span>    </span><a name="local-8214565720323901973"><a href="Cardano.Crypto.DSIGN.Class.html#sizeSigDSIGN"><span class="hs-identifier">sizeSigDSIGN</span></a></a><span>     </span><span class="hs-identifier">_</span><span> </span><span class="hs-glyph">=</span><span> </span><a href="Cardano.Crypto.Hash.Class.html#sizeHash"><span class="hs-identifier hs-var">sizeHash</span></a><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-var">Proxy</span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">Proxy</span><span> </span><a href="Cardano.Crypto.Hash.Short.html#ShortHash"><span class="hs-identifier hs-type">ShortHash</span></a><span class="hs-special">)</span><span>
-</span><a name="line-95"></a><span>                       </span><span class="hs-operator hs-var">+</span><span> </span><span class="hs-number">8</span><span>
-</span><a name="line-96"></a><span>
-</span><a name="line-97"></a><span>    </span><a name="local-8214565720323901974"><a href="Cardano.Crypto.DSIGN.Class.html#rawSerialiseVerKeyDSIGN"><span class="hs-identifier">rawSerialiseVerKeyDSIGN</span></a></a><span>  </span><span class="hs-special">(</span><a href="Cardano.Crypto.DSIGN.Mock.html#VerKeyMockDSIGN"><span class="hs-identifier hs-var">VerKeyMockDSIGN</span></a><span>  </span><a name="local-6989586621679130154"><a href="#local-6989586621679130154"><span class="hs-identifier">k</span></a></a><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><a href="Cardano.Crypto.Util.html#writeBinaryWord64"><span class="hs-identifier hs-var">writeBinaryWord64</span></a><span> </span><a href="#local-6989586621679130154"><span class="hs-identifier hs-var">k</span></a><span>
-</span><a name="line-98"></a><span>    </span><a name="local-8214565720323901975"><a href="Cardano.Crypto.DSIGN.Class.html#rawSerialiseSignKeyDSIGN"><span class="hs-identifier">rawSerialiseSignKeyDSIGN</span></a></a><span> </span><span class="hs-special">(</span><a href="Cardano.Crypto.DSIGN.Mock.html#SignKeyMockDSIGN"><span class="hs-identifier hs-var">SignKeyMockDSIGN</span></a><span> </span><a name="local-6989586621679130155"><a href="#local-6989586621679130155"><span class="hs-identifier">k</span></a></a><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><a href="Cardano.Crypto.Util.html#writeBinaryWord64"><span class="hs-identifier hs-var">writeBinaryWord64</span></a><span> </span><a href="#local-6989586621679130155"><span class="hs-identifier hs-var">k</span></a><span>
-</span><a name="line-99"></a><span>    </span><a name="local-8214565720323901976"><a href="Cardano.Crypto.DSIGN.Class.html#rawSerialiseSigDSIGN"><span class="hs-identifier">rawSerialiseSigDSIGN</span></a></a><span>     </span><span class="hs-special">(</span><a href="Cardano.Crypto.DSIGN.Mock.html#SigMockDSIGN"><span class="hs-identifier hs-var">SigMockDSIGN</span></a><span>   </span><a name="local-6989586621679130156"><a href="#local-6989586621679130156"><span class="hs-identifier">h</span></a></a><span> </span><a name="local-6989586621679130157"><a href="#local-6989586621679130157"><span class="hs-identifier">k</span></a></a><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><a href="Cardano.Crypto.Hash.Class.html#hashToBytes"><span class="hs-identifier hs-var">hashToBytes</span></a><span> </span><a href="#local-6989586621679130156"><span class="hs-identifier hs-var">h</span></a><span>
-</span><a name="line-100"></a><span>                                                 </span><span class="hs-operator hs-var">&lt;&gt;</span><span> </span><a href="Cardano.Crypto.Util.html#writeBinaryWord64"><span class="hs-identifier hs-var">writeBinaryWord64</span></a><span> </span><a href="#local-6989586621679130157"><span class="hs-identifier hs-var">k</span></a><span>
-</span><a name="line-101"></a><span>
-</span><a name="line-102"></a><span>    </span><a name="local-8214565720323901977"><a href="Cardano.Crypto.DSIGN.Class.html#rawDeserialiseVerKeyDSIGN"><span class="hs-identifier">rawDeserialiseVerKeyDSIGN</span></a></a><span> </span><a name="local-6989586621679130158"><a href="#local-6989586621679130158"><span class="hs-identifier">bs</span></a></a><span>
-</span><a name="line-103"></a><span>      </span><span class="hs-glyph">|</span><span> </span><span class="hs-special">[</span><a name="local-6989586621679130159"><a href="#local-6989586621679130159"><span class="hs-identifier">kb</span></a></a><span class="hs-special">]</span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><a href="Cardano.Crypto.Util.html#splitsAt"><span class="hs-identifier hs-var">splitsAt</span></a><span> </span><span class="hs-special">[</span><span class="hs-number">8</span><span class="hs-special">]</span><span> </span><a href="#local-6989586621679130158"><span class="hs-identifier hs-var">bs</span></a><span>
-</span><a name="line-104"></a><span>      </span><span class="hs-special">,</span><span> </span><span class="hs-keyword">let</span><span> </span><a name="local-6989586621679130160"><a href="#local-6989586621679130160"><span class="hs-identifier">k</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><a href="Cardano.Crypto.Util.html#readBinaryWord64"><span class="hs-identifier hs-var">readBinaryWord64</span></a><span> </span><a href="#local-6989586621679130159"><span class="hs-identifier hs-var">kb</span></a><span>
-</span><a name="line-105"></a><span>      </span><span class="hs-glyph">=</span><span> </span><span class="hs-identifier hs-var">Just</span><span> </span><span class="hs-operator hs-var">$!</span><span> </span><a href="Cardano.Crypto.DSIGN.Mock.html#VerKeyMockDSIGN"><span class="hs-identifier hs-var">VerKeyMockDSIGN</span></a><span> </span><a href="#local-6989586621679130160"><span class="hs-identifier hs-var">k</span></a><span>
-</span><a name="line-106"></a><span>
-</span><a name="line-107"></a><span>      </span><span class="hs-glyph">|</span><span> </span><span class="hs-identifier hs-var">otherwise</span><span>
-</span><a name="line-108"></a><span>      </span><span class="hs-glyph">=</span><span> </span><span class="hs-identifier hs-var">Nothing</span><span>
-</span><a name="line-109"></a><span>
-</span><a name="line-110"></a><span>    </span><a name="local-8214565720323901978"><a href="Cardano.Crypto.DSIGN.Class.html#rawDeserialiseSignKeyDSIGN"><span class="hs-identifier">rawDeserialiseSignKeyDSIGN</span></a></a><span> </span><a name="local-6989586621679130161"><a href="#local-6989586621679130161"><span class="hs-identifier">bs</span></a></a><span>
-</span><a name="line-111"></a><span>      </span><span class="hs-glyph">|</span><span> </span><span class="hs-special">[</span><a name="local-6989586621679130162"><a href="#local-6989586621679130162"><span class="hs-identifier">kb</span></a></a><span class="hs-special">]</span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><a href="Cardano.Crypto.Util.html#splitsAt"><span class="hs-identifier hs-var">splitsAt</span></a><span> </span><span class="hs-special">[</span><span class="hs-number">8</span><span class="hs-special">]</span><span> </span><a href="#local-6989586621679130161"><span class="hs-identifier hs-var">bs</span></a><span>
-</span><a name="line-112"></a><span>      </span><span class="hs-special">,</span><span> </span><span class="hs-keyword">let</span><span> </span><a name="local-6989586621679130163"><a href="#local-6989586621679130163"><span class="hs-identifier">k</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><a href="Cardano.Crypto.Util.html#readBinaryWord64"><span class="hs-identifier hs-var">readBinaryWord64</span></a><span> </span><a href="#local-6989586621679130162"><span class="hs-identifier hs-var">kb</span></a><span>
-</span><a name="line-113"></a><span>      </span><span class="hs-glyph">=</span><span> </span><span class="hs-identifier hs-var">Just</span><span> </span><span class="hs-operator hs-var">$!</span><span> </span><a href="Cardano.Crypto.DSIGN.Mock.html#SignKeyMockDSIGN"><span class="hs-identifier hs-var">SignKeyMockDSIGN</span></a><span> </span><a href="#local-6989586621679130163"><span class="hs-identifier hs-var">k</span></a><span>
-</span><a name="line-114"></a><span>
-</span><a name="line-115"></a><span>      </span><span class="hs-glyph">|</span><span> </span><span class="hs-identifier hs-var">otherwise</span><span>
-</span><a name="line-116"></a><span>      </span><span class="hs-glyph">=</span><span> </span><span class="hs-identifier hs-var">Nothing</span><span>
-</span><a name="line-117"></a><span>
-</span><a name="line-118"></a><span>    </span><a name="local-8214565720323901979"><a href="Cardano.Crypto.DSIGN.Class.html#rawDeserialiseSigDSIGN"><span class="hs-identifier">rawDeserialiseSigDSIGN</span></a></a><span> </span><a name="local-6989586621679130164"><a href="#local-6989586621679130164"><span class="hs-identifier">bs</span></a></a><span>
-</span><a name="line-119"></a><span>      </span><span class="hs-glyph">|</span><span> </span><span class="hs-special">[</span><a name="local-6989586621679130165"><a href="#local-6989586621679130165"><span class="hs-identifier">hb</span></a></a><span class="hs-special">,</span><span> </span><a name="local-6989586621679130166"><a href="#local-6989586621679130166"><span class="hs-identifier">kb</span></a></a><span class="hs-special">]</span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><a href="Cardano.Crypto.Util.html#splitsAt"><span class="hs-identifier hs-var">splitsAt</span></a><span> </span><span class="hs-special">[</span><span class="hs-identifier hs-var">fromIntegral</span><span> </span><span class="hs-operator hs-var">$</span><span> </span><a href="Cardano.Crypto.Hash.Class.html#sizeHash"><span class="hs-identifier hs-var">sizeHash</span></a><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-var">Proxy</span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">Proxy</span><span> </span><a href="Cardano.Crypto.Hash.Short.html#ShortHash"><span class="hs-identifier hs-type">ShortHash</span></a><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="hs-number">8</span><span class="hs-special">]</span><span> </span><a href="#local-6989586621679130164"><span class="hs-identifier hs-var">bs</span></a><span>
-</span><a name="line-120"></a><span>      </span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-var">Just</span><span> </span><a name="local-6989586621679130167"><a href="#local-6989586621679130167"><span class="hs-identifier">h</span></a></a><span>   </span><span class="hs-glyph">&lt;-</span><span> </span><a href="Cardano.Crypto.Hash.Class.html#hashFromBytes"><span class="hs-identifier hs-var">hashFromBytes</span></a><span> </span><a href="#local-6989586621679130165"><span class="hs-identifier hs-var">hb</span></a><span>
-</span><a name="line-121"></a><span>      </span><span class="hs-special">,</span><span> </span><span class="hs-keyword">let</span><span> </span><a name="local-6989586621679130168"><a href="#local-6989586621679130168"><span class="hs-identifier">k</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><a href="Cardano.Crypto.Util.html#readBinaryWord64"><span class="hs-identifier hs-var">readBinaryWord64</span></a><span> </span><a href="#local-6989586621679130166"><span class="hs-identifier hs-var">kb</span></a><span>
-</span><a name="line-122"></a><span>      </span><span class="hs-glyph">=</span><span> </span><span class="hs-identifier hs-var">Just</span><span> </span><span class="hs-operator hs-var">$!</span><span> </span><a href="Cardano.Crypto.DSIGN.Mock.html#SigMockDSIGN"><span class="hs-identifier hs-var">SigMockDSIGN</span></a><span> </span><a href="#local-6989586621679130167"><span class="hs-identifier hs-var">h</span></a><span> </span><a href="#local-6989586621679130168"><span class="hs-identifier hs-var">k</span></a><span>
-</span><a name="line-123"></a><span>
-</span><a name="line-124"></a><span>      </span><span class="hs-glyph">|</span><span> </span><span class="hs-identifier hs-var">otherwise</span><span>
-</span><a name="line-125"></a><span>      </span><span class="hs-glyph">=</span><span> </span><span class="hs-identifier hs-var">Nothing</span><span>
-</span><a name="line-126"></a><span>
-</span><a name="line-127"></a><span>
-</span><a name="line-128"></a><span class="hs-keyword">instance</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.ToCBOR.html#ToCBOR"><span class="hs-identifier hs-type">ToCBOR</span></a><span> </span><span class="hs-special">(</span><a href="Cardano.Crypto.DSIGN.Class.html#VerKeyDSIGN"><span class="hs-identifier hs-type">VerKeyDSIGN</span></a><span> </span><a href="Cardano.Crypto.DSIGN.Mock.html#MockDSIGN"><span class="hs-identifier hs-type">MockDSIGN</span></a><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
-</span><a name="line-129"></a><span>  </span><a name="local-8214565720323791715"><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.ToCBOR.html#toCBOR"><span class="hs-identifier">toCBOR</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><a href="Cardano.Crypto.DSIGN.Class.html#encodeVerKeyDSIGN"><span class="hs-identifier hs-var">encodeVerKeyDSIGN</span></a><span>
-</span><a name="line-130"></a><span>  </span><a name="local-8214565720323791714"><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.ToCBOR.html#encodedSizeExpr"><span class="hs-identifier">encodedSizeExpr</span></a></a><span> </span><span class="hs-identifier">_</span><span> </span><span class="hs-glyph">=</span><span> </span><a href="Cardano.Crypto.DSIGN.Class.html#encodedVerKeyDSIGNSizeExpr"><span class="hs-identifier hs-var">encodedVerKeyDSIGNSizeExpr</span></a><span>
-</span><a name="line-131"></a><span>
-</span><a name="line-132"></a><span class="hs-keyword">instance</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.FromCBOR.html#FromCBOR"><span class="hs-identifier hs-type">FromCBOR</span></a><span> </span><span class="hs-special">(</span><a href="Cardano.Crypto.DSIGN.Class.html#VerKeyDSIGN"><span class="hs-identifier hs-type">VerKeyDSIGN</span></a><span> </span><a href="Cardano.Crypto.DSIGN.Mock.html#MockDSIGN"><span class="hs-identifier hs-type">MockDSIGN</span></a><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
-</span><a name="line-133"></a><span>  </span><a name="local-8214565720323791782"><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.FromCBOR.html#fromCBOR"><span class="hs-identifier">fromCBOR</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><a href="Cardano.Crypto.DSIGN.Class.html#decodeVerKeyDSIGN"><span class="hs-identifier hs-var">decodeVerKeyDSIGN</span></a><span>
-</span><a name="line-134"></a><span>
-</span><a name="line-135"></a><span class="hs-keyword">instance</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.ToCBOR.html#ToCBOR"><span class="hs-identifier hs-type">ToCBOR</span></a><span> </span><span class="hs-special">(</span><a href="Cardano.Crypto.DSIGN.Class.html#SignKeyDSIGN"><span class="hs-identifier hs-type">SignKeyDSIGN</span></a><span> </span><a href="Cardano.Crypto.DSIGN.Mock.html#MockDSIGN"><span class="hs-identifier hs-type">MockDSIGN</span></a><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
-</span><a name="line-136"></a><span>  </span><a name="local-8214565720323791715"><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.ToCBOR.html#toCBOR"><span class="hs-identifier">toCBOR</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><a href="Cardano.Crypto.DSIGN.Class.html#encodeSignKeyDSIGN"><span class="hs-identifier hs-var">encodeSignKeyDSIGN</span></a><span>
-</span><a name="line-137"></a><span>  </span><a name="local-8214565720323791714"><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.ToCBOR.html#encodedSizeExpr"><span class="hs-identifier">encodedSizeExpr</span></a></a><span> </span><span class="hs-identifier">_</span><span> </span><span class="hs-glyph">=</span><span> </span><a href="Cardano.Crypto.DSIGN.Class.html#encodedSignKeyDESIGNSizeExpr"><span class="hs-identifier hs-var">encodedSignKeyDESIGNSizeExpr</span></a><span>
-</span><a name="line-138"></a><span>
-</span><a name="line-139"></a><span class="hs-keyword">instance</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.FromCBOR.html#FromCBOR"><span class="hs-identifier hs-type">FromCBOR</span></a><span> </span><span class="hs-special">(</span><a href="Cardano.Crypto.DSIGN.Class.html#SignKeyDSIGN"><span class="hs-identifier hs-type">SignKeyDSIGN</span></a><span> </span><a href="Cardano.Crypto.DSIGN.Mock.html#MockDSIGN"><span class="hs-identifier hs-type">MockDSIGN</span></a><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
-</span><a name="line-140"></a><span>  </span><a name="local-8214565720323791782"><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.FromCBOR.html#fromCBOR"><span class="hs-identifier">fromCBOR</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><a href="Cardano.Crypto.DSIGN.Class.html#decodeSignKeyDSIGN"><span class="hs-identifier hs-var">decodeSignKeyDSIGN</span></a><span>
-</span><a name="line-141"></a><span>
-</span><a name="line-142"></a><span class="hs-keyword">instance</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.ToCBOR.html#ToCBOR"><span class="hs-identifier hs-type">ToCBOR</span></a><span> </span><span class="hs-special">(</span><a href="Cardano.Crypto.DSIGN.Class.html#SigDSIGN"><span class="hs-identifier hs-type">SigDSIGN</span></a><span> </span><a href="Cardano.Crypto.DSIGN.Mock.html#MockDSIGN"><span class="hs-identifier hs-type">MockDSIGN</span></a><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
-</span><a name="line-143"></a><span>  </span><a name="local-8214565720323791715"><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.ToCBOR.html#toCBOR"><span class="hs-identifier">toCBOR</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><a href="Cardano.Crypto.DSIGN.Class.html#encodeSigDSIGN"><span class="hs-identifier hs-var">encodeSigDSIGN</span></a><span>
-</span><a name="line-144"></a><span>  </span><a name="local-8214565720323791714"><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.ToCBOR.html#encodedSizeExpr"><span class="hs-identifier">encodedSizeExpr</span></a></a><span> </span><span class="hs-identifier">_</span><span> </span><span class="hs-glyph">=</span><span> </span><a href="Cardano.Crypto.DSIGN.Class.html#encodedSigDSIGNSizeExpr"><span class="hs-identifier hs-var">encodedSigDSIGNSizeExpr</span></a><span>
-</span><a name="line-145"></a><span>
-</span><a name="line-146"></a><span class="hs-keyword">instance</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.FromCBOR.html#FromCBOR"><span class="hs-identifier hs-type">FromCBOR</span></a><span> </span><span class="hs-special">(</span><a href="Cardano.Crypto.DSIGN.Class.html#SigDSIGN"><span class="hs-identifier hs-type">SigDSIGN</span></a><span> </span><a href="Cardano.Crypto.DSIGN.Mock.html#MockDSIGN"><span class="hs-identifier hs-type">MockDSIGN</span></a><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
-</span><a name="line-147"></a><span>  </span><a name="local-8214565720323791782"><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src/Cardano.Binary.FromCBOR.html#fromCBOR"><span class="hs-identifier">fromCBOR</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><a href="Cardano.Crypto.DSIGN.Class.html#decodeSigDSIGN"><span class="hs-identifier hs-var">decodeSigDSIGN</span></a><span>
-</span><a name="line-148"></a><span>
-</span><a name="line-149"></a><span>
-</span><a name="line-150"></a><span class="hs-comment">-- | Debugging: provide information about the verification failure</span><span>
-</span><a name="line-151"></a><span class="hs-comment">--</span><span>
-</span><a name="line-152"></a><span class="hs-comment">-- We don't include the actual value here as that would require propagating a</span><span>
-</span><a name="line-153"></a><span class="hs-comment">-- 'Show' constraint.</span><span>
-</span><a name="line-154"></a><span class="hs-keyword">data</span><span> </span><a name="VerificationFailure"><a href="Cardano.Crypto.DSIGN.Mock.html#VerificationFailure"><span class="hs-identifier">VerificationFailure</span></a></a><span>
-</span><a name="line-155"></a><span>  </span><span class="hs-glyph">=</span><span> </span><a name="MockVerificationFailure"><a href="Cardano.Crypto.DSIGN.Mock.html#MockVerificationFailure"><span class="hs-identifier">MockVerificationFailure</span></a></a><span>
-</span><a name="line-156"></a><span>      </span><span class="hs-special">{</span><span> </span><a name="vErrVerKey"><a href="Cardano.Crypto.DSIGN.Mock.html#vErrVerKey"><span class="hs-identifier">vErrVerKey</span></a></a><span> </span><span class="hs-glyph">::</span><span> </span><a href="Cardano.Crypto.DSIGN.Class.html#VerKeyDSIGN"><span class="hs-identifier hs-type">VerKeyDSIGN</span></a><span> </span><a href="Cardano.Crypto.DSIGN.Mock.html#MockDSIGN"><span class="hs-identifier hs-type">MockDSIGN</span></a><span>
-</span><a name="line-157"></a><span>      </span><span class="hs-special">,</span><span> </span><a name="vErrSignature"><a href="Cardano.Crypto.DSIGN.Mock.html#vErrSignature"><span class="hs-identifier">vErrSignature</span></a></a><span> </span><span class="hs-glyph">::</span><span> </span><a href="Cardano.Crypto.DSIGN.Class.html#SigDSIGN"><span class="hs-identifier hs-type">SigDSIGN</span></a><span> </span><a href="Cardano.Crypto.DSIGN.Mock.html#MockDSIGN"><span class="hs-identifier hs-type">MockDSIGN</span></a><span>
-</span><a name="line-158"></a><span>      </span><span class="hs-special">,</span><span> </span><a name="vErrCallStack"><a href="Cardano.Crypto.DSIGN.Mock.html#vErrCallStack"><span class="hs-identifier">vErrCallStack</span></a></a><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">String</span><span>
-</span><a name="line-159"></a><span>      </span><span class="hs-special">}</span><span>
-</span><a name="line-160"></a><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-identifier hs-type">Show</span><span>
-</span><a name="line-161"></a><span>
-</span><a name="line-162"></a><span class="hs-identifier">mockSign</span><span> </span><span class="hs-glyph">::</span><span> </span><a href="Cardano.Crypto.Util.html#SignableRepresentation"><span class="hs-identifier hs-type">SignableRepresentation</span></a><span> </span><a href="#local-6989586621679130169"><span class="hs-identifier hs-type">a</span></a><span>
-</span><a name="line-163"></a><span>         </span><span class="hs-glyph">=&gt;</span><span> </span><a href="#local-6989586621679130169"><span class="hs-identifier hs-type">a</span></a><span> </span><span class="hs-glyph">-&gt;</span><span> </span><a href="Cardano.Crypto.DSIGN.Class.html#SignKeyDSIGN"><span class="hs-identifier hs-type">SignKeyDSIGN</span></a><span> </span><a href="Cardano.Crypto.DSIGN.Mock.html#MockDSIGN"><span class="hs-identifier hs-type">MockDSIGN</span></a><span> </span><span class="hs-glyph">-&gt;</span><span> </span><a href="Cardano.Crypto.DSIGN.Class.html#SigDSIGN"><span class="hs-identifier hs-type">SigDSIGN</span></a><span> </span><a href="Cardano.Crypto.DSIGN.Mock.html#MockDSIGN"><span class="hs-identifier hs-type">MockDSIGN</span></a><span>
-</span><a name="line-164"></a><a name="mockSign"><a href="Cardano.Crypto.DSIGN.Mock.html#mockSign"><span class="hs-identifier">mockSign</span></a></a><span> </span><a name="local-6989586621679130170"><a href="#local-6989586621679130170"><span class="hs-identifier">a</span></a></a><span> </span><span class="hs-special">(</span><a href="Cardano.Crypto.DSIGN.Mock.html#SignKeyMockDSIGN"><span class="hs-identifier hs-var">SignKeyMockDSIGN</span></a><span> </span><a name="local-6989586621679130171"><a href="#local-6989586621679130171"><span class="hs-identifier">n</span></a></a><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span>
-</span><a name="line-165"></a><span>  </span><a href="Cardano.Crypto.DSIGN.Mock.html#SigMockDSIGN"><span class="hs-identifier hs-var">SigMockDSIGN</span></a><span> </span><span class="hs-special">(</span><a href="Cardano.Crypto.Hash.Class.html#castHash"><span class="hs-identifier hs-var">castHash</span></a><span> </span><span class="hs-special">(</span><a href="Cardano.Crypto.Hash.Class.html#hashWith"><span class="hs-identifier hs-var">hashWith</span></a><span> </span><a href="Cardano.Crypto.Util.html#getSignableRepresentation"><span class="hs-identifier hs-var">getSignableRepresentation</span></a><span> </span><a href="#local-6989586621679130170"><span class="hs-identifier hs-var">a</span></a><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><a href="#local-6989586621679130171"><span class="hs-identifier hs-var">n</span></a><span>
-</span><a name="line-166"></a></pre></body></html>
+</span><span id="line-2"></span><span class="hs-pragma">{-# LANGUAGE ConstraintKinds #-}</span><span>
+</span><span id="line-3"></span><span class="hs-pragma">{-# LANGUAGE DataKinds #-}</span><span>
+</span><span id="line-4"></span><span class="hs-pragma">{-# LANGUAGE DeriveAnyClass #-}</span><span>
+</span><span id="line-5"></span><span class="hs-pragma">{-# LANGUAGE DeriveGeneric #-}</span><span>
+</span><span id="line-6"></span><span class="hs-pragma">{-# LANGUAGE DerivingStrategies #-}</span><span>
+</span><span id="line-7"></span><span class="hs-pragma">{-# LANGUAGE FlexibleInstances #-}</span><span>
+</span><span id="line-8"></span><span class="hs-pragma">{-# LANGUAGE GeneralizedNewtypeDeriving #-}</span><span>
+</span><span id="line-9"></span><span class="hs-pragma">{-# LANGUAGE TypeApplications #-}</span><span>
+</span><span id="line-10"></span><span class="hs-pragma">{-# LANGUAGE TypeOperators #-}</span><span>
+</span><span id="line-11"></span><span class="hs-pragma">{-# LANGUAGE TypeFamilies #-}</span><span>
+</span><span id="line-12"></span><span class="hs-pragma">{-# LANGUAGE UndecidableInstances #-}</span><span>
+</span><span id="line-13"></span><span>
+</span><span id="line-14"></span><span class="hs-comment">-- | Mock implementation of digital signatures.</span><span>
+</span><span id="line-15"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Cardano.Crypto.DSIGN.Mock</span><span>
+</span><span id="line-16"></span><span>  </span><span class="hs-special">(</span><span> </span><span class="annot"><a href="Cardano.Crypto.DSIGN.Mock.html#MockDSIGN"><span class="hs-identifier">MockDSIGN</span></a></span><span>
+</span><span id="line-17"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cardano.Crypto.DSIGN.Class.html#SignKeyDSIGN"><span class="hs-identifier">SignKeyDSIGN</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
+</span><span id="line-18"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cardano.Crypto.DSIGN.Class.html#VerKeyDSIGN"><span class="hs-identifier">VerKeyDSIGN</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
+</span><span id="line-19"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cardano.Crypto.DSIGN.Class.html#SigDSIGN"><span class="hs-identifier">SigDSIGN</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
+</span><span id="line-20"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cardano.Crypto.DSIGN.Mock.html#mockSign"><span class="hs-identifier">mockSign</span></a></span><span>
+</span><span id="line-21"></span><span>  </span><span class="hs-special">)</span><span>
+</span><span id="line-22"></span><span class="hs-keyword">where</span><span>
+</span><span id="line-23"></span><span>
+</span><span id="line-24"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Word</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Word64</span></span><span class="hs-special">)</span><span>
+</span><span id="line-25"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">GHC.Generics</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Generic</span></span><span class="hs-special">)</span><span>
+</span><span id="line-26"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">GHC.TypeLits</span></span><span> </span><span class="hs-special">(</span><span class="hs-keyword">type</span><span> </span><span class="annot"><span class="hs-operator">(+)</span></span><span class="hs-special">)</span><span>
+</span><span id="line-27"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Proxy</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Proxy</span></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-28"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">GHC.Stack</span></span><span>
+</span><span id="line-29"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">NoThunks.Class</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">NoThunks</span></span><span class="hs-special">)</span><span>
+</span><span id="line-30"></span><span>
+</span><span id="line-31"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src"><span class="hs-identifier">Cardano.Binary</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src"><span class="hs-identifier">FromCBOR</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src"><span class="hs-identifier">ToCBOR</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-32"></span><span>
+</span><span id="line-33"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Cardano.Crypto.DSIGN.Class.html"><span class="hs-identifier">Cardano.Crypto.DSIGN.Class</span></a></span><span>
+</span><span id="line-34"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Cardano.Crypto.Seed.html"><span class="hs-identifier">Cardano.Crypto.Seed</span></a></span><span>
+</span><span id="line-35"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Cardano.Crypto.Hash.html"><span class="hs-identifier">Cardano.Crypto.Hash</span></a></span><span>
+</span><span id="line-36"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Cardano.Crypto.Util.html"><span class="hs-identifier">Cardano.Crypto.Util</span></a></span><span>
+</span><span id="line-37"></span><span>
+</span><span id="line-38"></span><span>
+</span><span id="line-39"></span><span class="hs-keyword">data</span><span> </span><span id="MockDSIGN"><span class="annot"><a href="Cardano.Crypto.DSIGN.Mock.html#MockDSIGN"><span class="hs-identifier hs-var">MockDSIGN</span></a></span></span><span>
+</span><span id="line-40"></span><span>
+</span><span id="line-41"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679136099"><span class="annot"><a href="Cardano.Crypto.DSIGN.Class.html#DSIGNAlgorithm"><span class="hs-identifier hs-type">DSIGNAlgorithm</span></a></span><span> </span><span class="annot"><a href="Cardano.Crypto.DSIGN.Mock.html#MockDSIGN"><span class="hs-identifier hs-type">MockDSIGN</span></a></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-42"></span><span>    </span><span class="hs-keyword">type</span><span> </span><span id="SeedSizeDSIGN"><span class="annot"><a href="Cardano.Crypto.DSIGN.Class.html#SeedSizeDSIGN"><span class="hs-identifier hs-var">SeedSizeDSIGN</span></a></span></span><span> </span><span class="annot"><a href="Cardano.Crypto.DSIGN.Mock.html#MockDSIGN"><span class="hs-identifier hs-type">MockDSIGN</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="hs-number">8</span></span><span>
+</span><span id="line-43"></span><span>    </span><span class="hs-keyword">type</span><span> </span><span id="SizeVerKeyDSIGN"><span class="annot"><a href="Cardano.Crypto.DSIGN.Class.html#SizeVerKeyDSIGN"><span class="hs-identifier hs-var">SizeVerKeyDSIGN</span></a></span></span><span>  </span><span class="annot"><a href="Cardano.Crypto.DSIGN.Mock.html#MockDSIGN"><span class="hs-identifier hs-type">MockDSIGN</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="hs-number">8</span></span><span> </span><span class="hs-comment">-- for 64 bit int</span><span>
+</span><span id="line-44"></span><span>    </span><span class="hs-keyword">type</span><span> </span><span id="SizeSignKeyDSIGN"><span class="annot"><a href="Cardano.Crypto.DSIGN.Class.html#SizeSignKeyDSIGN"><span class="hs-identifier hs-var">SizeSignKeyDSIGN</span></a></span></span><span> </span><span class="annot"><a href="Cardano.Crypto.DSIGN.Mock.html#MockDSIGN"><span class="hs-identifier hs-type">MockDSIGN</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="hs-number">8</span></span><span>
+</span><span id="line-45"></span><span>    </span><span class="hs-keyword">type</span><span> </span><span id="SizeSigDSIGN"><span class="annot"><a href="Cardano.Crypto.DSIGN.Class.html#SizeSigDSIGN"><span class="hs-identifier hs-var">SizeSigDSIGN</span></a></span></span><span>     </span><span class="annot"><a href="Cardano.Crypto.DSIGN.Mock.html#MockDSIGN"><span class="hs-identifier hs-type">MockDSIGN</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><a href="Cardano.Crypto.Hash.Class.html#SizeHash"><span class="hs-identifier hs-type">SizeHash</span></a></span><span> </span><span class="annot"><a href="Cardano.Crypto.Hash.Short.html#ShortHash"><span class="hs-identifier hs-type">ShortHash</span></a></span><span> </span><span class="annot"><span class="hs-operator hs-type">+</span></span><span> </span><span class="annot"><span class="hs-number">8</span></span><span>
+</span><span id="line-46"></span><span>
+</span><span id="line-47"></span><span>    </span><span class="hs-comment">--</span><span>
+</span><span id="line-48"></span><span>    </span><span class="hs-comment">-- Key and signature types</span><span>
+</span><span id="line-49"></span><span>    </span><span class="hs-comment">--</span><span>
+</span><span id="line-50"></span><span>
+</span><span id="line-51"></span><span>    </span><span class="hs-keyword">newtype</span><span> </span><span id="VerKeyDSIGN"><span class="annot"><a href="Cardano.Crypto.DSIGN.Class.html#VerKeyDSIGN"><span class="hs-identifier hs-var">VerKeyDSIGN</span></a></span></span><span> </span><span class="annot"><a href="Cardano.Crypto.DSIGN.Mock.html#MockDSIGN"><span class="hs-identifier hs-type">MockDSIGN</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="VerKeyMockDSIGN"><span class="annot"><a href="Cardano.Crypto.DSIGN.Mock.html#VerKeyMockDSIGN"><span class="hs-identifier hs-var">VerKeyMockDSIGN</span></a></span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Word64</span></span><span>
+</span><span id="line-52"></span><span>        </span><span class="hs-keyword">deriving</span><span> </span><span class="annot"><span class="hs-keyword">stock</span></span><span>   </span><span class="hs-special">(</span><span id="local-6989586621679136079"><span id="local-6989586621679136081"><span id="local-6989586621679136083"><span class="annot"><span class="annottext">Int -&gt; VerKeyDSIGN MockDSIGN -&gt; ShowS
+[VerKeyDSIGN MockDSIGN] -&gt; ShowS
+VerKeyDSIGN MockDSIGN -&gt; String
+(Int -&gt; VerKeyDSIGN MockDSIGN -&gt; ShowS)
+-&gt; (VerKeyDSIGN MockDSIGN -&gt; String)
+-&gt; ([VerKeyDSIGN MockDSIGN] -&gt; ShowS)
+-&gt; Show (VerKeyDSIGN MockDSIGN)
+forall a.
+(Int -&gt; a -&gt; ShowS) -&gt; (a -&gt; String) -&gt; ([a] -&gt; ShowS) -&gt; Show a
+showList :: [VerKeyDSIGN MockDSIGN] -&gt; ShowS
+$cshowList :: [VerKeyDSIGN MockDSIGN] -&gt; ShowS
+show :: VerKeyDSIGN MockDSIGN -&gt; String
+$cshow :: VerKeyDSIGN MockDSIGN -&gt; String
+showsPrec :: Int -&gt; VerKeyDSIGN MockDSIGN -&gt; ShowS
+$cshowsPrec :: Int -&gt; VerKeyDSIGN MockDSIGN -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679136074"><span id="local-6989586621679136076"><span class="annot"><span class="annottext">VerKeyDSIGN MockDSIGN -&gt; VerKeyDSIGN MockDSIGN -&gt; Bool
+(VerKeyDSIGN MockDSIGN -&gt; VerKeyDSIGN MockDSIGN -&gt; Bool)
+-&gt; (VerKeyDSIGN MockDSIGN -&gt; VerKeyDSIGN MockDSIGN -&gt; Bool)
+-&gt; Eq (VerKeyDSIGN MockDSIGN)
+forall a. (a -&gt; a -&gt; Bool) -&gt; (a -&gt; a -&gt; Bool) -&gt; Eq a
+/= :: VerKeyDSIGN MockDSIGN -&gt; VerKeyDSIGN MockDSIGN -&gt; Bool
+$c/= :: VerKeyDSIGN MockDSIGN -&gt; VerKeyDSIGN MockDSIGN -&gt; Bool
+== :: VerKeyDSIGN MockDSIGN -&gt; VerKeyDSIGN MockDSIGN -&gt; Bool
+$c== :: VerKeyDSIGN MockDSIGN -&gt; VerKeyDSIGN MockDSIGN -&gt; Bool
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679136058"><span id="local-6989586621679136060"><span id="local-6989586621679136062"><span id="local-6989586621679136064"><span id="local-6989586621679136066"><span id="local-6989586621679136068"><span id="local-6989586621679136070"><span class="annot"><span class="annottext">Eq (VerKeyDSIGN MockDSIGN)
+Eq (VerKeyDSIGN MockDSIGN)
+-&gt; (VerKeyDSIGN MockDSIGN -&gt; VerKeyDSIGN MockDSIGN -&gt; Ordering)
+-&gt; (VerKeyDSIGN MockDSIGN -&gt; VerKeyDSIGN MockDSIGN -&gt; Bool)
+-&gt; (VerKeyDSIGN MockDSIGN -&gt; VerKeyDSIGN MockDSIGN -&gt; Bool)
+-&gt; (VerKeyDSIGN MockDSIGN -&gt; VerKeyDSIGN MockDSIGN -&gt; Bool)
+-&gt; (VerKeyDSIGN MockDSIGN -&gt; VerKeyDSIGN MockDSIGN -&gt; Bool)
+-&gt; (VerKeyDSIGN MockDSIGN
+    -&gt; VerKeyDSIGN MockDSIGN -&gt; VerKeyDSIGN MockDSIGN)
+-&gt; (VerKeyDSIGN MockDSIGN
+    -&gt; VerKeyDSIGN MockDSIGN -&gt; VerKeyDSIGN MockDSIGN)
+-&gt; Ord (VerKeyDSIGN MockDSIGN)
+VerKeyDSIGN MockDSIGN -&gt; VerKeyDSIGN MockDSIGN -&gt; Bool
+VerKeyDSIGN MockDSIGN -&gt; VerKeyDSIGN MockDSIGN -&gt; Ordering
+VerKeyDSIGN MockDSIGN
+-&gt; VerKeyDSIGN MockDSIGN -&gt; VerKeyDSIGN MockDSIGN
+forall a.
+Eq a
+-&gt; (a -&gt; a -&gt; Ordering)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; a)
+-&gt; (a -&gt; a -&gt; a)
+-&gt; Ord a
+min :: VerKeyDSIGN MockDSIGN
+-&gt; VerKeyDSIGN MockDSIGN -&gt; VerKeyDSIGN MockDSIGN
+$cmin :: VerKeyDSIGN MockDSIGN
+-&gt; VerKeyDSIGN MockDSIGN -&gt; VerKeyDSIGN MockDSIGN
+max :: VerKeyDSIGN MockDSIGN
+-&gt; VerKeyDSIGN MockDSIGN -&gt; VerKeyDSIGN MockDSIGN
+$cmax :: VerKeyDSIGN MockDSIGN
+-&gt; VerKeyDSIGN MockDSIGN -&gt; VerKeyDSIGN MockDSIGN
+&gt;= :: VerKeyDSIGN MockDSIGN -&gt; VerKeyDSIGN MockDSIGN -&gt; Bool
+$c&gt;= :: VerKeyDSIGN MockDSIGN -&gt; VerKeyDSIGN MockDSIGN -&gt; Bool
+&gt; :: VerKeyDSIGN MockDSIGN -&gt; VerKeyDSIGN MockDSIGN -&gt; Bool
+$c&gt; :: VerKeyDSIGN MockDSIGN -&gt; VerKeyDSIGN MockDSIGN -&gt; Bool
+&lt;= :: VerKeyDSIGN MockDSIGN -&gt; VerKeyDSIGN MockDSIGN -&gt; Bool
+$c&lt;= :: VerKeyDSIGN MockDSIGN -&gt; VerKeyDSIGN MockDSIGN -&gt; Bool
+&lt; :: VerKeyDSIGN MockDSIGN -&gt; VerKeyDSIGN MockDSIGN -&gt; Bool
+$c&lt; :: VerKeyDSIGN MockDSIGN -&gt; VerKeyDSIGN MockDSIGN -&gt; Bool
+compare :: VerKeyDSIGN MockDSIGN -&gt; VerKeyDSIGN MockDSIGN -&gt; Ordering
+$ccompare :: VerKeyDSIGN MockDSIGN -&gt; VerKeyDSIGN MockDSIGN -&gt; Ordering
+$cp1Ord :: Eq (VerKeyDSIGN MockDSIGN)
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Ord</span></span></span></span></span></span></span></span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">(forall x. VerKeyDSIGN MockDSIGN -&gt; Rep (VerKeyDSIGN MockDSIGN) x)
+-&gt; (forall x.
+    Rep (VerKeyDSIGN MockDSIGN) x -&gt; VerKeyDSIGN MockDSIGN)
+-&gt; Generic (VerKeyDSIGN MockDSIGN)
+forall x. Rep (VerKeyDSIGN MockDSIGN) x -&gt; VerKeyDSIGN MockDSIGN
+forall x. VerKeyDSIGN MockDSIGN -&gt; Rep (VerKeyDSIGN MockDSIGN) x
+forall a.
+(forall x. a -&gt; Rep a x) -&gt; (forall x. Rep a x -&gt; a) -&gt; Generic a
+$cto :: forall x. Rep (VerKeyDSIGN MockDSIGN) x -&gt; VerKeyDSIGN MockDSIGN
+$cfrom :: forall x. VerKeyDSIGN MockDSIGN -&gt; Rep (VerKeyDSIGN MockDSIGN) x
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">Generic</span></span><span class="hs-special">)</span><span>
+</span><span id="line-53"></span><span>        </span><span class="hs-keyword">deriving</span><span> </span><span class="annot"><span class="hs-keyword">newtype</span></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679136040"><span id="local-6989586621679136042"><span id="local-6989586621679136044"><span id="local-6989586621679136046"><span id="local-6989586621679136048"><span id="local-6989586621679136050"><span id="local-6989586621679136052"><span class="annot"><span class="annottext">Integer -&gt; VerKeyDSIGN MockDSIGN
+VerKeyDSIGN MockDSIGN -&gt; VerKeyDSIGN MockDSIGN
+VerKeyDSIGN MockDSIGN
+-&gt; VerKeyDSIGN MockDSIGN -&gt; VerKeyDSIGN MockDSIGN
+(VerKeyDSIGN MockDSIGN
+ -&gt; VerKeyDSIGN MockDSIGN -&gt; VerKeyDSIGN MockDSIGN)
+-&gt; (VerKeyDSIGN MockDSIGN
+    -&gt; VerKeyDSIGN MockDSIGN -&gt; VerKeyDSIGN MockDSIGN)
+-&gt; (VerKeyDSIGN MockDSIGN
+    -&gt; VerKeyDSIGN MockDSIGN -&gt; VerKeyDSIGN MockDSIGN)
+-&gt; (VerKeyDSIGN MockDSIGN -&gt; VerKeyDSIGN MockDSIGN)
+-&gt; (VerKeyDSIGN MockDSIGN -&gt; VerKeyDSIGN MockDSIGN)
+-&gt; (VerKeyDSIGN MockDSIGN -&gt; VerKeyDSIGN MockDSIGN)
+-&gt; (Integer -&gt; VerKeyDSIGN MockDSIGN)
+-&gt; Num (VerKeyDSIGN MockDSIGN)
+forall a.
+(a -&gt; a -&gt; a)
+-&gt; (a -&gt; a -&gt; a)
+-&gt; (a -&gt; a -&gt; a)
+-&gt; (a -&gt; a)
+-&gt; (a -&gt; a)
+-&gt; (a -&gt; a)
+-&gt; (Integer -&gt; a)
+-&gt; Num a
+fromInteger :: Integer -&gt; VerKeyDSIGN MockDSIGN
+$cfromInteger :: Integer -&gt; VerKeyDSIGN MockDSIGN
+signum :: VerKeyDSIGN MockDSIGN -&gt; VerKeyDSIGN MockDSIGN
+$csignum :: VerKeyDSIGN MockDSIGN -&gt; VerKeyDSIGN MockDSIGN
+abs :: VerKeyDSIGN MockDSIGN -&gt; VerKeyDSIGN MockDSIGN
+$cabs :: VerKeyDSIGN MockDSIGN -&gt; VerKeyDSIGN MockDSIGN
+negate :: VerKeyDSIGN MockDSIGN -&gt; VerKeyDSIGN MockDSIGN
+$cnegate :: VerKeyDSIGN MockDSIGN -&gt; VerKeyDSIGN MockDSIGN
+* :: VerKeyDSIGN MockDSIGN
+-&gt; VerKeyDSIGN MockDSIGN -&gt; VerKeyDSIGN MockDSIGN
+$c* :: VerKeyDSIGN MockDSIGN
+-&gt; VerKeyDSIGN MockDSIGN -&gt; VerKeyDSIGN MockDSIGN
+- :: VerKeyDSIGN MockDSIGN
+-&gt; VerKeyDSIGN MockDSIGN -&gt; VerKeyDSIGN MockDSIGN
+$c- :: VerKeyDSIGN MockDSIGN
+-&gt; VerKeyDSIGN MockDSIGN -&gt; VerKeyDSIGN MockDSIGN
++ :: VerKeyDSIGN MockDSIGN
+-&gt; VerKeyDSIGN MockDSIGN -&gt; VerKeyDSIGN MockDSIGN
+$c+ :: VerKeyDSIGN MockDSIGN
+-&gt; VerKeyDSIGN MockDSIGN -&gt; VerKeyDSIGN MockDSIGN
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Num</span></span></span></span></span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679136033"><span id="local-6989586621679136035"><span id="local-6989586621679136037"><span class="annot"><span class="annottext">Context -&gt; VerKeyDSIGN MockDSIGN -&gt; IO (Maybe ThunkInfo)
+Proxy (VerKeyDSIGN MockDSIGN) -&gt; String
+(Context -&gt; VerKeyDSIGN MockDSIGN -&gt; IO (Maybe ThunkInfo))
+-&gt; (Context -&gt; VerKeyDSIGN MockDSIGN -&gt; IO (Maybe ThunkInfo))
+-&gt; (Proxy (VerKeyDSIGN MockDSIGN) -&gt; String)
+-&gt; NoThunks (VerKeyDSIGN MockDSIGN)
+forall a.
+(Context -&gt; a -&gt; IO (Maybe ThunkInfo))
+-&gt; (Context -&gt; a -&gt; IO (Maybe ThunkInfo))
+-&gt; (Proxy a -&gt; String)
+-&gt; NoThunks a
+showTypeOf :: Proxy (VerKeyDSIGN MockDSIGN) -&gt; String
+$cshowTypeOf :: Proxy (VerKeyDSIGN MockDSIGN) -&gt; String
+wNoThunks :: Context -&gt; VerKeyDSIGN MockDSIGN -&gt; IO (Maybe ThunkInfo)
+$cwNoThunks :: Context -&gt; VerKeyDSIGN MockDSIGN -&gt; IO (Maybe ThunkInfo)
+noThunks :: Context -&gt; VerKeyDSIGN MockDSIGN -&gt; IO (Maybe ThunkInfo)
+$cnoThunks :: Context -&gt; VerKeyDSIGN MockDSIGN -&gt; IO (Maybe ThunkInfo)
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">NoThunks</span></span></span></span></span><span class="hs-special">)</span><span>
+</span><span id="line-54"></span><span>
+</span><span id="line-55"></span><span>    </span><span class="hs-keyword">newtype</span><span> </span><span id="SignKeyDSIGN"><span class="annot"><a href="Cardano.Crypto.DSIGN.Class.html#SignKeyDSIGN"><span class="hs-identifier hs-var">SignKeyDSIGN</span></a></span></span><span> </span><span class="annot"><a href="Cardano.Crypto.DSIGN.Mock.html#MockDSIGN"><span class="hs-identifier hs-type">MockDSIGN</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="SignKeyMockDSIGN"><span class="annot"><a href="Cardano.Crypto.DSIGN.Mock.html#SignKeyMockDSIGN"><span class="hs-identifier hs-var">SignKeyMockDSIGN</span></a></span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Word64</span></span><span>
+</span><span id="line-56"></span><span>        </span><span class="hs-keyword">deriving</span><span> </span><span class="annot"><span class="hs-keyword">stock</span></span><span>   </span><span class="hs-special">(</span><span id="local-6989586621679136023"><span id="local-6989586621679136025"><span id="local-6989586621679136027"><span class="annot"><span class="annottext">Int -&gt; SignKeyDSIGN MockDSIGN -&gt; ShowS
+[SignKeyDSIGN MockDSIGN] -&gt; ShowS
+SignKeyDSIGN MockDSIGN -&gt; String
+(Int -&gt; SignKeyDSIGN MockDSIGN -&gt; ShowS)
+-&gt; (SignKeyDSIGN MockDSIGN -&gt; String)
+-&gt; ([SignKeyDSIGN MockDSIGN] -&gt; ShowS)
+-&gt; Show (SignKeyDSIGN MockDSIGN)
+forall a.
+(Int -&gt; a -&gt; ShowS) -&gt; (a -&gt; String) -&gt; ([a] -&gt; ShowS) -&gt; Show a
+showList :: [SignKeyDSIGN MockDSIGN] -&gt; ShowS
+$cshowList :: [SignKeyDSIGN MockDSIGN] -&gt; ShowS
+show :: SignKeyDSIGN MockDSIGN -&gt; String
+$cshow :: SignKeyDSIGN MockDSIGN -&gt; String
+showsPrec :: Int -&gt; SignKeyDSIGN MockDSIGN -&gt; ShowS
+$cshowsPrec :: Int -&gt; SignKeyDSIGN MockDSIGN -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679136019"><span id="local-6989586621679136021"><span class="annot"><span class="annottext">SignKeyDSIGN MockDSIGN -&gt; SignKeyDSIGN MockDSIGN -&gt; Bool
+(SignKeyDSIGN MockDSIGN -&gt; SignKeyDSIGN MockDSIGN -&gt; Bool)
+-&gt; (SignKeyDSIGN MockDSIGN -&gt; SignKeyDSIGN MockDSIGN -&gt; Bool)
+-&gt; Eq (SignKeyDSIGN MockDSIGN)
+forall a. (a -&gt; a -&gt; Bool) -&gt; (a -&gt; a -&gt; Bool) -&gt; Eq a
+/= :: SignKeyDSIGN MockDSIGN -&gt; SignKeyDSIGN MockDSIGN -&gt; Bool
+$c/= :: SignKeyDSIGN MockDSIGN -&gt; SignKeyDSIGN MockDSIGN -&gt; Bool
+== :: SignKeyDSIGN MockDSIGN -&gt; SignKeyDSIGN MockDSIGN -&gt; Bool
+$c== :: SignKeyDSIGN MockDSIGN -&gt; SignKeyDSIGN MockDSIGN -&gt; Bool
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679136004"><span id="local-6989586621679136006"><span id="local-6989586621679136008"><span id="local-6989586621679136010"><span id="local-6989586621679136012"><span id="local-6989586621679136014"><span id="local-6989586621679136016"><span class="annot"><span class="annottext">Eq (SignKeyDSIGN MockDSIGN)
+Eq (SignKeyDSIGN MockDSIGN)
+-&gt; (SignKeyDSIGN MockDSIGN -&gt; SignKeyDSIGN MockDSIGN -&gt; Ordering)
+-&gt; (SignKeyDSIGN MockDSIGN -&gt; SignKeyDSIGN MockDSIGN -&gt; Bool)
+-&gt; (SignKeyDSIGN MockDSIGN -&gt; SignKeyDSIGN MockDSIGN -&gt; Bool)
+-&gt; (SignKeyDSIGN MockDSIGN -&gt; SignKeyDSIGN MockDSIGN -&gt; Bool)
+-&gt; (SignKeyDSIGN MockDSIGN -&gt; SignKeyDSIGN MockDSIGN -&gt; Bool)
+-&gt; (SignKeyDSIGN MockDSIGN
+    -&gt; SignKeyDSIGN MockDSIGN -&gt; SignKeyDSIGN MockDSIGN)
+-&gt; (SignKeyDSIGN MockDSIGN
+    -&gt; SignKeyDSIGN MockDSIGN -&gt; SignKeyDSIGN MockDSIGN)
+-&gt; Ord (SignKeyDSIGN MockDSIGN)
+SignKeyDSIGN MockDSIGN -&gt; SignKeyDSIGN MockDSIGN -&gt; Bool
+SignKeyDSIGN MockDSIGN -&gt; SignKeyDSIGN MockDSIGN -&gt; Ordering
+SignKeyDSIGN MockDSIGN
+-&gt; SignKeyDSIGN MockDSIGN -&gt; SignKeyDSIGN MockDSIGN
+forall a.
+Eq a
+-&gt; (a -&gt; a -&gt; Ordering)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; a)
+-&gt; (a -&gt; a -&gt; a)
+-&gt; Ord a
+min :: SignKeyDSIGN MockDSIGN
+-&gt; SignKeyDSIGN MockDSIGN -&gt; SignKeyDSIGN MockDSIGN
+$cmin :: SignKeyDSIGN MockDSIGN
+-&gt; SignKeyDSIGN MockDSIGN -&gt; SignKeyDSIGN MockDSIGN
+max :: SignKeyDSIGN MockDSIGN
+-&gt; SignKeyDSIGN MockDSIGN -&gt; SignKeyDSIGN MockDSIGN
+$cmax :: SignKeyDSIGN MockDSIGN
+-&gt; SignKeyDSIGN MockDSIGN -&gt; SignKeyDSIGN MockDSIGN
+&gt;= :: SignKeyDSIGN MockDSIGN -&gt; SignKeyDSIGN MockDSIGN -&gt; Bool
+$c&gt;= :: SignKeyDSIGN MockDSIGN -&gt; SignKeyDSIGN MockDSIGN -&gt; Bool
+&gt; :: SignKeyDSIGN MockDSIGN -&gt; SignKeyDSIGN MockDSIGN -&gt; Bool
+$c&gt; :: SignKeyDSIGN MockDSIGN -&gt; SignKeyDSIGN MockDSIGN -&gt; Bool
+&lt;= :: SignKeyDSIGN MockDSIGN -&gt; SignKeyDSIGN MockDSIGN -&gt; Bool
+$c&lt;= :: SignKeyDSIGN MockDSIGN -&gt; SignKeyDSIGN MockDSIGN -&gt; Bool
+&lt; :: SignKeyDSIGN MockDSIGN -&gt; SignKeyDSIGN MockDSIGN -&gt; Bool
+$c&lt; :: SignKeyDSIGN MockDSIGN -&gt; SignKeyDSIGN MockDSIGN -&gt; Bool
+compare :: SignKeyDSIGN MockDSIGN -&gt; SignKeyDSIGN MockDSIGN -&gt; Ordering
+$ccompare :: SignKeyDSIGN MockDSIGN -&gt; SignKeyDSIGN MockDSIGN -&gt; Ordering
+$cp1Ord :: Eq (SignKeyDSIGN MockDSIGN)
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Ord</span></span></span></span></span></span></span></span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">(forall x.
+ SignKeyDSIGN MockDSIGN -&gt; Rep (SignKeyDSIGN MockDSIGN) x)
+-&gt; (forall x.
+    Rep (SignKeyDSIGN MockDSIGN) x -&gt; SignKeyDSIGN MockDSIGN)
+-&gt; Generic (SignKeyDSIGN MockDSIGN)
+forall x. Rep (SignKeyDSIGN MockDSIGN) x -&gt; SignKeyDSIGN MockDSIGN
+forall x. SignKeyDSIGN MockDSIGN -&gt; Rep (SignKeyDSIGN MockDSIGN) x
+forall a.
+(forall x. a -&gt; Rep a x) -&gt; (forall x. Rep a x -&gt; a) -&gt; Generic a
+$cto :: forall x. Rep (SignKeyDSIGN MockDSIGN) x -&gt; SignKeyDSIGN MockDSIGN
+$cfrom :: forall x. SignKeyDSIGN MockDSIGN -&gt; Rep (SignKeyDSIGN MockDSIGN) x
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">Generic</span></span><span class="hs-special">)</span><span>
+</span><span id="line-57"></span><span>        </span><span class="hs-keyword">deriving</span><span> </span><span class="annot"><span class="hs-keyword">newtype</span></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679135988"><span id="local-6989586621679135990"><span id="local-6989586621679135992"><span id="local-6989586621679135994"><span id="local-6989586621679135996"><span id="local-6989586621679135998"><span id="local-6989586621679136000"><span class="annot"><span class="annottext">Integer -&gt; SignKeyDSIGN MockDSIGN
+SignKeyDSIGN MockDSIGN -&gt; SignKeyDSIGN MockDSIGN
+SignKeyDSIGN MockDSIGN
+-&gt; SignKeyDSIGN MockDSIGN -&gt; SignKeyDSIGN MockDSIGN
+(SignKeyDSIGN MockDSIGN
+ -&gt; SignKeyDSIGN MockDSIGN -&gt; SignKeyDSIGN MockDSIGN)
+-&gt; (SignKeyDSIGN MockDSIGN
+    -&gt; SignKeyDSIGN MockDSIGN -&gt; SignKeyDSIGN MockDSIGN)
+-&gt; (SignKeyDSIGN MockDSIGN
+    -&gt; SignKeyDSIGN MockDSIGN -&gt; SignKeyDSIGN MockDSIGN)
+-&gt; (SignKeyDSIGN MockDSIGN -&gt; SignKeyDSIGN MockDSIGN)
+-&gt; (SignKeyDSIGN MockDSIGN -&gt; SignKeyDSIGN MockDSIGN)
+-&gt; (SignKeyDSIGN MockDSIGN -&gt; SignKeyDSIGN MockDSIGN)
+-&gt; (Integer -&gt; SignKeyDSIGN MockDSIGN)
+-&gt; Num (SignKeyDSIGN MockDSIGN)
+forall a.
+(a -&gt; a -&gt; a)
+-&gt; (a -&gt; a -&gt; a)
+-&gt; (a -&gt; a -&gt; a)
+-&gt; (a -&gt; a)
+-&gt; (a -&gt; a)
+-&gt; (a -&gt; a)
+-&gt; (Integer -&gt; a)
+-&gt; Num a
+fromInteger :: Integer -&gt; SignKeyDSIGN MockDSIGN
+$cfromInteger :: Integer -&gt; SignKeyDSIGN MockDSIGN
+signum :: SignKeyDSIGN MockDSIGN -&gt; SignKeyDSIGN MockDSIGN
+$csignum :: SignKeyDSIGN MockDSIGN -&gt; SignKeyDSIGN MockDSIGN
+abs :: SignKeyDSIGN MockDSIGN -&gt; SignKeyDSIGN MockDSIGN
+$cabs :: SignKeyDSIGN MockDSIGN -&gt; SignKeyDSIGN MockDSIGN
+negate :: SignKeyDSIGN MockDSIGN -&gt; SignKeyDSIGN MockDSIGN
+$cnegate :: SignKeyDSIGN MockDSIGN -&gt; SignKeyDSIGN MockDSIGN
+* :: SignKeyDSIGN MockDSIGN
+-&gt; SignKeyDSIGN MockDSIGN -&gt; SignKeyDSIGN MockDSIGN
+$c* :: SignKeyDSIGN MockDSIGN
+-&gt; SignKeyDSIGN MockDSIGN -&gt; SignKeyDSIGN MockDSIGN
+- :: SignKeyDSIGN MockDSIGN
+-&gt; SignKeyDSIGN MockDSIGN -&gt; SignKeyDSIGN MockDSIGN
+$c- :: SignKeyDSIGN MockDSIGN
+-&gt; SignKeyDSIGN MockDSIGN -&gt; SignKeyDSIGN MockDSIGN
++ :: SignKeyDSIGN MockDSIGN
+-&gt; SignKeyDSIGN MockDSIGN -&gt; SignKeyDSIGN MockDSIGN
+$c+ :: SignKeyDSIGN MockDSIGN
+-&gt; SignKeyDSIGN MockDSIGN -&gt; SignKeyDSIGN MockDSIGN
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Num</span></span></span></span></span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679135982"><span id="local-6989586621679135984"><span id="local-6989586621679135986"><span class="annot"><span class="annottext">Context -&gt; SignKeyDSIGN MockDSIGN -&gt; IO (Maybe ThunkInfo)
+Proxy (SignKeyDSIGN MockDSIGN) -&gt; String
+(Context -&gt; SignKeyDSIGN MockDSIGN -&gt; IO (Maybe ThunkInfo))
+-&gt; (Context -&gt; SignKeyDSIGN MockDSIGN -&gt; IO (Maybe ThunkInfo))
+-&gt; (Proxy (SignKeyDSIGN MockDSIGN) -&gt; String)
+-&gt; NoThunks (SignKeyDSIGN MockDSIGN)
+forall a.
+(Context -&gt; a -&gt; IO (Maybe ThunkInfo))
+-&gt; (Context -&gt; a -&gt; IO (Maybe ThunkInfo))
+-&gt; (Proxy a -&gt; String)
+-&gt; NoThunks a
+showTypeOf :: Proxy (SignKeyDSIGN MockDSIGN) -&gt; String
+$cshowTypeOf :: Proxy (SignKeyDSIGN MockDSIGN) -&gt; String
+wNoThunks :: Context -&gt; SignKeyDSIGN MockDSIGN -&gt; IO (Maybe ThunkInfo)
+$cwNoThunks :: Context -&gt; SignKeyDSIGN MockDSIGN -&gt; IO (Maybe ThunkInfo)
+noThunks :: Context -&gt; SignKeyDSIGN MockDSIGN -&gt; IO (Maybe ThunkInfo)
+$cnoThunks :: Context -&gt; SignKeyDSIGN MockDSIGN -&gt; IO (Maybe ThunkInfo)
+</span><a href="#local-6989586621679135982"><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">NoThunks</span></a></span></span></span></span><span class="hs-special">)</span><span>
+</span><span id="line-58"></span><span>
+</span><span id="line-59"></span><span>    </span><span class="hs-keyword">data</span><span> </span><span id="SigDSIGN"><span class="annot"><a href="Cardano.Crypto.DSIGN.Class.html#SigDSIGN"><span class="hs-identifier hs-var">SigDSIGN</span></a></span></span><span> </span><span class="annot"><a href="Cardano.Crypto.DSIGN.Mock.html#MockDSIGN"><span class="hs-identifier hs-type">MockDSIGN</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="SigMockDSIGN"><span class="annot"><a href="Cardano.Crypto.DSIGN.Mock.html#SigMockDSIGN"><span class="hs-identifier hs-var">SigMockDSIGN</span></a></span></span><span> </span><span class="hs-glyph">!</span><span class="hs-special">(</span><span class="annot"><a href="Cardano.Crypto.Hash.Class.html#Hash"><span class="hs-identifier hs-type">Hash</span></a></span><span> </span><span class="annot"><a href="Cardano.Crypto.Hash.Short.html#ShortHash"><span class="hs-identifier hs-type">ShortHash</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">!</span><span class="annot"><span class="hs-identifier hs-type">Word64</span></span><span>
+</span><span id="line-60"></span><span>        </span><span class="hs-keyword">deriving</span><span> </span><span class="annot"><span class="hs-keyword">stock</span></span><span>    </span><span class="hs-special">(</span><span id="local-6989586621679135973"><span id="local-6989586621679135975"><span id="local-6989586621679135977"><span class="annot"><span class="annottext">Int -&gt; SigDSIGN MockDSIGN -&gt; ShowS
+[SigDSIGN MockDSIGN] -&gt; ShowS
+SigDSIGN MockDSIGN -&gt; String
+(Int -&gt; SigDSIGN MockDSIGN -&gt; ShowS)
+-&gt; (SigDSIGN MockDSIGN -&gt; String)
+-&gt; ([SigDSIGN MockDSIGN] -&gt; ShowS)
+-&gt; Show (SigDSIGN MockDSIGN)
+forall a.
+(Int -&gt; a -&gt; ShowS) -&gt; (a -&gt; String) -&gt; ([a] -&gt; ShowS) -&gt; Show a
+showList :: [SigDSIGN MockDSIGN] -&gt; ShowS
+$cshowList :: [SigDSIGN MockDSIGN] -&gt; ShowS
+show :: SigDSIGN MockDSIGN -&gt; String
+$cshow :: SigDSIGN MockDSIGN -&gt; String
+showsPrec :: Int -&gt; SigDSIGN MockDSIGN -&gt; ShowS
+$cshowsPrec :: Int -&gt; SigDSIGN MockDSIGN -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679135969"><span id="local-6989586621679135971"><span class="annot"><span class="annottext">SigDSIGN MockDSIGN -&gt; SigDSIGN MockDSIGN -&gt; Bool
+(SigDSIGN MockDSIGN -&gt; SigDSIGN MockDSIGN -&gt; Bool)
+-&gt; (SigDSIGN MockDSIGN -&gt; SigDSIGN MockDSIGN -&gt; Bool)
+-&gt; Eq (SigDSIGN MockDSIGN)
+forall a. (a -&gt; a -&gt; Bool) -&gt; (a -&gt; a -&gt; Bool) -&gt; Eq a
+/= :: SigDSIGN MockDSIGN -&gt; SigDSIGN MockDSIGN -&gt; Bool
+$c/= :: SigDSIGN MockDSIGN -&gt; SigDSIGN MockDSIGN -&gt; Bool
+== :: SigDSIGN MockDSIGN -&gt; SigDSIGN MockDSIGN -&gt; Bool
+$c== :: SigDSIGN MockDSIGN -&gt; SigDSIGN MockDSIGN -&gt; Bool
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679135954"><span id="local-6989586621679135956"><span id="local-6989586621679135958"><span id="local-6989586621679135960"><span id="local-6989586621679135962"><span id="local-6989586621679135964"><span id="local-6989586621679135966"><span class="annot"><span class="annottext">Eq (SigDSIGN MockDSIGN)
+Eq (SigDSIGN MockDSIGN)
+-&gt; (SigDSIGN MockDSIGN -&gt; SigDSIGN MockDSIGN -&gt; Ordering)
+-&gt; (SigDSIGN MockDSIGN -&gt; SigDSIGN MockDSIGN -&gt; Bool)
+-&gt; (SigDSIGN MockDSIGN -&gt; SigDSIGN MockDSIGN -&gt; Bool)
+-&gt; (SigDSIGN MockDSIGN -&gt; SigDSIGN MockDSIGN -&gt; Bool)
+-&gt; (SigDSIGN MockDSIGN -&gt; SigDSIGN MockDSIGN -&gt; Bool)
+-&gt; (SigDSIGN MockDSIGN -&gt; SigDSIGN MockDSIGN -&gt; SigDSIGN MockDSIGN)
+-&gt; (SigDSIGN MockDSIGN -&gt; SigDSIGN MockDSIGN -&gt; SigDSIGN MockDSIGN)
+-&gt; Ord (SigDSIGN MockDSIGN)
+SigDSIGN MockDSIGN -&gt; SigDSIGN MockDSIGN -&gt; Bool
+SigDSIGN MockDSIGN -&gt; SigDSIGN MockDSIGN -&gt; Ordering
+SigDSIGN MockDSIGN -&gt; SigDSIGN MockDSIGN -&gt; SigDSIGN MockDSIGN
+forall a.
+Eq a
+-&gt; (a -&gt; a -&gt; Ordering)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; a)
+-&gt; (a -&gt; a -&gt; a)
+-&gt; Ord a
+min :: SigDSIGN MockDSIGN -&gt; SigDSIGN MockDSIGN -&gt; SigDSIGN MockDSIGN
+$cmin :: SigDSIGN MockDSIGN -&gt; SigDSIGN MockDSIGN -&gt; SigDSIGN MockDSIGN
+max :: SigDSIGN MockDSIGN -&gt; SigDSIGN MockDSIGN -&gt; SigDSIGN MockDSIGN
+$cmax :: SigDSIGN MockDSIGN -&gt; SigDSIGN MockDSIGN -&gt; SigDSIGN MockDSIGN
+&gt;= :: SigDSIGN MockDSIGN -&gt; SigDSIGN MockDSIGN -&gt; Bool
+$c&gt;= :: SigDSIGN MockDSIGN -&gt; SigDSIGN MockDSIGN -&gt; Bool
+&gt; :: SigDSIGN MockDSIGN -&gt; SigDSIGN MockDSIGN -&gt; Bool
+$c&gt; :: SigDSIGN MockDSIGN -&gt; SigDSIGN MockDSIGN -&gt; Bool
+&lt;= :: SigDSIGN MockDSIGN -&gt; SigDSIGN MockDSIGN -&gt; Bool
+$c&lt;= :: SigDSIGN MockDSIGN -&gt; SigDSIGN MockDSIGN -&gt; Bool
+&lt; :: SigDSIGN MockDSIGN -&gt; SigDSIGN MockDSIGN -&gt; Bool
+$c&lt; :: SigDSIGN MockDSIGN -&gt; SigDSIGN MockDSIGN -&gt; Bool
+compare :: SigDSIGN MockDSIGN -&gt; SigDSIGN MockDSIGN -&gt; Ordering
+$ccompare :: SigDSIGN MockDSIGN -&gt; SigDSIGN MockDSIGN -&gt; Ordering
+$cp1Ord :: Eq (SigDSIGN MockDSIGN)
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Ord</span></span></span></span></span></span></span></span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">(forall x. SigDSIGN MockDSIGN -&gt; Rep (SigDSIGN MockDSIGN) x)
+-&gt; (forall x. Rep (SigDSIGN MockDSIGN) x -&gt; SigDSIGN MockDSIGN)
+-&gt; Generic (SigDSIGN MockDSIGN)
+forall x. Rep (SigDSIGN MockDSIGN) x -&gt; SigDSIGN MockDSIGN
+forall x. SigDSIGN MockDSIGN -&gt; Rep (SigDSIGN MockDSIGN) x
+forall a.
+(forall x. a -&gt; Rep a x) -&gt; (forall x. Rep a x -&gt; a) -&gt; Generic a
+$cto :: forall x. Rep (SigDSIGN MockDSIGN) x -&gt; SigDSIGN MockDSIGN
+$cfrom :: forall x. SigDSIGN MockDSIGN -&gt; Rep (SigDSIGN MockDSIGN) x
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">Generic</span></span><span class="hs-special">)</span><span>
+</span><span id="line-61"></span><span>        </span><span class="hs-keyword">deriving</span><span> </span><span class="annot"><span class="hs-keyword">anyclass</span></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679135946"><span id="local-6989586621679135948"><span id="local-6989586621679135950"><span class="annot"><span class="annottext">Context -&gt; SigDSIGN MockDSIGN -&gt; IO (Maybe ThunkInfo)
+Proxy (SigDSIGN MockDSIGN) -&gt; String
+(Context -&gt; SigDSIGN MockDSIGN -&gt; IO (Maybe ThunkInfo))
+-&gt; (Context -&gt; SigDSIGN MockDSIGN -&gt; IO (Maybe ThunkInfo))
+-&gt; (Proxy (SigDSIGN MockDSIGN) -&gt; String)
+-&gt; NoThunks (SigDSIGN MockDSIGN)
+forall a.
+(Context -&gt; a -&gt; IO (Maybe ThunkInfo))
+-&gt; (Context -&gt; a -&gt; IO (Maybe ThunkInfo))
+-&gt; (Proxy a -&gt; String)
+-&gt; NoThunks a
+showTypeOf :: Proxy (SigDSIGN MockDSIGN) -&gt; String
+$cshowTypeOf :: Proxy (SigDSIGN MockDSIGN) -&gt; String
+wNoThunks :: Context -&gt; SigDSIGN MockDSIGN -&gt; IO (Maybe ThunkInfo)
+$cwNoThunks :: Context -&gt; SigDSIGN MockDSIGN -&gt; IO (Maybe ThunkInfo)
+noThunks :: Context -&gt; SigDSIGN MockDSIGN -&gt; IO (Maybe ThunkInfo)
+$cnoThunks :: Context -&gt; SigDSIGN MockDSIGN -&gt; IO (Maybe ThunkInfo)
+</span><a href="#local-6989586621679135946"><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">NoThunks</span></a></span></span></span></span><span class="hs-special">)</span><span>
+</span><span id="line-62"></span><span>
+</span><span id="line-63"></span><span>    </span><span class="hs-comment">--</span><span>
+</span><span id="line-64"></span><span>    </span><span class="hs-comment">-- Metadata and basic key operations</span><span>
+</span><span id="line-65"></span><span>    </span><span class="hs-comment">--</span><span>
+</span><span id="line-66"></span><span>
+</span><span id="line-67"></span><span>    </span><span id="local-6989586621679135945"><span class="annot"><span class="annottext">algorithmNameDSIGN :: proxy MockDSIGN -&gt; String
+</span><a href="Cardano.Crypto.DSIGN.Class.html#algorithmNameDSIGN"><span class="hs-identifier hs-var hs-var hs-var hs-var">algorithmNameDSIGN</span></a></span></span><span> </span><span class="annot"><span class="annottext">proxy MockDSIGN
+</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;mock&quot;</span></span><span>
+</span><span id="line-68"></span><span>
+</span><span id="line-69"></span><span>    </span><span id="local-6989586621679135943"><span class="annot"><span class="annottext">deriveVerKeyDSIGN :: SignKeyDSIGN MockDSIGN -&gt; VerKeyDSIGN MockDSIGN
+</span><a href="Cardano.Crypto.DSIGN.Class.html#deriveVerKeyDSIGN"><span class="hs-identifier hs-var hs-var hs-var hs-var">deriveVerKeyDSIGN</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cardano.Crypto.DSIGN.Mock.html#SignKeyMockDSIGN"><span class="hs-identifier hs-type">SignKeyMockDSIGN</span></a></span><span> </span><span id="local-6989586621679135941"><span class="annot"><a href="#local-6989586621679135941"><span class="hs-identifier hs-var">n</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Word64 -&gt; VerKeyDSIGN MockDSIGN
+</span><a href="Cardano.Crypto.DSIGN.Mock.html#VerKeyMockDSIGN"><span class="hs-identifier hs-var">VerKeyMockDSIGN</span></a></span><span> </span><span class="annot"><span class="annottext">Word64
+</span><a href="#local-6989586621679135941"><span class="hs-identifier hs-var">n</span></a></span><span>
+</span><span id="line-70"></span><span>
+</span><span id="line-71"></span><span>    </span><span class="hs-comment">--</span><span>
+</span><span id="line-72"></span><span>    </span><span class="hs-comment">-- Core algorithm operations</span><span>
+</span><span id="line-73"></span><span>    </span><span class="hs-comment">--</span><span>
+</span><span id="line-74"></span><span>
+</span><span id="line-75"></span><span>    </span><span class="hs-keyword">type</span><span> </span><span id="Signable"><span class="annot"><a href="Cardano.Crypto.DSIGN.Class.html#Signable"><span class="hs-identifier hs-var">Signable</span></a></span></span><span> </span><span class="annot"><a href="Cardano.Crypto.DSIGN.Mock.html#MockDSIGN"><span class="hs-identifier hs-type">MockDSIGN</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><a href="Cardano.Crypto.Util.html#SignableRepresentation"><span class="hs-identifier hs-type">SignableRepresentation</span></a></span><span>
+</span><span id="line-76"></span><span>
+</span><span id="line-77"></span><span>    </span><span id="local-6989586621679135940"><span class="annot"><span class="annottext">signDSIGN :: ContextDSIGN MockDSIGN
+-&gt; a -&gt; SignKeyDSIGN MockDSIGN -&gt; SigDSIGN MockDSIGN
+</span><a href="Cardano.Crypto.DSIGN.Class.html#signDSIGN"><span class="hs-identifier hs-var hs-var hs-var hs-var">signDSIGN</span></a></span></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span> </span><span id="local-6989586621679135938"><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679135938"><span class="hs-identifier hs-var">a</span></a></span></span><span> </span><span id="local-6989586621679135937"><span class="annot"><span class="annottext">SignKeyDSIGN MockDSIGN
+</span><a href="#local-6989586621679135937"><span class="hs-identifier hs-var">sk</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">a -&gt; SignKeyDSIGN MockDSIGN -&gt; SigDSIGN MockDSIGN
+forall a.
+SignableRepresentation a =&gt;
+a -&gt; SignKeyDSIGN MockDSIGN -&gt; SigDSIGN MockDSIGN
+</span><a href="Cardano.Crypto.DSIGN.Mock.html#mockSign"><span class="hs-identifier hs-var">mockSign</span></a></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679135938"><span class="hs-identifier hs-var">a</span></a></span><span> </span><span class="annot"><span class="annottext">SignKeyDSIGN MockDSIGN
+</span><a href="#local-6989586621679135937"><span class="hs-identifier hs-var">sk</span></a></span><span>
+</span><span id="line-78"></span><span>
+</span><span id="line-79"></span><span>    </span><span id="local-6989586621679135936"><span class="annot"><span class="annottext">verifyDSIGN :: ContextDSIGN MockDSIGN
+-&gt; VerKeyDSIGN MockDSIGN
+-&gt; a
+-&gt; SigDSIGN MockDSIGN
+-&gt; Either String ()
+</span><a href="Cardano.Crypto.DSIGN.Class.html#verifyDSIGN"><span class="hs-identifier hs-var hs-var hs-var hs-var">verifyDSIGN</span></a></span></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cardano.Crypto.DSIGN.Mock.html#VerKeyMockDSIGN"><span class="hs-identifier hs-type">VerKeyMockDSIGN</span></a></span><span> </span><span id="local-6989586621679135934"><span class="annot"><a href="#local-6989586621679135934"><span class="hs-identifier hs-var">n</span></a></span></span><span class="hs-special">)</span><span> </span><span id="local-6989586621679135933"><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679135933"><span class="hs-identifier hs-var">a</span></a></span></span><span> </span><span id="local-6989586621679135932"><span class="annot"><span class="annottext">SigDSIGN MockDSIGN
+</span><a href="#local-6989586621679135932"><span class="hs-identifier hs-var">s</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-80"></span><span>      </span><span class="hs-keyword">if</span><span> </span><span class="annot"><span class="annottext">SigDSIGN MockDSIGN
+</span><a href="#local-6989586621679135932"><span class="hs-identifier hs-var">s</span></a></span><span> </span><span class="annot"><span class="annottext">SigDSIGN MockDSIGN -&gt; SigDSIGN MockDSIGN -&gt; Bool
+forall a. Eq a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">==</span></span><span> </span><span class="annot"><span class="annottext">a -&gt; SignKeyDSIGN MockDSIGN -&gt; SigDSIGN MockDSIGN
+forall a.
+SignableRepresentation a =&gt;
+a -&gt; SignKeyDSIGN MockDSIGN -&gt; SigDSIGN MockDSIGN
+</span><a href="Cardano.Crypto.DSIGN.Mock.html#mockSign"><span class="hs-identifier hs-var">mockSign</span></a></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679135933"><span class="hs-identifier hs-var">a</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Word64 -&gt; SignKeyDSIGN MockDSIGN
+</span><a href="Cardano.Crypto.DSIGN.Mock.html#SignKeyMockDSIGN"><span class="hs-identifier hs-var">SignKeyMockDSIGN</span></a></span><span> </span><span class="annot"><span class="annottext">Word64
+</span><a href="#local-6989586621679135934"><span class="hs-identifier hs-var">n</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-81"></span><span>        </span><span class="hs-keyword">then</span><span> </span><span class="annot"><span class="annottext">() -&gt; Either String ()
+forall a b. b -&gt; Either a b
+</span><span class="hs-identifier hs-var">Right</span></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
+</span><span id="line-82"></span><span>        </span><span class="hs-keyword">else</span><span> </span><span class="annot"><span class="annottext">String -&gt; Either String ()
+forall a b. a -&gt; Either a b
+</span><span class="hs-identifier hs-var">Left</span></span><span> </span><span class="annot"><span class="annottext">(String -&gt; Either String ()) -&gt; String -&gt; Either String ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">VerificationFailure -&gt; String
+forall a. Show a =&gt; a -&gt; String
+</span><span class="hs-identifier hs-var">show</span></span><span> </span><span class="annot"><span class="annottext">(VerificationFailure -&gt; String) -&gt; VerificationFailure -&gt; String
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">MockVerificationFailure :: VerKeyDSIGN MockDSIGN
+-&gt; SigDSIGN MockDSIGN -&gt; String -&gt; VerificationFailure
+</span><a href="Cardano.Crypto.DSIGN.Mock.html#MockVerificationFailure"><span class="hs-identifier hs-type">MockVerificationFailure</span></a></span><span> </span><span class="hs-special">{</span><span>
+</span><span id="line-83"></span><span>                 </span><span class="annot"><span class="annottext">vErrVerKey :: VerKeyDSIGN MockDSIGN
+</span><a href="Cardano.Crypto.DSIGN.Mock.html#vErrVerKey"><span class="hs-identifier hs-var">vErrVerKey</span></a></span><span>    </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Word64 -&gt; VerKeyDSIGN MockDSIGN
+</span><a href="Cardano.Crypto.DSIGN.Mock.html#VerKeyMockDSIGN"><span class="hs-identifier hs-var">VerKeyMockDSIGN</span></a></span><span> </span><span class="annot"><span class="annottext">Word64
+</span><a href="#local-6989586621679135934"><span class="hs-identifier hs-var">n</span></a></span><span>
+</span><span id="line-84"></span><span>               </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">vErrSignature :: SigDSIGN MockDSIGN
+</span><a href="Cardano.Crypto.DSIGN.Mock.html#vErrSignature"><span class="hs-identifier hs-var">vErrSignature</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">SigDSIGN MockDSIGN
+</span><a href="#local-6989586621679135932"><span class="hs-identifier hs-var">s</span></a></span><span>
+</span><span id="line-85"></span><span>               </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">vErrCallStack :: String
+</span><a href="Cardano.Crypto.DSIGN.Mock.html#vErrCallStack"><span class="hs-identifier hs-var">vErrCallStack</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">CallStack -&gt; String
+</span><span class="hs-identifier hs-var">prettyCallStack</span></span><span> </span><span class="annot"><span class="annottext">CallStack
+HasCallStack =&gt; CallStack
+</span><span class="hs-identifier hs-var">callStack</span></span><span>
+</span><span id="line-86"></span><span>               </span><span class="hs-special">}</span><span>
+</span><span id="line-87"></span><span>
+</span><span id="line-88"></span><span>    </span><span class="hs-comment">--</span><span>
+</span><span id="line-89"></span><span>    </span><span class="hs-comment">-- Key generation</span><span>
+</span><span id="line-90"></span><span>    </span><span class="hs-comment">--</span><span>
+</span><span id="line-91"></span><span>
+</span><span id="line-92"></span><span>    </span><span id="local-6989586621679135924"><span class="annot"><span class="annottext">genKeyDSIGN :: Seed -&gt; SignKeyDSIGN MockDSIGN
+</span><a href="Cardano.Crypto.DSIGN.Class.html#genKeyDSIGN"><span class="hs-identifier hs-var hs-var hs-var hs-var">genKeyDSIGN</span></a></span></span><span> </span><span id="local-6989586621679135922"><span class="annot"><span class="annottext">Seed
+</span><a href="#local-6989586621679135922"><span class="hs-identifier hs-var">seed</span></a></span></span><span>   </span><span class="hs-glyph">=</span><span>
+</span><span id="line-93"></span><span>      </span><span class="annot"><span class="annottext">Word64 -&gt; SignKeyDSIGN MockDSIGN
+</span><a href="Cardano.Crypto.DSIGN.Mock.html#SignKeyMockDSIGN"><span class="hs-identifier hs-var">SignKeyMockDSIGN</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Seed -&gt; (forall (m :: * -&gt; *). MonadRandom m =&gt; m Word64) -&gt; Word64
+forall a. Seed -&gt; (forall (m :: * -&gt; *). MonadRandom m =&gt; m a) -&gt; a
+</span><a href="Cardano.Crypto.Seed.html#runMonadRandomWithSeed"><span class="hs-identifier hs-var">runMonadRandomWithSeed</span></a></span><span> </span><span class="annot"><span class="annottext">Seed
+</span><a href="#local-6989586621679135922"><span class="hs-identifier hs-var">seed</span></a></span><span> </span><span class="annot"><span class="annottext">forall (m :: * -&gt; *). MonadRandom m =&gt; m Word64
+</span><a href="Cardano.Crypto.Util.html#getRandomWord64"><span class="hs-identifier hs-var">getRandomWord64</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-94"></span><span>
+</span><span id="line-95"></span><span>
+</span><span id="line-96"></span><span>    </span><span class="hs-comment">--</span><span>
+</span><span id="line-97"></span><span>    </span><span class="hs-comment">-- raw serialise/deserialise</span><span>
+</span><span id="line-98"></span><span>    </span><span class="hs-comment">--</span><span>
+</span><span id="line-99"></span><span>
+</span><span id="line-100"></span><span>
+</span><span id="line-101"></span><span>    </span><span id="local-6989586621679135919"><span class="annot"><span class="annottext">rawSerialiseVerKeyDSIGN :: VerKeyDSIGN MockDSIGN -&gt; ByteString
+</span><a href="Cardano.Crypto.DSIGN.Class.html#rawSerialiseVerKeyDSIGN"><span class="hs-identifier hs-var hs-var hs-var hs-var">rawSerialiseVerKeyDSIGN</span></a></span></span><span>  </span><span class="hs-special">(</span><span class="annot"><a href="Cardano.Crypto.DSIGN.Mock.html#VerKeyMockDSIGN"><span class="hs-identifier hs-type">VerKeyMockDSIGN</span></a></span><span>  </span><span id="local-6989586621679135917"><span class="annot"><a href="#local-6989586621679135917"><span class="hs-identifier hs-var">k</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Word64 -&gt; ByteString
+</span><a href="Cardano.Crypto.Util.html#writeBinaryWord64"><span class="hs-identifier hs-var">writeBinaryWord64</span></a></span><span> </span><span class="annot"><span class="annottext">Word64
+</span><a href="#local-6989586621679135917"><span class="hs-identifier hs-var">k</span></a></span><span>
+</span><span id="line-102"></span><span>    </span><span id="local-6989586621679135915"><span class="annot"><span class="annottext">rawSerialiseSignKeyDSIGN :: SignKeyDSIGN MockDSIGN -&gt; ByteString
+</span><a href="Cardano.Crypto.DSIGN.Class.html#rawSerialiseSignKeyDSIGN"><span class="hs-identifier hs-var hs-var hs-var hs-var">rawSerialiseSignKeyDSIGN</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cardano.Crypto.DSIGN.Mock.html#SignKeyMockDSIGN"><span class="hs-identifier hs-type">SignKeyMockDSIGN</span></a></span><span> </span><span id="local-6989586621679135913"><span class="annot"><a href="#local-6989586621679135913"><span class="hs-identifier hs-var">k</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Word64 -&gt; ByteString
+</span><a href="Cardano.Crypto.Util.html#writeBinaryWord64"><span class="hs-identifier hs-var">writeBinaryWord64</span></a></span><span> </span><span class="annot"><span class="annottext">Word64
+</span><a href="#local-6989586621679135913"><span class="hs-identifier hs-var">k</span></a></span><span>
+</span><span id="line-103"></span><span>    </span><span id="local-6989586621679135912"><span class="annot"><span class="annottext">rawSerialiseSigDSIGN :: SigDSIGN MockDSIGN -&gt; ByteString
+</span><a href="Cardano.Crypto.DSIGN.Class.html#rawSerialiseSigDSIGN"><span class="hs-identifier hs-var hs-var hs-var hs-var">rawSerialiseSigDSIGN</span></a></span></span><span>     </span><span class="hs-special">(</span><span class="annot"><a href="Cardano.Crypto.DSIGN.Mock.html#SigMockDSIGN"><span class="hs-identifier hs-type">SigMockDSIGN</span></a></span><span>   </span><span id="local-6989586621679135910"><span class="annot"><a href="#local-6989586621679135910"><span class="hs-identifier hs-var">h</span></a></span></span><span> </span><span id="local-6989586621679135909"><span class="annot"><a href="#local-6989586621679135909"><span class="hs-identifier hs-var">k</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Hash ShortHash () -&gt; ByteString
+forall h a. Hash h a -&gt; ByteString
+</span><a href="Cardano.Crypto.Hash.Class.html#hashToBytes"><span class="hs-identifier hs-var">hashToBytes</span></a></span><span> </span><span class="annot"><span class="annottext">Hash ShortHash ()
+</span><a href="#local-6989586621679135910"><span class="hs-identifier hs-var">h</span></a></span><span>
+</span><span id="line-104"></span><span>                                                 </span><span class="annot"><span class="annottext">ByteString -&gt; ByteString -&gt; ByteString
+forall a. Semigroup a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">&lt;&gt;</span></span><span> </span><span class="annot"><span class="annottext">Word64 -&gt; ByteString
+</span><a href="Cardano.Crypto.Util.html#writeBinaryWord64"><span class="hs-identifier hs-var">writeBinaryWord64</span></a></span><span> </span><span class="annot"><span class="annottext">Word64
+</span><a href="#local-6989586621679135909"><span class="hs-identifier hs-var">k</span></a></span><span>
+</span><span id="line-105"></span><span>
+</span><span id="line-106"></span><span>    </span><span id="local-6989586621679135907"><span class="annot"><span class="annottext">rawDeserialiseVerKeyDSIGN :: ByteString -&gt; Maybe (VerKeyDSIGN MockDSIGN)
+</span><a href="Cardano.Crypto.DSIGN.Class.html#rawDeserialiseVerKeyDSIGN"><span class="hs-identifier hs-var hs-var hs-var hs-var">rawDeserialiseVerKeyDSIGN</span></a></span></span><span> </span><span id="local-6989586621679135905"><span class="annot"><span class="annottext">ByteString
+</span><a href="#local-6989586621679135905"><span class="hs-identifier hs-var">bs</span></a></span></span><span>
+</span><span id="line-107"></span><span>      </span><span class="hs-glyph">|</span><span> </span><span class="hs-special">[</span><span id="local-6989586621679135904"><span class="annot"><span class="annottext">ByteString
+</span><a href="#local-6989586621679135904"><span class="hs-identifier hs-var">kb</span></a></span></span><span class="hs-special">]</span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">[Int] -&gt; ByteString -&gt; [ByteString]
+</span><a href="Cardano.Crypto.Util.html#splitsAt"><span class="hs-identifier hs-var">splitsAt</span></a></span><span> </span><span class="hs-special">[</span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">8</span></span><span class="hs-special">]</span><span> </span><span class="annot"><span class="annottext">ByteString
+</span><a href="#local-6989586621679135905"><span class="hs-identifier hs-var">bs</span></a></span><span>
+</span><span id="line-108"></span><span>      </span><span class="hs-special">,</span><span> </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679135902"><span class="annot"><span class="annottext">k :: Word64
+</span><a href="#local-6989586621679135902"><span class="hs-identifier hs-var hs-var">k</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">ByteString -&gt; Word64
+</span><a href="Cardano.Crypto.Util.html#readBinaryWord64"><span class="hs-identifier hs-var">readBinaryWord64</span></a></span><span> </span><span class="annot"><span class="annottext">ByteString
+</span><a href="#local-6989586621679135904"><span class="hs-identifier hs-var">kb</span></a></span><span>
+</span><span id="line-109"></span><span>      </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">VerKeyDSIGN MockDSIGN -&gt; Maybe (VerKeyDSIGN MockDSIGN)
+forall a. a -&gt; Maybe a
+</span><span class="hs-identifier hs-var">Just</span></span><span> </span><span class="annot"><span class="annottext">(VerKeyDSIGN MockDSIGN -&gt; Maybe (VerKeyDSIGN MockDSIGN))
+-&gt; VerKeyDSIGN MockDSIGN -&gt; Maybe (VerKeyDSIGN MockDSIGN)
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$!</span></span><span> </span><span class="annot"><span class="annottext">Word64 -&gt; VerKeyDSIGN MockDSIGN
+</span><a href="Cardano.Crypto.DSIGN.Mock.html#VerKeyMockDSIGN"><span class="hs-identifier hs-var">VerKeyMockDSIGN</span></a></span><span> </span><span class="annot"><span class="annottext">Word64
+</span><a href="#local-6989586621679135902"><span class="hs-identifier hs-var">k</span></a></span><span>
+</span><span id="line-110"></span><span>
+</span><span id="line-111"></span><span>      </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">otherwise</span></span><span>
+</span><span id="line-112"></span><span>      </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Maybe (VerKeyDSIGN MockDSIGN)
+forall a. Maybe a
+</span><span class="hs-identifier hs-var">Nothing</span></span><span>
+</span><span id="line-113"></span><span>
+</span><span id="line-114"></span><span>    </span><span id="local-6989586621679135899"><span class="annot"><span class="annottext">rawDeserialiseSignKeyDSIGN :: ByteString -&gt; Maybe (SignKeyDSIGN MockDSIGN)
+</span><a href="Cardano.Crypto.DSIGN.Class.html#rawDeserialiseSignKeyDSIGN"><span class="hs-identifier hs-var hs-var hs-var hs-var">rawDeserialiseSignKeyDSIGN</span></a></span></span><span> </span><span id="local-6989586621679135897"><span class="annot"><span class="annottext">ByteString
+</span><a href="#local-6989586621679135897"><span class="hs-identifier hs-var">bs</span></a></span></span><span>
+</span><span id="line-115"></span><span>      </span><span class="hs-glyph">|</span><span> </span><span class="hs-special">[</span><span id="local-6989586621679135896"><span class="annot"><span class="annottext">ByteString
+</span><a href="#local-6989586621679135896"><span class="hs-identifier hs-var">kb</span></a></span></span><span class="hs-special">]</span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">[Int] -&gt; ByteString -&gt; [ByteString]
+</span><a href="Cardano.Crypto.Util.html#splitsAt"><span class="hs-identifier hs-var">splitsAt</span></a></span><span> </span><span class="hs-special">[</span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">8</span></span><span class="hs-special">]</span><span> </span><span class="annot"><span class="annottext">ByteString
+</span><a href="#local-6989586621679135897"><span class="hs-identifier hs-var">bs</span></a></span><span>
+</span><span id="line-116"></span><span>      </span><span class="hs-special">,</span><span> </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679135895"><span class="annot"><span class="annottext">k :: Word64
+</span><a href="#local-6989586621679135895"><span class="hs-identifier hs-var hs-var">k</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">ByteString -&gt; Word64
+</span><a href="Cardano.Crypto.Util.html#readBinaryWord64"><span class="hs-identifier hs-var">readBinaryWord64</span></a></span><span> </span><span class="annot"><span class="annottext">ByteString
+</span><a href="#local-6989586621679135896"><span class="hs-identifier hs-var">kb</span></a></span><span>
+</span><span id="line-117"></span><span>      </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">SignKeyDSIGN MockDSIGN -&gt; Maybe (SignKeyDSIGN MockDSIGN)
+forall a. a -&gt; Maybe a
+</span><span class="hs-identifier hs-var">Just</span></span><span> </span><span class="annot"><span class="annottext">(SignKeyDSIGN MockDSIGN -&gt; Maybe (SignKeyDSIGN MockDSIGN))
+-&gt; SignKeyDSIGN MockDSIGN -&gt; Maybe (SignKeyDSIGN MockDSIGN)
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$!</span></span><span> </span><span class="annot"><span class="annottext">Word64 -&gt; SignKeyDSIGN MockDSIGN
+</span><a href="Cardano.Crypto.DSIGN.Mock.html#SignKeyMockDSIGN"><span class="hs-identifier hs-var">SignKeyMockDSIGN</span></a></span><span> </span><span class="annot"><span class="annottext">Word64
+</span><a href="#local-6989586621679135895"><span class="hs-identifier hs-var">k</span></a></span><span>
+</span><span id="line-118"></span><span>
+</span><span id="line-119"></span><span>      </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">otherwise</span></span><span>
+</span><span id="line-120"></span><span>      </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Maybe (SignKeyDSIGN MockDSIGN)
+forall a. Maybe a
+</span><span class="hs-identifier hs-var">Nothing</span></span><span>
+</span><span id="line-121"></span><span>
+</span><span id="line-122"></span><span>    </span><span id="local-6989586621679135894"><span class="annot"><span class="annottext">rawDeserialiseSigDSIGN :: ByteString -&gt; Maybe (SigDSIGN MockDSIGN)
+</span><a href="Cardano.Crypto.DSIGN.Class.html#rawDeserialiseSigDSIGN"><span class="hs-identifier hs-var hs-var hs-var hs-var">rawDeserialiseSigDSIGN</span></a></span></span><span> </span><span id="local-6989586621679135892"><span class="annot"><span class="annottext">ByteString
+</span><a href="#local-6989586621679135892"><span class="hs-identifier hs-var">bs</span></a></span></span><span>
+</span><span id="line-123"></span><span>      </span><span class="hs-glyph">|</span><span> </span><span class="hs-special">[</span><span id="local-6989586621679135891"><span class="annot"><span class="annottext">ByteString
+</span><a href="#local-6989586621679135891"><span class="hs-identifier hs-var">hb</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679135890"><span class="annot"><span class="annottext">ByteString
+</span><a href="#local-6989586621679135890"><span class="hs-identifier hs-var">kb</span></a></span></span><span class="hs-special">]</span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">[Int] -&gt; ByteString -&gt; [ByteString]
+</span><a href="Cardano.Crypto.Util.html#splitsAt"><span class="hs-identifier hs-var">splitsAt</span></a></span><span> </span><span class="hs-special">[</span><span class="annot"><span class="annottext">Word -&gt; Int
+forall a b. (Integral a, Num b) =&gt; a -&gt; b
+</span><span class="hs-identifier hs-var">fromIntegral</span></span><span> </span><span class="annot"><span class="annottext">(Word -&gt; Int) -&gt; Word -&gt; Int
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Proxy ShortHash -&gt; Word
+forall h (proxy :: * -&gt; *). HashAlgorithm h =&gt; proxy h -&gt; Word
+</span><a href="Cardano.Crypto.Hash.Class.html#sizeHash"><span class="hs-identifier hs-var">sizeHash</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Proxy ShortHash
+forall k (t :: k). Proxy t
+</span><span class="hs-identifier hs-var">Proxy</span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Proxy</span></span><span> </span><span class="annot"><a href="Cardano.Crypto.Hash.Short.html#ShortHash"><span class="hs-identifier hs-type">ShortHash</span></a></span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">8</span></span><span class="hs-special">]</span><span> </span><span class="annot"><span class="annottext">ByteString
+</span><a href="#local-6989586621679135892"><span class="hs-identifier hs-var">bs</span></a></span><span>
+</span><span id="line-124"></span><span>      </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Just</span></span><span> </span><span id="local-6989586621679135887"><span class="annot"><span class="annottext">Hash ShortHash ()
+</span><a href="#local-6989586621679135887"><span class="hs-identifier hs-var">h</span></a></span></span><span>   </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">ByteString -&gt; Maybe (Hash ShortHash ())
+forall h a. HashAlgorithm h =&gt; ByteString -&gt; Maybe (Hash h a)
+</span><a href="Cardano.Crypto.Hash.Class.html#hashFromBytes"><span class="hs-identifier hs-var">hashFromBytes</span></a></span><span> </span><span class="annot"><span class="annottext">ByteString
+</span><a href="#local-6989586621679135891"><span class="hs-identifier hs-var">hb</span></a></span><span>
+</span><span id="line-125"></span><span>      </span><span class="hs-special">,</span><span> </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679135885"><span class="annot"><span class="annottext">k :: Word64
+</span><a href="#local-6989586621679135885"><span class="hs-identifier hs-var hs-var">k</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">ByteString -&gt; Word64
+</span><a href="Cardano.Crypto.Util.html#readBinaryWord64"><span class="hs-identifier hs-var">readBinaryWord64</span></a></span><span> </span><span class="annot"><span class="annottext">ByteString
+</span><a href="#local-6989586621679135890"><span class="hs-identifier hs-var">kb</span></a></span><span>
+</span><span id="line-126"></span><span>      </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">SigDSIGN MockDSIGN -&gt; Maybe (SigDSIGN MockDSIGN)
+forall a. a -&gt; Maybe a
+</span><span class="hs-identifier hs-var">Just</span></span><span> </span><span class="annot"><span class="annottext">(SigDSIGN MockDSIGN -&gt; Maybe (SigDSIGN MockDSIGN))
+-&gt; SigDSIGN MockDSIGN -&gt; Maybe (SigDSIGN MockDSIGN)
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$!</span></span><span> </span><span class="annot"><span class="annottext">Hash ShortHash () -&gt; Word64 -&gt; SigDSIGN MockDSIGN
+</span><a href="Cardano.Crypto.DSIGN.Mock.html#SigMockDSIGN"><span class="hs-identifier hs-var">SigMockDSIGN</span></a></span><span> </span><span class="annot"><span class="annottext">Hash ShortHash ()
+</span><a href="#local-6989586621679135887"><span class="hs-identifier hs-var">h</span></a></span><span> </span><span class="annot"><span class="annottext">Word64
+</span><a href="#local-6989586621679135885"><span class="hs-identifier hs-var">k</span></a></span><span>
+</span><span id="line-127"></span><span>
+</span><span id="line-128"></span><span>      </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">otherwise</span></span><span>
+</span><span id="line-129"></span><span>      </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Maybe (SigDSIGN MockDSIGN)
+forall a. Maybe a
+</span><span class="hs-identifier hs-var">Nothing</span></span><span>
+</span><span id="line-130"></span><span>
+</span><span id="line-131"></span><span>
+</span><span id="line-132"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679135880"><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src"><span class="hs-identifier hs-type">ToCBOR</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cardano.Crypto.DSIGN.Class.html#VerKeyDSIGN"><span class="hs-identifier hs-type">VerKeyDSIGN</span></a></span><span> </span><span class="annot"><a href="Cardano.Crypto.DSIGN.Mock.html#MockDSIGN"><span class="hs-identifier hs-type">MockDSIGN</span></a></span><span class="hs-special">)</span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-133"></span><span>  </span><span id="local-6989586621679135878"><span class="annot"><span class="annottext">toCBOR :: VerKeyDSIGN MockDSIGN -&gt; Encoding
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src"><span class="hs-identifier hs-var hs-var hs-var hs-var">toCBOR</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">VerKeyDSIGN MockDSIGN -&gt; Encoding
+forall v. DSIGNAlgorithm v =&gt; VerKeyDSIGN v -&gt; Encoding
+</span><a href="Cardano.Crypto.DSIGN.Class.html#encodeVerKeyDSIGN"><span class="hs-identifier hs-var">encodeVerKeyDSIGN</span></a></span><span>
+</span><span id="line-134"></span><span>  </span><span id="local-6989586621679135875"><span class="annot"><span class="annottext">encodedSizeExpr :: (forall t. ToCBOR t =&gt; Proxy t -&gt; Size)
+-&gt; Proxy (VerKeyDSIGN MockDSIGN) -&gt; Size
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src"><span class="hs-identifier hs-var hs-var hs-var hs-var">encodedSizeExpr</span></a></span></span><span> </span><span class="annot"><span class="annottext">forall t. ToCBOR t =&gt; Proxy t -&gt; Size
+</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Proxy (VerKeyDSIGN MockDSIGN) -&gt; Size
+forall v. DSIGNAlgorithm v =&gt; Proxy (VerKeyDSIGN v) -&gt; Size
+</span><a href="Cardano.Crypto.DSIGN.Class.html#encodedVerKeyDSIGNSizeExpr"><span class="hs-identifier hs-var">encodedVerKeyDSIGNSizeExpr</span></a></span><span>
+</span><span id="line-135"></span><span>
+</span><span id="line-136"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679135869"><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src"><span class="hs-identifier hs-type">FromCBOR</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cardano.Crypto.DSIGN.Class.html#VerKeyDSIGN"><span class="hs-identifier hs-type">VerKeyDSIGN</span></a></span><span> </span><span class="annot"><a href="Cardano.Crypto.DSIGN.Mock.html#MockDSIGN"><span class="hs-identifier hs-type">MockDSIGN</span></a></span><span class="hs-special">)</span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-137"></span><span>  </span><span id="local-6989586621679135867"><span class="annot"><span class="annottext">fromCBOR :: Decoder s (VerKeyDSIGN MockDSIGN)
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src"><span class="hs-identifier hs-var hs-var hs-var hs-var">fromCBOR</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Decoder s (VerKeyDSIGN MockDSIGN)
+forall v s. DSIGNAlgorithm v =&gt; Decoder s (VerKeyDSIGN v)
+</span><a href="Cardano.Crypto.DSIGN.Class.html#decodeVerKeyDSIGN"><span class="hs-identifier hs-var">decodeVerKeyDSIGN</span></a></span><span>
+</span><span id="line-138"></span><span>
+</span><span id="line-139"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679135860"><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src"><span class="hs-identifier hs-type">ToCBOR</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cardano.Crypto.DSIGN.Class.html#SignKeyDSIGN"><span class="hs-identifier hs-type">SignKeyDSIGN</span></a></span><span> </span><span class="annot"><a href="Cardano.Crypto.DSIGN.Mock.html#MockDSIGN"><span class="hs-identifier hs-type">MockDSIGN</span></a></span><span class="hs-special">)</span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-140"></span><span>  </span><span id="local-6989586621679135859"><span class="annot"><span class="annottext">toCBOR :: SignKeyDSIGN MockDSIGN -&gt; Encoding
+</span><a href="#local-6989586621679135859"><span class="hs-identifier hs-var hs-var hs-var hs-var">toCBOR</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">SignKeyDSIGN MockDSIGN -&gt; Encoding
+forall v. DSIGNAlgorithm v =&gt; SignKeyDSIGN v -&gt; Encoding
+</span><a href="Cardano.Crypto.DSIGN.Class.html#encodeSignKeyDSIGN"><span class="hs-identifier hs-var">encodeSignKeyDSIGN</span></a></span><span>
+</span><span id="line-141"></span><span>  </span><span id="local-6989586621679135857"><span class="annot"><span class="annottext">encodedSizeExpr :: (forall t. ToCBOR t =&gt; Proxy t -&gt; Size)
+-&gt; Proxy (SignKeyDSIGN MockDSIGN) -&gt; Size
+</span><a href="#local-6989586621679135857"><span class="hs-identifier hs-var hs-var hs-var hs-var">encodedSizeExpr</span></a></span></span><span> </span><span class="annot"><span class="annottext">forall t. ToCBOR t =&gt; Proxy t -&gt; Size
+</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Proxy (SignKeyDSIGN MockDSIGN) -&gt; Size
+forall v. DSIGNAlgorithm v =&gt; Proxy (SignKeyDSIGN v) -&gt; Size
+</span><a href="Cardano.Crypto.DSIGN.Class.html#encodedSignKeyDESIGNSizeExpr"><span class="hs-identifier hs-var">encodedSignKeyDESIGNSizeExpr</span></a></span><span>
+</span><span id="line-142"></span><span>
+</span><span id="line-143"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679135852"><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src"><span class="hs-identifier hs-type">FromCBOR</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cardano.Crypto.DSIGN.Class.html#SignKeyDSIGN"><span class="hs-identifier hs-type">SignKeyDSIGN</span></a></span><span> </span><span class="annot"><a href="Cardano.Crypto.DSIGN.Mock.html#MockDSIGN"><span class="hs-identifier hs-type">MockDSIGN</span></a></span><span class="hs-special">)</span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-144"></span><span>  </span><span id="local-6989586621679135851"><span class="annot"><span class="annottext">fromCBOR :: Decoder s (SignKeyDSIGN MockDSIGN)
+</span><a href="#local-6989586621679135851"><span class="hs-identifier hs-var hs-var hs-var hs-var">fromCBOR</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Decoder s (SignKeyDSIGN MockDSIGN)
+forall v s. DSIGNAlgorithm v =&gt; Decoder s (SignKeyDSIGN v)
+</span><a href="Cardano.Crypto.DSIGN.Class.html#decodeSignKeyDSIGN"><span class="hs-identifier hs-var">decodeSignKeyDSIGN</span></a></span><span>
+</span><span id="line-145"></span><span>
+</span><span id="line-146"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679135845"><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src"><span class="hs-identifier hs-type">ToCBOR</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cardano.Crypto.DSIGN.Class.html#SigDSIGN"><span class="hs-identifier hs-type">SigDSIGN</span></a></span><span> </span><span class="annot"><a href="Cardano.Crypto.DSIGN.Mock.html#MockDSIGN"><span class="hs-identifier hs-type">MockDSIGN</span></a></span><span class="hs-special">)</span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-147"></span><span>  </span><span id="local-6989586621679135844"><span class="annot"><span class="annottext">toCBOR :: SigDSIGN MockDSIGN -&gt; Encoding
+</span><a href="#local-6989586621679135844"><span class="hs-identifier hs-var hs-var hs-var hs-var">toCBOR</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">SigDSIGN MockDSIGN -&gt; Encoding
+forall v. DSIGNAlgorithm v =&gt; SigDSIGN v -&gt; Encoding
+</span><a href="Cardano.Crypto.DSIGN.Class.html#encodeSigDSIGN"><span class="hs-identifier hs-var">encodeSigDSIGN</span></a></span><span>
+</span><span id="line-148"></span><span>  </span><span id="local-6989586621679135842"><span class="annot"><span class="annottext">encodedSizeExpr :: (forall t. ToCBOR t =&gt; Proxy t -&gt; Size)
+-&gt; Proxy (SigDSIGN MockDSIGN) -&gt; Size
+</span><a href="#local-6989586621679135842"><span class="hs-identifier hs-var hs-var hs-var hs-var">encodedSizeExpr</span></a></span></span><span> </span><span class="annot"><span class="annottext">forall t. ToCBOR t =&gt; Proxy t -&gt; Size
+</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Proxy (SigDSIGN MockDSIGN) -&gt; Size
+forall v. DSIGNAlgorithm v =&gt; Proxy (SigDSIGN v) -&gt; Size
+</span><a href="Cardano.Crypto.DSIGN.Class.html#encodedSigDSIGNSizeExpr"><span class="hs-identifier hs-var">encodedSigDSIGNSizeExpr</span></a></span><span>
+</span><span id="line-149"></span><span>
+</span><span id="line-150"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679135837"><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-binary-1.5.0/noopt/doc/html/cardano-binary/src"><span class="hs-identifier hs-type">FromCBOR</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cardano.Crypto.DSIGN.Class.html#SigDSIGN"><span class="hs-identifier hs-type">SigDSIGN</span></a></span><span> </span><span class="annot"><a href="Cardano.Crypto.DSIGN.Mock.html#MockDSIGN"><span class="hs-identifier hs-type">MockDSIGN</span></a></span><span class="hs-special">)</span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-151"></span><span>  </span><span id="local-6989586621679135836"><span class="annot"><span class="annottext">fromCBOR :: Decoder s (SigDSIGN MockDSIGN)
+</span><a href="#local-6989586621679135836"><span class="hs-identifier hs-var hs-var hs-var hs-var">fromCBOR</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Decoder s (SigDSIGN MockDSIGN)
+forall v s. DSIGNAlgorithm v =&gt; Decoder s (SigDSIGN v)
+</span><a href="Cardano.Crypto.DSIGN.Class.html#decodeSigDSIGN"><span class="hs-identifier hs-var">decodeSigDSIGN</span></a></span><span>
+</span><span id="line-152"></span><span>
+</span><span id="line-153"></span><span>
+</span><span id="line-154"></span><span class="hs-comment">-- | Debugging: provide information about the verification failure</span><span>
+</span><span id="line-155"></span><span class="hs-comment">--</span><span>
+</span><span id="line-156"></span><span class="hs-comment">-- We don't include the actual value here as that would require propagating a</span><span>
+</span><span id="line-157"></span><span class="hs-comment">-- 'Show' constraint.</span><span>
+</span><span id="line-158"></span><span class="hs-keyword">data</span><span> </span><span id="VerificationFailure"><span class="annot"><a href="Cardano.Crypto.DSIGN.Mock.html#VerificationFailure"><span class="hs-identifier hs-var">VerificationFailure</span></a></span></span><span>
+</span><span id="line-159"></span><span>  </span><span class="hs-glyph">=</span><span> </span><span id="MockVerificationFailure"><span class="annot"><a href="Cardano.Crypto.DSIGN.Mock.html#MockVerificationFailure"><span class="hs-identifier hs-var">MockVerificationFailure</span></a></span></span><span>
+</span><span id="line-160"></span><span>      </span><span class="hs-special">{</span><span> </span><span id="vErrVerKey"><span class="annot"><span class="annottext">VerificationFailure -&gt; VerKeyDSIGN MockDSIGN
+</span><a href="Cardano.Crypto.DSIGN.Mock.html#vErrVerKey"><span class="hs-identifier hs-var hs-var">vErrVerKey</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cardano.Crypto.DSIGN.Class.html#VerKeyDSIGN"><span class="hs-identifier hs-type">VerKeyDSIGN</span></a></span><span> </span><span class="annot"><a href="Cardano.Crypto.DSIGN.Mock.html#MockDSIGN"><span class="hs-identifier hs-type">MockDSIGN</span></a></span><span>
+</span><span id="line-161"></span><span>      </span><span class="hs-special">,</span><span> </span><span id="vErrSignature"><span class="annot"><span class="annottext">VerificationFailure -&gt; SigDSIGN MockDSIGN
+</span><a href="Cardano.Crypto.DSIGN.Mock.html#vErrSignature"><span class="hs-identifier hs-var hs-var">vErrSignature</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cardano.Crypto.DSIGN.Class.html#SigDSIGN"><span class="hs-identifier hs-type">SigDSIGN</span></a></span><span> </span><span class="annot"><a href="Cardano.Crypto.DSIGN.Mock.html#MockDSIGN"><span class="hs-identifier hs-type">MockDSIGN</span></a></span><span>
+</span><span id="line-162"></span><span>      </span><span class="hs-special">,</span><span> </span><span id="vErrCallStack"><span class="annot"><span class="annottext">VerificationFailure -&gt; String
+</span><a href="Cardano.Crypto.DSIGN.Mock.html#vErrCallStack"><span class="hs-identifier hs-var hs-var">vErrCallStack</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">String</span></span><span>
+</span><span id="line-163"></span><span>      </span><span class="hs-special">}</span><span>
+</span><span id="line-164"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span id="local-6989586621679135829"><span id="local-6989586621679135831"><span id="local-6989586621679135833"><span class="annot"><span class="annottext">Int -&gt; VerificationFailure -&gt; ShowS
+[VerificationFailure] -&gt; ShowS
+VerificationFailure -&gt; String
+(Int -&gt; VerificationFailure -&gt; ShowS)
+-&gt; (VerificationFailure -&gt; String)
+-&gt; ([VerificationFailure] -&gt; ShowS)
+-&gt; Show VerificationFailure
+forall a.
+(Int -&gt; a -&gt; ShowS) -&gt; (a -&gt; String) -&gt; ([a] -&gt; ShowS) -&gt; Show a
+showList :: [VerificationFailure] -&gt; ShowS
+$cshowList :: [VerificationFailure] -&gt; ShowS
+show :: VerificationFailure -&gt; String
+$cshow :: VerificationFailure -&gt; String
+showsPrec :: Int -&gt; VerificationFailure -&gt; ShowS
+$cshowsPrec :: Int -&gt; VerificationFailure -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span>
+</span><span id="line-165"></span><span>
+</span><span id="line-166"></span><span id="local-6989586621679136173"><span class="annot"><a href="Cardano.Crypto.DSIGN.Mock.html#mockSign"><span class="hs-identifier hs-type">mockSign</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cardano.Crypto.Util.html#SignableRepresentation"><span class="hs-identifier hs-type">SignableRepresentation</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679136173"><span class="hs-identifier hs-type">a</span></a></span><span>
+</span><span id="line-167"></span><span>         </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679136173"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cardano.Crypto.DSIGN.Class.html#SignKeyDSIGN"><span class="hs-identifier hs-type">SignKeyDSIGN</span></a></span><span> </span><span class="annot"><a href="Cardano.Crypto.DSIGN.Mock.html#MockDSIGN"><span class="hs-identifier hs-type">MockDSIGN</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cardano.Crypto.DSIGN.Class.html#SigDSIGN"><span class="hs-identifier hs-type">SigDSIGN</span></a></span><span> </span><span class="annot"><a href="Cardano.Crypto.DSIGN.Mock.html#MockDSIGN"><span class="hs-identifier hs-type">MockDSIGN</span></a></span></span><span>
+</span><span id="line-168"></span><span id="mockSign"><span class="annot"><span class="annottext">mockSign :: a -&gt; SignKeyDSIGN MockDSIGN -&gt; SigDSIGN MockDSIGN
+</span><a href="Cardano.Crypto.DSIGN.Mock.html#mockSign"><span class="hs-identifier hs-var hs-var">mockSign</span></a></span></span><span> </span><span id="local-6989586621679135828"><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679135828"><span class="hs-identifier hs-var">a</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cardano.Crypto.DSIGN.Mock.html#SignKeyMockDSIGN"><span class="hs-identifier hs-type">SignKeyMockDSIGN</span></a></span><span> </span><span id="local-6989586621679135827"><span class="annot"><a href="#local-6989586621679135827"><span class="hs-identifier hs-var">n</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-169"></span><span>  </span><span class="annot"><span class="annottext">Hash ShortHash () -&gt; Word64 -&gt; SigDSIGN MockDSIGN
+</span><a href="Cardano.Crypto.DSIGN.Mock.html#SigMockDSIGN"><span class="hs-identifier hs-var">SigMockDSIGN</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Hash ShortHash a -&gt; Hash ShortHash ()
+forall h a b. Hash h a -&gt; Hash h b
+</span><a href="Cardano.Crypto.Hash.Class.html#castHash"><span class="hs-identifier hs-var">castHash</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">(a -&gt; ByteString) -&gt; a -&gt; Hash ShortHash a
+forall h a. HashAlgorithm h =&gt; (a -&gt; ByteString) -&gt; a -&gt; Hash h a
+</span><a href="Cardano.Crypto.Hash.Class.html#hashWith"><span class="hs-identifier hs-var">hashWith</span></a></span><span> </span><span class="annot"><span class="annottext">a -&gt; ByteString
+forall a. SignableRepresentation a =&gt; a -&gt; ByteString
+</span><a href="Cardano.Crypto.Util.html#getSignableRepresentation"><span class="hs-identifier hs-var">getSignableRepresentation</span></a></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679135828"><span class="hs-identifier hs-var">a</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Word64
+</span><a href="#local-6989586621679135827"><span class="hs-identifier hs-var">n</span></a></span><span>
+</span><span id="line-170"></span></pre></body></html>

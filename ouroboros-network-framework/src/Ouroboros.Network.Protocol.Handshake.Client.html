@@ -1,66 +1,415 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-pragma">{-# LANGUAGE DataKinds             #-}</span><span>
-</span><a name="line-2"></a><span class="hs-pragma">{-# LANGUAGE GADTs                 #-}</span><span>
-</span><a name="line-3"></a><span class="hs-pragma">{-# LANGUAGE NamedFieldPuns        #-}</span><span>
-</span><a name="line-4"></a><span class="hs-pragma">{-# LANGUAGE RankNTypes            #-}</span><span>
-</span><a name="line-5"></a><span class="hs-pragma">{-# LANGUAGE ScopedTypeVariables   #-}</span><span>
-</span><a name="line-6"></a><span>
-</span><a name="line-7"></a><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Ouroboros.Network.Protocol.Handshake.Client</span><span>
-</span><a name="line-8"></a><span>  </span><span class="hs-special">(</span><span> </span><a href="Ouroboros.Network.Protocol.Handshake.Client.html#handshakeClientPeer"><span class="hs-identifier hs-var">handshakeClientPeer</span></a><span>
-</span><a name="line-9"></a><span>  </span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
-</span><a name="line-10"></a><span>
-</span><a name="line-11"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data.Map</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Map</span><span class="hs-special">)</span><span>
-</span><a name="line-12"></a><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-identifier">Data.Map</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">Map</span><span>
-</span><a name="line-13"></a><span>
-</span><a name="line-14"></a><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-identifier">Codec.CBOR.Term</span><span>     </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">CBOR</span><span>
-</span><a name="line-15"></a><span>
-</span><a name="line-16"></a><span class="hs-keyword">import</span><span>           </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/typed-protocols-0.1.0.0/noopt/doc/html/typed-protocols/src/Network.TypedProtocol.Core.html"><span class="hs-identifier">Network.TypedProtocol.Core</span></a><span>
-</span><a name="line-17"></a><span>
-</span><a name="line-18"></a><span class="hs-keyword">import</span><span>           </span><a href="Ouroboros.Network.Protocol.Handshake.Codec.html"><span class="hs-identifier">Ouroboros.Network.Protocol.Handshake.Codec</span></a><span>
-</span><a name="line-19"></a><span class="hs-keyword">import</span><span>           </span><a href="Ouroboros.Network.Protocol.Handshake.Type.html"><span class="hs-identifier">Ouroboros.Network.Protocol.Handshake.Type</span></a><span>
-</span><a name="line-20"></a><span class="hs-keyword">import</span><span>           </span><a href="Ouroboros.Network.Protocol.Handshake.Version.html"><span class="hs-identifier">Ouroboros.Network.Protocol.Handshake.Version</span></a><span>
-</span><a name="line-21"></a><span>
-</span><a name="line-22"></a><span>
-</span><a name="line-23"></a><span class="hs-comment">-- | Handshake client which offers @'Versions' vNumber vData@ to the</span><span>
-</span><a name="line-24"></a><span class="hs-comment">-- remote peer.</span><span>
-</span><a name="line-25"></a><span class="hs-comment">--</span><span>
-</span><a name="line-26"></a><span class="hs-comment">-- TODO: GADT encoding of the client (@Handshake.Client@ module).</span><span>
-</span><a name="line-27"></a><span class="hs-comment">--</span><span>
-</span><a name="line-28"></a><span class="hs-identifier">handshakeClientPeer</span><span>
-</span><a name="line-29"></a><span>  </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">Ord</span><span> </span><a href="#local-6989586621679141860"><span class="hs-identifier hs-type">vNumber</span></a><span>
-</span><a name="line-30"></a><span>  </span><span class="hs-glyph">=&gt;</span><span> </span><a href="Ouroboros.Network.Protocol.Handshake.Codec.html#VersionDataCodec"><span class="hs-identifier hs-type">VersionDataCodec</span></a><span> </span><a href="#local-6989586621679141861"><span class="hs-identifier hs-type">extra</span></a><span> </span><span class="hs-identifier hs-type">CBOR.Term</span><span>
-</span><a name="line-31"></a><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><a href="Ouroboros.Network.Protocol.Handshake.Version.html#Versions"><span class="hs-identifier hs-type">Versions</span></a><span> </span><a href="#local-6989586621679141860"><span class="hs-identifier hs-type">vNumber</span></a><span> </span><a href="#local-6989586621679141861"><span class="hs-identifier hs-type">extra</span></a><span> </span><a href="#local-6989586621679141862"><span class="hs-identifier hs-type">r</span></a><span>
-</span><a name="line-32"></a><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/typed-protocols-0.1.0.0/noopt/doc/html/typed-protocols/src/Network.TypedProtocol.Core.html#Peer"><span class="hs-identifier hs-type">Peer</span></a><span> </span><span class="hs-special">(</span><a href="Ouroboros.Network.Protocol.Handshake.Type.html#Handshake"><span class="hs-identifier hs-type">Handshake</span></a><span> </span><a href="#local-6989586621679141860"><span class="hs-identifier hs-type">vNumber</span></a><span> </span><span class="hs-identifier hs-type">CBOR.Term</span><span class="hs-special">)</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/typed-protocols-0.1.0.0/noopt/doc/html/typed-protocols/src/Network.TypedProtocol.Core.html#AsClient"><span class="hs-identifier hs-type">AsClient</span></a><span> </span><a href="Ouroboros.Network.Protocol.Handshake.Type.html#StPropose"><span class="hs-identifier hs-type">StPropose</span></a><span> </span><a href="#local-6989586621679141863"><span class="hs-identifier hs-type">m</span></a><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Either</span><span> </span><span class="hs-special">(</span><a href="Ouroboros.Network.Protocol.Handshake.Type.html#HandshakeClientProtocolError"><span class="hs-identifier hs-type">HandshakeClientProtocolError</span></a><span> </span><a href="#local-6989586621679141860"><span class="hs-identifier hs-type">vNumber</span></a><span class="hs-special">)</span><span> </span><a href="#local-6989586621679141862"><span class="hs-identifier hs-type">r</span></a><span class="hs-special">)</span><span>
-</span><a name="line-33"></a><a name="handshakeClientPeer"><a href="Ouroboros.Network.Protocol.Handshake.Client.html#handshakeClientPeer"><span class="hs-identifier">handshakeClientPeer</span></a></a><span> </span><a href="Ouroboros.Network.Protocol.Handshake.Codec.html#VersionDataCodec"><span class="hs-identifier hs-var">VersionDataCodec</span></a><span> </span><span class="hs-special">{</span><a name="local-6989586621679141864"><a href="#local-6989586621679141864"><span class="hs-identifier">encodeData</span></a></a><span class="hs-special">,</span><span> </span><a name="local-6989586621679141865"><a href="#local-6989586621679141865"><span class="hs-identifier">decodeData</span></a></a><span class="hs-special">}</span><span> </span><a name="local-6989586621679141866"><a href="#local-6989586621679141866"><span class="hs-identifier">versions</span></a></a><span> </span><span class="hs-glyph">=</span><span>
-</span><a name="line-34"></a><span>  </span><span class="hs-comment">-- send known versions</span><span>
-</span><a name="line-35"></a><span>  </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/typed-protocols-0.1.0.0/noopt/doc/html/typed-protocols/src/Network.TypedProtocol.Core.html#Yield"><span class="hs-identifier hs-var">Yield</span></a><span> </span><span class="hs-special">(</span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/typed-protocols-0.1.0.0/noopt/doc/html/typed-protocols/src/Network.TypedProtocol.Core.html#ClientAgency"><span class="hs-identifier hs-var">ClientAgency</span></a><span> </span><a href="Ouroboros.Network.Protocol.Handshake.Type.html#TokPropose"><span class="hs-identifier hs-var">TokPropose</span></a><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><a href="Ouroboros.Network.Protocol.Handshake.Type.html#MsgProposeVersions"><span class="hs-identifier hs-var">MsgProposeVersions</span></a><span> </span><span class="hs-operator hs-var">$</span><span> </span><a href="Ouroboros.Network.Protocol.Handshake.Client.html#encodeVersions"><span class="hs-identifier hs-var">encodeVersions</span></a><span> </span><a href="#local-6989586621679141864"><span class="hs-identifier hs-var">encodeData</span></a><span> </span><a href="#local-6989586621679141866"><span class="hs-identifier hs-var">versions</span></a><span class="hs-special">)</span><span> </span><span class="hs-operator hs-var">$</span><span>
-</span><a name="line-36"></a><span>
-</span><a name="line-37"></a><span>    </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/typed-protocols-0.1.0.0/noopt/doc/html/typed-protocols/src/Network.TypedProtocol.Core.html#Await"><span class="hs-identifier hs-var">Await</span></a><span> </span><span class="hs-special">(</span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/typed-protocols-0.1.0.0/noopt/doc/html/typed-protocols/src/Network.TypedProtocol.Core.html#ServerAgency"><span class="hs-identifier hs-var">ServerAgency</span></a><span> </span><a href="Ouroboros.Network.Protocol.Handshake.Type.html#TokConfirm"><span class="hs-identifier hs-var">TokConfirm</span></a><span class="hs-special">)</span><span> </span><span class="hs-operator hs-var">$</span><span> </span><span class="hs-glyph">\</span><a name="local-6989586621679141867"><a href="#local-6989586621679141867"><span class="hs-identifier">msg</span></a></a><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">case</span><span> </span><a href="#local-6989586621679141867"><span class="hs-identifier hs-var">msg</span></a><span> </span><span class="hs-keyword">of</span><span>
-</span><a name="line-38"></a><span>
-</span><a name="line-39"></a><span>      </span><span class="hs-comment">-- the server refused common highest version</span><span>
-</span><a name="line-40"></a><span>      </span><a href="Ouroboros.Network.Protocol.Handshake.Type.html#MsgRefuse"><span class="hs-identifier hs-var">MsgRefuse</span></a><span> </span><a name="local-6989586621679141868"><a href="#local-6989586621679141868"><span class="hs-identifier">vReason</span></a></a><span> </span><span class="hs-glyph">-&gt;</span><span>
-</span><a name="line-41"></a><span>        </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/typed-protocols-0.1.0.0/noopt/doc/html/typed-protocols/src/Network.TypedProtocol.Core.html#Done"><span class="hs-identifier hs-var">Done</span></a><span> </span><a href="Ouroboros.Network.Protocol.Handshake.Type.html#TokDone"><span class="hs-identifier hs-var">TokDone</span></a><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-var">Left</span><span> </span><span class="hs-operator hs-var">$</span><span> </span><a href="Ouroboros.Network.Protocol.Handshake.Type.html#HandshakeError"><span class="hs-identifier hs-var">HandshakeError</span></a><span> </span><a href="#local-6989586621679141868"><span class="hs-identifier hs-var">vReason</span></a><span class="hs-special">)</span><span>
-</span><a name="line-42"></a><span>
-</span><a name="line-43"></a><span>      </span><span class="hs-comment">-- the server accepted a version, sent back the version number and its</span><span>
-</span><a name="line-44"></a><span>      </span><span class="hs-comment">-- version data blob</span><span>
-</span><a name="line-45"></a><span>      </span><a href="Ouroboros.Network.Protocol.Handshake.Type.html#MsgAcceptVersion"><span class="hs-identifier hs-var">MsgAcceptVersion</span></a><span> </span><a name="local-6989586621679141869"><a href="#local-6989586621679141869"><span class="hs-identifier">vNumber</span></a></a><span> </span><a name="local-6989586621679141870"><a href="#local-6989586621679141870"><span class="hs-identifier">vParams</span></a></a><span> </span><span class="hs-glyph">-&gt;</span><span>
-</span><a name="line-46"></a><span>        </span><span class="hs-keyword">case</span><span> </span><a href="#local-6989586621679141869"><span class="hs-identifier hs-var">vNumber</span></a><span> </span><span class="hs-special">`</span><span class="hs-identifier hs-var">Map.lookup</span><span class="hs-special">`</span><span> </span><span class="hs-identifier">getVersions</span><span> </span><a href="#local-6989586621679141866"><span class="hs-identifier hs-var">versions</span></a><span> </span><span class="hs-keyword">of</span><span>
-</span><a name="line-47"></a><span>          </span><span class="hs-identifier hs-var">Nothing</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/typed-protocols-0.1.0.0/noopt/doc/html/typed-protocols/src/Network.TypedProtocol.Core.html#Done"><span class="hs-identifier hs-var">Done</span></a><span> </span><a href="Ouroboros.Network.Protocol.Handshake.Type.html#TokDone"><span class="hs-identifier hs-var">TokDone</span></a><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-var">Left</span><span> </span><span class="hs-operator hs-var">$</span><span> </span><a href="Ouroboros.Network.Protocol.Handshake.Type.html#NotRecognisedVersion"><span class="hs-identifier hs-var">NotRecognisedVersion</span></a><span> </span><a href="#local-6989586621679141869"><span class="hs-identifier hs-var">vNumber</span></a><span class="hs-special">)</span><span>
-</span><a name="line-48"></a><span>          </span><span class="hs-identifier hs-var">Just</span><span> </span><span class="hs-special">(</span><a href="Ouroboros.Network.Protocol.Handshake.Version.html#Sigma"><span class="hs-identifier hs-var">Sigma</span></a><span> </span><a name="local-6989586621679141871"><a href="#local-6989586621679141871"><span class="hs-identifier">vData</span></a></a><span> </span><a name="local-6989586621679141872"><a href="#local-6989586621679141872"><span class="hs-identifier">version</span></a></a><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
-</span><a name="line-49"></a><span>            </span><span class="hs-keyword">case</span><span> </span><a href="#local-6989586621679141865"><span class="hs-identifier hs-var">decodeData</span></a><span> </span><span class="hs-special">(</span><span class="hs-identifier">versionExtra</span><span> </span><a href="#local-6989586621679141872"><span class="hs-identifier hs-var">version</span></a><span class="hs-special">)</span><span> </span><a href="#local-6989586621679141870"><span class="hs-identifier hs-var">vParams</span></a><span> </span><span class="hs-keyword">of</span><span>
-</span><a name="line-50"></a><span>
-</span><a name="line-51"></a><span>              </span><span class="hs-identifier hs-var">Left</span><span> </span><a name="local-6989586621679141873"><a href="#local-6989586621679141873"><span class="hs-identifier">err</span></a></a><span> </span><span class="hs-glyph">-&gt;</span><span>
-</span><a name="line-52"></a><span>                </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/typed-protocols-0.1.0.0/noopt/doc/html/typed-protocols/src/Network.TypedProtocol.Core.html#Done"><span class="hs-identifier hs-var">Done</span></a><span> </span><a href="Ouroboros.Network.Protocol.Handshake.Type.html#TokDone"><span class="hs-identifier hs-var">TokDone</span></a><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-var">Left</span><span> </span><span class="hs-special">(</span><a href="Ouroboros.Network.Protocol.Handshake.Type.html#HandshakeError"><span class="hs-identifier hs-var">HandshakeError</span></a><span> </span><span class="hs-operator hs-var">$</span><span> </span><a href="Ouroboros.Network.Protocol.Handshake.Type.html#HandshakeDecodeError"><span class="hs-identifier hs-var">HandshakeDecodeError</span></a><span> </span><a href="#local-6989586621679141869"><span class="hs-identifier hs-var">vNumber</span></a><span> </span><a href="#local-6989586621679141873"><span class="hs-identifier hs-var">err</span></a><span class="hs-special">)</span><span class="hs-special">)</span><span>
-</span><a name="line-53"></a><span>
-</span><a name="line-54"></a><span>              </span><span class="hs-identifier hs-var">Right</span><span> </span><a name="local-6989586621679141874"><a href="#local-6989586621679141874"><span class="hs-identifier">vData'</span></a></a><span> </span><span class="hs-glyph">-&gt;</span><span>
-</span><a name="line-55"></a><span>                </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/typed-protocols-0.1.0.0/noopt/doc/html/typed-protocols/src/Network.TypedProtocol.Core.html#Done"><span class="hs-identifier hs-var">Done</span></a><span> </span><a href="Ouroboros.Network.Protocol.Handshake.Type.html#TokDone"><span class="hs-identifier hs-var">TokDone</span></a><span> </span><span class="hs-operator hs-var">$</span><span> </span><span class="hs-identifier hs-var">Right</span><span> </span><span class="hs-operator hs-var">$</span><span> </span><span class="hs-identifier">runApplication</span><span> </span><span class="hs-special">(</span><span class="hs-identifier">versionApplication</span><span> </span><a href="#local-6989586621679141872"><span class="hs-identifier hs-var">version</span></a><span class="hs-special">)</span><span> </span><a href="#local-6989586621679141871"><span class="hs-identifier hs-var">vData</span></a><span> </span><a href="#local-6989586621679141874"><span class="hs-identifier hs-var">vData'</span></a><span>
-</span><a name="line-56"></a><span>
-</span><a name="line-57"></a><span class="hs-identifier">encodeVersions</span><span>
-</span><a name="line-58"></a><span>  </span><span class="hs-glyph">::</span><span> </span><span class="hs-keyword">forall</span><span> </span><a name="local-6989586621679141855"><a href="#local-6989586621679141855"><span class="hs-identifier">vNumber</span></a></a><span> </span><a name="local-6989586621679141856"><a href="#local-6989586621679141856"><span class="hs-identifier">extra</span></a></a><span> </span><a name="local-6989586621679141857"><a href="#local-6989586621679141857"><span class="hs-identifier">r</span></a></a><span> </span><a name="local-6989586621679141858"><a href="#local-6989586621679141858"><span class="hs-identifier">vParams</span></a></a><span class="hs-operator">.</span><span>
-</span><a name="line-59"></a><span>     </span><span class="hs-special">(</span><span class="hs-keyword">forall</span><span> </span><a name="local-6989586621679141859"><a href="#local-6989586621679141859"><span class="hs-identifier">vData</span></a></a><span class="hs-operator">.</span><span> </span><a href="#local-6989586621679141856"><span class="hs-identifier hs-type">extra</span></a><span> </span><a href="#local-6989586621679141859"><span class="hs-identifier hs-type">vData</span></a><span> </span><span class="hs-glyph">-&gt;</span><span> </span><a href="#local-6989586621679141859"><span class="hs-identifier hs-type">vData</span></a><span> </span><span class="hs-glyph">-&gt;</span><span> </span><a href="#local-6989586621679141858"><span class="hs-identifier hs-type">vParams</span></a><span class="hs-special">)</span><span>
-</span><a name="line-60"></a><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><a href="Ouroboros.Network.Protocol.Handshake.Version.html#Versions"><span class="hs-identifier hs-type">Versions</span></a><span> </span><a href="#local-6989586621679141855"><span class="hs-identifier hs-type">vNumber</span></a><span> </span><a href="#local-6989586621679141856"><span class="hs-identifier hs-type">extra</span></a><span> </span><a href="#local-6989586621679141857"><span class="hs-identifier hs-type">r</span></a><span>
-</span><a name="line-61"></a><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">Map</span><span> </span><a href="#local-6989586621679141855"><span class="hs-identifier hs-type">vNumber</span></a><span> </span><a href="#local-6989586621679141858"><span class="hs-identifier hs-type">vParams</span></a><span>
-</span><a name="line-62"></a><a name="encodeVersions"><a href="Ouroboros.Network.Protocol.Handshake.Client.html#encodeVersions"><span class="hs-identifier">encodeVersions</span></a></a><span> </span><a name="local-6989586621679141875"><a href="#local-6989586621679141875"><span class="hs-identifier">encoder</span></a></a><span> </span><span class="hs-special">(</span><a href="Ouroboros.Network.Protocol.Handshake.Version.html#Versions"><span class="hs-identifier hs-var">Versions</span></a><span> </span><a name="local-6989586621679141876"><a href="#local-6989586621679141876"><span class="hs-identifier">vs</span></a></a><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><a href="#local-6989586621679141877"><span class="hs-identifier hs-var">go</span></a><span> </span><span class="hs-operator hs-var">&lt;$&gt;</span><span> </span><a href="#local-6989586621679141876"><span class="hs-identifier hs-var">vs</span></a><span>
-</span><a name="line-63"></a><span>    </span><span class="hs-keyword">where</span><span>
-</span><a name="line-64"></a><span>      </span><span class="hs-identifier">go</span><span> </span><span class="hs-glyph">::</span><span> </span><a href="Ouroboros.Network.Protocol.Handshake.Version.html#Sigma"><span class="hs-identifier hs-type">Sigma</span></a><span> </span><span class="hs-special">(</span><a href="Ouroboros.Network.Protocol.Handshake.Version.html#Version"><span class="hs-identifier hs-type">Version</span></a><span> </span><a href="#local-6989586621679141856"><span class="hs-identifier hs-type">extra</span></a><span> </span><a href="#local-6989586621679141857"><span class="hs-identifier hs-type">r</span></a><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><a href="#local-6989586621679141858"><span class="hs-identifier hs-type">vParams</span></a><span>
-</span><a name="line-65"></a><span>      </span><a name="local-6989586621679141877"><a href="#local-6989586621679141877"><span class="hs-identifier">go</span></a></a><span> </span><span class="hs-special">(</span><a href="Ouroboros.Network.Protocol.Handshake.Version.html#Sigma"><span class="hs-identifier hs-var">Sigma</span></a><span> </span><a name="local-6989586621679141878"><a href="#local-6989586621679141878"><span class="hs-identifier">vData</span></a></a><span> </span><a href="Ouroboros.Network.Protocol.Handshake.Version.html#Version"><span class="hs-identifier hs-var">Version</span></a><span> </span><span class="hs-special">{</span><a name="local-6989586621679141879"><a href="#local-6989586621679141879"><span class="hs-identifier">versionExtra</span></a></a><span class="hs-special">}</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><a href="#local-6989586621679141875"><span class="hs-identifier hs-var">encoder</span></a><span> </span><a href="#local-6989586621679141879"><span class="hs-identifier hs-var">versionExtra</span></a><span> </span><a href="#local-6989586621679141878"><span class="hs-identifier hs-var">vData</span></a><span>
-</span><a name="line-66"></a></pre></body></html>
+</span><span id="line-2"></span><span class="hs-pragma">{-# LANGUAGE GADTs                 #-}</span><span>
+</span><span id="line-3"></span><span class="hs-pragma">{-# LANGUAGE NamedFieldPuns        #-}</span><span>
+</span><span id="line-4"></span><span class="hs-pragma">{-# LANGUAGE RankNTypes            #-}</span><span>
+</span><span id="line-5"></span><span class="hs-pragma">{-# LANGUAGE ScopedTypeVariables   #-}</span><span>
+</span><span id="line-6"></span><span>
+</span><span id="line-7"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Ouroboros.Network.Protocol.Handshake.Client</span><span>
+</span><span id="line-8"></span><span>  </span><span class="hs-special">(</span><span> </span><span class="annot"><a href="Ouroboros.Network.Protocol.Handshake.Client.html#handshakeClientPeer"><span class="hs-identifier">handshakeClientPeer</span></a></span><span>
+</span><span id="line-9"></span><span>  </span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-10"></span><span>
+</span><span id="line-11"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><span class="hs-identifier">Data.Map</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Map</span></span><span class="hs-special">)</span><span>
+</span><span id="line-12"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Data.Map</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Map</span></span><span>
+</span><span id="line-13"></span><span>
+</span><span id="line-14"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Codec.CBOR.Term</span></span><span>     </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">CBOR</span></span><span>
+</span><span id="line-15"></span><span>
+</span><span id="line-16"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/typed-protocols-0.1.0.0/noopt/doc/html/typed-protocols/src"><span class="hs-identifier">Network.TypedProtocol.Core</span></a></span><span>
+</span><span id="line-17"></span><span>
+</span><span id="line-18"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="Ouroboros.Network.Protocol.Handshake.Codec.html"><span class="hs-identifier">Ouroboros.Network.Protocol.Handshake.Codec</span></a></span><span>
+</span><span id="line-19"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="Ouroboros.Network.Protocol.Handshake.Type.html"><span class="hs-identifier">Ouroboros.Network.Protocol.Handshake.Type</span></a></span><span>
+</span><span id="line-20"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="Ouroboros.Network.Protocol.Handshake.Version.html"><span class="hs-identifier">Ouroboros.Network.Protocol.Handshake.Version</span></a></span><span>
+</span><span id="line-21"></span><span>
+</span><span id="line-22"></span><span>
+</span><span id="line-23"></span><span class="hs-comment">-- | Handshake client which offers @'Versions' vNumber vData@ to the</span><span>
+</span><span id="line-24"></span><span class="hs-comment">-- remote peer.</span><span>
+</span><span id="line-25"></span><span class="hs-comment">--</span><span>
+</span><span id="line-26"></span><span class="hs-comment">-- TODO: GADT encoding of the client (@Handshake.Client@ module).</span><span>
+</span><span id="line-27"></span><span class="hs-comment">--</span><span>
+</span><span id="line-28"></span><span id="local-6989586621679128561"><span id="local-6989586621679128562"><span id="local-6989586621679128563"><span id="local-6989586621679128564"><span class="annot"><a href="Ouroboros.Network.Protocol.Handshake.Client.html#handshakeClientPeer"><span class="hs-identifier hs-type">handshakeClientPeer</span></a></span><span>
+</span><span id="line-29"></span><span>  </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Ord</span></span><span> </span><span class="annot"><a href="#local-6989586621679128564"><span class="hs-identifier hs-type">vNumber</span></a></span><span>
+</span><span id="line-30"></span><span>  </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Ouroboros.Network.Protocol.Handshake.Codec.html#VersionDataCodec"><span class="hs-identifier hs-type">VersionDataCodec</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">CBOR.Term</span></span><span> </span><span class="annot"><a href="#local-6989586621679128564"><span class="hs-identifier hs-type">vNumber</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679128563"><span class="hs-identifier hs-type">vData</span></a></span><span>
+</span><span id="line-31"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="#local-6989586621679128563"><span class="hs-identifier hs-type">vData</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679128563"><span class="hs-identifier hs-type">vData</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Ouroboros.Network.Protocol.Handshake.Version.html#Accept"><span class="hs-identifier hs-type">Accept</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679128563"><span class="hs-identifier hs-type">vData</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-32"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Ouroboros.Network.Protocol.Handshake.Version.html#Versions"><span class="hs-identifier hs-type">Versions</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679128564"><span class="hs-identifier hs-type">vNumber</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679128563"><span class="hs-identifier hs-type">vData</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679128562"><span class="hs-identifier hs-type">r</span></a></span><span>
+</span><span id="line-33"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/typed-protocols-0.1.0.0/noopt/doc/html/typed-protocols/src"><span class="hs-identifier hs-type">Peer</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Network.Protocol.Handshake.Type.html#Handshake"><span class="hs-identifier hs-type">Handshake</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679128564"><span class="hs-identifier hs-type">vNumber</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">CBOR.Term</span></span><span class="hs-special">)</span><span>
+</span><span id="line-34"></span><span>          </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/typed-protocols-0.1.0.0/noopt/doc/html/typed-protocols/src"><span class="hs-identifier hs-type">AsClient</span></a></span><span> </span><span class="annot"><a href="Ouroboros.Network.Protocol.Handshake.Type.html#StPropose"><span class="hs-identifier hs-type">StPropose</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679128561"><span class="hs-identifier hs-type">m</span></a></span><span>
+</span><span id="line-35"></span><span>          </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Either</span></span><span>
+</span><span id="line-36"></span><span>            </span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Network.Protocol.Handshake.Type.html#HandshakeClientProtocolError"><span class="hs-identifier hs-type">HandshakeClientProtocolError</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679128564"><span class="hs-identifier hs-type">vNumber</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-37"></span><span>            </span><span class="hs-special">(</span><span class="annot"><a href="#local-6989586621679128562"><span class="hs-identifier hs-type">r</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="#local-6989586621679128564"><span class="hs-identifier hs-type">vNumber</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="#local-6989586621679128563"><span class="hs-identifier hs-type">vData</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span></span></span></span></span><span>
+</span><span id="line-38"></span><span id="handshakeClientPeer"><span class="annot"><span class="annottext">handshakeClientPeer :: VersionDataCodec Term vNumber vData
+-&gt; (vData -&gt; vData -&gt; Accept vData)
+-&gt; Versions vNumber vData r
+-&gt; Peer
+     (Handshake vNumber Term)
+     'AsClient
+     'StPropose
+     m
+     (Either (HandshakeClientProtocolError vNumber) (r, vNumber, vData))
+</span><a href="Ouroboros.Network.Protocol.Handshake.Client.html#handshakeClientPeer"><span class="hs-identifier hs-var hs-var">handshakeClientPeer</span></a></span></span><span> </span><span class="annot"><a href="Ouroboros.Network.Protocol.Handshake.Codec.html#VersionDataCodec"><span class="hs-identifier hs-type">VersionDataCodec</span></a></span><span> </span><span class="hs-special">{</span><span id="local-6989586621679128559"><span class="annot"><span class="annottext">vNumber -&gt; vData -&gt; Term
+encodeData :: forall bytes vNumber vData.
+VersionDataCodec bytes vNumber vData -&gt; vNumber -&gt; vData -&gt; bytes
+encodeData :: vNumber -&gt; vData -&gt; Term
+</span><a href="Ouroboros.Network.Protocol.Handshake.Codec.html#encodeData"><span class="hs-identifier hs-var hs-var">encodeData</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679128557"><span class="annot"><span class="annottext">vNumber -&gt; Term -&gt; Either Text vData
+decodeData :: forall bytes vNumber vData.
+VersionDataCodec bytes vNumber vData
+-&gt; vNumber -&gt; bytes -&gt; Either Text vData
+decodeData :: vNumber -&gt; Term -&gt; Either Text vData
+</span><a href="Ouroboros.Network.Protocol.Handshake.Codec.html#decodeData"><span class="hs-identifier hs-var hs-var">decodeData</span></a></span></span><span class="hs-special">}</span><span> </span><span id="local-6989586621679128555"><span class="annot"><span class="annottext">vData -&gt; vData -&gt; Accept vData
+</span><a href="#local-6989586621679128555"><span class="hs-identifier hs-var">acceptVersion</span></a></span></span><span> </span><span id="local-6989586621679128554"><span class="annot"><span class="annottext">Versions vNumber vData r
+</span><a href="#local-6989586621679128554"><span class="hs-identifier hs-var">versions</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-39"></span><span>  </span><span class="hs-comment">-- send known versions</span><span>
+</span><span id="line-40"></span><span>  </span><span class="annot"><span class="annottext">WeHaveAgency 'AsClient 'StPropose
+-&gt; Message (Handshake vNumber Term) 'StPropose 'StConfirm
+-&gt; Peer
+     (Handshake vNumber Term)
+     'AsClient
+     'StConfirm
+     m
+     (Either (HandshakeClientProtocolError vNumber) (r, vNumber, vData))
+-&gt; Peer
+     (Handshake vNumber Term)
+     'AsClient
+     'StPropose
+     m
+     (Either (HandshakeClientProtocolError vNumber) (r, vNumber, vData))
+forall (pr :: PeerRole) ps (st :: ps) (st' :: ps) (m :: * -&gt; *) a.
+WeHaveAgency pr st
+-&gt; Message ps st st' -&gt; Peer ps pr st' m a -&gt; Peer ps pr st m a
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/typed-protocols-0.1.0.0/noopt/doc/html/typed-protocols/src"><span class="hs-identifier hs-var">Yield</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">ClientHasAgency 'StPropose -&gt; WeHaveAgency 'AsClient 'StPropose
+forall ps (st :: ps).
+ClientHasAgency st -&gt; PeerHasAgency 'AsClient st
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/typed-protocols-0.1.0.0/noopt/doc/html/typed-protocols/src"><span class="hs-identifier hs-var">ClientAgency</span></a></span><span> </span><span class="annot"><span class="annottext">ClientHasAgency 'StPropose
+forall k k (vNumber :: k) (vParams :: k).
+ClientHasAgency 'StPropose
+</span><a href="Ouroboros.Network.Protocol.Handshake.Type.html#TokPropose"><span class="hs-identifier hs-var">TokPropose</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Map vNumber Term
+-&gt; Message (Handshake vNumber Term) 'StPropose 'StConfirm
+forall vNumber vParams.
+Map vNumber vParams
+-&gt; Message (Handshake vNumber vParams) 'StPropose 'StConfirm
+</span><a href="Ouroboros.Network.Protocol.Handshake.Type.html#MsgProposeVersions"><span class="hs-identifier hs-var">MsgProposeVersions</span></a></span><span> </span><span class="annot"><span class="annottext">(Map vNumber Term
+ -&gt; Message (Handshake vNumber Term) 'StPropose 'StConfirm)
+-&gt; Map vNumber Term
+-&gt; Message (Handshake vNumber Term) 'StPropose 'StConfirm
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">(vNumber -&gt; vData -&gt; Term)
+-&gt; Versions vNumber vData r -&gt; Map vNumber Term
+forall vNumber r vParams vData.
+(vNumber -&gt; vData -&gt; vParams)
+-&gt; Versions vNumber vData r -&gt; Map vNumber vParams
+</span><a href="Ouroboros.Network.Protocol.Handshake.Client.html#encodeVersions"><span class="hs-identifier hs-var">encodeVersions</span></a></span><span> </span><span class="annot"><span class="annottext">vNumber -&gt; vData -&gt; Term
+</span><a href="#local-6989586621679128559"><span class="hs-identifier hs-var">encodeData</span></a></span><span> </span><span class="annot"><span class="annottext">Versions vNumber vData r
+</span><a href="#local-6989586621679128554"><span class="hs-identifier hs-var">versions</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(Peer
+   (Handshake vNumber Term)
+   'AsClient
+   'StConfirm
+   m
+   (Either (HandshakeClientProtocolError vNumber) (r, vNumber, vData))
+ -&gt; Peer
+      (Handshake vNumber Term)
+      'AsClient
+      'StPropose
+      m
+      (Either
+         (HandshakeClientProtocolError vNumber) (r, vNumber, vData)))
+-&gt; Peer
+     (Handshake vNumber Term)
+     'AsClient
+     'StConfirm
+     m
+     (Either (HandshakeClientProtocolError vNumber) (r, vNumber, vData))
+-&gt; Peer
+     (Handshake vNumber Term)
+     'AsClient
+     'StPropose
+     m
+     (Either (HandshakeClientProtocolError vNumber) (r, vNumber, vData))
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span>
+</span><span id="line-41"></span><span>
+</span><span id="line-42"></span><span>    </span><span class="annot"><span class="annottext">TheyHaveAgency 'AsClient 'StConfirm
+-&gt; (forall (st' :: Handshake vNumber Term).
+    Message (Handshake vNumber Term) 'StConfirm st'
+    -&gt; Peer
+         (Handshake vNumber Term)
+         'AsClient
+         st'
+         m
+         (Either
+            (HandshakeClientProtocolError vNumber) (r, vNumber, vData)))
+-&gt; Peer
+     (Handshake vNumber Term)
+     'AsClient
+     'StConfirm
+     m
+     (Either (HandshakeClientProtocolError vNumber) (r, vNumber, vData))
+forall (pr :: PeerRole) ps (st :: ps) (m :: * -&gt; *) a.
+TheyHaveAgency pr st
+-&gt; (forall (st' :: ps). Message ps st st' -&gt; Peer ps pr st' m a)
+-&gt; Peer ps pr st m a
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/typed-protocols-0.1.0.0/noopt/doc/html/typed-protocols/src"><span class="hs-identifier hs-var">Await</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">ServerHasAgency 'StConfirm -&gt; PeerHasAgency 'AsServer 'StConfirm
+forall ps (st :: ps).
+ServerHasAgency st -&gt; PeerHasAgency 'AsServer st
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/typed-protocols-0.1.0.0/noopt/doc/html/typed-protocols/src"><span class="hs-identifier hs-var">ServerAgency</span></a></span><span> </span><span class="annot"><span class="annottext">ServerHasAgency 'StConfirm
+forall k k (vNumber :: k) (vParams :: k).
+ServerHasAgency 'StConfirm
+</span><a href="Ouroboros.Network.Protocol.Handshake.Type.html#TokConfirm"><span class="hs-identifier hs-var">TokConfirm</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">((forall (st' :: Handshake vNumber Term).
+  Message (Handshake vNumber Term) 'StConfirm st'
+  -&gt; Peer
+       (Handshake vNumber Term)
+       'AsClient
+       st'
+       m
+       (Either
+          (HandshakeClientProtocolError vNumber) (r, vNumber, vData)))
+ -&gt; Peer
+      (Handshake vNumber Term)
+      'AsClient
+      'StConfirm
+      m
+      (Either
+         (HandshakeClientProtocolError vNumber) (r, vNumber, vData)))
+-&gt; (forall (st' :: Handshake vNumber Term).
+    Message (Handshake vNumber Term) 'StConfirm st'
+    -&gt; Peer
+         (Handshake vNumber Term)
+         'AsClient
+         st'
+         m
+         (Either
+            (HandshakeClientProtocolError vNumber) (r, vNumber, vData)))
+-&gt; Peer
+     (Handshake vNumber Term)
+     'AsClient
+     'StConfirm
+     m
+     (Either (HandshakeClientProtocolError vNumber) (r, vNumber, vData))
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679128545"><span class="annot"><span class="annottext">Message (Handshake vNumber Term) 'StConfirm st'
+</span><a href="#local-6989586621679128545"><span class="hs-identifier hs-var">msg</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">Message (Handshake vNumber Term) 'StConfirm st'
+</span><a href="#local-6989586621679128545"><span class="hs-identifier hs-var">msg</span></a></span><span> </span><span class="hs-keyword">of</span><span>
+</span><span id="line-43"></span><span>
+</span><span id="line-44"></span><span>      </span><span class="hs-comment">-- the server refused common highest version</span><span>
+</span><span id="line-45"></span><span>      </span><span class="annot"><a href="Ouroboros.Network.Protocol.Handshake.Type.html#MsgRefuse"><span class="hs-identifier hs-type">MsgRefuse</span></a></span><span> </span><span id="local-6989586621679128543"><span class="annot"><a href="#local-6989586621679128543"><span class="hs-identifier hs-var">vReason</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-46"></span><span>        </span><span class="annot"><span class="annottext">NobodyHasAgency 'StDone
+-&gt; Either
+     (HandshakeClientProtocolError vNumber) (r, vNumber, vData)
+-&gt; Peer
+     (Handshake vNumber Term)
+     'AsClient
+     'StDone
+     m
+     (Either (HandshakeClientProtocolError vNumber) (r, vNumber, vData))
+forall ps (st :: ps) a (pr :: PeerRole) (m :: * -&gt; *).
+NobodyHasAgency st -&gt; a -&gt; Peer ps pr st m a
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/typed-protocols-0.1.0.0/noopt/doc/html/typed-protocols/src"><span class="hs-identifier hs-var">Done</span></a></span><span> </span><span class="annot"><span class="annottext">NobodyHasAgency 'StDone
+forall k k (vNumber :: k) (vParams :: k). NobodyHasAgency 'StDone
+</span><a href="Ouroboros.Network.Protocol.Handshake.Type.html#TokDone"><span class="hs-identifier hs-var">TokDone</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">HandshakeClientProtocolError vNumber
+-&gt; Either
+     (HandshakeClientProtocolError vNumber) (r, vNumber, vData)
+forall a b. a -&gt; Either a b
+</span><span class="hs-identifier hs-var">Left</span></span><span> </span><span class="annot"><span class="annottext">(HandshakeClientProtocolError vNumber
+ -&gt; Either
+      (HandshakeClientProtocolError vNumber) (r, vNumber, vData))
+-&gt; HandshakeClientProtocolError vNumber
+-&gt; Either
+     (HandshakeClientProtocolError vNumber) (r, vNumber, vData)
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">RefuseReason vNumber -&gt; HandshakeClientProtocolError vNumber
+forall vNumber.
+RefuseReason vNumber -&gt; HandshakeClientProtocolError vNumber
+</span><a href="Ouroboros.Network.Protocol.Handshake.Type.html#HandshakeError"><span class="hs-identifier hs-var">HandshakeError</span></a></span><span> </span><span class="annot"><span class="annottext">RefuseReason vNumber
+</span><a href="#local-6989586621679128543"><span class="hs-identifier hs-var">vReason</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-47"></span><span>
+</span><span id="line-48"></span><span>      </span><span class="hs-comment">-- the server accepted a version, sent back the version number and its</span><span>
+</span><span id="line-49"></span><span>      </span><span class="hs-comment">-- version data blob</span><span>
+</span><span id="line-50"></span><span>      </span><span class="annot"><a href="Ouroboros.Network.Protocol.Handshake.Type.html#MsgAcceptVersion"><span class="hs-identifier hs-type">MsgAcceptVersion</span></a></span><span> </span><span id="local-6989586621679128538"><span class="annot"><a href="#local-6989586621679128538"><span class="hs-identifier hs-var">vNumber</span></a></span></span><span> </span><span id="local-6989586621679128537"><span class="annot"><a href="#local-6989586621679128537"><span class="hs-identifier hs-var">vParams</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-51"></span><span>        </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">vNumber
+</span><a href="#local-6989586621679128538"><span class="hs-identifier hs-var">vNumber</span></a></span><span> </span><span class="annot"><span class="annottext">vNumber -&gt; Map vNumber (Version vData r) -&gt; Maybe (Version vData r)
+forall k a. Ord k =&gt; k -&gt; Map k a -&gt; Maybe a
+</span><span class="hs-operator hs-var">`Map.lookup`</span></span><span> </span><span class="annot"><span class="annottext">Versions vNumber vData r -&gt; Map vNumber (Version vData r)
+forall vNum vData r.
+Versions vNum vData r -&gt; Map vNum (Version vData r)
+</span><a href="Ouroboros.Network.Protocol.Handshake.Version.html#getVersions"><span class="hs-identifier hs-var hs-var">getVersions</span></a></span><span> </span><span class="annot"><span class="annottext">Versions vNumber vData r
+</span><a href="#local-6989586621679128554"><span class="hs-identifier hs-var">versions</span></a></span><span> </span><span class="hs-keyword">of</span><span>
+</span><span id="line-52"></span><span>          </span><span class="annot"><span class="annottext">Maybe (Version vData r)
+</span><span class="hs-identifier hs-var">Nothing</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">NobodyHasAgency 'StDone
+-&gt; Either
+     (HandshakeClientProtocolError vNumber) (r, vNumber, vData)
+-&gt; Peer
+     (Handshake vNumber Term)
+     'AsClient
+     'StDone
+     m
+     (Either (HandshakeClientProtocolError vNumber) (r, vNumber, vData))
+forall ps (st :: ps) a (pr :: PeerRole) (m :: * -&gt; *).
+NobodyHasAgency st -&gt; a -&gt; Peer ps pr st m a
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/typed-protocols-0.1.0.0/noopt/doc/html/typed-protocols/src"><span class="hs-identifier hs-var">Done</span></a></span><span> </span><span class="annot"><span class="annottext">NobodyHasAgency 'StDone
+forall k k (vNumber :: k) (vParams :: k). NobodyHasAgency 'StDone
+</span><a href="Ouroboros.Network.Protocol.Handshake.Type.html#TokDone"><span class="hs-identifier hs-var">TokDone</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">HandshakeClientProtocolError vNumber
+-&gt; Either
+     (HandshakeClientProtocolError vNumber) (r, vNumber, vData)
+forall a b. a -&gt; Either a b
+</span><span class="hs-identifier hs-var">Left</span></span><span> </span><span class="annot"><span class="annottext">(HandshakeClientProtocolError vNumber
+ -&gt; Either
+      (HandshakeClientProtocolError vNumber) (r, vNumber, vData))
+-&gt; HandshakeClientProtocolError vNumber
+-&gt; Either
+     (HandshakeClientProtocolError vNumber) (r, vNumber, vData)
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">vNumber -&gt; HandshakeClientProtocolError vNumber
+forall vNumber. vNumber -&gt; HandshakeClientProtocolError vNumber
+</span><a href="Ouroboros.Network.Protocol.Handshake.Type.html#NotRecognisedVersion"><span class="hs-identifier hs-var">NotRecognisedVersion</span></a></span><span> </span><span class="annot"><span class="annottext">vNumber
+</span><a href="#local-6989586621679128538"><span class="hs-identifier hs-var">vNumber</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-53"></span><span>          </span><span class="annot"><span class="hs-identifier hs-type">Just</span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Network.Protocol.Handshake.Version.html#Version"><span class="hs-identifier hs-type">Version</span></a></span><span> </span><span id="local-6989586621679128532"><span class="annot"><span class="annottext">Application vData r
+</span><a href="#local-6989586621679128532"><span class="hs-identifier hs-var">app</span></a></span></span><span> </span><span id="local-6989586621679128531"><span class="annot"><span class="annottext">vData
+</span><a href="#local-6989586621679128531"><span class="hs-identifier hs-var">vData</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-54"></span><span>            </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">vNumber -&gt; Term -&gt; Either Text vData
+</span><a href="#local-6989586621679128557"><span class="hs-identifier hs-var">decodeData</span></a></span><span> </span><span class="annot"><span class="annottext">vNumber
+vNumber
+</span><a href="#local-6989586621679128538"><span class="hs-identifier hs-var">vNumber</span></a></span><span> </span><span class="annot"><span class="annottext">vParams
+Term
+</span><a href="#local-6989586621679128537"><span class="hs-identifier hs-var">vParams</span></a></span><span> </span><span class="hs-keyword">of</span><span>
+</span><span id="line-55"></span><span>
+</span><span id="line-56"></span><span>              </span><span class="annot"><span class="hs-identifier hs-type">Left</span></span><span> </span><span id="local-6989586621679128530"><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679128530"><span class="hs-identifier hs-var">err</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-57"></span><span>                </span><span class="annot"><span class="annottext">NobodyHasAgency 'StDone
+-&gt; Either
+     (HandshakeClientProtocolError vNumber) (r, vNumber, vData)
+-&gt; Peer
+     (Handshake vNumber Term)
+     'AsClient
+     'StDone
+     m
+     (Either (HandshakeClientProtocolError vNumber) (r, vNumber, vData))
+forall ps (st :: ps) a (pr :: PeerRole) (m :: * -&gt; *).
+NobodyHasAgency st -&gt; a -&gt; Peer ps pr st m a
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/typed-protocols-0.1.0.0/noopt/doc/html/typed-protocols/src"><span class="hs-identifier hs-var">Done</span></a></span><span> </span><span class="annot"><span class="annottext">NobodyHasAgency 'StDone
+forall k k (vNumber :: k) (vParams :: k). NobodyHasAgency 'StDone
+</span><a href="Ouroboros.Network.Protocol.Handshake.Type.html#TokDone"><span class="hs-identifier hs-var">TokDone</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">HandshakeClientProtocolError vNumber
+-&gt; Either
+     (HandshakeClientProtocolError vNumber) (r, vNumber, vData)
+forall a b. a -&gt; Either a b
+</span><span class="hs-identifier hs-var">Left</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">RefuseReason vNumber -&gt; HandshakeClientProtocolError vNumber
+forall vNumber.
+RefuseReason vNumber -&gt; HandshakeClientProtocolError vNumber
+</span><a href="Ouroboros.Network.Protocol.Handshake.Type.html#HandshakeError"><span class="hs-identifier hs-var">HandshakeError</span></a></span><span> </span><span class="annot"><span class="annottext">(RefuseReason vNumber -&gt; HandshakeClientProtocolError vNumber)
+-&gt; RefuseReason vNumber -&gt; HandshakeClientProtocolError vNumber
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">vNumber -&gt; Text -&gt; RefuseReason vNumber
+forall vNumber. vNumber -&gt; Text -&gt; RefuseReason vNumber
+</span><a href="Ouroboros.Network.Protocol.Handshake.Type.html#HandshakeDecodeError"><span class="hs-identifier hs-var">HandshakeDecodeError</span></a></span><span> </span><span class="annot"><span class="annottext">vNumber
+</span><a href="#local-6989586621679128538"><span class="hs-identifier hs-var">vNumber</span></a></span><span> </span><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679128530"><span class="hs-identifier hs-var">err</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-58"></span><span>
+</span><span id="line-59"></span><span>              </span><span class="annot"><span class="hs-identifier hs-type">Right</span></span><span> </span><span id="local-6989586621679128528"><span class="annot"><span class="annottext">vData
+</span><a href="#local-6989586621679128528"><span class="hs-identifier hs-var">vData'</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-60"></span><span>                </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">vData -&gt; vData -&gt; Accept vData
+</span><a href="#local-6989586621679128555"><span class="hs-identifier hs-var">acceptVersion</span></a></span><span> </span><span class="annot"><span class="annottext">vData
+</span><a href="#local-6989586621679128531"><span class="hs-identifier hs-var">vData</span></a></span><span> </span><span class="annot"><span class="annottext">vData
+</span><a href="#local-6989586621679128528"><span class="hs-identifier hs-var">vData'</span></a></span><span> </span><span class="hs-keyword">of</span><span>
+</span><span id="line-61"></span><span>                  </span><span class="annot"><a href="Ouroboros.Network.Protocol.Handshake.Version.html#Accept"><span class="hs-identifier hs-type">Accept</span></a></span><span> </span><span id="local-6989586621679128526"><span class="annot"><span class="annottext">vData
+</span><a href="#local-6989586621679128526"><span class="hs-identifier hs-var">agreedData</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-62"></span><span>                    </span><span class="annot"><span class="annottext">NobodyHasAgency 'StDone
+-&gt; Either
+     (HandshakeClientProtocolError vNumber) (r, vNumber, vData)
+-&gt; Peer
+     (Handshake vNumber Term)
+     'AsClient
+     'StDone
+     m
+     (Either (HandshakeClientProtocolError vNumber) (r, vNumber, vData))
+forall ps (st :: ps) a (pr :: PeerRole) (m :: * -&gt; *).
+NobodyHasAgency st -&gt; a -&gt; Peer ps pr st m a
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/typed-protocols-0.1.0.0/noopt/doc/html/typed-protocols/src"><span class="hs-identifier hs-var">Done</span></a></span><span> </span><span class="annot"><span class="annottext">NobodyHasAgency 'StDone
+forall k k (vNumber :: k) (vParams :: k). NobodyHasAgency 'StDone
+</span><a href="Ouroboros.Network.Protocol.Handshake.Type.html#TokDone"><span class="hs-identifier hs-var">TokDone</span></a></span><span> </span><span class="annot"><span class="annottext">(Either (HandshakeClientProtocolError vNumber) (r, vNumber, vData)
+ -&gt; Peer
+      (Handshake vNumber Term)
+      'AsClient
+      'StDone
+      m
+      (Either
+         (HandshakeClientProtocolError vNumber) (r, vNumber, vData)))
+-&gt; Either
+     (HandshakeClientProtocolError vNumber) (r, vNumber, vData)
+-&gt; Peer
+     (Handshake vNumber Term)
+     'AsClient
+     'StDone
+     m
+     (Either (HandshakeClientProtocolError vNumber) (r, vNumber, vData))
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">(r, vNumber, vData)
+-&gt; Either
+     (HandshakeClientProtocolError vNumber) (r, vNumber, vData)
+forall a b. b -&gt; Either a b
+</span><span class="hs-identifier hs-var">Right</span></span><span> </span><span class="annot"><span class="annottext">((r, vNumber, vData)
+ -&gt; Either
+      (HandshakeClientProtocolError vNumber) (r, vNumber, vData))
+-&gt; (r, vNumber, vData)
+-&gt; Either
+     (HandshakeClientProtocolError vNumber) (r, vNumber, vData)
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-special">(</span><span> </span><span class="annot"><span class="annottext">Application vData r -&gt; vData -&gt; r
+forall vData r. Application vData r -&gt; vData -&gt; r
+</span><a href="Ouroboros.Network.Protocol.Handshake.Version.html#runApplication"><span class="hs-identifier hs-var hs-var">runApplication</span></a></span><span> </span><span class="annot"><span class="annottext">Application vData r
+</span><a href="#local-6989586621679128532"><span class="hs-identifier hs-var">app</span></a></span><span> </span><span class="annot"><span class="annottext">vData
+</span><a href="#local-6989586621679128526"><span class="hs-identifier hs-var">agreedData</span></a></span><span>
+</span><span id="line-63"></span><span>                                           </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">vNumber
+</span><a href="#local-6989586621679128538"><span class="hs-identifier hs-var">vNumber</span></a></span><span>
+</span><span id="line-64"></span><span>                                           </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">vData
+</span><a href="#local-6989586621679128526"><span class="hs-identifier hs-var">agreedData</span></a></span><span>
+</span><span id="line-65"></span><span>                                           </span><span class="hs-special">)</span><span>
+</span><span id="line-66"></span><span>                  </span><span class="annot"><a href="Ouroboros.Network.Protocol.Handshake.Version.html#Refuse"><span class="hs-identifier hs-type">Refuse</span></a></span><span> </span><span id="local-6989586621679128523"><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679128523"><span class="hs-identifier hs-var">err</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-67"></span><span>                    </span><span class="annot"><span class="annottext">NobodyHasAgency 'StDone
+-&gt; Either
+     (HandshakeClientProtocolError vNumber) (r, vNumber, vData)
+-&gt; Peer
+     (Handshake vNumber Term)
+     'AsClient
+     'StDone
+     m
+     (Either (HandshakeClientProtocolError vNumber) (r, vNumber, vData))
+forall ps (st :: ps) a (pr :: PeerRole) (m :: * -&gt; *).
+NobodyHasAgency st -&gt; a -&gt; Peer ps pr st m a
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/typed-protocols-0.1.0.0/noopt/doc/html/typed-protocols/src"><span class="hs-identifier hs-var">Done</span></a></span><span> </span><span class="annot"><span class="annottext">NobodyHasAgency 'StDone
+forall k k (vNumber :: k) (vParams :: k). NobodyHasAgency 'StDone
+</span><a href="Ouroboros.Network.Protocol.Handshake.Type.html#TokDone"><span class="hs-identifier hs-var">TokDone</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">HandshakeClientProtocolError vNumber
+-&gt; Either
+     (HandshakeClientProtocolError vNumber) (r, vNumber, vData)
+forall a b. a -&gt; Either a b
+</span><span class="hs-identifier hs-var">Left</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">vNumber -&gt; Text -&gt; HandshakeClientProtocolError vNumber
+forall vNumber.
+vNumber -&gt; Text -&gt; HandshakeClientProtocolError vNumber
+</span><a href="Ouroboros.Network.Protocol.Handshake.Type.html#InvalidServerSelection"><span class="hs-identifier hs-var">InvalidServerSelection</span></a></span><span> </span><span class="annot"><span class="annottext">vNumber
+</span><a href="#local-6989586621679128538"><span class="hs-identifier hs-var">vNumber</span></a></span><span> </span><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679128523"><span class="hs-identifier hs-var">err</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-68"></span><span>
+</span><span id="line-69"></span><span>
+</span><span id="line-70"></span><span class="annot"><a href="Ouroboros.Network.Protocol.Handshake.Client.html#encodeVersions"><span class="hs-identifier hs-type">encodeVersions</span></a></span><span>
+</span><span id="line-71"></span><span>  </span><span class="hs-glyph">::</span><span> </span><span class="hs-keyword">forall</span><span> </span><span id="local-6989586621679128610"><span class="annot"><a href="#local-6989586621679128610"><span class="hs-identifier hs-type">vNumber</span></a></span></span><span> </span><span id="local-6989586621679128607"><span class="annot"><a href="#local-6989586621679128607"><span class="hs-identifier hs-type">r</span></a></span></span><span> </span><span id="local-6989586621679128608"><span class="annot"><a href="#local-6989586621679128608"><span class="hs-identifier hs-type">vParams</span></a></span></span><span> </span><span id="local-6989586621679128609"><span class="annot"><a href="#local-6989586621679128609"><span class="hs-identifier hs-type">vData</span></a></span></span><span class="hs-operator">.</span><span>
+</span><span id="line-72"></span><span>     </span><span class="hs-special">(</span><span class="annot"><a href="#local-6989586621679128610"><span class="hs-identifier hs-type">vNumber</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679128609"><span class="hs-identifier hs-type">vData</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679128608"><span class="hs-identifier hs-type">vParams</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-73"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Ouroboros.Network.Protocol.Handshake.Version.html#Versions"><span class="hs-identifier hs-type">Versions</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679128610"><span class="hs-identifier hs-type">vNumber</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679128609"><span class="hs-identifier hs-type">vData</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679128607"><span class="hs-identifier hs-type">r</span></a></span><span>
+</span><span id="line-74"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Map</span></span><span> </span><span class="annot"><a href="#local-6989586621679128610"><span class="hs-identifier hs-type">vNumber</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679128608"><span class="hs-identifier hs-type">vParams</span></a></span><span>
+</span><span id="line-75"></span><span id="encodeVersions"><span class="annot"><span class="annottext">encodeVersions :: (vNumber -&gt; vData -&gt; vParams)
+-&gt; Versions vNumber vData r -&gt; Map vNumber vParams
+</span><a href="Ouroboros.Network.Protocol.Handshake.Client.html#encodeVersions"><span class="hs-identifier hs-var hs-var">encodeVersions</span></a></span></span><span> </span><span id="local-6989586621679128521"><span class="annot"><span class="annottext">vNumber -&gt; vData -&gt; vParams
+</span><a href="#local-6989586621679128521"><span class="hs-identifier hs-var">encoder</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Network.Protocol.Handshake.Version.html#Versions"><span class="hs-identifier hs-type">Versions</span></a></span><span> </span><span id="local-6989586621679128519"><span class="annot"><span class="annottext">Map vNumber (Version vData r)
+</span><a href="#local-6989586621679128519"><span class="hs-identifier hs-var">vs</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">vNumber -&gt; Version vData r -&gt; vParams
+</span><a href="#local-6989586621679128518"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="annot"><span class="annottext">(vNumber -&gt; Version vData r -&gt; vParams)
+-&gt; Map vNumber (Version vData r) -&gt; Map vNumber vParams
+forall k a b. (k -&gt; a -&gt; b) -&gt; Map k a -&gt; Map k b
+</span><span class="hs-operator hs-var">`Map.mapWithKey`</span></span><span> </span><span class="annot"><span class="annottext">Map vNumber (Version vData r)
+</span><a href="#local-6989586621679128519"><span class="hs-identifier hs-var">vs</span></a></span><span>
+</span><span id="line-76"></span><span>    </span><span class="hs-keyword">where</span><span>
+</span><span id="line-77"></span><span>      </span><span class="annot"><a href="#local-6989586621679128518"><span class="hs-identifier hs-type">go</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="#local-6989586621679128610"><span class="hs-identifier hs-type">vNumber</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Ouroboros.Network.Protocol.Handshake.Version.html#Version"><span class="hs-identifier hs-type">Version</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679128609"><span class="hs-identifier hs-type">vData</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679128607"><span class="hs-identifier hs-type">r</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679128608"><span class="hs-identifier hs-type">vParams</span></a></span><span>
+</span><span id="line-78"></span><span>      </span><span id="local-6989586621679128518"><span class="annot"><span class="annottext">go :: vNumber -&gt; Version vData r -&gt; vParams
+</span><a href="#local-6989586621679128518"><span class="hs-identifier hs-var hs-var">go</span></a></span></span><span> </span><span id="local-6989586621679128516"><span class="annot"><span class="annottext">vNumber
+</span><a href="#local-6989586621679128516"><span class="hs-identifier hs-var">vNumber</span></a></span></span><span> </span><span class="annot"><a href="Ouroboros.Network.Protocol.Handshake.Version.html#Version"><span class="hs-identifier hs-type">Version</span></a></span><span> </span><span class="hs-special">{</span><span id="local-6989586621679128515"><span class="annot"><span class="annottext">vData
+versionData :: forall vData r. Version vData r -&gt; vData
+versionData :: vData
+</span><a href="Ouroboros.Network.Protocol.Handshake.Version.html#versionData"><span class="hs-identifier hs-var hs-var">versionData</span></a></span></span><span class="hs-special">}</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">vNumber -&gt; vData -&gt; vParams
+</span><a href="#local-6989586621679128521"><span class="hs-identifier hs-var">encoder</span></a></span><span> </span><span class="annot"><span class="annottext">vNumber
+</span><a href="#local-6989586621679128516"><span class="hs-identifier hs-var">vNumber</span></a></span><span> </span><span class="annot"><span class="annottext">vData
+</span><a href="#local-6989586621679128515"><span class="hs-identifier hs-var">versionData</span></a></span><span>
+</span><span id="line-79"></span></pre></body></html>

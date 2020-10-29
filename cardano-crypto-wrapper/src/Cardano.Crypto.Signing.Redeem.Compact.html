@@ -1,109 +1,417 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-pragma">{-# LANGUAGE DeriveAnyClass #-}</span><span>
-</span><a name="line-2"></a><span class="hs-pragma">{-# LANGUAGE DeriveGeneric #-}</span><span>
-</span><a name="line-3"></a><span class="hs-pragma">{-# LANGUAGE DerivingStrategies #-}</span><span>
-</span><a name="line-4"></a><span class="hs-pragma">{-# LANGUAGE DerivingVia #-}</span><span>
-</span><a name="line-5"></a><span class="hs-pragma">{-# LANGUAGE FlexibleContexts #-}</span><span>
-</span><a name="line-6"></a><span class="hs-pragma">{-# LANGUAGE FlexibleInstances #-}</span><span>
-</span><a name="line-7"></a><span class="hs-pragma">{-# LANGUAGE MultiParamTypeClasses #-}</span><span>
-</span><a name="line-8"></a><span class="hs-pragma">{-# LANGUAGE UndecidableInstances #-}</span><span>
-</span><a name="line-9"></a><span>
-</span><a name="line-10"></a><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Cardano.Crypto.Signing.Redeem.Compact</span><span>
-</span><a name="line-11"></a><span>  </span><span class="hs-special">(</span><span> </span><a href="Cardano.Crypto.Signing.Redeem.Compact.html#CompactRedeemVerificationKey"><span class="hs-identifier hs-type">CompactRedeemVerificationKey</span></a><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
-</span><a name="line-12"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Cardano.Crypto.Signing.Redeem.Compact.html#fromCompactRedeemVerificationKey"><span class="hs-identifier hs-var">fromCompactRedeemVerificationKey</span></a><span>
-</span><a name="line-13"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Cardano.Crypto.Signing.Redeem.Compact.html#toCompactRedeemVerificationKey"><span class="hs-identifier hs-var">toCompactRedeemVerificationKey</span></a><span>
-</span><a name="line-14"></a><span>  </span><span class="hs-special">)</span><span>
-</span><a name="line-15"></a><span class="hs-keyword">where</span><span>
-</span><a name="line-16"></a><span>
-</span><a name="line-17"></a><span class="hs-keyword">import</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-prelude-0.1.0.0/noopt/doc/html/cardano-prelude/src/Cardano.Prelude.html"><span class="hs-identifier">Cardano.Prelude</span></a><span>
-</span><a name="line-18"></a><span>
-</span><a name="line-19"></a><span class="hs-keyword">import</span><span> </span><span class="hs-identifier">Data.Aeson</span><span>
-</span><a name="line-20"></a><span>  </span><span class="hs-special">(</span><span> </span><span class="hs-identifier hs-type">FromJSON</span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
-</span><a name="line-21"></a><span>  </span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">FromJSONKey</span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
-</span><a name="line-22"></a><span>  </span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">ToJSON</span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
-</span><a name="line-23"></a><span>  </span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">ToJSONKey</span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
-</span><a name="line-24"></a><span>  </span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">ToJSONKeyFunction</span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
-</span><a name="line-25"></a><span>  </span><span class="hs-special">)</span><span>
-</span><a name="line-26"></a><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-identifier">Data.Aeson.Encoding</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">A</span><span>
-</span><a name="line-27"></a><span class="hs-keyword">import</span><span> </span><span class="hs-identifier">Data.Binary.Get</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Get</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-var">getWord64le</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-var">runGet</span><span class="hs-special">)</span><span>
-</span><a name="line-28"></a><span class="hs-keyword">import</span><span> </span><span class="hs-identifier">Data.Binary.Put</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Put</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-var">putWord64le</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-var">runPut</span><span class="hs-special">)</span><span>
-</span><a name="line-29"></a><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-identifier">Data.ByteString.Lazy</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">BSL</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-var">fromStrict</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-var">toStrict</span><span class="hs-special">)</span><span>
-</span><a name="line-30"></a><span class="hs-keyword">import</span><span> </span><span class="hs-identifier">Formatting</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-var">build</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-var">formatToString</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-var">sformat</span><span class="hs-special">)</span><span>
-</span><a name="line-31"></a><span class="hs-keyword">import</span><span> </span><span class="hs-identifier">Text.JSON.Canonical</span><span>
-</span><a name="line-32"></a><span>  </span><span class="hs-special">(</span><span class="hs-identifier hs-type">FromObjectKey</span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">JSValue</span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">ToObjectKey</span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-var">toJSString</span><span class="hs-special">)</span><span>
-</span><a name="line-33"></a><span>
-</span><a name="line-34"></a><span class="hs-keyword">import</span><span> </span><a href="Cardano.Crypto.Signing.Redeem.VerificationKey.html"><span class="hs-identifier">Cardano.Crypto.Signing.Redeem.VerificationKey</span></a><span>
-</span><a name="line-35"></a><span>  </span><span class="hs-special">(</span><span> </span><a href="Cardano.Crypto.Signing.Redeem.VerificationKey.html#RedeemVerificationKey"><span class="hs-identifier hs-type">RedeemVerificationKey</span></a><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
-</span><a name="line-36"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Cardano.Crypto.Signing.Redeem.VerificationKey.html#fromAvvmVK"><span class="hs-identifier hs-var">fromAvvmVK</span></a><span>
-</span><a name="line-37"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Cardano.Crypto.Signing.Redeem.VerificationKey.html#fromVerificationKeyToByteString"><span class="hs-identifier hs-var">fromVerificationKeyToByteString</span></a><span>
-</span><a name="line-38"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Cardano.Crypto.Signing.Redeem.VerificationKey.html#redeemVKB64UrlF"><span class="hs-identifier hs-var">redeemVKB64UrlF</span></a><span>
-</span><a name="line-39"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Cardano.Crypto.Signing.Redeem.VerificationKey.html#redeemVKBuild"><span class="hs-identifier hs-var">redeemVKBuild</span></a><span>
-</span><a name="line-40"></a><span>  </span><span class="hs-special">)</span><span>
-</span><a name="line-41"></a><span>
-</span><a name="line-42"></a><span>
-</span><a name="line-43"></a><span class="hs-keyword">data</span><span> </span><a name="CompactRedeemVerificationKey"><a href="Cardano.Crypto.Signing.Redeem.Compact.html#CompactRedeemVerificationKey"><span class="hs-identifier">CompactRedeemVerificationKey</span></a></a><span> </span><span class="hs-glyph">=</span><span>
-</span><a name="line-44"></a><span>  </span><a name="CompactRedeemVerificationKey"><a href="Cardano.Crypto.Signing.Redeem.Compact.html#CompactRedeemVerificationKey"><span class="hs-identifier">CompactRedeemVerificationKey</span></a></a><span> </span><span class="hs-pragma">{-# UNPACK</span><span> </span><span class="hs-pragma">#-}</span><span> </span><span class="hs-glyph">!</span><span class="hs-identifier hs-type">Word64</span><span>
-</span><a name="line-45"></a><span>                               </span><span class="hs-pragma">{-# UNPACK</span><span> </span><span class="hs-pragma">#-}</span><span> </span><span class="hs-glyph">!</span><span class="hs-identifier hs-type">Word64</span><span>
-</span><a name="line-46"></a><span>                               </span><span class="hs-pragma">{-# UNPACK</span><span> </span><span class="hs-pragma">#-}</span><span> </span><span class="hs-glyph">!</span><span class="hs-identifier hs-type">Word64</span><span>
-</span><a name="line-47"></a><span>                               </span><span class="hs-pragma">{-# UNPACK</span><span> </span><span class="hs-pragma">#-}</span><span> </span><span class="hs-glyph">!</span><span class="hs-identifier hs-type">Word64</span><span>
-</span><a name="line-48"></a><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Eq</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Generic</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Show</span><span class="hs-special">)</span><span>
-</span><a name="line-49"></a><span>  </span><span class="hs-keyword">deriving</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-prelude-0.1.0.0/noopt/doc/html/cardano-prelude/src/Cardano.Prelude.GHC.Heap.NormalForm.Classy.html#NoUnexpectedThunks"><span class="hs-identifier hs-type">NoUnexpectedThunks</span></a><span> </span><span class="hs-keyword">via</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-prelude-0.1.0.0/noopt/doc/html/cardano-prelude/src/Cardano.Prelude.GHC.Heap.NormalForm.Classy.html#UseIsNormalForm"><span class="hs-identifier hs-type">UseIsNormalForm</span></a><span> </span><a href="Cardano.Crypto.Signing.Redeem.Compact.html#CompactRedeemVerificationKey"><span class="hs-identifier hs-type">CompactRedeemVerificationKey</span></a><span>
-</span><a name="line-50"></a><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-keyword">anyclass</span><span> </span><span class="hs-identifier hs-type">NFData</span><span>
-</span><a name="line-51"></a><span>
-</span><a name="line-52"></a><span class="hs-identifier">getCompactRedeemVerificationKey</span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">Get</span><span> </span><a href="Cardano.Crypto.Signing.Redeem.Compact.html#CompactRedeemVerificationKey"><span class="hs-identifier hs-type">CompactRedeemVerificationKey</span></a><span>
-</span><a name="line-53"></a><a name="getCompactRedeemVerificationKey"><a href="Cardano.Crypto.Signing.Redeem.Compact.html#getCompactRedeemVerificationKey"><span class="hs-identifier">getCompactRedeemVerificationKey</span></a></a><span> </span><span class="hs-glyph">=</span><span>
-</span><a name="line-54"></a><span>  </span><a href="Cardano.Crypto.Signing.Redeem.Compact.html#CompactRedeemVerificationKey"><span class="hs-identifier hs-var">CompactRedeemVerificationKey</span></a><span>
-</span><a name="line-55"></a><span>    </span><span class="hs-operator hs-var">&lt;$&gt;</span><span> </span><span class="hs-identifier hs-var">getWord64le</span><span>
-</span><a name="line-56"></a><span>    </span><span class="hs-operator hs-var">&lt;*&gt;</span><span> </span><span class="hs-identifier hs-var">getWord64le</span><span>
-</span><a name="line-57"></a><span>    </span><span class="hs-operator hs-var">&lt;*&gt;</span><span> </span><span class="hs-identifier hs-var">getWord64le</span><span>
-</span><a name="line-58"></a><span>    </span><span class="hs-operator hs-var">&lt;*&gt;</span><span> </span><span class="hs-identifier hs-var">getWord64le</span><span>
-</span><a name="line-59"></a><span>
-</span><a name="line-60"></a><span class="hs-identifier">putCompactRedeemVerificationKey</span><span> </span><span class="hs-glyph">::</span><span> </span><a href="Cardano.Crypto.Signing.Redeem.Compact.html#CompactRedeemVerificationKey"><span class="hs-identifier hs-type">CompactRedeemVerificationKey</span></a><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">Put</span><span>
-</span><a name="line-61"></a><a name="putCompactRedeemVerificationKey"><a href="Cardano.Crypto.Signing.Redeem.Compact.html#putCompactRedeemVerificationKey"><span class="hs-identifier">putCompactRedeemVerificationKey</span></a></a><span> </span><span class="hs-special">(</span><a href="Cardano.Crypto.Signing.Redeem.Compact.html#CompactRedeemVerificationKey"><span class="hs-identifier hs-var">CompactRedeemVerificationKey</span></a><span> </span><a name="local-6989586621679159847"><a href="#local-6989586621679159847"><span class="hs-identifier">a</span></a></a><span> </span><a name="local-6989586621679159848"><a href="#local-6989586621679159848"><span class="hs-identifier">b</span></a></a><span> </span><a name="local-6989586621679159849"><a href="#local-6989586621679159849"><span class="hs-identifier">c</span></a></a><span> </span><a name="local-6989586621679159850"><a href="#local-6989586621679159850"><span class="hs-identifier">d</span></a></a><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span>
-</span><a name="line-62"></a><span>  </span><span class="hs-identifier hs-var">putWord64le</span><span> </span><a href="#local-6989586621679159847"><span class="hs-identifier hs-var">a</span></a><span>
-</span><a name="line-63"></a><span>    </span><span class="hs-operator hs-var">&gt;&gt;</span><span> </span><span class="hs-identifier hs-var">putWord64le</span><span> </span><a href="#local-6989586621679159848"><span class="hs-identifier hs-var">b</span></a><span>
-</span><a name="line-64"></a><span>    </span><span class="hs-operator hs-var">&gt;&gt;</span><span> </span><span class="hs-identifier hs-var">putWord64le</span><span> </span><a href="#local-6989586621679159849"><span class="hs-identifier hs-var">c</span></a><span>
-</span><a name="line-65"></a><span>    </span><span class="hs-operator hs-var">&gt;&gt;</span><span> </span><span class="hs-identifier hs-var">putWord64le</span><span> </span><a href="#local-6989586621679159850"><span class="hs-identifier hs-var">d</span></a><span>
-</span><a name="line-66"></a><span>
-</span><a name="line-67"></a><span class="hs-identifier">toCompactRedeemVerificationKey</span><span> </span><span class="hs-glyph">::</span><span> </span><a href="Cardano.Crypto.Signing.Redeem.VerificationKey.html#RedeemVerificationKey"><span class="hs-identifier hs-type">RedeemVerificationKey</span></a><span>
-</span><a name="line-68"></a><span>                               </span><span class="hs-glyph">-&gt;</span><span> </span><a href="Cardano.Crypto.Signing.Redeem.Compact.html#CompactRedeemVerificationKey"><span class="hs-identifier hs-type">CompactRedeemVerificationKey</span></a><span>
-</span><a name="line-69"></a><a name="toCompactRedeemVerificationKey"><a href="Cardano.Crypto.Signing.Redeem.Compact.html#toCompactRedeemVerificationKey"><span class="hs-identifier">toCompactRedeemVerificationKey</span></a></a><span> </span><span class="hs-special">(</span><a href="Cardano.Crypto.Signing.Redeem.VerificationKey.html#RedeemVerificationKey"><span class="hs-identifier hs-var">RedeemVerificationKey</span></a><span> </span><a name="local-6989586621679159851"><a href="#local-6989586621679159851"><span class="hs-identifier">pk</span></a></a><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span>
-</span><a name="line-70"></a><span>  </span><span class="hs-identifier hs-var">runGet</span><span> </span><a href="Cardano.Crypto.Signing.Redeem.Compact.html#getCompactRedeemVerificationKey"><span class="hs-identifier hs-var">getCompactRedeemVerificationKey</span></a><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-var">BSL.fromStrict</span><span> </span><a href="#local-6989586621679159852"><span class="hs-identifier hs-var">bs</span></a><span class="hs-special">)</span><span>
-</span><a name="line-71"></a><span> </span><span class="hs-keyword">where</span><span>
-</span><a name="line-72"></a><span>  </span><span class="hs-identifier">bs</span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">ByteString</span><span>
-</span><a name="line-73"></a><span>  </span><a name="local-6989586621679159852"><a href="#local-6989586621679159852"><span class="hs-identifier">bs</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><a href="Cardano.Crypto.Signing.Redeem.VerificationKey.html#fromVerificationKeyToByteString"><span class="hs-identifier hs-var">fromVerificationKeyToByteString</span></a><span> </span><a href="#local-6989586621679159851"><span class="hs-identifier hs-var">pk</span></a><span>
-</span><a name="line-74"></a><span>
-</span><a name="line-75"></a><span class="hs-identifier">fromCompactRedeemVerificationKey</span><span> </span><span class="hs-glyph">::</span><span> </span><a href="Cardano.Crypto.Signing.Redeem.Compact.html#CompactRedeemVerificationKey"><span class="hs-identifier hs-type">CompactRedeemVerificationKey</span></a><span>
-</span><a name="line-76"></a><span>                                 </span><span class="hs-glyph">-&gt;</span><span> </span><a href="Cardano.Crypto.Signing.Redeem.VerificationKey.html#RedeemVerificationKey"><span class="hs-identifier hs-type">RedeemVerificationKey</span></a><span>
-</span><a name="line-77"></a><a name="fromCompactRedeemVerificationKey"><a href="Cardano.Crypto.Signing.Redeem.Compact.html#fromCompactRedeemVerificationKey"><span class="hs-identifier">fromCompactRedeemVerificationKey</span></a></a><span> </span><a name="local-6989586621679159853"><a href="#local-6989586621679159853"><span class="hs-identifier">compactRvk</span></a></a><span> </span><span class="hs-glyph">=</span><span>
-</span><a name="line-78"></a><span>  </span><a href="Cardano.Crypto.Signing.Redeem.VerificationKey.html#redeemVKBuild"><span class="hs-identifier hs-var">redeemVKBuild</span></a><span> </span><a href="#local-6989586621679159854"><span class="hs-identifier hs-var">bs</span></a><span>
-</span><a name="line-79"></a><span> </span><span class="hs-keyword">where</span><span>
-</span><a name="line-80"></a><span>  </span><span class="hs-identifier">bs</span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">ByteString</span><span>
-</span><a name="line-81"></a><span>  </span><a name="local-6989586621679159854"><a href="#local-6989586621679159854"><span class="hs-identifier">bs</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-identifier hs-var">BSL.toStrict</span><span> </span><span class="hs-operator hs-var">$</span><span> </span><span class="hs-identifier hs-var">runPut</span><span> </span><span class="hs-operator hs-var">$</span><span>
-</span><a name="line-82"></a><span>    </span><a href="Cardano.Crypto.Signing.Redeem.Compact.html#putCompactRedeemVerificationKey"><span class="hs-identifier hs-var">putCompactRedeemVerificationKey</span></a><span> </span><a href="#local-6989586621679159853"><span class="hs-identifier hs-var">compactRvk</span></a><span>
-</span><a name="line-83"></a><span>
-</span><a name="line-84"></a><span class="hs-keyword">instance</span><span> </span><span class="hs-identifier hs-type">Ord</span><span> </span><a href="Cardano.Crypto.Signing.Redeem.Compact.html#CompactRedeemVerificationKey"><span class="hs-identifier hs-type">CompactRedeemVerificationKey</span></a><span> </span><span class="hs-keyword">where</span><span>
-</span><a name="line-85"></a><span>  </span><a name="local-8214565720323790496"><span class="hs-identifier">compare</span></a><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-identifier hs-var">compare</span><span> </span><span class="hs-special">`</span><span class="hs-identifier hs-var">on</span><span class="hs-special">`</span><span> </span><a href="Cardano.Crypto.Signing.Redeem.Compact.html#fromCompactRedeemVerificationKey"><span class="hs-identifier hs-var">fromCompactRedeemVerificationKey</span></a><span>
-</span><a name="line-86"></a><span>
-</span><a name="line-87"></a><span class="hs-keyword">instance</span><span> </span><span class="hs-identifier hs-type">ToJSON</span><span> </span><a href="Cardano.Crypto.Signing.Redeem.Compact.html#CompactRedeemVerificationKey"><span class="hs-identifier hs-type">CompactRedeemVerificationKey</span></a><span> </span><span class="hs-keyword">where</span><span>
-</span><a name="line-88"></a><span>  </span><a name="local-8214565720323798900"><span class="hs-identifier">toJSON</span></a><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-identifier hs-var">toJSON</span><span> </span><span class="hs-operator hs-var">.</span><span> </span><a href="Cardano.Crypto.Signing.Redeem.Compact.html#fromCompactRedeemVerificationKey"><span class="hs-identifier hs-var">fromCompactRedeemVerificationKey</span></a><span>
-</span><a name="line-89"></a><span>
-</span><a name="line-90"></a><span class="hs-keyword">instance</span><span> </span><span class="hs-identifier hs-type">FromJSON</span><span> </span><a href="Cardano.Crypto.Signing.Redeem.Compact.html#CompactRedeemVerificationKey"><span class="hs-identifier hs-type">CompactRedeemVerificationKey</span></a><span> </span><span class="hs-keyword">where</span><span>
-</span><a name="line-91"></a><span>  </span><a name="local-8214565720323798838"><span class="hs-identifier">parseJSON</span></a><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-identifier hs-var">fmap</span><span> </span><a href="Cardano.Crypto.Signing.Redeem.Compact.html#toCompactRedeemVerificationKey"><span class="hs-identifier hs-var">toCompactRedeemVerificationKey</span></a><span> </span><span class="hs-operator hs-var">.</span><span> </span><span class="hs-identifier hs-var">parseJSON</span><span>
-</span><a name="line-92"></a><span>
-</span><a name="line-93"></a><span class="hs-keyword">instance</span><span> </span><span class="hs-identifier hs-type">Monad</span><span> </span><a href="#local-6989586621679159648"><span class="hs-identifier hs-type">m</span></a><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="hs-identifier hs-type">ToObjectKey</span><span> </span><a href="#local-6989586621679159648"><span class="hs-identifier hs-type">m</span></a><span> </span><a href="Cardano.Crypto.Signing.Redeem.Compact.html#CompactRedeemVerificationKey"><span class="hs-identifier hs-type">CompactRedeemVerificationKey</span></a><span> </span><span class="hs-keyword">where</span><span>
-</span><a name="line-94"></a><span>  </span><a name="local-8214565720323893759"><span class="hs-identifier">toObjectKey</span></a><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-identifier hs-var">pure</span><span> </span><span class="hs-operator hs-var">.</span><span> </span><span class="hs-identifier hs-var">toJSString</span><span> </span><span class="hs-operator hs-var">.</span><span> </span><span class="hs-identifier hs-var">formatToString</span><span> </span><a href="Cardano.Crypto.Signing.Redeem.VerificationKey.html#redeemVKB64UrlF"><span class="hs-identifier hs-var">redeemVKB64UrlF</span></a><span> </span><span class="hs-operator hs-var">.</span><span> </span><a href="Cardano.Crypto.Signing.Redeem.Compact.html#fromCompactRedeemVerificationKey"><span class="hs-identifier hs-var">fromCompactRedeemVerificationKey</span></a><span>
-</span><a name="line-95"></a><span>
-</span><a name="line-96"></a><span class="hs-keyword">instance</span><span> </span><span class="hs-identifier hs-type">MonadError</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-prelude-0.1.0.0/noopt/doc/html/cardano-prelude/src/Cardano.Prelude.Json.Canonical.html#SchemaError"><span class="hs-identifier hs-type">SchemaError</span></a><span> </span><a href="#local-6989586621679159647"><span class="hs-identifier hs-type">m</span></a><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="hs-identifier hs-type">FromObjectKey</span><span> </span><a href="#local-6989586621679159647"><span class="hs-identifier hs-type">m</span></a><span> </span><a href="Cardano.Crypto.Signing.Redeem.Compact.html#CompactRedeemVerificationKey"><span class="hs-identifier hs-type">CompactRedeemVerificationKey</span></a><span> </span><span class="hs-keyword">where</span><span>
-</span><a name="line-97"></a><span>  </span><a name="local-8214565720323893754"><span class="hs-identifier">fromObjectKey</span></a><span> </span><span class="hs-glyph">=</span><span>
-</span><a name="line-98"></a><span>    </span><span class="hs-identifier hs-var">fmap</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-var">Just</span><span> </span><span class="hs-operator hs-var">.</span><span> </span><a href="Cardano.Crypto.Signing.Redeem.Compact.html#toCompactRedeemVerificationKey"><span class="hs-identifier hs-var">toCompactRedeemVerificationKey</span></a><span class="hs-special">)</span><span>
-</span><a name="line-99"></a><span>      </span><span class="hs-operator hs-var">.</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-prelude-0.1.0.0/noopt/doc/html/cardano-prelude/src/Cardano.Prelude.Json.Parse.html#parseJSString"><span class="hs-identifier hs-var">parseJSString</span></a><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-var">first</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-var">sformat</span><span> </span><span class="hs-identifier hs-var">build</span><span class="hs-special">)</span><span> </span><span class="hs-operator hs-var">.</span><span> </span><a href="Cardano.Crypto.Signing.Redeem.VerificationKey.html#fromAvvmVK"><span class="hs-identifier hs-var">fromAvvmVK</span></a><span class="hs-special">)</span><span>
-</span><a name="line-100"></a><span>      </span><span class="hs-operator hs-var">.</span><span> </span><span class="hs-identifier hs-var">JSString</span><span>
-</span><a name="line-101"></a><span>
-</span><a name="line-102"></a><span class="hs-keyword">instance</span><span> </span><span class="hs-identifier hs-type">ToJSONKey</span><span> </span><a href="Cardano.Crypto.Signing.Redeem.Compact.html#CompactRedeemVerificationKey"><span class="hs-identifier hs-type">CompactRedeemVerificationKey</span></a><span> </span><span class="hs-keyword">where</span><span>
-</span><a name="line-103"></a><span>  </span><a name="local-8214565720323798913"><span class="hs-identifier">toJSONKey</span></a><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-identifier hs-var">ToJSONKeyText</span><span> </span><a href="#local-6989586621679159646"><span class="hs-identifier hs-var">render</span></a><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-var">A.text</span><span> </span><span class="hs-operator hs-var">.</span><span> </span><a href="#local-6989586621679159646"><span class="hs-identifier hs-var">render</span></a><span class="hs-special">)</span><span>
-</span><a name="line-104"></a><span>    </span><span class="hs-keyword">where</span><span> </span><a name="local-6989586621679159646"><a href="#local-6989586621679159646"><span class="hs-identifier">render</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-identifier hs-var">sformat</span><span> </span><a href="Cardano.Crypto.Signing.Redeem.VerificationKey.html#redeemVKB64UrlF"><span class="hs-identifier hs-var">redeemVKB64UrlF</span></a><span> </span><span class="hs-operator hs-var">.</span><span> </span><a href="Cardano.Crypto.Signing.Redeem.Compact.html#fromCompactRedeemVerificationKey"><span class="hs-identifier hs-var">fromCompactRedeemVerificationKey</span></a><span>
-</span><a name="line-105"></a><span>
-</span><a name="line-106"></a><span class="hs-keyword">instance</span><span> </span><span class="hs-identifier hs-type">FromJSONKey</span><span> </span><a href="Cardano.Crypto.Signing.Redeem.Compact.html#CompactRedeemVerificationKey"><span class="hs-identifier hs-type">CompactRedeemVerificationKey</span></a><span> </span><span class="hs-keyword">where</span><span>
-</span><a name="line-107"></a><span>  </span><a name="local-8214565720323798847"><span class="hs-identifier">fromJSONKey</span></a><span> </span><span class="hs-glyph">=</span><span> </span><a href="Cardano.Crypto.Signing.Redeem.Compact.html#toCompactRedeemVerificationKey"><span class="hs-identifier hs-var">toCompactRedeemVerificationKey</span></a><span> </span><span class="hs-operator hs-var">&lt;$&gt;</span><span> </span><span class="hs-identifier hs-var">fromJSONKey</span><span>
-</span><a name="line-108"></a><span>  </span><a name="local-8214565720323798848"><span class="hs-identifier">fromJSONKeyList</span></a><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-identifier hs-var">map</span><span> </span><a href="Cardano.Crypto.Signing.Redeem.Compact.html#toCompactRedeemVerificationKey"><span class="hs-identifier hs-var">toCompactRedeemVerificationKey</span></a><span> </span><span class="hs-operator hs-var">&lt;$&gt;</span><span> </span><span class="hs-identifier hs-var">fromJSONKeyList</span><span>
-</span><a name="line-109"></a></pre></body></html>
+</span><span id="line-2"></span><span class="hs-pragma">{-# LANGUAGE DeriveGeneric #-}</span><span>
+</span><span id="line-3"></span><span class="hs-pragma">{-# LANGUAGE DerivingStrategies #-}</span><span>
+</span><span id="line-4"></span><span class="hs-pragma">{-# LANGUAGE DerivingVia #-}</span><span>
+</span><span id="line-5"></span><span class="hs-pragma">{-# LANGUAGE FlexibleContexts #-}</span><span>
+</span><span id="line-6"></span><span class="hs-pragma">{-# LANGUAGE FlexibleInstances #-}</span><span>
+</span><span id="line-7"></span><span class="hs-pragma">{-# LANGUAGE MultiParamTypeClasses #-}</span><span>
+</span><span id="line-8"></span><span class="hs-pragma">{-# LANGUAGE UndecidableInstances #-}</span><span>
+</span><span id="line-9"></span><span>
+</span><span id="line-10"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Cardano.Crypto.Signing.Redeem.Compact</span><span>
+</span><span id="line-11"></span><span>  </span><span class="hs-special">(</span><span> </span><span class="annot"><a href="Cardano.Crypto.Signing.Redeem.Compact.html#CompactRedeemVerificationKey"><span class="hs-identifier">CompactRedeemVerificationKey</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
+</span><span id="line-12"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cardano.Crypto.Signing.Redeem.Compact.html#fromCompactRedeemVerificationKey"><span class="hs-identifier">fromCompactRedeemVerificationKey</span></a></span><span>
+</span><span id="line-13"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cardano.Crypto.Signing.Redeem.Compact.html#toCompactRedeemVerificationKey"><span class="hs-identifier">toCompactRedeemVerificationKey</span></a></span><span>
+</span><span id="line-14"></span><span>  </span><span class="hs-special">)</span><span>
+</span><span id="line-15"></span><span class="hs-keyword">where</span><span>
+</span><span id="line-16"></span><span>
+</span><span id="line-17"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-prelude-0.1.0.0/noopt/doc/html/cardano-prelude/src"><span class="hs-identifier">Cardano.Prelude</span></a></span><span>
+</span><span id="line-18"></span><span>
+</span><span id="line-19"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Aeson</span></span><span>
+</span><span id="line-20"></span><span>  </span><span class="hs-special">(</span><span> </span><span class="annot"><span class="hs-identifier">FromJSON</span></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
+</span><span id="line-21"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">FromJSONKey</span></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
+</span><span id="line-22"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">ToJSON</span></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
+</span><span id="line-23"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">ToJSONKey</span></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
+</span><span id="line-24"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">ToJSONKeyFunction</span></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
+</span><span id="line-25"></span><span>  </span><span class="hs-special">)</span><span>
+</span><span id="line-26"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Data.Aeson.Encoding</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">A</span></span><span>
+</span><span id="line-27"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Binary.Get</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Get</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">getWord64le</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">runGet</span></span><span class="hs-special">)</span><span>
+</span><span id="line-28"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Binary.Put</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Put</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">putWord64le</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">runPut</span></span><span class="hs-special">)</span><span>
+</span><span id="line-29"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Data.ByteString.Lazy</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">BSL</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">fromStrict</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">toStrict</span></span><span class="hs-special">)</span><span>
+</span><span id="line-30"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Formatting</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">build</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">formatToString</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">sformat</span></span><span class="hs-special">)</span><span>
+</span><span id="line-31"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">NoThunks.Class</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">NoThunks</span></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">InspectHeap</span></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-32"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Text.JSON.Canonical</span></span><span>
+</span><span id="line-33"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">FromObjectKey</span></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">JSValue</span></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">ToObjectKey</span></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">toJSString</span></span><span class="hs-special">)</span><span>
+</span><span id="line-34"></span><span>
+</span><span id="line-35"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Cardano.Crypto.Signing.Redeem.VerificationKey.html"><span class="hs-identifier">Cardano.Crypto.Signing.Redeem.VerificationKey</span></a></span><span>
+</span><span id="line-36"></span><span>  </span><span class="hs-special">(</span><span> </span><span class="annot"><a href="Cardano.Crypto.Signing.Redeem.VerificationKey.html#RedeemVerificationKey"><span class="hs-identifier">RedeemVerificationKey</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
+</span><span id="line-37"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cardano.Crypto.Signing.Redeem.VerificationKey.html#fromAvvmVK"><span class="hs-identifier">fromAvvmVK</span></a></span><span>
+</span><span id="line-38"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cardano.Crypto.Signing.Redeem.VerificationKey.html#fromVerificationKeyToByteString"><span class="hs-identifier">fromVerificationKeyToByteString</span></a></span><span>
+</span><span id="line-39"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cardano.Crypto.Signing.Redeem.VerificationKey.html#redeemVKB64UrlF"><span class="hs-identifier">redeemVKB64UrlF</span></a></span><span>
+</span><span id="line-40"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cardano.Crypto.Signing.Redeem.VerificationKey.html#redeemVKBuild"><span class="hs-identifier">redeemVKBuild</span></a></span><span>
+</span><span id="line-41"></span><span>  </span><span class="hs-special">)</span><span>
+</span><span id="line-42"></span><span>
+</span><span id="line-43"></span><span>
+</span><span id="line-44"></span><span id="local-6989586621679146094"><span id="local-6989586621679146095"></span></span><span class="hs-keyword">data</span><span> </span><span id="CompactRedeemVerificationKey"><span class="annot"><a href="Cardano.Crypto.Signing.Redeem.Compact.html#CompactRedeemVerificationKey"><span class="hs-identifier hs-var">CompactRedeemVerificationKey</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-45"></span><span>  </span><span id="CompactRedeemVerificationKey"><span class="annot"><a href="Cardano.Crypto.Signing.Redeem.Compact.html#CompactRedeemVerificationKey"><span class="hs-identifier hs-var">CompactRedeemVerificationKey</span></a></span></span><span> </span><span class="hs-pragma">{-# UNPACK</span><span> </span><span class="hs-pragma">#-}</span><span> </span><span class="hs-glyph">!</span><span class="annot"><span class="hs-identifier hs-type">Word64</span></span><span>
+</span><span id="line-46"></span><span>                               </span><span class="hs-pragma">{-# UNPACK</span><span> </span><span class="hs-pragma">#-}</span><span> </span><span class="hs-glyph">!</span><span class="annot"><span class="hs-identifier hs-type">Word64</span></span><span>
+</span><span id="line-47"></span><span>                               </span><span class="hs-pragma">{-# UNPACK</span><span> </span><span class="hs-pragma">#-}</span><span> </span><span class="hs-glyph">!</span><span class="annot"><span class="hs-identifier hs-type">Word64</span></span><span>
+</span><span id="line-48"></span><span>                               </span><span class="hs-pragma">{-# UNPACK</span><span> </span><span class="hs-pragma">#-}</span><span> </span><span class="hs-glyph">!</span><span class="annot"><span class="hs-identifier hs-type">Word64</span></span><span>
+</span><span id="line-49"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679146089"><span id="local-6989586621679146091"><span class="annot"><span class="annottext">CompactRedeemVerificationKey
+-&gt; CompactRedeemVerificationKey -&gt; Bool
+(CompactRedeemVerificationKey
+ -&gt; CompactRedeemVerificationKey -&gt; Bool)
+-&gt; (CompactRedeemVerificationKey
+    -&gt; CompactRedeemVerificationKey -&gt; Bool)
+-&gt; Eq CompactRedeemVerificationKey
+forall a. (a -&gt; a -&gt; Bool) -&gt; (a -&gt; a -&gt; Bool) -&gt; Eq a
+/= :: CompactRedeemVerificationKey
+-&gt; CompactRedeemVerificationKey -&gt; Bool
+$c/= :: CompactRedeemVerificationKey
+-&gt; CompactRedeemVerificationKey -&gt; Bool
+== :: CompactRedeemVerificationKey
+-&gt; CompactRedeemVerificationKey -&gt; Bool
+$c== :: CompactRedeemVerificationKey
+-&gt; CompactRedeemVerificationKey -&gt; Bool
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">(forall x.
+ CompactRedeemVerificationKey -&gt; Rep CompactRedeemVerificationKey x)
+-&gt; (forall x.
+    Rep CompactRedeemVerificationKey x -&gt; CompactRedeemVerificationKey)
+-&gt; Generic CompactRedeemVerificationKey
+forall x.
+Rep CompactRedeemVerificationKey x -&gt; CompactRedeemVerificationKey
+forall x.
+CompactRedeemVerificationKey -&gt; Rep CompactRedeemVerificationKey x
+forall a.
+(forall x. a -&gt; Rep a x) -&gt; (forall x. Rep a x -&gt; a) -&gt; Generic a
+$cto :: forall x.
+Rep CompactRedeemVerificationKey x -&gt; CompactRedeemVerificationKey
+$cfrom :: forall x.
+CompactRedeemVerificationKey -&gt; Rep CompactRedeemVerificationKey x
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">Generic</span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679146079"><span id="local-6989586621679146081"><span id="local-6989586621679146083"><span class="annot"><span class="annottext">Int -&gt; CompactRedeemVerificationKey -&gt; ShowS
+[CompactRedeemVerificationKey] -&gt; ShowS
+CompactRedeemVerificationKey -&gt; String
+(Int -&gt; CompactRedeemVerificationKey -&gt; ShowS)
+-&gt; (CompactRedeemVerificationKey -&gt; String)
+-&gt; ([CompactRedeemVerificationKey] -&gt; ShowS)
+-&gt; Show CompactRedeemVerificationKey
+forall a.
+(Int -&gt; a -&gt; ShowS) -&gt; (a -&gt; String) -&gt; ([a] -&gt; ShowS) -&gt; Show a
+showList :: [CompactRedeemVerificationKey] -&gt; ShowS
+$cshowList :: [CompactRedeemVerificationKey] -&gt; ShowS
+show :: CompactRedeemVerificationKey -&gt; String
+$cshow :: CompactRedeemVerificationKey -&gt; String
+showsPrec :: Int -&gt; CompactRedeemVerificationKey -&gt; ShowS
+$cshowsPrec :: Int -&gt; CompactRedeemVerificationKey -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">)</span><span>
+</span><span id="line-50"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span id="local-6989586621679146072"><span id="local-6989586621679146074"><span id="local-6989586621679146076"><span class="annot"><span class="annottext">Context -&gt; CompactRedeemVerificationKey -&gt; IO (Maybe ThunkInfo)
+Proxy CompactRedeemVerificationKey -&gt; String
+(Context -&gt; CompactRedeemVerificationKey -&gt; IO (Maybe ThunkInfo))
+-&gt; (Context
+    -&gt; CompactRedeemVerificationKey -&gt; IO (Maybe ThunkInfo))
+-&gt; (Proxy CompactRedeemVerificationKey -&gt; String)
+-&gt; NoThunks CompactRedeemVerificationKey
+forall a.
+(Context -&gt; a -&gt; IO (Maybe ThunkInfo))
+-&gt; (Context -&gt; a -&gt; IO (Maybe ThunkInfo))
+-&gt; (Proxy a -&gt; String)
+-&gt; NoThunks a
+showTypeOf :: Proxy CompactRedeemVerificationKey -&gt; String
+$cshowTypeOf :: Proxy CompactRedeemVerificationKey -&gt; String
+wNoThunks :: Context -&gt; CompactRedeemVerificationKey -&gt; IO (Maybe ThunkInfo)
+$cwNoThunks :: Context -&gt; CompactRedeemVerificationKey -&gt; IO (Maybe ThunkInfo)
+noThunks :: Context -&gt; CompactRedeemVerificationKey -&gt; IO (Maybe ThunkInfo)
+$cnoThunks :: Context -&gt; CompactRedeemVerificationKey -&gt; IO (Maybe ThunkInfo)
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">NoThunks</span></span></span></span></span><span> </span><span class="hs-keyword">via</span><span> </span><span class="annot"><span class="hs-identifier hs-type">InspectHeap</span></span><span> </span><span class="annot"><a href="Cardano.Crypto.Signing.Redeem.Compact.html#CompactRedeemVerificationKey"><span class="hs-identifier hs-type">CompactRedeemVerificationKey</span></a></span><span>
+</span><span id="line-51"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="annot"><span class="hs-keyword">anyclass</span></span><span> </span><span id="local-6989586621679146069"><span class="annot"><span class="annottext">CompactRedeemVerificationKey -&gt; ()
+(CompactRedeemVerificationKey -&gt; ())
+-&gt; NFData CompactRedeemVerificationKey
+forall a. (a -&gt; ()) -&gt; NFData a
+rnf :: CompactRedeemVerificationKey -&gt; ()
+$crnf :: CompactRedeemVerificationKey -&gt; ()
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">NFData</span></span></span><span>
+</span><span id="line-52"></span><span>
+</span><span id="line-53"></span><span class="annot"><a href="Cardano.Crypto.Signing.Redeem.Compact.html#getCompactRedeemVerificationKey"><span class="hs-identifier hs-type">getCompactRedeemVerificationKey</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Get</span></span><span> </span><span class="annot"><a href="Cardano.Crypto.Signing.Redeem.Compact.html#CompactRedeemVerificationKey"><span class="hs-identifier hs-type">CompactRedeemVerificationKey</span></a></span><span>
+</span><span id="line-54"></span><span id="getCompactRedeemVerificationKey"><span class="annot"><span class="annottext">getCompactRedeemVerificationKey :: Get CompactRedeemVerificationKey
+</span><a href="Cardano.Crypto.Signing.Redeem.Compact.html#getCompactRedeemVerificationKey"><span class="hs-identifier hs-var hs-var">getCompactRedeemVerificationKey</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-55"></span><span>  </span><span class="annot"><span class="annottext">Word64
+-&gt; Word64 -&gt; Word64 -&gt; Word64 -&gt; CompactRedeemVerificationKey
+</span><a href="Cardano.Crypto.Signing.Redeem.Compact.html#CompactRedeemVerificationKey"><span class="hs-identifier hs-var">CompactRedeemVerificationKey</span></a></span><span>
+</span><span id="line-56"></span><span>    </span><span class="annot"><span class="annottext">(Word64
+ -&gt; Word64 -&gt; Word64 -&gt; Word64 -&gt; CompactRedeemVerificationKey)
+-&gt; Get Word64
+-&gt; Get (Word64 -&gt; Word64 -&gt; Word64 -&gt; CompactRedeemVerificationKey)
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">Get Word64
+</span><span class="hs-identifier hs-var">getWord64le</span></span><span>
+</span><span id="line-57"></span><span>    </span><span class="annot"><span class="annottext">Get (Word64 -&gt; Word64 -&gt; Word64 -&gt; CompactRedeemVerificationKey)
+-&gt; Get Word64
+-&gt; Get (Word64 -&gt; Word64 -&gt; CompactRedeemVerificationKey)
+forall (f :: * -&gt; *) a b. Applicative f =&gt; f (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;*&gt;</span></span><span> </span><span class="annot"><span class="annottext">Get Word64
+</span><span class="hs-identifier hs-var">getWord64le</span></span><span>
+</span><span id="line-58"></span><span>    </span><span class="annot"><span class="annottext">Get (Word64 -&gt; Word64 -&gt; CompactRedeemVerificationKey)
+-&gt; Get Word64 -&gt; Get (Word64 -&gt; CompactRedeemVerificationKey)
+forall (f :: * -&gt; *) a b. Applicative f =&gt; f (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;*&gt;</span></span><span> </span><span class="annot"><span class="annottext">Get Word64
+</span><span class="hs-identifier hs-var">getWord64le</span></span><span>
+</span><span id="line-59"></span><span>    </span><span class="annot"><span class="annottext">Get (Word64 -&gt; CompactRedeemVerificationKey)
+-&gt; Get Word64 -&gt; Get CompactRedeemVerificationKey
+forall (f :: * -&gt; *) a b. Applicative f =&gt; f (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;*&gt;</span></span><span> </span><span class="annot"><span class="annottext">Get Word64
+</span><span class="hs-identifier hs-var">getWord64le</span></span><span>
+</span><span id="line-60"></span><span>
+</span><span id="line-61"></span><span class="annot"><a href="Cardano.Crypto.Signing.Redeem.Compact.html#putCompactRedeemVerificationKey"><span class="hs-identifier hs-type">putCompactRedeemVerificationKey</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cardano.Crypto.Signing.Redeem.Compact.html#CompactRedeemVerificationKey"><span class="hs-identifier hs-type">CompactRedeemVerificationKey</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Put</span></span><span>
+</span><span id="line-62"></span><span id="putCompactRedeemVerificationKey"><span class="annot"><span class="annottext">putCompactRedeemVerificationKey :: CompactRedeemVerificationKey -&gt; Put
+</span><a href="Cardano.Crypto.Signing.Redeem.Compact.html#putCompactRedeemVerificationKey"><span class="hs-identifier hs-var hs-var">putCompactRedeemVerificationKey</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cardano.Crypto.Signing.Redeem.Compact.html#CompactRedeemVerificationKey"><span class="hs-identifier hs-type">CompactRedeemVerificationKey</span></a></span><span> </span><span id="local-6989586621679146064"><span class="annot"><span class="annottext">Word64
+</span><a href="#local-6989586621679146064"><span class="hs-identifier hs-var">a</span></a></span></span><span> </span><span id="local-6989586621679146063"><span class="annot"><span class="annottext">Word64
+</span><a href="#local-6989586621679146063"><span class="hs-identifier hs-var">b</span></a></span></span><span> </span><span id="local-6989586621679146062"><span class="annot"><span class="annottext">Word64
+</span><a href="#local-6989586621679146062"><span class="hs-identifier hs-var">c</span></a></span></span><span> </span><span id="local-6989586621679146061"><span class="annot"><span class="annottext">Word64
+</span><a href="#local-6989586621679146061"><span class="hs-identifier hs-var">d</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-63"></span><span>  </span><span class="annot"><span class="annottext">Word64 -&gt; Put
+</span><span class="hs-identifier hs-var">putWord64le</span></span><span> </span><span class="annot"><span class="annottext">Word64
+</span><a href="#local-6989586621679146064"><span class="hs-identifier hs-var">a</span></a></span><span>
+</span><span id="line-64"></span><span>    </span><span class="annot"><span class="annottext">Put -&gt; Put -&gt; Put
+forall (m :: * -&gt; *) a b. Monad m =&gt; m a -&gt; m b -&gt; m b
+</span><span class="hs-operator hs-var">&gt;&gt;</span></span><span> </span><span class="annot"><span class="annottext">Word64 -&gt; Put
+</span><span class="hs-identifier hs-var">putWord64le</span></span><span> </span><span class="annot"><span class="annottext">Word64
+</span><a href="#local-6989586621679146063"><span class="hs-identifier hs-var">b</span></a></span><span>
+</span><span id="line-65"></span><span>    </span><span class="annot"><span class="annottext">Put -&gt; Put -&gt; Put
+forall (m :: * -&gt; *) a b. Monad m =&gt; m a -&gt; m b -&gt; m b
+</span><span class="hs-operator hs-var">&gt;&gt;</span></span><span> </span><span class="annot"><span class="annottext">Word64 -&gt; Put
+</span><span class="hs-identifier hs-var">putWord64le</span></span><span> </span><span class="annot"><span class="annottext">Word64
+</span><a href="#local-6989586621679146062"><span class="hs-identifier hs-var">c</span></a></span><span>
+</span><span id="line-66"></span><span>    </span><span class="annot"><span class="annottext">Put -&gt; Put -&gt; Put
+forall (m :: * -&gt; *) a b. Monad m =&gt; m a -&gt; m b -&gt; m b
+</span><span class="hs-operator hs-var">&gt;&gt;</span></span><span> </span><span class="annot"><span class="annottext">Word64 -&gt; Put
+</span><span class="hs-identifier hs-var">putWord64le</span></span><span> </span><span class="annot"><span class="annottext">Word64
+</span><a href="#local-6989586621679146061"><span class="hs-identifier hs-var">d</span></a></span><span>
+</span><span id="line-67"></span><span>
+</span><span id="line-68"></span><span class="annot"><a href="Cardano.Crypto.Signing.Redeem.Compact.html#toCompactRedeemVerificationKey"><span class="hs-identifier hs-type">toCompactRedeemVerificationKey</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cardano.Crypto.Signing.Redeem.VerificationKey.html#RedeemVerificationKey"><span class="hs-identifier hs-type">RedeemVerificationKey</span></a></span><span>
+</span><span id="line-69"></span><span>                               </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cardano.Crypto.Signing.Redeem.Compact.html#CompactRedeemVerificationKey"><span class="hs-identifier hs-type">CompactRedeemVerificationKey</span></a></span><span>
+</span><span id="line-70"></span><span id="toCompactRedeemVerificationKey"><span class="annot"><span class="annottext">toCompactRedeemVerificationKey :: RedeemVerificationKey -&gt; CompactRedeemVerificationKey
+</span><a href="Cardano.Crypto.Signing.Redeem.Compact.html#toCompactRedeemVerificationKey"><span class="hs-identifier hs-var hs-var">toCompactRedeemVerificationKey</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cardano.Crypto.Signing.Redeem.VerificationKey.html#RedeemVerificationKey"><span class="hs-identifier hs-type">RedeemVerificationKey</span></a></span><span> </span><span id="local-6989586621679146059"><span class="annot"><span class="annottext">PublicKey
+</span><a href="#local-6989586621679146059"><span class="hs-identifier hs-var">pk</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-71"></span><span>  </span><span class="annot"><span class="annottext">Get CompactRedeemVerificationKey
+-&gt; ByteString -&gt; CompactRedeemVerificationKey
+forall a. Get a -&gt; ByteString -&gt; a
+</span><span class="hs-identifier hs-var">runGet</span></span><span> </span><span class="annot"><span class="annottext">Get CompactRedeemVerificationKey
+</span><a href="Cardano.Crypto.Signing.Redeem.Compact.html#getCompactRedeemVerificationKey"><span class="hs-identifier hs-var">getCompactRedeemVerificationKey</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">ByteString -&gt; ByteString
+</span><span class="hs-identifier hs-var">BSL.fromStrict</span></span><span> </span><span class="annot"><span class="annottext">ByteString
+</span><a href="#local-6989586621679146058"><span class="hs-identifier hs-var">bs</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-72"></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-73"></span><span>  </span><span class="annot"><a href="#local-6989586621679146058"><span class="hs-identifier hs-type">bs</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">ByteString</span></span><span>
+</span><span id="line-74"></span><span>  </span><span id="local-6989586621679146058"><span class="annot"><span class="annottext">bs :: ByteString
+</span><a href="#local-6989586621679146058"><span class="hs-identifier hs-var hs-var">bs</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">PublicKey -&gt; ByteString
+</span><a href="Cardano.Crypto.Signing.Redeem.VerificationKey.html#fromVerificationKeyToByteString"><span class="hs-identifier hs-var">fromVerificationKeyToByteString</span></a></span><span> </span><span class="annot"><span class="annottext">PublicKey
+</span><a href="#local-6989586621679146059"><span class="hs-identifier hs-var">pk</span></a></span><span>
+</span><span id="line-75"></span><span>
+</span><span id="line-76"></span><span class="annot"><a href="Cardano.Crypto.Signing.Redeem.Compact.html#fromCompactRedeemVerificationKey"><span class="hs-identifier hs-type">fromCompactRedeemVerificationKey</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cardano.Crypto.Signing.Redeem.Compact.html#CompactRedeemVerificationKey"><span class="hs-identifier hs-type">CompactRedeemVerificationKey</span></a></span><span>
+</span><span id="line-77"></span><span>                                 </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cardano.Crypto.Signing.Redeem.VerificationKey.html#RedeemVerificationKey"><span class="hs-identifier hs-type">RedeemVerificationKey</span></a></span><span>
+</span><span id="line-78"></span><span id="fromCompactRedeemVerificationKey"><span class="annot"><span class="annottext">fromCompactRedeemVerificationKey :: CompactRedeemVerificationKey -&gt; RedeemVerificationKey
+</span><a href="Cardano.Crypto.Signing.Redeem.Compact.html#fromCompactRedeemVerificationKey"><span class="hs-identifier hs-var hs-var">fromCompactRedeemVerificationKey</span></a></span></span><span> </span><span id="local-6989586621679146057"><span class="annot"><span class="annottext">CompactRedeemVerificationKey
+</span><a href="#local-6989586621679146057"><span class="hs-identifier hs-var">compactRvk</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-79"></span><span>  </span><span class="annot"><span class="annottext">ByteString -&gt; RedeemVerificationKey
+</span><a href="Cardano.Crypto.Signing.Redeem.VerificationKey.html#redeemVKBuild"><span class="hs-identifier hs-var">redeemVKBuild</span></a></span><span> </span><span class="annot"><span class="annottext">ByteString
+</span><a href="#local-6989586621679146056"><span class="hs-identifier hs-var">bs</span></a></span><span>
+</span><span id="line-80"></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-81"></span><span>  </span><span class="annot"><a href="#local-6989586621679146056"><span class="hs-identifier hs-type">bs</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">ByteString</span></span><span>
+</span><span id="line-82"></span><span>  </span><span id="local-6989586621679146056"><span class="annot"><span class="annottext">bs :: ByteString
+</span><a href="#local-6989586621679146056"><span class="hs-identifier hs-var hs-var">bs</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">ByteString -&gt; ByteString
+</span><span class="hs-identifier hs-var">BSL.toStrict</span></span><span> </span><span class="annot"><span class="annottext">(ByteString -&gt; ByteString) -&gt; ByteString -&gt; ByteString
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Put -&gt; ByteString
+</span><span class="hs-identifier hs-var">runPut</span></span><span> </span><span class="annot"><span class="annottext">(Put -&gt; ByteString) -&gt; Put -&gt; ByteString
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span>
+</span><span id="line-83"></span><span>    </span><span class="annot"><span class="annottext">CompactRedeemVerificationKey -&gt; Put
+</span><a href="Cardano.Crypto.Signing.Redeem.Compact.html#putCompactRedeemVerificationKey"><span class="hs-identifier hs-var">putCompactRedeemVerificationKey</span></a></span><span> </span><span class="annot"><span class="annottext">CompactRedeemVerificationKey
+</span><a href="#local-6989586621679146057"><span class="hs-identifier hs-var">compactRvk</span></a></span><span>
+</span><span id="line-84"></span><span>
+</span><span id="line-85"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679146042"><span id="local-6989586621679146044"><span id="local-6989586621679146046"><span id="local-6989586621679146048"><span id="local-6989586621679146050"><span id="local-6989586621679146052"><span class="annot"><span class="hs-identifier hs-type">Ord</span></span><span> </span><span class="annot"><a href="Cardano.Crypto.Signing.Redeem.Compact.html#CompactRedeemVerificationKey"><span class="hs-identifier hs-type">CompactRedeemVerificationKey</span></a></span></span></span></span></span></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-86"></span><span>  </span><span id="local-6989586621679146040"><span class="annot"><span class="annottext">compare :: CompactRedeemVerificationKey
+-&gt; CompactRedeemVerificationKey -&gt; Ordering
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">compare</span></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">RedeemVerificationKey -&gt; RedeemVerificationKey -&gt; Ordering
+forall a. Ord a =&gt; a -&gt; a -&gt; Ordering
+</span><span class="hs-identifier hs-var">compare</span></span><span> </span><span class="annot"><span class="annottext">(RedeemVerificationKey -&gt; RedeemVerificationKey -&gt; Ordering)
+-&gt; (CompactRedeemVerificationKey -&gt; RedeemVerificationKey)
+-&gt; CompactRedeemVerificationKey
+-&gt; CompactRedeemVerificationKey
+-&gt; Ordering
+forall b c a. (b -&gt; b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">`on`</span></span><span> </span><span class="annot"><span class="annottext">CompactRedeemVerificationKey -&gt; RedeemVerificationKey
+</span><a href="Cardano.Crypto.Signing.Redeem.Compact.html#fromCompactRedeemVerificationKey"><span class="hs-identifier hs-var">fromCompactRedeemVerificationKey</span></a></span><span>
+</span><span id="line-87"></span><span>
+</span><span id="line-88"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679146031"><span id="local-6989586621679146033"><span id="local-6989586621679146035"><span class="annot"><span class="hs-identifier hs-type">ToJSON</span></span><span> </span><span class="annot"><a href="Cardano.Crypto.Signing.Redeem.Compact.html#CompactRedeemVerificationKey"><span class="hs-identifier hs-type">CompactRedeemVerificationKey</span></a></span></span></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-89"></span><span>  </span><span id="local-6989586621679146029"><span class="annot"><span class="annottext">toJSON :: CompactRedeemVerificationKey -&gt; Value
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">toJSON</span></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">RedeemVerificationKey -&gt; Value
+forall a. ToJSON a =&gt; a -&gt; Value
+</span><span class="hs-identifier hs-var">toJSON</span></span><span> </span><span class="annot"><span class="annottext">(RedeemVerificationKey -&gt; Value)
+-&gt; (CompactRedeemVerificationKey -&gt; RedeemVerificationKey)
+-&gt; CompactRedeemVerificationKey
+-&gt; Value
+forall k (cat :: k -&gt; k -&gt; *) (b :: k) (c :: k) (a :: k).
+Category cat =&gt;
+cat b c -&gt; cat a b -&gt; cat a c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">CompactRedeemVerificationKey -&gt; RedeemVerificationKey
+</span><a href="Cardano.Crypto.Signing.Redeem.Compact.html#fromCompactRedeemVerificationKey"><span class="hs-identifier hs-var">fromCompactRedeemVerificationKey</span></a></span><span>
+</span><span id="line-90"></span><span>
+</span><span id="line-91"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679146024"><span class="annot"><span class="hs-identifier hs-type">FromJSON</span></span><span> </span><span class="annot"><a href="Cardano.Crypto.Signing.Redeem.Compact.html#CompactRedeemVerificationKey"><span class="hs-identifier hs-type">CompactRedeemVerificationKey</span></a></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-92"></span><span>  </span><span id="local-6989586621679146022"><span class="annot"><span class="annottext">parseJSON :: Value -&gt; Parser CompactRedeemVerificationKey
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">parseJSON</span></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(RedeemVerificationKey -&gt; CompactRedeemVerificationKey)
+-&gt; Parser RedeemVerificationKey
+-&gt; Parser CompactRedeemVerificationKey
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-identifier hs-var">fmap</span></span><span> </span><span class="annot"><span class="annottext">RedeemVerificationKey -&gt; CompactRedeemVerificationKey
+</span><a href="Cardano.Crypto.Signing.Redeem.Compact.html#toCompactRedeemVerificationKey"><span class="hs-identifier hs-var">toCompactRedeemVerificationKey</span></a></span><span> </span><span class="annot"><span class="annottext">(Parser RedeemVerificationKey
+ -&gt; Parser CompactRedeemVerificationKey)
+-&gt; (Value -&gt; Parser RedeemVerificationKey)
+-&gt; Value
+-&gt; Parser CompactRedeemVerificationKey
+forall k (cat :: k -&gt; k -&gt; *) (b :: k) (c :: k) (a :: k).
+Category cat =&gt;
+cat b c -&gt; cat a b -&gt; cat a c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Value -&gt; Parser RedeemVerificationKey
+forall a. FromJSON a =&gt; Value -&gt; Parser a
+</span><span class="hs-identifier hs-var">parseJSON</span></span><span>
+</span><span id="line-93"></span><span>
+</span><span id="line-94"></span><span id="local-6989586621679146020"><span class="hs-keyword">instance</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Monad</span></span><span> </span><span class="annot"><a href="#local-6989586621679146020"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">ToObjectKey</span></span><span> </span><span class="annot"><a href="#local-6989586621679146020"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><a href="Cardano.Crypto.Signing.Redeem.Compact.html#CompactRedeemVerificationKey"><span class="hs-identifier hs-type">CompactRedeemVerificationKey</span></a></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-95"></span><span>  </span><span id="local-6989586621679146017"><span class="annot"><span class="annottext">toObjectKey :: CompactRedeemVerificationKey -&gt; m JSString
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">toObjectKey</span></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">JSString -&gt; m JSString
+forall (f :: * -&gt; *) a. Applicative f =&gt; a -&gt; f a
+</span><span class="hs-identifier hs-var">pure</span></span><span> </span><span class="annot"><span class="annottext">(JSString -&gt; m JSString)
+-&gt; (CompactRedeemVerificationKey -&gt; JSString)
+-&gt; CompactRedeemVerificationKey
+-&gt; m JSString
+forall k (cat :: k -&gt; k -&gt; *) (b :: k) (c :: k) (a :: k).
+Category cat =&gt;
+cat b c -&gt; cat a b -&gt; cat a c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">String -&gt; JSString
+</span><span class="hs-identifier hs-var">toJSString</span></span><span> </span><span class="annot"><span class="annottext">(String -&gt; JSString)
+-&gt; (CompactRedeemVerificationKey -&gt; String)
+-&gt; CompactRedeemVerificationKey
+-&gt; JSString
+forall k (cat :: k -&gt; k -&gt; *) (b :: k) (c :: k) (a :: k).
+Category cat =&gt;
+cat b c -&gt; cat a b -&gt; cat a c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Format String (RedeemVerificationKey -&gt; String)
+-&gt; RedeemVerificationKey -&gt; String
+forall a. Format String a -&gt; a
+</span><span class="hs-identifier hs-var">formatToString</span></span><span> </span><span class="annot"><span class="annottext">Format String (RedeemVerificationKey -&gt; String)
+forall r. Format r (RedeemVerificationKey -&gt; r)
+</span><a href="Cardano.Crypto.Signing.Redeem.VerificationKey.html#redeemVKB64UrlF"><span class="hs-identifier hs-var">redeemVKB64UrlF</span></a></span><span> </span><span class="annot"><span class="annottext">(RedeemVerificationKey -&gt; String)
+-&gt; (CompactRedeemVerificationKey -&gt; RedeemVerificationKey)
+-&gt; CompactRedeemVerificationKey
+-&gt; String
+forall k (cat :: k -&gt; k -&gt; *) (b :: k) (c :: k) (a :: k).
+Category cat =&gt;
+cat b c -&gt; cat a b -&gt; cat a c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">CompactRedeemVerificationKey -&gt; RedeemVerificationKey
+</span><a href="Cardano.Crypto.Signing.Redeem.Compact.html#fromCompactRedeemVerificationKey"><span class="hs-identifier hs-var">fromCompactRedeemVerificationKey</span></a></span></span><span>
+</span><span id="line-96"></span><span>
+</span><span id="line-97"></span><span id="local-6989586621679146015"><span class="hs-keyword">instance</span><span> </span><span class="annot"><span class="hs-identifier hs-type">MonadError</span></span><span> </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-prelude-0.1.0.0/noopt/doc/html/cardano-prelude/src"><span class="hs-identifier hs-type">SchemaError</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679146015"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">FromObjectKey</span></span><span> </span><span class="annot"><a href="#local-6989586621679146015"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><a href="Cardano.Crypto.Signing.Redeem.Compact.html#CompactRedeemVerificationKey"><span class="hs-identifier hs-type">CompactRedeemVerificationKey</span></a></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-98"></span><span>  </span><span id="local-6989586621679146012"><span class="annot"><span class="annottext">fromObjectKey :: JSString -&gt; m (Maybe CompactRedeemVerificationKey)
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">fromObjectKey</span></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-99"></span><span>    </span><span class="annot"><span class="annottext">(RedeemVerificationKey -&gt; Maybe CompactRedeemVerificationKey)
+-&gt; m RedeemVerificationKey
+-&gt; m (Maybe CompactRedeemVerificationKey)
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-identifier hs-var">fmap</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">CompactRedeemVerificationKey -&gt; Maybe CompactRedeemVerificationKey
+forall a. a -&gt; Maybe a
+</span><span class="hs-identifier hs-var">Just</span></span><span> </span><span class="annot"><span class="annottext">(CompactRedeemVerificationKey
+ -&gt; Maybe CompactRedeemVerificationKey)
+-&gt; (RedeemVerificationKey -&gt; CompactRedeemVerificationKey)
+-&gt; RedeemVerificationKey
+-&gt; Maybe CompactRedeemVerificationKey
+forall k (cat :: k -&gt; k -&gt; *) (b :: k) (c :: k) (a :: k).
+Category cat =&gt;
+cat b c -&gt; cat a b -&gt; cat a c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">RedeemVerificationKey -&gt; CompactRedeemVerificationKey
+</span><a href="Cardano.Crypto.Signing.Redeem.Compact.html#toCompactRedeemVerificationKey"><span class="hs-identifier hs-var">toCompactRedeemVerificationKey</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-100"></span><span>      </span><span class="annot"><span class="annottext">(m RedeemVerificationKey -&gt; m (Maybe CompactRedeemVerificationKey))
+-&gt; (JSString -&gt; m RedeemVerificationKey)
+-&gt; JSString
+-&gt; m (Maybe CompactRedeemVerificationKey)
+forall k (cat :: k -&gt; k -&gt; *) (b :: k) (c :: k) (a :: k).
+Category cat =&gt;
+cat b c -&gt; cat a b -&gt; cat a c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">(Text -&gt; Either Text RedeemVerificationKey)
+-&gt; JSValue -&gt; m RedeemVerificationKey
+forall a (m :: * -&gt; *) e.
+(Typeable a, ReportSchemaErrors m, Buildable e) =&gt;
+(Text -&gt; Either e a) -&gt; JSValue -&gt; m a
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-prelude-0.1.0.0/noopt/doc/html/cardano-prelude/src"><span class="hs-identifier hs-var">parseJSString</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">(AvvmVKError -&gt; Text)
+-&gt; Either AvvmVKError RedeemVerificationKey
+-&gt; Either Text RedeemVerificationKey
+forall (p :: * -&gt; * -&gt; *) a b c.
+Bifunctor p =&gt;
+(a -&gt; b) -&gt; p a c -&gt; p b c
+</span><span class="hs-identifier hs-var">first</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Format Text (AvvmVKError -&gt; Text) -&gt; AvvmVKError -&gt; Text
+forall a. Format Text a -&gt; a
+</span><span class="hs-identifier hs-var">sformat</span></span><span> </span><span class="annot"><span class="annottext">Format Text (AvvmVKError -&gt; Text)
+forall a r. Buildable a =&gt; Format r (a -&gt; r)
+</span><span class="hs-identifier hs-var">build</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(Either AvvmVKError RedeemVerificationKey
+ -&gt; Either Text RedeemVerificationKey)
+-&gt; (Text -&gt; Either AvvmVKError RedeemVerificationKey)
+-&gt; Text
+-&gt; Either Text RedeemVerificationKey
+forall k (cat :: k -&gt; k -&gt; *) (b :: k) (c :: k) (a :: k).
+Category cat =&gt;
+cat b c -&gt; cat a b -&gt; cat a c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Text -&gt; Either AvvmVKError RedeemVerificationKey
+</span><a href="Cardano.Crypto.Signing.Redeem.VerificationKey.html#fromAvvmVK"><span class="hs-identifier hs-var">fromAvvmVK</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-101"></span><span>      </span><span class="annot"><span class="annottext">(JSValue -&gt; m RedeemVerificationKey)
+-&gt; (JSString -&gt; JSValue) -&gt; JSString -&gt; m RedeemVerificationKey
+forall k (cat :: k -&gt; k -&gt; *) (b :: k) (c :: k) (a :: k).
+Category cat =&gt;
+cat b c -&gt; cat a b -&gt; cat a c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">JSString -&gt; JSValue
+</span><span class="hs-identifier hs-var">JSString</span></span></span><span>
+</span><span id="line-102"></span><span>
+</span><span id="line-103"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679146005"><span class="annot"><span class="hs-identifier hs-type">ToJSONKey</span></span><span> </span><span class="annot"><a href="Cardano.Crypto.Signing.Redeem.Compact.html#CompactRedeemVerificationKey"><span class="hs-identifier hs-type">CompactRedeemVerificationKey</span></a></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-104"></span><span>  </span><span id="local-6989586621679146003"><span class="annot"><span class="annottext">toJSONKey :: ToJSONKeyFunction CompactRedeemVerificationKey
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">toJSONKey</span></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(CompactRedeemVerificationKey -&gt; Text)
+-&gt; (CompactRedeemVerificationKey -&gt; Encoding' Text)
+-&gt; ToJSONKeyFunction CompactRedeemVerificationKey
+forall a.
+(a -&gt; Text) -&gt; (a -&gt; Encoding' Text) -&gt; ToJSONKeyFunction a
+</span><span class="hs-identifier hs-var">ToJSONKeyText</span></span><span> </span><span class="annot"><span class="annottext">CompactRedeemVerificationKey -&gt; Text
+</span><a href="#local-6989586621679146000"><span class="hs-identifier hs-var">render</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Text -&gt; Encoding' Text
+forall a. Text -&gt; Encoding' a
+</span><span class="hs-identifier hs-var">A.text</span></span><span> </span><span class="annot"><span class="annottext">(Text -&gt; Encoding' Text)
+-&gt; (CompactRedeemVerificationKey -&gt; Text)
+-&gt; CompactRedeemVerificationKey
+-&gt; Encoding' Text
+forall k (cat :: k -&gt; k -&gt; *) (b :: k) (c :: k) (a :: k).
+Category cat =&gt;
+cat b c -&gt; cat a b -&gt; cat a c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">CompactRedeemVerificationKey -&gt; Text
+</span><a href="#local-6989586621679146000"><span class="hs-identifier hs-var">render</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-105"></span><span>    </span><span class="hs-keyword">where</span><span> </span><span id="local-6989586621679146000"><span class="annot"><span class="annottext">render :: CompactRedeemVerificationKey -&gt; Text
+</span><a href="#local-6989586621679146000"><span class="hs-identifier hs-var hs-var">render</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Format Text (RedeemVerificationKey -&gt; Text)
+-&gt; RedeemVerificationKey -&gt; Text
+forall a. Format Text a -&gt; a
+</span><span class="hs-identifier hs-var">sformat</span></span><span> </span><span class="annot"><span class="annottext">Format Text (RedeemVerificationKey -&gt; Text)
+forall r. Format r (RedeemVerificationKey -&gt; r)
+</span><a href="Cardano.Crypto.Signing.Redeem.VerificationKey.html#redeemVKB64UrlF"><span class="hs-identifier hs-var">redeemVKB64UrlF</span></a></span><span> </span><span class="annot"><span class="annottext">(RedeemVerificationKey -&gt; Text)
+-&gt; (CompactRedeemVerificationKey -&gt; RedeemVerificationKey)
+-&gt; CompactRedeemVerificationKey
+-&gt; Text
+forall k (cat :: k -&gt; k -&gt; *) (b :: k) (c :: k) (a :: k).
+Category cat =&gt;
+cat b c -&gt; cat a b -&gt; cat a c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">CompactRedeemVerificationKey -&gt; RedeemVerificationKey
+</span><a href="Cardano.Crypto.Signing.Redeem.Compact.html#fromCompactRedeemVerificationKey"><span class="hs-identifier hs-var">fromCompactRedeemVerificationKey</span></a></span><span>
+</span><span id="line-106"></span><span>
+</span><span id="line-107"></span><span class="hs-keyword">instance</span><span> </span><span class="annot"><span class="hs-identifier hs-type">FromJSONKey</span></span><span> </span><span class="annot"><a href="Cardano.Crypto.Signing.Redeem.Compact.html#CompactRedeemVerificationKey"><span class="hs-identifier hs-type">CompactRedeemVerificationKey</span></a></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-108"></span><span>  </span><span id="local-6989586621679145995"><span class="annot"><span class="annottext">fromJSONKey :: FromJSONKeyFunction CompactRedeemVerificationKey
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">fromJSONKey</span></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">RedeemVerificationKey -&gt; CompactRedeemVerificationKey
+</span><a href="Cardano.Crypto.Signing.Redeem.Compact.html#toCompactRedeemVerificationKey"><span class="hs-identifier hs-var">toCompactRedeemVerificationKey</span></a></span><span> </span><span class="annot"><span class="annottext">(RedeemVerificationKey -&gt; CompactRedeemVerificationKey)
+-&gt; FromJSONKeyFunction RedeemVerificationKey
+-&gt; FromJSONKeyFunction CompactRedeemVerificationKey
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">FromJSONKeyFunction RedeemVerificationKey
+forall a. FromJSONKey a =&gt; FromJSONKeyFunction a
+</span><span class="hs-identifier hs-var">fromJSONKey</span></span><span>
+</span><span id="line-109"></span><span>  </span><span id="local-6989586621679145993"><span class="annot"><span class="annottext">fromJSONKeyList :: FromJSONKeyFunction [CompactRedeemVerificationKey]
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">fromJSONKeyList</span></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(RedeemVerificationKey -&gt; CompactRedeemVerificationKey)
+-&gt; [RedeemVerificationKey] -&gt; [CompactRedeemVerificationKey]
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-identifier hs-var">map</span></span><span> </span><span class="annot"><span class="annottext">RedeemVerificationKey -&gt; CompactRedeemVerificationKey
+</span><a href="Cardano.Crypto.Signing.Redeem.Compact.html#toCompactRedeemVerificationKey"><span class="hs-identifier hs-var">toCompactRedeemVerificationKey</span></a></span><span> </span><span class="annot"><span class="annottext">([RedeemVerificationKey] -&gt; [CompactRedeemVerificationKey])
+-&gt; FromJSONKeyFunction [RedeemVerificationKey]
+-&gt; FromJSONKeyFunction [CompactRedeemVerificationKey]
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">FromJSONKeyFunction [RedeemVerificationKey]
+forall a. FromJSONKey a =&gt; FromJSONKeyFunction [a]
+</span><span class="hs-identifier hs-var">fromJSONKeyList</span></span><span>
+</span><span id="line-110"></span></pre></body></html>

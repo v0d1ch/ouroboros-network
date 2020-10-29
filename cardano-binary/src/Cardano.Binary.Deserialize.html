@@ -1,136 +1,385 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-pragma">{-# LANGUAGE FlexibleContexts      #-}</span><span>
-</span><a name="line-2"></a><span class="hs-pragma">{-# LANGUAGE FlexibleInstances     #-}</span><span>
-</span><a name="line-3"></a><span class="hs-pragma">{-# LANGUAGE MultiParamTypeClasses #-}</span><span>
-</span><a name="line-4"></a><span class="hs-pragma">{-# LANGUAGE OverloadedStrings     #-}</span><span>
-</span><a name="line-5"></a><span class="hs-pragma">{-# LANGUAGE RankNTypes            #-}</span><span>
-</span><a name="line-6"></a><span class="hs-pragma">{-# LANGUAGE ScopedTypeVariables   #-}</span><span>
-</span><a name="line-7"></a><span class="hs-pragma">{-# LANGUAGE TypeApplications      #-}</span><span>
-</span><a name="line-8"></a><span>
-</span><a name="line-9"></a><span class="hs-comment">-- | Deserialization primitives built on top of the @FromCBOR@ typeclass</span><span>
-</span><a name="line-10"></a><span>
-</span><a name="line-11"></a><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Cardano.Binary.Deserialize</span><span>
-</span><a name="line-12"></a><span>  </span><span class="hs-special">(</span><span>
-</span><a name="line-13"></a><span>  </span><span class="hs-comment">-- * Unsafe deserialization</span><span>
-</span><a name="line-14"></a><span>    </span><a href="Cardano.Binary.Deserialize.html#unsafeDeserialize"><span class="hs-identifier hs-var">unsafeDeserialize</span></a><span>
-</span><a name="line-15"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Cardano.Binary.Deserialize.html#unsafeDeserialize%27"><span class="hs-identifier hs-var">unsafeDeserialize'</span></a><span>
-</span><a name="line-16"></a><span>  </span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-var">CBOR.Write.toStrictByteString</span><span>
-</span><a name="line-17"></a><span>
-</span><a name="line-18"></a><span>  </span><span class="hs-comment">-- * Backward-compatible functions</span><span>
-</span><a name="line-19"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Cardano.Binary.Deserialize.html#decodeFull"><span class="hs-identifier hs-var">decodeFull</span></a><span>
-</span><a name="line-20"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Cardano.Binary.Deserialize.html#decodeFull%27"><span class="hs-identifier hs-var">decodeFull'</span></a><span>
-</span><a name="line-21"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Cardano.Binary.Deserialize.html#decodeFullDecoder"><span class="hs-identifier hs-var">decodeFullDecoder</span></a><span>
-</span><a name="line-22"></a><span>
-</span><a name="line-23"></a><span>  </span><span class="hs-comment">-- * CBOR in CBOR</span><span>
-</span><a name="line-24"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Cardano.Binary.Deserialize.html#decodeNestedCbor"><span class="hs-identifier hs-var">decodeNestedCbor</span></a><span>
-</span><a name="line-25"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Cardano.Binary.Deserialize.html#decodeNestedCborBytes"><span class="hs-identifier hs-var">decodeNestedCborBytes</span></a><span>
-</span><a name="line-26"></a><span>  </span><span class="hs-special">)</span><span>
-</span><a name="line-27"></a><span class="hs-keyword">where</span><span>
-</span><a name="line-28"></a><span>
-</span><a name="line-29"></a><span class="hs-keyword">import</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-prelude-0.1.0.0/noopt/doc/html/cardano-prelude/src/Cardano.Prelude.html"><span class="hs-identifier">Cardano.Prelude</span></a><span>
-</span><a name="line-30"></a><span>
-</span><a name="line-31"></a><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-identifier">Codec.CBOR.Decoding</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">D</span><span>
-</span><a name="line-32"></a><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-identifier">Codec.CBOR.Read</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">Read</span><span>
-</span><a name="line-33"></a><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-identifier">Codec.CBOR.Write</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">CBOR.Write</span><span>
-</span><a name="line-34"></a><span class="hs-keyword">import</span><span> </span><span class="hs-identifier">Control.Exception.Safe</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-var">impureThrow</span><span class="hs-special">)</span><span>
-</span><a name="line-35"></a><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-identifier">Data.ByteString</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">BS</span><span>
-</span><a name="line-36"></a><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-identifier">Data.ByteString.Lazy</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">BSL</span><span>
-</span><a name="line-37"></a><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-identifier">Data.ByteString.Lazy.Internal</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">BSL</span><span>
-</span><a name="line-38"></a><span>
-</span><a name="line-39"></a><span class="hs-keyword">import</span><span> </span><a href="Cardano.Binary.FromCBOR.html"><span class="hs-identifier">Cardano.Binary.FromCBOR</span></a><span> </span><span class="hs-special">(</span><a href="Cardano.Binary.FromCBOR.html#DecoderError"><span class="hs-identifier hs-type">DecoderError</span></a><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><a href="Cardano.Binary.FromCBOR.html#FromCBOR"><span class="hs-identifier hs-type">FromCBOR</span></a><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
-</span><a name="line-40"></a><span>
-</span><a name="line-41"></a><span>
-</span><a name="line-42"></a><span class="hs-comment">-- | Deserialize a Haskell value from the external binary representation</span><span>
-</span><a name="line-43"></a><span class="hs-comment">--   (which must have been made using 'serialize' or related function).</span><span>
-</span><a name="line-44"></a><span class="hs-comment">--</span><span>
-</span><a name="line-45"></a><span class="hs-comment">--   /Throws/: @'Read.DeserialiseFailure'@ if the given external</span><span>
-</span><a name="line-46"></a><span class="hs-comment">--   representation is invalid or does not correspond to a value of the</span><span>
-</span><a name="line-47"></a><span class="hs-comment">--   expected type.</span><span>
-</span><a name="line-48"></a><span class="hs-identifier">unsafeDeserialize</span><span> </span><span class="hs-glyph">::</span><span> </span><a href="Cardano.Binary.FromCBOR.html#FromCBOR"><span class="hs-identifier hs-type">FromCBOR</span></a><span> </span><a href="#local-6989586621679079615"><span class="hs-identifier hs-type">a</span></a><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="hs-identifier hs-type">LByteString</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><a href="#local-6989586621679079615"><span class="hs-identifier hs-type">a</span></a><span>
-</span><a name="line-49"></a><a name="unsafeDeserialize"><a href="Cardano.Binary.Deserialize.html#unsafeDeserialize"><span class="hs-identifier">unsafeDeserialize</span></a></a><span> </span><span class="hs-glyph">=</span><span>
-</span><a name="line-50"></a><span>  </span><span class="hs-identifier hs-var">either</span><span> </span><span class="hs-identifier hs-var">impureThrow</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-prelude-0.1.0.0/noopt/doc/html/cardano-prelude/src/Cardano.Prelude.Base.html#identity"><span class="hs-identifier hs-var">identity</span></a><span> </span><span class="hs-operator hs-var">.</span><span> </span><span class="hs-identifier hs-var">bimap</span><span> </span><span class="hs-identifier hs-var">fst</span><span> </span><span class="hs-identifier hs-var">fst</span><span> </span><span class="hs-operator hs-var">.</span><span> </span><a href="Cardano.Binary.Deserialize.html#deserialiseDecoder"><span class="hs-identifier hs-var">deserialiseDecoder</span></a><span> </span><a href="Cardano.Binary.FromCBOR.html#fromCBOR"><span class="hs-identifier hs-var">fromCBOR</span></a><span>
-</span><a name="line-51"></a><span>
-</span><a name="line-52"></a><span class="hs-comment">-- | Strict variant of 'deserialize'.</span><span>
-</span><a name="line-53"></a><span class="hs-identifier">unsafeDeserialize'</span><span> </span><span class="hs-glyph">::</span><span> </span><a href="Cardano.Binary.FromCBOR.html#FromCBOR"><span class="hs-identifier hs-type">FromCBOR</span></a><span> </span><a href="#local-6989586621679079614"><span class="hs-identifier hs-type">a</span></a><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="hs-identifier hs-type">ByteString</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><a href="#local-6989586621679079614"><span class="hs-identifier hs-type">a</span></a><span>
-</span><a name="line-54"></a><a name="unsafeDeserialize%27"><a href="Cardano.Binary.Deserialize.html#unsafeDeserialize%27"><span class="hs-identifier">unsafeDeserialize'</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><a href="Cardano.Binary.Deserialize.html#unsafeDeserialize"><span class="hs-identifier hs-var">unsafeDeserialize</span></a><span> </span><span class="hs-operator hs-var">.</span><span> </span><span class="hs-identifier hs-var">BSL.fromStrict</span><span>
-</span><a name="line-55"></a><span>
-</span><a name="line-56"></a><span class="hs-comment">-- | Deserialize a Haskell value from the external binary representation,</span><span>
-</span><a name="line-57"></a><span class="hs-comment">--   failing if there are leftovers. In a nutshell, the `full` here implies</span><span>
-</span><a name="line-58"></a><span class="hs-comment">--   the contract of this function is that what you feed as input needs to</span><span>
-</span><a name="line-59"></a><span class="hs-comment">--   be consumed entirely.</span><span>
-</span><a name="line-60"></a><span class="hs-identifier">decodeFull</span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-keyword">forall</span><span> </span><a name="local-6989586621679079613"><a href="#local-6989586621679079613"><span class="hs-identifier">a</span></a></a><span> </span><span class="hs-operator">.</span><span> </span><a href="Cardano.Binary.FromCBOR.html#FromCBOR"><span class="hs-identifier hs-type">FromCBOR</span></a><span> </span><a href="#local-6989586621679079613"><span class="hs-identifier hs-type">a</span></a><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="hs-identifier hs-type">LByteString</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">Either</span><span> </span><a href="Cardano.Binary.FromCBOR.html#DecoderError"><span class="hs-identifier hs-type">DecoderError</span></a><span> </span><a href="#local-6989586621679079613"><span class="hs-identifier hs-type">a</span></a><span>
-</span><a name="line-61"></a><a name="decodeFull"><a href="Cardano.Binary.Deserialize.html#decodeFull"><span class="hs-identifier">decodeFull</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><a href="Cardano.Binary.Deserialize.html#decodeFullDecoder"><span class="hs-identifier hs-var">decodeFullDecoder</span></a><span> </span><span class="hs-special">(</span><span class="hs-keyword">label</span><span> </span><span class="hs-operator hs-var">$</span><span> </span><span class="hs-identifier hs-var">Proxy</span><span> </span><span class="hs-glyph">@</span><a href="#local-6989586621679079613"><span class="hs-identifier hs-type">a</span></a><span class="hs-special">)</span><span> </span><a href="Cardano.Binary.FromCBOR.html#fromCBOR"><span class="hs-identifier hs-var">fromCBOR</span></a><span>
-</span><a name="line-62"></a><span>
-</span><a name="line-63"></a><span class="hs-identifier">decodeFull'</span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-keyword">forall</span><span> </span><a name="local-6989586621679079612"><a href="#local-6989586621679079612"><span class="hs-identifier">a</span></a></a><span> </span><span class="hs-operator">.</span><span> </span><a href="Cardano.Binary.FromCBOR.html#FromCBOR"><span class="hs-identifier hs-type">FromCBOR</span></a><span> </span><a href="#local-6989586621679079612"><span class="hs-identifier hs-type">a</span></a><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="hs-identifier hs-type">ByteString</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">Either</span><span> </span><a href="Cardano.Binary.FromCBOR.html#DecoderError"><span class="hs-identifier hs-type">DecoderError</span></a><span> </span><a href="#local-6989586621679079612"><span class="hs-identifier hs-type">a</span></a><span>
-</span><a name="line-64"></a><a name="decodeFull%27"><a href="Cardano.Binary.Deserialize.html#decodeFull%27"><span class="hs-identifier">decodeFull'</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><a href="Cardano.Binary.Deserialize.html#decodeFull"><span class="hs-identifier hs-var">decodeFull</span></a><span> </span><span class="hs-operator hs-var">.</span><span> </span><span class="hs-identifier hs-var">BSL.fromStrict</span><span>
-</span><a name="line-65"></a><span>
-</span><a name="line-66"></a><span class="hs-identifier">decodeFullDecoder</span><span>
-</span><a name="line-67"></a><span>  </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">Text</span><span>
-</span><a name="line-68"></a><span>  </span><span class="hs-comment">-- ^ Label for error reporting</span><span>
-</span><a name="line-69"></a><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">(</span><span class="hs-keyword">forall</span><span> </span><a name="local-6989586621679079611"><a href="#local-6989586621679079611"><span class="hs-identifier">s</span></a></a><span> </span><span class="hs-operator">.</span><span> </span><span class="hs-identifier hs-type">D.Decoder</span><span> </span><a href="#local-6989586621679079611"><span class="hs-identifier hs-type">s</span></a><span> </span><a href="#local-6989586621679079610"><span class="hs-identifier hs-type">a</span></a><span class="hs-special">)</span><span>
-</span><a name="line-70"></a><span>  </span><span class="hs-comment">-- ^ The parser for the @ByteString@ to decode. It should decode the given</span><span>
-</span><a name="line-71"></a><span>  </span><span class="hs-comment">-- @ByteString@ into a value of type @a@</span><span>
-</span><a name="line-72"></a><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">LByteString</span><span>
-</span><a name="line-73"></a><span>  </span><span class="hs-comment">-- ^ The @ByteString@ to decode</span><span>
-</span><a name="line-74"></a><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">Either</span><span> </span><a href="Cardano.Binary.FromCBOR.html#DecoderError"><span class="hs-identifier hs-type">DecoderError</span></a><span> </span><a href="#local-6989586621679079610"><span class="hs-identifier hs-type">a</span></a><span>
-</span><a name="line-75"></a><a name="decodeFullDecoder"><a href="Cardano.Binary.Deserialize.html#decodeFullDecoder"><span class="hs-identifier">decodeFullDecoder</span></a></a><span> </span><a name="local-6989586621679079730"><a href="#local-6989586621679079730"><span class="hs-identifier">lbl</span></a></a><span> </span><a name="local-6989586621679079731"><a href="#local-6989586621679079731"><span class="hs-identifier">decoder</span></a></a><span> </span><a name="local-6989586621679079732"><a href="#local-6989586621679079732"><span class="hs-identifier">bs0</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">case</span><span> </span><a href="Cardano.Binary.Deserialize.html#deserialiseDecoder"><span class="hs-identifier hs-var">deserialiseDecoder</span></a><span> </span><a href="#local-6989586621679079731"><span class="hs-identifier hs-var">decoder</span></a><span> </span><a href="#local-6989586621679079732"><span class="hs-identifier hs-var">bs0</span></a><span> </span><span class="hs-keyword">of</span><span>
-</span><a name="line-76"></a><span>  </span><span class="hs-identifier hs-var">Right</span><span> </span><span class="hs-special">(</span><a name="local-6989586621679079733"><a href="#local-6989586621679079733"><span class="hs-identifier">x</span></a></a><span class="hs-special">,</span><span> </span><a name="local-6989586621679079734"><a href="#local-6989586621679079734"><span class="hs-identifier">leftover</span></a></a><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">if</span><span> </span><span class="hs-identifier hs-var">BS.null</span><span> </span><a href="#local-6989586621679079734"><span class="hs-identifier hs-var">leftover</span></a><span>
-</span><a name="line-77"></a><span>    </span><span class="hs-keyword">then</span><span> </span><span class="hs-identifier hs-var">pure</span><span> </span><a href="#local-6989586621679079733"><span class="hs-identifier hs-var">x</span></a><span>
-</span><a name="line-78"></a><span>    </span><span class="hs-keyword">else</span><span> </span><span class="hs-identifier hs-var">Left</span><span> </span><span class="hs-operator hs-var">$</span><span> </span><a href="Cardano.Binary.FromCBOR.html#DecoderErrorLeftover"><span class="hs-identifier hs-var">DecoderErrorLeftover</span></a><span> </span><a href="#local-6989586621679079730"><span class="hs-identifier hs-var">lbl</span></a><span> </span><a href="#local-6989586621679079734"><span class="hs-identifier hs-var">leftover</span></a><span>
-</span><a name="line-79"></a><span>  </span><span class="hs-identifier hs-var">Left</span><span> </span><span class="hs-special">(</span><a name="local-6989586621679079735"><a href="#local-6989586621679079735"><span class="hs-identifier">e</span></a></a><span class="hs-special">,</span><span> </span><span class="hs-identifier">_</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-var">Left</span><span> </span><span class="hs-operator hs-var">$</span><span> </span><a href="Cardano.Binary.FromCBOR.html#DecoderErrorDeserialiseFailure"><span class="hs-identifier hs-var">DecoderErrorDeserialiseFailure</span></a><span> </span><a href="#local-6989586621679079730"><span class="hs-identifier hs-var">lbl</span></a><span> </span><a href="#local-6989586621679079735"><span class="hs-identifier hs-var">e</span></a><span>
-</span><a name="line-80"></a><span>
-</span><a name="line-81"></a><span class="hs-comment">-- | Deserialise a 'LByteString' incrementally using the provided 'Decoder'</span><span>
-</span><a name="line-82"></a><span class="hs-identifier">deserialiseDecoder</span><span>
-</span><a name="line-83"></a><span>  </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="hs-keyword">forall</span><span> </span><a name="local-6989586621679079609"><a href="#local-6989586621679079609"><span class="hs-identifier">s</span></a></a><span> </span><span class="hs-operator">.</span><span> </span><span class="hs-identifier hs-type">D.Decoder</span><span> </span><a href="#local-6989586621679079609"><span class="hs-identifier hs-type">s</span></a><span> </span><a href="#local-6989586621679079608"><span class="hs-identifier hs-type">a</span></a><span class="hs-special">)</span><span>
-</span><a name="line-84"></a><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">LByteString</span><span>
-</span><a name="line-85"></a><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">Either</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Read.DeserialiseFailure</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">ByteString</span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><a href="#local-6989586621679079608"><span class="hs-identifier hs-type">a</span></a><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">ByteString</span><span class="hs-special">)</span><span>
-</span><a name="line-86"></a><a name="deserialiseDecoder"><a href="Cardano.Binary.Deserialize.html#deserialiseDecoder"><span class="hs-identifier">deserialiseDecoder</span></a></a><span> </span><a name="local-6989586621679079736"><a href="#local-6989586621679079736"><span class="hs-identifier">decoder</span></a></a><span> </span><a name="local-6989586621679079737"><a href="#local-6989586621679079737"><span class="hs-identifier">bs0</span></a></a><span> </span><span class="hs-glyph">=</span><span>
-</span><a name="line-87"></a><span>  </span><span class="hs-identifier hs-var">runST</span><span> </span><span class="hs-special">(</span><a href="Cardano.Binary.Deserialize.html#supplyAllInput"><span class="hs-identifier hs-var">supplyAllInput</span></a><span> </span><a href="#local-6989586621679079737"><span class="hs-identifier hs-var">bs0</span></a><span> </span><span class="hs-operator hs-var">=&lt;&lt;</span><span> </span><span class="hs-identifier hs-var">Read.deserialiseIncremental</span><span> </span><a href="#local-6989586621679079736"><span class="hs-identifier hs-var">decoder</span></a><span class="hs-special">)</span><span>
-</span><a name="line-88"></a><span>
-</span><a name="line-89"></a><span class="hs-identifier">supplyAllInput</span><span>
-</span><a name="line-90"></a><span>  </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">LByteString</span><span>
-</span><a name="line-91"></a><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">Read.IDecode</span><span> </span><a href="#local-6989586621679079499"><span class="hs-identifier hs-type">s</span></a><span> </span><a href="#local-6989586621679079500"><span class="hs-identifier hs-type">a</span></a><span>
-</span><a name="line-92"></a><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">ST</span><span> </span><a href="#local-6989586621679079499"><span class="hs-identifier hs-type">s</span></a><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Either</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Read.DeserialiseFailure</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">ByteString</span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><a href="#local-6989586621679079500"><span class="hs-identifier hs-type">a</span></a><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">ByteString</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
-</span><a name="line-93"></a><a name="supplyAllInput"><a href="Cardano.Binary.Deserialize.html#supplyAllInput"><span class="hs-identifier">supplyAllInput</span></a></a><span> </span><a name="local-6989586621679079738"><a href="#local-6989586621679079738"><span class="hs-identifier">bs'</span></a></a><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-var">Read.Done</span><span> </span><a name="local-6989586621679079739"><a href="#local-6989586621679079739"><span class="hs-identifier">bs</span></a></a><span> </span><span class="hs-identifier">_</span><span> </span><a name="local-6989586621679079740"><a href="#local-6989586621679079740"><span class="hs-identifier">x</span></a></a><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span>
-</span><a name="line-94"></a><span>  </span><span class="hs-identifier hs-var">return</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-var">Right</span><span> </span><span class="hs-special">(</span><a href="#local-6989586621679079740"><span class="hs-identifier hs-var">x</span></a><span class="hs-special">,</span><span> </span><a href="#local-6989586621679079739"><span class="hs-identifier hs-var">bs</span></a><span> </span><span class="hs-operator hs-var">&lt;&gt;</span><span> </span><span class="hs-identifier hs-var">BSL.toStrict</span><span> </span><a href="#local-6989586621679079738"><span class="hs-identifier hs-var">bs'</span></a><span class="hs-special">)</span><span class="hs-special">)</span><span>
-</span><a name="line-95"></a><span class="hs-identifier">supplyAllInput</span><span> </span><a name="local-6989586621679079741"><a href="#local-6989586621679079741"><span class="hs-identifier">bs</span></a></a><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-var">Read.Partial</span><span> </span><a name="local-6989586621679079742"><a href="#local-6989586621679079742"><span class="hs-identifier">k</span></a></a><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">case</span><span> </span><a href="#local-6989586621679079741"><span class="hs-identifier hs-var">bs</span></a><span> </span><span class="hs-keyword">of</span><span>
-</span><a name="line-96"></a><span>  </span><span class="hs-identifier hs-var">BSL.Chunk</span><span> </span><a name="local-6989586621679079743"><a href="#local-6989586621679079743"><span class="hs-identifier">chunk</span></a></a><span> </span><a name="local-6989586621679079744"><a href="#local-6989586621679079744"><span class="hs-identifier">bs'</span></a></a><span> </span><span class="hs-glyph">-&gt;</span><span> </span><a href="#local-6989586621679079742"><span class="hs-identifier hs-var">k</span></a><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-var">Just</span><span> </span><a href="#local-6989586621679079743"><span class="hs-identifier hs-var">chunk</span></a><span class="hs-special">)</span><span> </span><span class="hs-operator hs-var">&gt;&gt;=</span><span> </span><a href="Cardano.Binary.Deserialize.html#supplyAllInput"><span class="hs-identifier hs-var">supplyAllInput</span></a><span> </span><a href="#local-6989586621679079744"><span class="hs-identifier hs-var">bs'</span></a><span>
-</span><a name="line-97"></a><span>  </span><span class="hs-identifier hs-var">BSL.Empty</span><span>           </span><span class="hs-glyph">-&gt;</span><span> </span><a href="#local-6989586621679079742"><span class="hs-identifier hs-var">k</span></a><span> </span><span class="hs-identifier hs-var">Nothing</span><span> </span><span class="hs-operator hs-var">&gt;&gt;=</span><span> </span><a href="Cardano.Binary.Deserialize.html#supplyAllInput"><span class="hs-identifier hs-var">supplyAllInput</span></a><span> </span><span class="hs-identifier hs-var">BSL.Empty</span><span>
-</span><a name="line-98"></a><span class="hs-identifier">supplyAllInput</span><span> </span><span class="hs-identifier">_</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-var">Read.Fail</span><span> </span><a name="local-6989586621679079745"><a href="#local-6989586621679079745"><span class="hs-identifier">bs</span></a></a><span> </span><span class="hs-identifier">_</span><span> </span><a name="local-6989586621679079746"><a href="#local-6989586621679079746"><span class="hs-identifier">exn</span></a></a><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-identifier hs-var">return</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-var">Left</span><span> </span><span class="hs-special">(</span><a href="#local-6989586621679079746"><span class="hs-identifier hs-var">exn</span></a><span class="hs-special">,</span><span> </span><a href="#local-6989586621679079745"><span class="hs-identifier hs-var">bs</span></a><span class="hs-special">)</span><span class="hs-special">)</span><span>
-</span><a name="line-99"></a><span>
-</span><a name="line-100"></a><span>
-</span><a name="line-101"></a><span class="hs-comment">--------------------------------------------------------------------------------</span><span>
-</span><a name="line-102"></a><span class="hs-comment">-- Nested CBOR-in-CBOR</span><span>
-</span><a name="line-103"></a><span class="hs-comment">-- https://tools.ietf.org/html/rfc7049#section-2.4.4.1</span><span>
-</span><a name="line-104"></a><span class="hs-comment">--------------------------------------------------------------------------------</span><span>
-</span><a name="line-105"></a><span>
-</span><a name="line-106"></a><span class="hs-comment">-- | Remove the the semantic tag 24 from the enclosed CBOR data item,</span><span>
-</span><a name="line-107"></a><span class="hs-comment">-- failing if the tag cannot be found.</span><span>
-</span><a name="line-108"></a><span class="hs-identifier">decodeNestedCborTag</span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">D.Decoder</span><span> </span><a href="#local-6989586621679079498"><span class="hs-identifier hs-type">s</span></a><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
-</span><a name="line-109"></a><a name="decodeNestedCborTag"><a href="Cardano.Binary.Deserialize.html#decodeNestedCborTag"><span class="hs-identifier">decodeNestedCborTag</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
-</span><a name="line-110"></a><span>  </span><a name="local-6989586621679079747"><a href="#local-6989586621679079747"><span class="hs-identifier">t</span></a></a><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="hs-identifier hs-var">D.decodeTag</span><span>
-</span><a name="line-111"></a><span>  </span><span class="hs-identifier hs-var">when</span><span> </span><span class="hs-special">(</span><a href="#local-6989586621679079747"><span class="hs-identifier hs-var">t</span></a><span> </span><span class="hs-operator hs-var">/=</span><span> </span><span class="hs-number">24</span><span class="hs-special">)</span><span> </span><span class="hs-operator hs-var">$</span><span> </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-prelude-0.1.0.0/noopt/doc/html/cardano-prelude/src/Cardano.Prelude.Error.html#cborError"><span class="hs-identifier hs-var">cborError</span></a><span> </span><span class="hs-operator hs-var">$</span><span> </span><a href="Cardano.Binary.FromCBOR.html#DecoderErrorUnknownTag"><span class="hs-identifier hs-var">DecoderErrorUnknownTag</span></a><span>
-</span><a name="line-112"></a><span>    </span><span class="hs-string">&quot;decodeNestedCborTag&quot;</span><span>
-</span><a name="line-113"></a><span>    </span><span class="hs-special">(</span><span class="hs-identifier hs-var">fromIntegral</span><span> </span><a href="#local-6989586621679079747"><span class="hs-identifier hs-var">t</span></a><span class="hs-special">)</span><span>
-</span><a name="line-114"></a><span>
-</span><a name="line-115"></a><span class="hs-comment">-- | Remove the the semantic tag 24 from the enclosed CBOR data item,</span><span>
-</span><a name="line-116"></a><span class="hs-comment">-- decoding back the inner `ByteString` as a proper Haskell type.</span><span>
-</span><a name="line-117"></a><span class="hs-comment">-- Consume its input in full.</span><span>
-</span><a name="line-118"></a><span class="hs-identifier">decodeNestedCbor</span><span> </span><span class="hs-glyph">::</span><span> </span><a href="Cardano.Binary.FromCBOR.html#FromCBOR"><span class="hs-identifier hs-type">FromCBOR</span></a><span> </span><a href="#local-6989586621679079496"><span class="hs-identifier hs-type">a</span></a><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="hs-identifier hs-type">D.Decoder</span><span> </span><a href="#local-6989586621679079497"><span class="hs-identifier hs-type">s</span></a><span> </span><a href="#local-6989586621679079496"><span class="hs-identifier hs-type">a</span></a><span>
-</span><a name="line-119"></a><a name="decodeNestedCbor"><a href="Cardano.Binary.Deserialize.html#decodeNestedCbor"><span class="hs-identifier">decodeNestedCbor</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
-</span><a name="line-120"></a><span>  </span><a name="local-6989586621679079748"><a href="#local-6989586621679079748"><span class="hs-identifier">bs</span></a></a><span> </span><span class="hs-glyph">&lt;-</span><span> </span><a href="Cardano.Binary.Deserialize.html#decodeNestedCborBytes"><span class="hs-identifier hs-var">decodeNestedCborBytes</span></a><span>
-</span><a name="line-121"></a><span>  </span><a href="file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.6.5/cardano-prelude-0.1.0.0/noopt/doc/html/cardano-prelude/src/Cardano.Prelude.Error.html#toCborError"><span class="hs-identifier hs-var">toCborError</span></a><span> </span><span class="hs-operator hs-var">$</span><span> </span><a href="Cardano.Binary.Deserialize.html#decodeFull%27"><span class="hs-identifier hs-var">decodeFull'</span></a><span> </span><a href="#local-6989586621679079748"><span class="hs-identifier hs-var">bs</span></a><span>
-</span><a name="line-122"></a><span>
-</span><a name="line-123"></a><span class="hs-comment">-- | Like `decodeKnownCborDataItem`, but assumes nothing about the Haskell</span><span>
-</span><a name="line-124"></a><span class="hs-comment">-- type we want to deserialise back, therefore it yields the `ByteString`</span><span>
-</span><a name="line-125"></a><span class="hs-comment">-- Tag 24 surrounded (stripping such tag away).</span><span>
-</span><a name="line-126"></a><span class="hs-comment">--</span><span>
-</span><a name="line-127"></a><span class="hs-comment">-- In CBOR notation, if the data was serialised as:</span><span>
-</span><a name="line-128"></a><span class="hs-comment">--</span><span>
-</span><a name="line-129"></a><span class="hs-comment">-- &gt;&gt;&gt; 24(h'DEADBEEF')</span><span>
-</span><a name="line-130"></a><span class="hs-comment">--</span><span>
-</span><a name="line-131"></a><span class="hs-comment">-- then `decodeNestedCborBytes` yields the inner 'DEADBEEF', unchanged.</span><span>
-</span><a name="line-132"></a><span class="hs-identifier">decodeNestedCborBytes</span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">D.Decoder</span><span> </span><a href="#local-6989586621679079495"><span class="hs-identifier hs-type">s</span></a><span> </span><span class="hs-identifier hs-type">ByteString</span><span>
-</span><a name="line-133"></a><a name="decodeNestedCborBytes"><a href="Cardano.Binary.Deserialize.html#decodeNestedCborBytes"><span class="hs-identifier">decodeNestedCborBytes</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
-</span><a name="line-134"></a><span>  </span><a href="Cardano.Binary.Deserialize.html#decodeNestedCborTag"><span class="hs-identifier hs-var">decodeNestedCborTag</span></a><span>
-</span><a name="line-135"></a><span>  </span><span class="hs-identifier hs-var">D.decodeBytes</span><span>
-</span><a name="line-136"></a></pre></body></html>
+</span><span id="line-2"></span><span class="hs-pragma">{-# LANGUAGE FlexibleInstances     #-}</span><span>
+</span><span id="line-3"></span><span class="hs-pragma">{-# LANGUAGE MultiParamTypeClasses #-}</span><span>
+</span><span id="line-4"></span><span class="hs-pragma">{-# LANGUAGE OverloadedStrings     #-}</span><span>
+</span><span id="line-5"></span><span class="hs-pragma">{-# LANGUAGE RankNTypes            #-}</span><span>
+</span><span id="line-6"></span><span class="hs-pragma">{-# LANGUAGE ScopedTypeVariables   #-}</span><span>
+</span><span id="line-7"></span><span class="hs-pragma">{-# LANGUAGE TypeApplications      #-}</span><span>
+</span><span id="line-8"></span><span>
+</span><span id="line-9"></span><span class="hs-comment">-- | Deserialization primitives built on top of the @FromCBOR@ typeclass</span><span>
+</span><span id="line-10"></span><span>
+</span><span id="line-11"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Cardano.Binary.Deserialize</span><span>
+</span><span id="line-12"></span><span>  </span><span class="hs-special">(</span><span>
+</span><span id="line-13"></span><span>  </span><span class="annot"><span class="hs-comment">-- * Unsafe deserialization</span></span><span>
+</span><span id="line-14"></span><span>    </span><span class="annot"><a href="Cardano.Binary.Deserialize.html#unsafeDeserialize"><span class="hs-identifier">unsafeDeserialize</span></a></span><span>
+</span><span id="line-15"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cardano.Binary.Deserialize.html#unsafeDeserialize%27"><span class="hs-identifier">unsafeDeserialize'</span></a></span><span>
+</span><span id="line-16"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">CBOR.Write.toStrictByteString</span></span><span>
+</span><span id="line-17"></span><span>
+</span><span id="line-18"></span><span>  </span><span class="annot"><span class="hs-comment">-- * Backward-compatible functions</span></span><span>
+</span><span id="line-19"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cardano.Binary.Deserialize.html#decodeFull"><span class="hs-identifier">decodeFull</span></a></span><span>
+</span><span id="line-20"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cardano.Binary.Deserialize.html#decodeFull%27"><span class="hs-identifier">decodeFull'</span></a></span><span>
+</span><span id="line-21"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cardano.Binary.Deserialize.html#decodeFullDecoder"><span class="hs-identifier">decodeFullDecoder</span></a></span><span>
+</span><span id="line-22"></span><span>
+</span><span id="line-23"></span><span>  </span><span class="annot"><span class="hs-comment">-- * CBOR in CBOR</span></span><span>
+</span><span id="line-24"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cardano.Binary.Deserialize.html#decodeNestedCbor"><span class="hs-identifier">decodeNestedCbor</span></a></span><span>
+</span><span id="line-25"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cardano.Binary.Deserialize.html#decodeNestedCborBytes"><span class="hs-identifier">decodeNestedCborBytes</span></a></span><span>
+</span><span id="line-26"></span><span>  </span><span class="hs-special">)</span><span>
+</span><span id="line-27"></span><span class="hs-keyword">where</span><span>
+</span><span id="line-28"></span><span>
+</span><span id="line-29"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-prelude-0.1.0.0/noopt/doc/html/cardano-prelude/src"><span class="hs-identifier">Cardano.Prelude</span></a></span><span>
+</span><span id="line-30"></span><span>
+</span><span id="line-31"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Codec.CBOR.Decoding</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">D</span></span><span>
+</span><span id="line-32"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Codec.CBOR.Read</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Read</span></span><span>
+</span><span id="line-33"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Codec.CBOR.Write</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">CBOR.Write</span></span><span>
+</span><span id="line-34"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Control.Exception.Safe</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">impureThrow</span></span><span class="hs-special">)</span><span>
+</span><span id="line-35"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Data.ByteString</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">BS</span></span><span>
+</span><span id="line-36"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Data.ByteString.Lazy</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">BSL</span></span><span>
+</span><span id="line-37"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Data.ByteString.Lazy.Internal</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">BSL</span></span><span>
+</span><span id="line-38"></span><span>
+</span><span id="line-39"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Cardano.Binary.FromCBOR.html"><span class="hs-identifier">Cardano.Binary.FromCBOR</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cardano.Binary.FromCBOR.html#DecoderError"><span class="hs-identifier">DecoderError</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cardano.Binary.FromCBOR.html#FromCBOR"><span class="hs-identifier">FromCBOR</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-40"></span><span>
+</span><span id="line-41"></span><span>
+</span><span id="line-42"></span><span class="hs-comment">-- | Deserialize a Haskell value from the external binary representation</span><span>
+</span><span id="line-43"></span><span class="hs-comment">--   (which must have been made using 'serialize' or related function).</span><span>
+</span><span id="line-44"></span><span class="hs-comment">--</span><span>
+</span><span id="line-45"></span><span class="hs-comment">--   /Throws/: @'Read.DeserialiseFailure'@ if the given external</span><span>
+</span><span id="line-46"></span><span class="hs-comment">--   representation is invalid or does not correspond to a value of the</span><span>
+</span><span id="line-47"></span><span class="hs-comment">--   expected type.</span><span>
+</span><span id="line-48"></span><span id="local-6989586621679098252"><span class="annot"><a href="Cardano.Binary.Deserialize.html#unsafeDeserialize"><span class="hs-identifier hs-type">unsafeDeserialize</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cardano.Binary.FromCBOR.html#FromCBOR"><span class="hs-identifier hs-type">FromCBOR</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679098252"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">LByteString</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679098252"><span class="hs-identifier hs-type">a</span></a></span></span><span>
+</span><span id="line-49"></span><span id="unsafeDeserialize"><span class="annot"><span class="annottext">unsafeDeserialize :: LByteString -&gt; a
+</span><a href="Cardano.Binary.Deserialize.html#unsafeDeserialize"><span class="hs-identifier hs-var hs-var">unsafeDeserialize</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-50"></span><span>  </span><span class="annot"><span class="annottext">(DeserialiseFailure -&gt; a)
+-&gt; (a -&gt; a) -&gt; Either DeserialiseFailure a -&gt; a
+forall a c b. (a -&gt; c) -&gt; (b -&gt; c) -&gt; Either a b -&gt; c
+</span><span class="hs-identifier hs-var">either</span></span><span> </span><span class="annot"><span class="annottext">DeserialiseFailure -&gt; a
+forall e a. Exception e =&gt; e -&gt; a
+</span><span class="hs-identifier hs-var">impureThrow</span></span><span> </span><span class="annot"><span class="annottext">a -&gt; a
+forall (cat :: * -&gt; * -&gt; *) a. Category cat =&gt; cat a a
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-prelude-0.1.0.0/noopt/doc/html/cardano-prelude/src"><span class="hs-identifier hs-var">identity</span></a></span><span> </span><span class="annot"><span class="annottext">(Either DeserialiseFailure a -&gt; a)
+-&gt; (LByteString -&gt; Either DeserialiseFailure a) -&gt; LByteString -&gt; a
+forall k (cat :: k -&gt; k -&gt; *) (b :: k) (c :: k) (a :: k).
+Category cat =&gt;
+cat b c -&gt; cat a b -&gt; cat a c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">((DeserialiseFailure, ByteString) -&gt; DeserialiseFailure)
+-&gt; ((a, ByteString) -&gt; a)
+-&gt; Either (DeserialiseFailure, ByteString) (a, ByteString)
+-&gt; Either DeserialiseFailure a
+forall (p :: * -&gt; * -&gt; *) a b c d.
+Bifunctor p =&gt;
+(a -&gt; b) -&gt; (c -&gt; d) -&gt; p a c -&gt; p b d
+</span><span class="hs-identifier hs-var">bimap</span></span><span> </span><span class="annot"><span class="annottext">(DeserialiseFailure, ByteString) -&gt; DeserialiseFailure
+forall a b. (a, b) -&gt; a
+</span><span class="hs-identifier hs-var">fst</span></span><span> </span><span class="annot"><span class="annottext">(a, ByteString) -&gt; a
+forall a b. (a, b) -&gt; a
+</span><span class="hs-identifier hs-var">fst</span></span><span> </span><span class="annot"><span class="annottext">(Either (DeserialiseFailure, ByteString) (a, ByteString)
+ -&gt; Either DeserialiseFailure a)
+-&gt; (LByteString
+    -&gt; Either (DeserialiseFailure, ByteString) (a, ByteString))
+-&gt; LByteString
+-&gt; Either DeserialiseFailure a
+forall k (cat :: k -&gt; k -&gt; *) (b :: k) (c :: k) (a :: k).
+Category cat =&gt;
+cat b c -&gt; cat a b -&gt; cat a c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">(forall s. Decoder s a)
+-&gt; LByteString
+-&gt; Either (DeserialiseFailure, ByteString) (a, ByteString)
+forall a.
+(forall s. Decoder s a)
+-&gt; LByteString
+-&gt; Either (DeserialiseFailure, ByteString) (a, ByteString)
+</span><a href="Cardano.Binary.Deserialize.html#deserialiseDecoder"><span class="hs-identifier hs-var">deserialiseDecoder</span></a></span><span> </span><span class="annot"><span class="annottext">forall s. Decoder s a
+forall a s. FromCBOR a =&gt; Decoder s a
+</span><a href="Cardano.Binary.FromCBOR.html#fromCBOR"><span class="hs-identifier hs-var">fromCBOR</span></a></span><span>
+</span><span id="line-51"></span><span>
+</span><span id="line-52"></span><span class="hs-comment">-- | Strict variant of 'deserialize'.</span><span>
+</span><span id="line-53"></span><span id="local-6989586621679098177"><span class="annot"><a href="Cardano.Binary.Deserialize.html#unsafeDeserialize%27"><span class="hs-identifier hs-type">unsafeDeserialize'</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cardano.Binary.FromCBOR.html#FromCBOR"><span class="hs-identifier hs-type">FromCBOR</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679098177"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">ByteString</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679098177"><span class="hs-identifier hs-type">a</span></a></span></span><span>
+</span><span id="line-54"></span><span id="unsafeDeserialize%27"><span class="annot"><span class="annottext">unsafeDeserialize' :: ByteString -&gt; a
+</span><a href="Cardano.Binary.Deserialize.html#unsafeDeserialize%27"><span class="hs-identifier hs-var hs-var">unsafeDeserialize'</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">LByteString -&gt; a
+forall a. FromCBOR a =&gt; LByteString -&gt; a
+</span><a href="Cardano.Binary.Deserialize.html#unsafeDeserialize"><span class="hs-identifier hs-var">unsafeDeserialize</span></a></span><span> </span><span class="annot"><span class="annottext">(LByteString -&gt; a)
+-&gt; (ByteString -&gt; LByteString) -&gt; ByteString -&gt; a
+forall k (cat :: k -&gt; k -&gt; *) (b :: k) (c :: k) (a :: k).
+Category cat =&gt;
+cat b c -&gt; cat a b -&gt; cat a c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">ByteString -&gt; LByteString
+</span><span class="hs-identifier hs-var">BSL.fromStrict</span></span><span>
+</span><span id="line-55"></span><span>
+</span><span id="line-56"></span><span class="hs-comment">-- | Deserialize a Haskell value from the external binary representation,</span><span>
+</span><span id="line-57"></span><span class="hs-comment">--   failing if there are leftovers. In a nutshell, the `full` here implies</span><span>
+</span><span id="line-58"></span><span class="hs-comment">--   the contract of this function is that what you feed as input needs to</span><span>
+</span><span id="line-59"></span><span class="hs-comment">--   be consumed entirely.</span><span>
+</span><span id="line-60"></span><span class="annot"><a href="Cardano.Binary.Deserialize.html#decodeFull"><span class="hs-identifier hs-type">decodeFull</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-keyword">forall</span><span> </span><span id="local-6989586621679098239"><span class="annot"><a href="#local-6989586621679098239"><span class="hs-identifier hs-type">a</span></a></span></span><span> </span><span class="hs-operator">.</span><span> </span><span class="annot"><a href="Cardano.Binary.FromCBOR.html#FromCBOR"><span class="hs-identifier hs-type">FromCBOR</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679098239"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">LByteString</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Either</span></span><span> </span><span class="annot"><a href="Cardano.Binary.FromCBOR.html#DecoderError"><span class="hs-identifier hs-type">DecoderError</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679098239"><span class="hs-identifier hs-type">a</span></a></span><span>
+</span><span id="line-61"></span><span id="decodeFull"><span class="annot"><span class="annottext">decodeFull :: LByteString -&gt; Either DecoderError a
+</span><a href="Cardano.Binary.Deserialize.html#decodeFull"><span class="hs-identifier hs-var hs-var">decodeFull</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Text
+-&gt; (forall s. Decoder s a) -&gt; LByteString -&gt; Either DecoderError a
+forall a.
+Text
+-&gt; (forall s. Decoder s a) -&gt; LByteString -&gt; Either DecoderError a
+</span><a href="Cardano.Binary.Deserialize.html#decodeFullDecoder"><span class="hs-identifier hs-var">decodeFullDecoder</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Proxy a -&gt; Text
+forall a. FromCBOR a =&gt; Proxy a -&gt; Text
+</span><a href="Cardano.Binary.FromCBOR.html#label"><span class="hs-keyword hs-var">label</span></a></span><span> </span><span class="annot"><span class="annottext">(Proxy a -&gt; Text) -&gt; Proxy a -&gt; Text
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Proxy a
+forall k (t :: k). Proxy t
+</span><span class="hs-identifier hs-var">Proxy</span></span><span> </span><span class="hs-glyph">@</span><span class="annot"><a href="#local-6989586621679098239"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">forall s. Decoder s a
+forall a s. FromCBOR a =&gt; Decoder s a
+</span><a href="Cardano.Binary.FromCBOR.html#fromCBOR"><span class="hs-identifier hs-var">fromCBOR</span></a></span><span>
+</span><span id="line-62"></span><span>
+</span><span id="line-63"></span><span class="annot"><a href="Cardano.Binary.Deserialize.html#decodeFull%27"><span class="hs-identifier hs-type">decodeFull'</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-keyword">forall</span><span> </span><span id="local-6989586621679098195"><span class="annot"><a href="#local-6989586621679098195"><span class="hs-identifier hs-type">a</span></a></span></span><span> </span><span class="hs-operator">.</span><span> </span><span class="annot"><a href="Cardano.Binary.FromCBOR.html#FromCBOR"><span class="hs-identifier hs-type">FromCBOR</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679098195"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">ByteString</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Either</span></span><span> </span><span class="annot"><a href="Cardano.Binary.FromCBOR.html#DecoderError"><span class="hs-identifier hs-type">DecoderError</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679098195"><span class="hs-identifier hs-type">a</span></a></span><span>
+</span><span id="line-64"></span><span id="decodeFull%27"><span class="annot"><span class="annottext">decodeFull' :: ByteString -&gt; Either DecoderError a
+</span><a href="Cardano.Binary.Deserialize.html#decodeFull%27"><span class="hs-identifier hs-var hs-var">decodeFull'</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">LByteString -&gt; Either DecoderError a
+forall a. FromCBOR a =&gt; LByteString -&gt; Either DecoderError a
+</span><a href="Cardano.Binary.Deserialize.html#decodeFull"><span class="hs-identifier hs-var">decodeFull</span></a></span><span> </span><span class="annot"><span class="annottext">(LByteString -&gt; Either DecoderError a)
+-&gt; (ByteString -&gt; LByteString)
+-&gt; ByteString
+-&gt; Either DecoderError a
+forall k (cat :: k -&gt; k -&gt; *) (b :: k) (c :: k) (a :: k).
+Category cat =&gt;
+cat b c -&gt; cat a b -&gt; cat a c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">ByteString -&gt; LByteString
+</span><span class="hs-identifier hs-var">BSL.fromStrict</span></span><span>
+</span><span id="line-65"></span><span>
+</span><span id="line-66"></span><span id="local-6989586621679098247"><span class="annot"><a href="Cardano.Binary.Deserialize.html#decodeFullDecoder"><span class="hs-identifier hs-type">decodeFullDecoder</span></a></span><span>
+</span><span id="line-67"></span><span>  </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Text</span></span><span>
+</span><span id="line-68"></span><span>  </span><span class="hs-comment">-- ^ Label for error reporting</span><span>
+</span><span id="line-69"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">(</span><span class="hs-keyword">forall</span><span> </span><span id="local-6989586621679098248"><span class="annot"><a href="#local-6989586621679098248"><span class="hs-identifier hs-type">s</span></a></span></span><span> </span><span class="hs-operator">.</span><span> </span><span class="annot"><span class="hs-identifier hs-type">D.Decoder</span></span><span> </span><span class="annot"><a href="#local-6989586621679098248"><span class="hs-identifier hs-type">s</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679098247"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-70"></span><span>  </span><span class="hs-comment">-- ^ The parser for the @ByteString@ to decode. It should decode the given</span><span>
+</span><span id="line-71"></span><span>  </span><span class="hs-comment">-- @ByteString@ into a value of type @a@</span><span>
+</span><span id="line-72"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">LByteString</span></span><span>
+</span><span id="line-73"></span><span>  </span><span class="hs-comment">-- ^ The @ByteString@ to decode</span><span>
+</span><span id="line-74"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Either</span></span><span> </span><span class="annot"><a href="Cardano.Binary.FromCBOR.html#DecoderError"><span class="hs-identifier hs-type">DecoderError</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679098247"><span class="hs-identifier hs-type">a</span></a></span></span><span>
+</span><span id="line-75"></span><span id="decodeFullDecoder"><span class="annot"><span class="annottext">decodeFullDecoder :: Text
+-&gt; (forall s. Decoder s a) -&gt; LByteString -&gt; Either DecoderError a
+</span><a href="Cardano.Binary.Deserialize.html#decodeFullDecoder"><span class="hs-identifier hs-var hs-var">decodeFullDecoder</span></a></span></span><span> </span><span id="local-6989586621679098173"><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679098173"><span class="hs-identifier hs-var">lbl</span></a></span></span><span> </span><span id="local-6989586621679098172"><span class="annot"><span class="annottext">forall s. Decoder s a
+</span><a href="#local-6989586621679098172"><span class="hs-identifier hs-var">decoder</span></a></span></span><span> </span><span id="local-6989586621679098171"><span class="annot"><span class="annottext">LByteString
+</span><a href="#local-6989586621679098171"><span class="hs-identifier hs-var">bs0</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">(forall s. Decoder s a)
+-&gt; LByteString
+-&gt; Either (DeserialiseFailure, ByteString) (a, ByteString)
+forall a.
+(forall s. Decoder s a)
+-&gt; LByteString
+-&gt; Either (DeserialiseFailure, ByteString) (a, ByteString)
+</span><a href="Cardano.Binary.Deserialize.html#deserialiseDecoder"><span class="hs-identifier hs-var">deserialiseDecoder</span></a></span><span> </span><span class="annot"><span class="annottext">forall s. Decoder s a
+</span><a href="#local-6989586621679098172"><span class="hs-identifier hs-var">decoder</span></a></span><span> </span><span class="annot"><span class="annottext">LByteString
+</span><a href="#local-6989586621679098171"><span class="hs-identifier hs-var">bs0</span></a></span><span> </span><span class="hs-keyword">of</span><span>
+</span><span id="line-76"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Right</span></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679098170"><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679098170"><span class="hs-identifier hs-var">x</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679098169"><span class="annot"><span class="annottext">ByteString
+</span><a href="#local-6989586621679098169"><span class="hs-identifier hs-var">leftover</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">if</span><span> </span><span class="annot"><span class="annottext">ByteString -&gt; Bool
+</span><span class="hs-identifier hs-var">BS.null</span></span><span> </span><span class="annot"><span class="annottext">ByteString
+</span><a href="#local-6989586621679098169"><span class="hs-identifier hs-var">leftover</span></a></span><span>
+</span><span id="line-77"></span><span>    </span><span class="hs-keyword">then</span><span> </span><span class="annot"><span class="annottext">a -&gt; Either DecoderError a
+forall (f :: * -&gt; *) a. Applicative f =&gt; a -&gt; f a
+</span><span class="hs-identifier hs-var">pure</span></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679098170"><span class="hs-identifier hs-var">x</span></a></span><span>
+</span><span id="line-78"></span><span>    </span><span class="hs-keyword">else</span><span> </span><span class="annot"><span class="annottext">DecoderError -&gt; Either DecoderError a
+forall a b. a -&gt; Either a b
+</span><span class="hs-identifier hs-var">Left</span></span><span> </span><span class="annot"><span class="annottext">(DecoderError -&gt; Either DecoderError a)
+-&gt; DecoderError -&gt; Either DecoderError a
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Text -&gt; ByteString -&gt; DecoderError
+</span><a href="Cardano.Binary.FromCBOR.html#DecoderErrorLeftover"><span class="hs-identifier hs-var">DecoderErrorLeftover</span></a></span><span> </span><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679098173"><span class="hs-identifier hs-var">lbl</span></a></span><span> </span><span class="annot"><span class="annottext">ByteString
+</span><a href="#local-6989586621679098169"><span class="hs-identifier hs-var">leftover</span></a></span><span>
+</span><span id="line-79"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Left</span></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679098166"><span class="annot"><span class="annottext">DeserialiseFailure
+</span><a href="#local-6989586621679098166"><span class="hs-identifier hs-var">e</span></a></span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">ByteString
+</span><span class="hs-identifier">_</span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">DecoderError -&gt; Either DecoderError a
+forall a b. a -&gt; Either a b
+</span><span class="hs-identifier hs-var">Left</span></span><span> </span><span class="annot"><span class="annottext">(DecoderError -&gt; Either DecoderError a)
+-&gt; DecoderError -&gt; Either DecoderError a
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Text -&gt; DeserialiseFailure -&gt; DecoderError
+</span><a href="Cardano.Binary.FromCBOR.html#DecoderErrorDeserialiseFailure"><span class="hs-identifier hs-var">DecoderErrorDeserialiseFailure</span></a></span><span> </span><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679098173"><span class="hs-identifier hs-var">lbl</span></a></span><span> </span><span class="annot"><span class="annottext">DeserialiseFailure
+</span><a href="#local-6989586621679098166"><span class="hs-identifier hs-var">e</span></a></span><span>
+</span><span id="line-80"></span><span>
+</span><span id="line-81"></span><span class="hs-comment">-- | Deserialise a 'LByteString' incrementally using the provided 'Decoder'</span><span>
+</span><span id="line-82"></span><span id="local-6989586621679098257"><span class="annot"><a href="Cardano.Binary.Deserialize.html#deserialiseDecoder"><span class="hs-identifier hs-type">deserialiseDecoder</span></a></span><span>
+</span><span id="line-83"></span><span>  </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="hs-keyword">forall</span><span> </span><span id="local-6989586621679098259"><span class="annot"><a href="#local-6989586621679098259"><span class="hs-identifier hs-type">s</span></a></span></span><span> </span><span class="hs-operator">.</span><span> </span><span class="annot"><span class="hs-identifier hs-type">D.Decoder</span></span><span> </span><span class="annot"><a href="#local-6989586621679098259"><span class="hs-identifier hs-type">s</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679098257"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-84"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">LByteString</span></span><span>
+</span><span id="line-85"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Either</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Read.DeserialiseFailure</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">ByteString</span></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="#local-6989586621679098257"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">ByteString</span></span><span class="hs-special">)</span></span><span>
+</span><span id="line-86"></span><span id="deserialiseDecoder"><span class="annot"><span class="annottext">deserialiseDecoder :: (forall s. Decoder s a)
+-&gt; LByteString
+-&gt; Either (DeserialiseFailure, ByteString) (a, ByteString)
+</span><a href="Cardano.Binary.Deserialize.html#deserialiseDecoder"><span class="hs-identifier hs-var hs-var">deserialiseDecoder</span></a></span></span><span> </span><span id="local-6989586621679098164"><span class="annot"><span class="annottext">forall s. Decoder s a
+</span><a href="#local-6989586621679098164"><span class="hs-identifier hs-var">decoder</span></a></span></span><span> </span><span id="local-6989586621679098163"><span class="annot"><span class="annottext">LByteString
+</span><a href="#local-6989586621679098163"><span class="hs-identifier hs-var">bs0</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-87"></span><span>  </span><span class="annot"><span class="annottext">(forall s.
+ ST s (Either (DeserialiseFailure, ByteString) (a, ByteString)))
+-&gt; Either (DeserialiseFailure, ByteString) (a, ByteString)
+forall a. (forall s. ST s a) -&gt; a
+</span><span class="hs-identifier hs-var">runST</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">LByteString
+-&gt; IDecode s a
+-&gt; ST s (Either (DeserialiseFailure, ByteString) (a, ByteString))
+forall s a.
+LByteString
+-&gt; IDecode s a
+-&gt; ST s (Either (DeserialiseFailure, ByteString) (a, ByteString))
+</span><a href="Cardano.Binary.Deserialize.html#supplyAllInput"><span class="hs-identifier hs-var">supplyAllInput</span></a></span><span> </span><span class="annot"><span class="annottext">LByteString
+</span><a href="#local-6989586621679098163"><span class="hs-identifier hs-var">bs0</span></a></span><span> </span><span class="annot"><span class="annottext">(IDecode s a
+ -&gt; ST s (Either (DeserialiseFailure, ByteString) (a, ByteString)))
+-&gt; ST s (IDecode s a)
+-&gt; ST s (Either (DeserialiseFailure, ByteString) (a, ByteString))
+forall (m :: * -&gt; *) a b. Monad m =&gt; (a -&gt; m b) -&gt; m a -&gt; m b
+</span><span class="hs-operator hs-var">=&lt;&lt;</span></span><span> </span><span class="annot"><span class="annottext">Decoder s a -&gt; ST s (IDecode s a)
+forall s a. Decoder s a -&gt; ST s (IDecode s a)
+</span><span class="hs-identifier hs-var">Read.deserialiseIncremental</span></span><span> </span><span class="annot"><span class="annottext">Decoder s a
+forall s. Decoder s a
+</span><a href="#local-6989586621679098164"><span class="hs-identifier hs-var">decoder</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-88"></span><span>
+</span><span id="line-89"></span><span id="local-6989586621679098226"><span id="local-6989586621679098227"><span class="annot"><a href="Cardano.Binary.Deserialize.html#supplyAllInput"><span class="hs-identifier hs-type">supplyAllInput</span></a></span><span>
+</span><span id="line-90"></span><span>  </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">LByteString</span></span><span>
+</span><span id="line-91"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Read.IDecode</span></span><span> </span><span class="annot"><a href="#local-6989586621679098227"><span class="hs-identifier hs-type">s</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679098226"><span class="hs-identifier hs-type">a</span></a></span><span>
+</span><span id="line-92"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">ST</span></span><span> </span><span class="annot"><a href="#local-6989586621679098227"><span class="hs-identifier hs-type">s</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Either</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Read.DeserialiseFailure</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">ByteString</span></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="#local-6989586621679098226"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">ByteString</span></span><span class="hs-special">)</span><span class="hs-special">)</span></span></span><span>
+</span><span id="line-93"></span><span id="supplyAllInput"><span class="annot"><span class="annottext">supplyAllInput :: LByteString
+-&gt; IDecode s a
+-&gt; ST s (Either (DeserialiseFailure, ByteString) (a, ByteString))
+</span><a href="Cardano.Binary.Deserialize.html#supplyAllInput"><span class="hs-identifier hs-var hs-var">supplyAllInput</span></a></span></span><span> </span><span id="local-6989586621679098158"><span class="annot"><span class="annottext">LByteString
+</span><a href="#local-6989586621679098158"><span class="hs-identifier hs-var">bs'</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Read.Done</span></span><span> </span><span id="local-6989586621679098156"><span class="annot"><span class="annottext">ByteString
+</span><a href="#local-6989586621679098156"><span class="hs-identifier hs-var">bs</span></a></span></span><span> </span><span class="annot"><span class="annottext">ByteOffset
+</span><span class="hs-identifier">_</span></span><span> </span><span id="local-6989586621679098155"><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679098155"><span class="hs-identifier hs-var">x</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-94"></span><span>  </span><span class="annot"><span class="annottext">Either (DeserialiseFailure, ByteString) (a, ByteString)
+-&gt; ST s (Either (DeserialiseFailure, ByteString) (a, ByteString))
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">(a, ByteString)
+-&gt; Either (DeserialiseFailure, ByteString) (a, ByteString)
+forall a b. b -&gt; Either a b
+</span><span class="hs-identifier hs-var">Right</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679098155"><span class="hs-identifier hs-var">x</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">ByteString
+</span><a href="#local-6989586621679098156"><span class="hs-identifier hs-var">bs</span></a></span><span> </span><span class="annot"><span class="annottext">ByteString -&gt; ByteString -&gt; ByteString
+forall a. Semigroup a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">&lt;&gt;</span></span><span> </span><span class="annot"><span class="annottext">LByteString -&gt; ByteString
+</span><span class="hs-identifier hs-var">BSL.toStrict</span></span><span> </span><span class="annot"><span class="annottext">LByteString
+</span><a href="#local-6989586621679098158"><span class="hs-identifier hs-var">bs'</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-95"></span><span class="annot"><a href="Cardano.Binary.Deserialize.html#supplyAllInput"><span class="hs-identifier hs-var">supplyAllInput</span></a></span><span> </span><span id="local-6989586621679098153"><span class="annot"><span class="annottext">LByteString
+</span><a href="#local-6989586621679098153"><span class="hs-identifier hs-var">bs</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Read.Partial</span></span><span> </span><span id="local-6989586621679098151"><span class="annot"><span class="annottext">Maybe ByteString -&gt; ST s (IDecode s a)
+</span><a href="#local-6989586621679098151"><span class="hs-identifier hs-var">k</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">LByteString
+</span><a href="#local-6989586621679098153"><span class="hs-identifier hs-var">bs</span></a></span><span> </span><span class="hs-keyword">of</span><span>
+</span><span id="line-96"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">BSL.Chunk</span></span><span> </span><span id="local-6989586621679098149"><span class="annot"><span class="annottext">ByteString
+</span><a href="#local-6989586621679098149"><span class="hs-identifier hs-var">chunk</span></a></span></span><span> </span><span id="local-6989586621679098148"><span class="annot"><span class="annottext">LByteString
+</span><a href="#local-6989586621679098148"><span class="hs-identifier hs-var">bs'</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Maybe ByteString -&gt; ST s (IDecode s a)
+</span><a href="#local-6989586621679098151"><span class="hs-identifier hs-var">k</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">ByteString -&gt; Maybe ByteString
+forall a. a -&gt; Maybe a
+</span><span class="hs-identifier hs-var">Just</span></span><span> </span><span class="annot"><span class="annottext">ByteString
+</span><a href="#local-6989586621679098149"><span class="hs-identifier hs-var">chunk</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">ST s (IDecode s a)
+-&gt; (IDecode s a
+    -&gt; ST s (Either (DeserialiseFailure, ByteString) (a, ByteString)))
+-&gt; ST s (Either (DeserialiseFailure, ByteString) (a, ByteString))
+forall (m :: * -&gt; *) a b. Monad m =&gt; m a -&gt; (a -&gt; m b) -&gt; m b
+</span><span class="hs-operator hs-var">&gt;&gt;=</span></span><span> </span><span class="annot"><span class="annottext">LByteString
+-&gt; IDecode s a
+-&gt; ST s (Either (DeserialiseFailure, ByteString) (a, ByteString))
+forall s a.
+LByteString
+-&gt; IDecode s a
+-&gt; ST s (Either (DeserialiseFailure, ByteString) (a, ByteString))
+</span><a href="Cardano.Binary.Deserialize.html#supplyAllInput"><span class="hs-identifier hs-var">supplyAllInput</span></a></span><span> </span><span class="annot"><span class="annottext">LByteString
+</span><a href="#local-6989586621679098148"><span class="hs-identifier hs-var">bs'</span></a></span><span>
+</span><span id="line-97"></span><span>  </span><span class="annot"><span class="annottext">LByteString
+</span><span class="hs-identifier hs-var">BSL.Empty</span></span><span>           </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Maybe ByteString -&gt; ST s (IDecode s a)
+</span><a href="#local-6989586621679098151"><span class="hs-identifier hs-var">k</span></a></span><span> </span><span class="annot"><span class="annottext">Maybe ByteString
+forall a. Maybe a
+</span><span class="hs-identifier hs-var">Nothing</span></span><span> </span><span class="annot"><span class="annottext">ST s (IDecode s a)
+-&gt; (IDecode s a
+    -&gt; ST s (Either (DeserialiseFailure, ByteString) (a, ByteString)))
+-&gt; ST s (Either (DeserialiseFailure, ByteString) (a, ByteString))
+forall (m :: * -&gt; *) a b. Monad m =&gt; m a -&gt; (a -&gt; m b) -&gt; m b
+</span><span class="hs-operator hs-var">&gt;&gt;=</span></span><span> </span><span class="annot"><span class="annottext">LByteString
+-&gt; IDecode s a
+-&gt; ST s (Either (DeserialiseFailure, ByteString) (a, ByteString))
+forall s a.
+LByteString
+-&gt; IDecode s a
+-&gt; ST s (Either (DeserialiseFailure, ByteString) (a, ByteString))
+</span><a href="Cardano.Binary.Deserialize.html#supplyAllInput"><span class="hs-identifier hs-var">supplyAllInput</span></a></span><span> </span><span class="annot"><span class="annottext">LByteString
+</span><span class="hs-identifier hs-var">BSL.Empty</span></span><span>
+</span><span id="line-98"></span><span class="annot"><a href="Cardano.Binary.Deserialize.html#supplyAllInput"><span class="hs-identifier hs-var">supplyAllInput</span></a></span><span> </span><span class="annot"><span class="annottext">LByteString
+</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Read.Fail</span></span><span> </span><span id="local-6989586621679098145"><span class="annot"><span class="annottext">ByteString
+</span><a href="#local-6989586621679098145"><span class="hs-identifier hs-var">bs</span></a></span></span><span> </span><span class="annot"><span class="annottext">ByteOffset
+</span><span class="hs-identifier">_</span></span><span> </span><span id="local-6989586621679098144"><span class="annot"><span class="annottext">DeserialiseFailure
+</span><a href="#local-6989586621679098144"><span class="hs-identifier hs-var">exn</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Either (DeserialiseFailure, ByteString) (a, ByteString)
+-&gt; ST s (Either (DeserialiseFailure, ByteString) (a, ByteString))
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">(DeserialiseFailure, ByteString)
+-&gt; Either (DeserialiseFailure, ByteString) (a, ByteString)
+forall a b. a -&gt; Either a b
+</span><span class="hs-identifier hs-var">Left</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">DeserialiseFailure
+</span><a href="#local-6989586621679098144"><span class="hs-identifier hs-var">exn</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">ByteString
+</span><a href="#local-6989586621679098145"><span class="hs-identifier hs-var">bs</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-99"></span><span>
+</span><span id="line-100"></span><span>
+</span><span id="line-101"></span><span class="hs-comment">--------------------------------------------------------------------------------</span><span>
+</span><span id="line-102"></span><span class="hs-comment">-- Nested CBOR-in-CBOR</span><span>
+</span><span id="line-103"></span><span class="hs-comment">-- https://tools.ietf.org/html/rfc7049#section-2.4.4.1</span><span>
+</span><span id="line-104"></span><span class="hs-comment">--------------------------------------------------------------------------------</span><span>
+</span><span id="line-105"></span><span>
+</span><span id="line-106"></span><span class="hs-comment">-- | Remove the the semantic tag 24 from the enclosed CBOR data item,</span><span>
+</span><span id="line-107"></span><span class="hs-comment">-- failing if the tag cannot be found.</span><span>
+</span><span id="line-108"></span><span id="local-6989586621679098193"><span class="annot"><a href="Cardano.Binary.Deserialize.html#decodeNestedCborTag"><span class="hs-identifier hs-type">decodeNestedCborTag</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">D.Decoder</span></span><span> </span><span class="annot"><a href="#local-6989586621679098193"><span class="hs-identifier hs-type">s</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span></span><span>
+</span><span id="line-109"></span><span id="decodeNestedCborTag"><span class="annot"><span class="annottext">decodeNestedCborTag :: Decoder s ()
+</span><a href="Cardano.Binary.Deserialize.html#decodeNestedCborTag"><span class="hs-identifier hs-var hs-var">decodeNestedCborTag</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-110"></span><span>  </span><span id="local-6989586621679098142"><span class="annot"><span class="annottext">Word
+</span><a href="#local-6989586621679098142"><span class="hs-identifier hs-var">t</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Decoder s Word
+forall s. Decoder s Word
+</span><span class="hs-identifier hs-var">D.decodeTag</span></span><span>
+</span><span id="line-111"></span><span>  </span><span class="annot"><span class="annottext">Bool -&gt; Decoder s () -&gt; Decoder s ()
+forall (f :: * -&gt; *). Applicative f =&gt; Bool -&gt; f () -&gt; f ()
+</span><span class="hs-identifier hs-var">when</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Word
+</span><a href="#local-6989586621679098142"><span class="hs-identifier hs-var">t</span></a></span><span> </span><span class="annot"><span class="annottext">Word -&gt; Word -&gt; Bool
+forall a. Eq a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">/=</span></span><span> </span><span class="annot"><span class="annottext">Word
+</span><span class="hs-number">24</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(Decoder s () -&gt; Decoder s ()) -&gt; Decoder s () -&gt; Decoder s ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">DecoderError -&gt; Decoder s ()
+forall e s a. Buildable e =&gt; e -&gt; Decoder s a
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-prelude-0.1.0.0/noopt/doc/html/cardano-prelude/src"><span class="hs-identifier hs-var">cborError</span></a></span><span> </span><span class="annot"><span class="annottext">(DecoderError -&gt; Decoder s ()) -&gt; DecoderError -&gt; Decoder s ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Text -&gt; Word8 -&gt; DecoderError
+</span><a href="Cardano.Binary.FromCBOR.html#DecoderErrorUnknownTag"><span class="hs-identifier hs-var">DecoderErrorUnknownTag</span></a></span><span>
+</span><span id="line-112"></span><span>    </span><span class="annot"><span class="annottext">Text
+</span><span class="hs-string">&quot;decodeNestedCborTag&quot;</span></span><span>
+</span><span id="line-113"></span><span>    </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Word -&gt; Word8
+forall a b. (Integral a, Num b) =&gt; a -&gt; b
+</span><span class="hs-identifier hs-var">fromIntegral</span></span><span> </span><span class="annot"><span class="annottext">Word
+</span><a href="#local-6989586621679098142"><span class="hs-identifier hs-var">t</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-114"></span><span>
+</span><span id="line-115"></span><span class="hs-comment">-- | Remove the the semantic tag 24 from the enclosed CBOR data item,</span><span>
+</span><span id="line-116"></span><span class="hs-comment">-- decoding back the inner `ByteString` as a proper Haskell type.</span><span>
+</span><span id="line-117"></span><span class="hs-comment">-- Consume its input in full.</span><span>
+</span><span id="line-118"></span><span id="local-6989586621679098135"><span id="local-6989586621679098136"><span class="annot"><a href="Cardano.Binary.Deserialize.html#decodeNestedCbor"><span class="hs-identifier hs-type">decodeNestedCbor</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cardano.Binary.FromCBOR.html#FromCBOR"><span class="hs-identifier hs-type">FromCBOR</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679098136"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">D.Decoder</span></span><span> </span><span class="annot"><a href="#local-6989586621679098135"><span class="hs-identifier hs-type">s</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679098136"><span class="hs-identifier hs-type">a</span></a></span></span></span><span>
+</span><span id="line-119"></span><span id="decodeNestedCbor"><span class="annot"><span class="annottext">decodeNestedCbor :: Decoder s a
+</span><a href="Cardano.Binary.Deserialize.html#decodeNestedCbor"><span class="hs-identifier hs-var hs-var">decodeNestedCbor</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-120"></span><span>  </span><span id="local-6989586621679098134"><span class="annot"><span class="annottext">ByteString
+</span><a href="#local-6989586621679098134"><span class="hs-identifier hs-var">bs</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Decoder s ByteString
+forall s. Decoder s ByteString
+</span><a href="Cardano.Binary.Deserialize.html#decodeNestedCborBytes"><span class="hs-identifier hs-var">decodeNestedCborBytes</span></a></span><span>
+</span><span id="line-121"></span><span>  </span><span class="annot"><span class="annottext">Either DecoderError a -&gt; Decoder s a
+forall e a s. Buildable e =&gt; Either e a -&gt; Decoder s a
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-prelude-0.1.0.0/noopt/doc/html/cardano-prelude/src"><span class="hs-identifier hs-var">toCborError</span></a></span><span> </span><span class="annot"><span class="annottext">(Either DecoderError a -&gt; Decoder s a)
+-&gt; Either DecoderError a -&gt; Decoder s a
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">ByteString -&gt; Either DecoderError a
+forall a. FromCBOR a =&gt; ByteString -&gt; Either DecoderError a
+</span><a href="Cardano.Binary.Deserialize.html#decodeFull%27"><span class="hs-identifier hs-var">decodeFull'</span></a></span><span> </span><span class="annot"><span class="annottext">ByteString
+</span><a href="#local-6989586621679098134"><span class="hs-identifier hs-var">bs</span></a></span><span>
+</span><span id="line-122"></span><span>
+</span><span id="line-123"></span><span class="hs-comment">-- | Like `decodeKnownCborDataItem`, but assumes nothing about the Haskell</span><span>
+</span><span id="line-124"></span><span class="hs-comment">-- type we want to deserialise back, therefore it yields the `ByteString`</span><span>
+</span><span id="line-125"></span><span class="hs-comment">-- Tag 24 surrounded (stripping such tag away).</span><span>
+</span><span id="line-126"></span><span class="hs-comment">--</span><span>
+</span><span id="line-127"></span><span class="hs-comment">-- In CBOR notation, if the data was serialised as:</span><span>
+</span><span id="line-128"></span><span class="hs-comment">--</span><span>
+</span><span id="line-129"></span><span class="hs-comment">-- &gt;&gt;&gt; 24(h'DEADBEEF')</span><span>
+</span><span id="line-130"></span><span class="hs-comment">--</span><span>
+</span><span id="line-131"></span><span class="hs-comment">-- then `decodeNestedCborBytes` yields the inner 'DEADBEEF', unchanged.</span><span>
+</span><span id="line-132"></span><span id="local-6989586621679098199"><span class="annot"><a href="Cardano.Binary.Deserialize.html#decodeNestedCborBytes"><span class="hs-identifier hs-type">decodeNestedCborBytes</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">D.Decoder</span></span><span> </span><span class="annot"><a href="#local-6989586621679098199"><span class="hs-identifier hs-type">s</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">ByteString</span></span></span><span>
+</span><span id="line-133"></span><span id="decodeNestedCborBytes"><span class="annot"><span class="annottext">decodeNestedCborBytes :: Decoder s ByteString
+</span><a href="Cardano.Binary.Deserialize.html#decodeNestedCborBytes"><span class="hs-identifier hs-var hs-var">decodeNestedCborBytes</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-134"></span><span>  </span><span class="annot"><span class="annottext">Decoder s ()
+forall s. Decoder s ()
+</span><a href="Cardano.Binary.Deserialize.html#decodeNestedCborTag"><span class="hs-identifier hs-var">decodeNestedCborTag</span></a></span><span>
+</span><span id="line-135"></span><span>  </span><span class="annot"><span class="annottext">Decoder s ByteString
+forall s. Decoder s ByteString
+</span><span class="hs-identifier hs-var">D.decodeBytes</span></span><span>
+</span><span id="line-136"></span></pre></body></html>
