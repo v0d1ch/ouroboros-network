@@ -10,91 +10,105 @@
 </span><span id="line-10"></span><span>    </span><span class="annot"><a href="Cardano.Crypto.Libsodium.DSIGN.html#SodiumDSIGNAlgorithm"><span class="hs-identifier">SodiumDSIGNAlgorithm</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span>
 </span><span id="line-11"></span><span>    </span><span class="annot"><a href="Cardano.Crypto.Libsodium.DSIGN.html#naclSignDSIGN"><span class="hs-identifier">naclSignDSIGN</span></a></span><span class="hs-special">,</span><span>
 </span><span id="line-12"></span><span>    </span><span class="annot"><a href="Cardano.Crypto.Libsodium.DSIGN.html#naclVerifyDSIGN"><span class="hs-identifier">naclVerifyDSIGN</span></a></span><span class="hs-special">,</span><span>
-</span><span id="line-13"></span><span>    </span><span class="annot"><a href="Cardano.Crypto.Libsodium.DSIGN.html#SodiumSignKeyDSIGN"><span class="hs-identifier">SodiumSignKeyDSIGN</span></a></span><span class="hs-special">,</span><span>
-</span><span id="line-14"></span><span>    </span><span class="annot"><a href="Cardano.Crypto.Libsodium.DSIGN.html#SodiumVerKeyDSIGN"><span class="hs-identifier">SodiumVerKeyDSIGN</span></a></span><span class="hs-special">,</span><span>
-</span><span id="line-15"></span><span>    </span><span class="annot"><a href="Cardano.Crypto.Libsodium.DSIGN.html#SodiumSigDSIGN"><span class="hs-identifier">SodiumSigDSIGN</span></a></span><span class="hs-special">,</span><span>
-</span><span id="line-16"></span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-17"></span><span>
-</span><span id="line-18"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Control.Monad</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">unless</span></span><span class="hs-special">)</span><span>
-</span><span id="line-19"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Proxy</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Proxy</span></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
-</span><span id="line-20"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Foreign.C.Error</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">errnoToIOError</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">getErrno</span></span><span class="hs-special">)</span><span>
-</span><span id="line-21"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Foreign.Ptr</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Ptr</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">castPtr</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">nullPtr</span></span><span class="hs-special">)</span><span>
-</span><span id="line-22"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Type.Equality</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-operator">(:~:)</span></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
-</span><span id="line-23"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">GHC.IO.Exception</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">ioException</span></span><span class="hs-special">)</span><span>
-</span><span id="line-24"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">GHC.TypeLits</span></span><span>
-</span><span id="line-25"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">System.IO.Unsafe</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">unsafeDupablePerformIO</span></span><span class="hs-special">)</span><span>
-</span><span id="line-26"></span><span>
-</span><span id="line-27"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Data.ByteString</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">BS</span></span><span>
-</span><span id="line-28"></span><span>
-</span><span id="line-29"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Cardano.Foreign.html"><span class="hs-identifier">Cardano.Foreign</span></a></span><span>
-</span><span id="line-30"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Cardano.Crypto.DSIGN.html"><span class="hs-identifier">Cardano.Crypto.DSIGN</span></a></span><span>
-</span><span id="line-31"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Cardano.Crypto.PinnedSizedBytes.html"><span class="hs-identifier">Cardano.Crypto.PinnedSizedBytes</span></a></span><span>
-</span><span id="line-32"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Cardano.Crypto.Libsodium.C.html"><span class="hs-identifier">Cardano.Crypto.Libsodium.C</span></a></span><span>
-</span><span id="line-33"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Cardano.Crypto.Libsodium.Memory.Internal.html"><span class="hs-identifier">Cardano.Crypto.Libsodium.Memory.Internal</span></a></span><span>
-</span><span id="line-34"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Cardano.Crypto.Libsodium.MLockedBytes.Internal.html"><span class="hs-identifier">Cardano.Crypto.Libsodium.MLockedBytes.Internal</span></a></span><span>
-</span><span id="line-35"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Cardano.Crypto.Util.html"><span class="hs-identifier">Cardano.Crypto.Util</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cardano.Crypto.Util.html#SignableRepresentation"><span class="hs-identifier">SignableRepresentation</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
-</span><span id="line-36"></span><span>
-</span><span id="line-37"></span><span class="hs-comment">-- TODO: these could be newtypes, then we wouldn't need proxy args</span><span>
-</span><span id="line-38"></span><span class="hs-keyword">type</span><span> </span><span id="SodiumSignKeyDSIGN"><span class="annot"><a href="Cardano.Crypto.Libsodium.DSIGN.html#SodiumSignKeyDSIGN"><span class="hs-identifier hs-var">SodiumSignKeyDSIGN</span></a></span></span><span> </span><span id="local-6989586621679139227"><span class="annot"><a href="#local-6989586621679139227"><span class="hs-identifier hs-type">v</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><a href="Cardano.Crypto.Libsodium.MLockedBytes.Internal.html#MLockedSizedBytes"><span class="hs-identifier hs-type">MLockedSizedBytes</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cardano.Crypto.DSIGN.Class.html#SizeSignKeyDSIGN"><span class="hs-identifier hs-type">SizeSignKeyDSIGN</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679139227"><span class="hs-identifier hs-type">v</span></a></span><span class="hs-special">)</span><span>
-</span><span id="line-39"></span><span class="hs-keyword">type</span><span> </span><span id="SodiumVerKeyDSIGN"><span class="annot"><a href="Cardano.Crypto.Libsodium.DSIGN.html#SodiumVerKeyDSIGN"><span class="hs-identifier hs-var">SodiumVerKeyDSIGN</span></a></span></span><span> </span><span id="local-6989586621679139226"><span class="annot"><a href="#local-6989586621679139226"><span class="hs-identifier hs-type">v</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><a href="Cardano.Crypto.PinnedSizedBytes.html#PinnedSizedBytes"><span class="hs-identifier hs-type">PinnedSizedBytes</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cardano.Crypto.DSIGN.Class.html#SizeVerKeyDSIGN"><span class="hs-identifier hs-type">SizeVerKeyDSIGN</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679139226"><span class="hs-identifier hs-type">v</span></a></span><span class="hs-special">)</span><span>
-</span><span id="line-40"></span><span class="hs-keyword">type</span><span> </span><span id="SodiumSigDSIGN"><span class="annot"><a href="Cardano.Crypto.Libsodium.DSIGN.html#SodiumSigDSIGN"><span class="hs-identifier hs-var">SodiumSigDSIGN</span></a></span></span><span> </span><span id="local-6989586621679139225"><span class="annot"><a href="#local-6989586621679139225"><span class="hs-identifier hs-type">v</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><a href="Cardano.Crypto.PinnedSizedBytes.html#PinnedSizedBytes"><span class="hs-identifier hs-type">PinnedSizedBytes</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cardano.Crypto.DSIGN.Class.html#SizeSigDSIGN"><span class="hs-identifier hs-type">SizeSigDSIGN</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679139225"><span class="hs-identifier hs-type">v</span></a></span><span class="hs-special">)</span><span>
-</span><span id="line-41"></span><span>
-</span><span id="line-42"></span><span class="hs-keyword">class</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cardano.Crypto.DSIGN.Class.html#DSIGNAlgorithm"><span class="hs-identifier hs-type">DSIGNAlgorithm</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679139288"><span class="hs-identifier hs-type">v</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cardano.Crypto.DSIGN.Class.html#ContextDSIGN"><span class="hs-identifier hs-type">ContextDSIGN</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679139288"><span class="hs-identifier hs-type">v</span></a></span><span> </span><span class="annot"><span class="hs-glyph hs-type">~</span></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cardano.Crypto.DSIGN.Class.html#Signable"><span class="hs-identifier hs-type">Signable</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679139288"><span class="hs-identifier hs-type">v</span></a></span><span> </span><span class="annot"><span class="hs-glyph hs-type">~</span></span><span> </span><span class="annot"><a href="Cardano.Crypto.Util.html#SignableRepresentation"><span class="hs-identifier hs-type">SignableRepresentation</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span id="SodiumDSIGNAlgorithm"><span class="annot"><a href="Cardano.Crypto.Libsodium.DSIGN.html#SodiumDSIGNAlgorithm"><span class="hs-identifier hs-var">SodiumDSIGNAlgorithm</span></a></span></span><span> </span><span id="local-6989586621679139288"><span class="annot"><a href="#local-6989586621679139288"><span class="hs-identifier hs-type">v</span></a></span></span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-43"></span><span>    </span><span id="local-6989586621679139286"><span id="naclSignDSIGNPtr"><span class="annot"><a href="Cardano.Crypto.Libsodium.DSIGN.html#naclSignDSIGNPtr"><span class="hs-identifier hs-type">naclSignDSIGNPtr</span></a></span></span><span>
-</span><span id="line-44"></span><span>        </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Proxy</span></span><span> </span><span class="annot"><a href="#local-6989586621679139288"><span class="hs-identifier hs-type">v</span></a></span><span>
-</span><span id="line-45"></span><span>        </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Ptr</span></span><span> </span><span class="annot"><a href="#local-6989586621679139286"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span>
-</span><span id="line-46"></span><span>        </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cardano.Crypto.Libsodium.DSIGN.html#SodiumSignKeyDSIGN"><span class="hs-identifier hs-type">SodiumSignKeyDSIGN</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679139288"><span class="hs-identifier hs-type">v</span></a></span><span>
-</span><span id="line-47"></span><span>        </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">IO</span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cardano.Crypto.Libsodium.DSIGN.html#SodiumSigDSIGN"><span class="hs-identifier hs-type">SodiumSigDSIGN</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679139288"><span class="hs-identifier hs-type">v</span></a></span><span class="hs-special">)</span></span><span>
-</span><span id="line-48"></span><span>
-</span><span id="line-49"></span><span>    </span><span id="local-6989586621679139281"><span id="naclVerifyDSIGNPtr"><span class="annot"><a href="Cardano.Crypto.Libsodium.DSIGN.html#naclVerifyDSIGNPtr"><span class="hs-identifier hs-type">naclVerifyDSIGNPtr</span></a></span></span><span>
-</span><span id="line-50"></span><span>        </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Proxy</span></span><span> </span><span class="annot"><a href="#local-6989586621679139288"><span class="hs-identifier hs-type">v</span></a></span><span>
-</span><span id="line-51"></span><span>        </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cardano.Crypto.Libsodium.DSIGN.html#SodiumVerKeyDSIGN"><span class="hs-identifier hs-type">SodiumVerKeyDSIGN</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679139288"><span class="hs-identifier hs-type">v</span></a></span><span>
-</span><span id="line-52"></span><span>        </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Ptr</span></span><span> </span><span class="annot"><a href="#local-6989586621679139281"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span>
-</span><span id="line-53"></span><span>        </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cardano.Crypto.Libsodium.DSIGN.html#SodiumSigDSIGN"><span class="hs-identifier hs-type">SodiumSigDSIGN</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679139288"><span class="hs-identifier hs-type">v</span></a></span><span>
-</span><span id="line-54"></span><span>        </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">IO</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Either</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">String</span></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span class="hs-special">)</span></span><span>
-</span><span id="line-55"></span><span>
-</span><span id="line-56"></span><span>    </span><span id="naclGenKeyDSIGN"><span class="annot"><a href="Cardano.Crypto.Libsodium.DSIGN.html#naclGenKeyDSIGN"><span class="hs-identifier hs-type">naclGenKeyDSIGN</span></a></span></span><span>
-</span><span id="line-57"></span><span>        </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Proxy</span></span><span> </span><span class="annot"><a href="#local-6989586621679139288"><span class="hs-identifier hs-type">v</span></a></span><span>
-</span><span id="line-58"></span><span>        </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cardano.Crypto.Libsodium.MLockedBytes.Internal.html#MLockedSizedBytes"><span class="hs-identifier hs-type">MLockedSizedBytes</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cardano.Crypto.DSIGN.Class.html#SeedSizeDSIGN"><span class="hs-identifier hs-type">SeedSizeDSIGN</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679139288"><span class="hs-identifier hs-type">v</span></a></span><span class="hs-special">)</span><span>
-</span><span id="line-59"></span><span>        </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cardano.Crypto.Libsodium.DSIGN.html#SodiumSignKeyDSIGN"><span class="hs-identifier hs-type">SodiumSignKeyDSIGN</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679139288"><span class="hs-identifier hs-type">v</span></a></span><span>
-</span><span id="line-60"></span><span>
-</span><span id="line-61"></span><span>    </span><span id="naclDeriveVerKeyDSIGN"><span class="annot"><a href="Cardano.Crypto.Libsodium.DSIGN.html#naclDeriveVerKeyDSIGN"><span class="hs-identifier hs-type">naclDeriveVerKeyDSIGN</span></a></span></span><span>
-</span><span id="line-62"></span><span>        </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Proxy</span></span><span> </span><span class="annot"><a href="#local-6989586621679139288"><span class="hs-identifier hs-type">v</span></a></span><span>
-</span><span id="line-63"></span><span>        </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cardano.Crypto.Libsodium.DSIGN.html#SodiumSignKeyDSIGN"><span class="hs-identifier hs-type">SodiumSignKeyDSIGN</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679139288"><span class="hs-identifier hs-type">v</span></a></span><span>
-</span><span id="line-64"></span><span>        </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cardano.Crypto.Libsodium.DSIGN.html#SodiumVerKeyDSIGN"><span class="hs-identifier hs-type">SodiumVerKeyDSIGN</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679139288"><span class="hs-identifier hs-type">v</span></a></span><span>
-</span><span id="line-65"></span><span>
-</span><span id="line-66"></span><span id="local-6989586621679139219"><span id="local-6989586621679139220"><span class="annot"><a href="Cardano.Crypto.Libsodium.DSIGN.html#naclSignDSIGN"><span class="hs-identifier hs-type">naclSignDSIGN</span></a></span><span>
-</span><span id="line-67"></span><span>    </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cardano.Crypto.Libsodium.DSIGN.html#SodiumDSIGNAlgorithm"><span class="hs-identifier hs-type">SodiumDSIGNAlgorithm</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679139220"><span class="hs-identifier hs-type">v</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cardano.Crypto.Util.html#SignableRepresentation"><span class="hs-identifier hs-type">SignableRepresentation</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679139219"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span>
-</span><span id="line-68"></span><span>    </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Proxy</span></span><span> </span><span class="annot"><a href="#local-6989586621679139220"><span class="hs-identifier hs-type">v</span></a></span><span>
-</span><span id="line-69"></span><span>    </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679139219"><span class="hs-identifier hs-type">a</span></a></span><span>
-</span><span id="line-70"></span><span>    </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cardano.Crypto.Libsodium.DSIGN.html#SodiumSignKeyDSIGN"><span class="hs-identifier hs-type">SodiumSignKeyDSIGN</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679139220"><span class="hs-identifier hs-type">v</span></a></span><span>
-</span><span id="line-71"></span><span>    </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cardano.Crypto.Libsodium.DSIGN.html#SodiumSigDSIGN"><span class="hs-identifier hs-type">SodiumSigDSIGN</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679139220"><span class="hs-identifier hs-type">v</span></a></span></span></span><span>
-</span><span id="line-72"></span><span id="naclSignDSIGN"><span class="annot"><span class="annottext">naclSignDSIGN :: Proxy v -&gt; a -&gt; SodiumSignKeyDSIGN v -&gt; SodiumSigDSIGN v
-</span><a href="Cardano.Crypto.Libsodium.DSIGN.html#naclSignDSIGN"><span class="hs-identifier hs-var hs-var">naclSignDSIGN</span></a></span></span><span> </span><span id="local-6989586621679139218"><span class="annot"><span class="annottext">Proxy v
-</span><a href="#local-6989586621679139218"><span class="hs-identifier hs-var">pv</span></a></span></span><span> </span><span id="local-6989586621679139217"><span class="annot"><span class="annottext">a
-</span><a href="#local-6989586621679139217"><span class="hs-identifier hs-var">a</span></a></span></span><span> </span><span id="local-6989586621679139216"><span class="annot"><span class="annottext">SodiumSignKeyDSIGN v
-</span><a href="#local-6989586621679139216"><span class="hs-identifier hs-var">sk</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">IO (SodiumSigDSIGN v) -&gt; SodiumSigDSIGN v
+</span><span id="line-13"></span><span>    </span><span class="annot"><a href="Cardano.Crypto.Libsodium.DSIGN.html#naclForgetSignKeyDSIGN"><span class="hs-identifier">naclForgetSignKeyDSIGN</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-14"></span><span>    </span><span class="annot"><a href="Cardano.Crypto.Libsodium.DSIGN.html#SodiumSignKeyDSIGN"><span class="hs-identifier">SodiumSignKeyDSIGN</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-15"></span><span>    </span><span class="annot"><a href="Cardano.Crypto.Libsodium.DSIGN.html#SodiumVerKeyDSIGN"><span class="hs-identifier">SodiumVerKeyDSIGN</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-16"></span><span>    </span><span class="annot"><a href="Cardano.Crypto.Libsodium.DSIGN.html#SodiumSigDSIGN"><span class="hs-identifier">SodiumSigDSIGN</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-17"></span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-18"></span><span>
+</span><span id="line-19"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Control.Monad</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">unless</span></span><span class="hs-special">)</span><span>
+</span><span id="line-20"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Proxy</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Proxy</span></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-21"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Foreign.C.Error</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">errnoToIOError</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">getErrno</span></span><span class="hs-special">)</span><span>
+</span><span id="line-22"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Foreign.Ptr</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Ptr</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">castPtr</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">nullPtr</span></span><span class="hs-special">)</span><span>
+</span><span id="line-23"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Type.Equality</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-operator">(:~:)</span></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-24"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">GHC.IO.Exception</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">ioException</span></span><span class="hs-special">)</span><span>
+</span><span id="line-25"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">GHC.TypeLits</span></span><span>
+</span><span id="line-26"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">System.IO.Unsafe</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">unsafeDupablePerformIO</span></span><span class="hs-special">)</span><span>
+</span><span id="line-27"></span><span>
+</span><span id="line-28"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Data.ByteString</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">BS</span></span><span>
+</span><span id="line-29"></span><span>
+</span><span id="line-30"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Cardano.Foreign.html"><span class="hs-identifier">Cardano.Foreign</span></a></span><span>
+</span><span id="line-31"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Cardano.Crypto.DSIGN.html"><span class="hs-identifier">Cardano.Crypto.DSIGN</span></a></span><span>
+</span><span id="line-32"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Cardano.Crypto.PinnedSizedBytes.html"><span class="hs-identifier">Cardano.Crypto.PinnedSizedBytes</span></a></span><span>
+</span><span id="line-33"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Cardano.Crypto.Libsodium.C.html"><span class="hs-identifier">Cardano.Crypto.Libsodium.C</span></a></span><span>
+</span><span id="line-34"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Cardano.Crypto.Libsodium.Memory.Internal.html"><span class="hs-identifier">Cardano.Crypto.Libsodium.Memory.Internal</span></a></span><span>
+</span><span id="line-35"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Cardano.Crypto.Libsodium.MLockedBytes.Internal.html"><span class="hs-identifier">Cardano.Crypto.Libsodium.MLockedBytes.Internal</span></a></span><span>
+</span><span id="line-36"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Cardano.Crypto.Util.html"><span class="hs-identifier">Cardano.Crypto.Util</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cardano.Crypto.Util.html#SignableRepresentation"><span class="hs-identifier">SignableRepresentation</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-37"></span><span>
+</span><span id="line-38"></span><span class="hs-comment">-- TODO: these could be newtypes, then we wouldn't need proxy args</span><span>
+</span><span id="line-39"></span><span class="hs-keyword">type</span><span> </span><span id="SodiumSignKeyDSIGN"><span class="annot"><a href="Cardano.Crypto.Libsodium.DSIGN.html#SodiumSignKeyDSIGN"><span class="hs-identifier hs-var">SodiumSignKeyDSIGN</span></a></span></span><span> </span><span id="local-6989586621679139917"><span class="annot"><a href="#local-6989586621679139917"><span class="hs-identifier hs-type">v</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><a href="Cardano.Crypto.Libsodium.MLockedBytes.Internal.html#MLockedSizedBytes"><span class="hs-identifier hs-type">MLockedSizedBytes</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cardano.Crypto.DSIGN.Class.html#SizeSignKeyDSIGN"><span class="hs-identifier hs-type">SizeSignKeyDSIGN</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679139917"><span class="hs-identifier hs-type">v</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-40"></span><span class="hs-keyword">type</span><span> </span><span id="SodiumVerKeyDSIGN"><span class="annot"><a href="Cardano.Crypto.Libsodium.DSIGN.html#SodiumVerKeyDSIGN"><span class="hs-identifier hs-var">SodiumVerKeyDSIGN</span></a></span></span><span> </span><span id="local-6989586621679139916"><span class="annot"><a href="#local-6989586621679139916"><span class="hs-identifier hs-type">v</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><a href="Cardano.Crypto.PinnedSizedBytes.html#PinnedSizedBytes"><span class="hs-identifier hs-type">PinnedSizedBytes</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cardano.Crypto.DSIGN.Class.html#SizeVerKeyDSIGN"><span class="hs-identifier hs-type">SizeVerKeyDSIGN</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679139916"><span class="hs-identifier hs-type">v</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-41"></span><span class="hs-keyword">type</span><span> </span><span id="SodiumSigDSIGN"><span class="annot"><a href="Cardano.Crypto.Libsodium.DSIGN.html#SodiumSigDSIGN"><span class="hs-identifier hs-var">SodiumSigDSIGN</span></a></span></span><span> </span><span id="local-6989586621679139915"><span class="annot"><a href="#local-6989586621679139915"><span class="hs-identifier hs-type">v</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><a href="Cardano.Crypto.PinnedSizedBytes.html#PinnedSizedBytes"><span class="hs-identifier hs-type">PinnedSizedBytes</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cardano.Crypto.DSIGN.Class.html#SizeSigDSIGN"><span class="hs-identifier hs-type">SizeSigDSIGN</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679139915"><span class="hs-identifier hs-type">v</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-42"></span><span>
+</span><span id="line-43"></span><span class="hs-keyword">class</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cardano.Crypto.DSIGN.Class.html#DSIGNAlgorithm"><span class="hs-identifier hs-type">DSIGNAlgorithm</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679139977"><span class="hs-identifier hs-type">v</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cardano.Crypto.DSIGN.Class.html#ContextDSIGN"><span class="hs-identifier hs-type">ContextDSIGN</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679139977"><span class="hs-identifier hs-type">v</span></a></span><span> </span><span class="annot"><span class="hs-glyph hs-type">~</span></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cardano.Crypto.DSIGN.Class.html#Signable"><span class="hs-identifier hs-type">Signable</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679139977"><span class="hs-identifier hs-type">v</span></a></span><span> </span><span class="annot"><span class="hs-glyph hs-type">~</span></span><span> </span><span class="annot"><a href="Cardano.Crypto.Util.html#SignableRepresentation"><span class="hs-identifier hs-type">SignableRepresentation</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span id="SodiumDSIGNAlgorithm"><span class="annot"><a href="Cardano.Crypto.Libsodium.DSIGN.html#SodiumDSIGNAlgorithm"><span class="hs-identifier hs-var">SodiumDSIGNAlgorithm</span></a></span></span><span> </span><span id="local-6989586621679139977"><span class="annot"><a href="#local-6989586621679139977"><span class="hs-identifier hs-type">v</span></a></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-44"></span><span>    </span><span id="local-6989586621679139975"><span id="naclSignDSIGNPtr"><span class="annot"><a href="Cardano.Crypto.Libsodium.DSIGN.html#naclSignDSIGNPtr"><span class="hs-identifier hs-type">naclSignDSIGNPtr</span></a></span></span><span>
+</span><span id="line-45"></span><span>        </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Proxy</span></span><span> </span><span class="annot"><a href="#local-6989586621679139977"><span class="hs-identifier hs-type">v</span></a></span><span>
+</span><span id="line-46"></span><span>        </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Ptr</span></span><span> </span><span class="annot"><a href="#local-6989586621679139975"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span>
+</span><span id="line-47"></span><span>        </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cardano.Crypto.Libsodium.DSIGN.html#SodiumSignKeyDSIGN"><span class="hs-identifier hs-type">SodiumSignKeyDSIGN</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679139977"><span class="hs-identifier hs-type">v</span></a></span><span>
+</span><span id="line-48"></span><span>        </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">IO</span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cardano.Crypto.Libsodium.DSIGN.html#SodiumSigDSIGN"><span class="hs-identifier hs-type">SodiumSigDSIGN</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679139977"><span class="hs-identifier hs-type">v</span></a></span><span class="hs-special">)</span></span><span>
+</span><span id="line-49"></span><span>
+</span><span id="line-50"></span><span>    </span><span id="local-6989586621679139970"><span id="naclVerifyDSIGNPtr"><span class="annot"><a href="Cardano.Crypto.Libsodium.DSIGN.html#naclVerifyDSIGNPtr"><span class="hs-identifier hs-type">naclVerifyDSIGNPtr</span></a></span></span><span>
+</span><span id="line-51"></span><span>        </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Proxy</span></span><span> </span><span class="annot"><a href="#local-6989586621679139977"><span class="hs-identifier hs-type">v</span></a></span><span>
+</span><span id="line-52"></span><span>        </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cardano.Crypto.Libsodium.DSIGN.html#SodiumVerKeyDSIGN"><span class="hs-identifier hs-type">SodiumVerKeyDSIGN</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679139977"><span class="hs-identifier hs-type">v</span></a></span><span>
+</span><span id="line-53"></span><span>        </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Ptr</span></span><span> </span><span class="annot"><a href="#local-6989586621679139970"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span>
+</span><span id="line-54"></span><span>        </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cardano.Crypto.Libsodium.DSIGN.html#SodiumSigDSIGN"><span class="hs-identifier hs-type">SodiumSigDSIGN</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679139977"><span class="hs-identifier hs-type">v</span></a></span><span>
+</span><span id="line-55"></span><span>        </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">IO</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Either</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">String</span></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span class="hs-special">)</span></span><span>
+</span><span id="line-56"></span><span>
+</span><span id="line-57"></span><span>    </span><span id="naclGenKeyDSIGN"><span class="annot"><a href="Cardano.Crypto.Libsodium.DSIGN.html#naclGenKeyDSIGN"><span class="hs-identifier hs-type">naclGenKeyDSIGN</span></a></span></span><span>
+</span><span id="line-58"></span><span>        </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Proxy</span></span><span> </span><span class="annot"><a href="#local-6989586621679139977"><span class="hs-identifier hs-type">v</span></a></span><span>
+</span><span id="line-59"></span><span>        </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cardano.Crypto.Libsodium.MLockedBytes.Internal.html#MLockedSizedBytes"><span class="hs-identifier hs-type">MLockedSizedBytes</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cardano.Crypto.DSIGN.Class.html#SeedSizeDSIGN"><span class="hs-identifier hs-type">SeedSizeDSIGN</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679139977"><span class="hs-identifier hs-type">v</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-60"></span><span>        </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cardano.Crypto.Libsodium.DSIGN.html#SodiumSignKeyDSIGN"><span class="hs-identifier hs-type">SodiumSignKeyDSIGN</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679139977"><span class="hs-identifier hs-type">v</span></a></span><span>
+</span><span id="line-61"></span><span>
+</span><span id="line-62"></span><span>    </span><span id="naclDeriveVerKeyDSIGN"><span class="annot"><a href="Cardano.Crypto.Libsodium.DSIGN.html#naclDeriveVerKeyDSIGN"><span class="hs-identifier hs-type">naclDeriveVerKeyDSIGN</span></a></span></span><span>
+</span><span id="line-63"></span><span>        </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Proxy</span></span><span> </span><span class="annot"><a href="#local-6989586621679139977"><span class="hs-identifier hs-type">v</span></a></span><span>
+</span><span id="line-64"></span><span>        </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cardano.Crypto.Libsodium.DSIGN.html#SodiumSignKeyDSIGN"><span class="hs-identifier hs-type">SodiumSignKeyDSIGN</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679139977"><span class="hs-identifier hs-type">v</span></a></span><span>
+</span><span id="line-65"></span><span>        </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cardano.Crypto.Libsodium.DSIGN.html#SodiumVerKeyDSIGN"><span class="hs-identifier hs-type">SodiumVerKeyDSIGN</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679139977"><span class="hs-identifier hs-type">v</span></a></span><span>
+</span><span id="line-66"></span><span>
+</span><span id="line-67"></span><span id="local-6989586621679139910"><span class="annot"><a href="Cardano.Crypto.Libsodium.DSIGN.html#naclForgetSignKeyDSIGN"><span class="hs-identifier hs-type">naclForgetSignKeyDSIGN</span></a></span><span>
+</span><span id="line-68"></span><span>    </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Proxy</span></span><span> </span><span class="annot"><a href="#local-6989586621679139910"><span class="hs-identifier hs-type">v</span></a></span><span>
+</span><span id="line-69"></span><span>    </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cardano.Crypto.Libsodium.DSIGN.html#SodiumSignKeyDSIGN"><span class="hs-identifier hs-type">SodiumSignKeyDSIGN</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679139910"><span class="hs-identifier hs-type">v</span></a></span><span>
+</span><span id="line-70"></span><span>    </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">IO</span></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span></span><span>
+</span><span id="line-71"></span><span id="naclForgetSignKeyDSIGN"><span class="annot"><span class="annottext">naclForgetSignKeyDSIGN :: Proxy v -&gt; SodiumSignKeyDSIGN v -&gt; IO ()
+</span><a href="Cardano.Crypto.Libsodium.DSIGN.html#naclForgetSignKeyDSIGN"><span class="hs-identifier hs-var hs-var">naclForgetSignKeyDSIGN</span></a></span></span><span> </span><span class="annot"><span class="annottext">Proxy v
+</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cardano.Crypto.Libsodium.MLockedBytes.Internal.html#MLSB"><span class="hs-identifier hs-type">MLSB</span></a></span><span> </span><span id="local-6989586621679139908"><span class="annot"><span class="annottext">MLockedForeignPtr (PinnedSizedBytes (SizeSignKeyDSIGN v))
+</span><a href="#local-6989586621679139908"><span class="hs-identifier hs-var">mfp</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-72"></span><span>  </span><span class="annot"><span class="annottext">MLockedForeignPtr (PinnedSizedBytes (SizeSignKeyDSIGN v)) -&gt; IO ()
+forall a. MLockedForeignPtr a -&gt; IO ()
+</span><a href="Cardano.Crypto.Libsodium.Memory.Internal.html#finalizeMLockedForeignPtr"><span class="hs-identifier hs-var">finalizeMLockedForeignPtr</span></a></span><span> </span><span class="annot"><span class="annottext">MLockedForeignPtr (PinnedSizedBytes (SizeSignKeyDSIGN v))
+</span><a href="#local-6989586621679139908"><span class="hs-identifier hs-var">mfp</span></a></span><span>
+</span><span id="line-73"></span><span>
+</span><span id="line-74"></span><span id="local-6989586621679139905"><span id="local-6989586621679139906"><span class="annot"><a href="Cardano.Crypto.Libsodium.DSIGN.html#naclSignDSIGN"><span class="hs-identifier hs-type">naclSignDSIGN</span></a></span><span>
+</span><span id="line-75"></span><span>    </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cardano.Crypto.Libsodium.DSIGN.html#SodiumDSIGNAlgorithm"><span class="hs-identifier hs-type">SodiumDSIGNAlgorithm</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679139906"><span class="hs-identifier hs-type">v</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cardano.Crypto.Util.html#SignableRepresentation"><span class="hs-identifier hs-type">SignableRepresentation</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679139905"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-76"></span><span>    </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Proxy</span></span><span> </span><span class="annot"><a href="#local-6989586621679139906"><span class="hs-identifier hs-type">v</span></a></span><span>
+</span><span id="line-77"></span><span>    </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679139905"><span class="hs-identifier hs-type">a</span></a></span><span>
+</span><span id="line-78"></span><span>    </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cardano.Crypto.Libsodium.DSIGN.html#SodiumSignKeyDSIGN"><span class="hs-identifier hs-type">SodiumSignKeyDSIGN</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679139906"><span class="hs-identifier hs-type">v</span></a></span><span>
+</span><span id="line-79"></span><span>    </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cardano.Crypto.Libsodium.DSIGN.html#SodiumSigDSIGN"><span class="hs-identifier hs-type">SodiumSigDSIGN</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679139906"><span class="hs-identifier hs-type">v</span></a></span></span></span><span>
+</span><span id="line-80"></span><span id="naclSignDSIGN"><span class="annot"><span class="annottext">naclSignDSIGN :: Proxy v -&gt; a -&gt; SodiumSignKeyDSIGN v -&gt; SodiumSigDSIGN v
+</span><a href="Cardano.Crypto.Libsodium.DSIGN.html#naclSignDSIGN"><span class="hs-identifier hs-var hs-var">naclSignDSIGN</span></a></span></span><span> </span><span id="local-6989586621679139904"><span class="annot"><span class="annottext">Proxy v
+</span><a href="#local-6989586621679139904"><span class="hs-identifier hs-var">pv</span></a></span></span><span> </span><span id="local-6989586621679139903"><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679139903"><span class="hs-identifier hs-var">a</span></a></span></span><span> </span><span id="local-6989586621679139902"><span class="annot"><span class="annottext">SodiumSignKeyDSIGN v
+</span><a href="#local-6989586621679139902"><span class="hs-identifier hs-var">sk</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">IO (SodiumSigDSIGN v) -&gt; SodiumSigDSIGN v
 forall a. IO a -&gt; a
 </span><span class="hs-identifier hs-var">unsafeDupablePerformIO</span></span><span> </span><span class="annot"><span class="annottext">(IO (SodiumSigDSIGN v) -&gt; SodiumSigDSIGN v)
 -&gt; IO (SodiumSigDSIGN v) -&gt; SodiumSigDSIGN v
 forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-keyword">do</span><span>
-</span><span id="line-73"></span><span>    </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679139215"><span class="annot"><span class="annottext">bs :: ByteString
-</span><a href="#local-6989586621679139215"><span class="hs-identifier hs-var hs-var">bs</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">a -&gt; ByteString
+</span><span id="line-81"></span><span>    </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679139901"><span class="annot"><span class="annottext">bs :: ByteString
+</span><a href="#local-6989586621679139901"><span class="hs-identifier hs-var hs-var">bs</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">a -&gt; ByteString
 forall a. SignableRepresentation a =&gt; a -&gt; ByteString
 </span><a href="Cardano.Crypto.Util.html#getSignableRepresentation"><span class="hs-identifier hs-var">getSignableRepresentation</span></a></span><span> </span><span class="annot"><span class="annottext">a
-</span><a href="#local-6989586621679139217"><span class="hs-identifier hs-var">a</span></a></span><span>
-</span><span id="line-74"></span><span>    </span><span class="annot"><span class="annottext">ByteString
+</span><a href="#local-6989586621679139903"><span class="hs-identifier hs-var">a</span></a></span><span>
+</span><span id="line-82"></span><span>    </span><span class="annot"><span class="annottext">ByteString
 -&gt; (CStringLen -&gt; IO (SodiumSigDSIGN v)) -&gt; IO (SodiumSigDSIGN v)
 forall a. ByteString -&gt; (CStringLen -&gt; IO a) -&gt; IO a
 </span><span class="hs-identifier hs-var">BS.useAsCStringLen</span></span><span> </span><span class="annot"><span class="annottext">ByteString
-</span><a href="#local-6989586621679139215"><span class="hs-identifier hs-var">bs</span></a></span><span> </span><span class="annot"><span class="annottext">((CStringLen -&gt; IO (SodiumSigDSIGN v)) -&gt; IO (SodiumSigDSIGN v))
+</span><a href="#local-6989586621679139901"><span class="hs-identifier hs-var">bs</span></a></span><span> </span><span class="annot"><span class="annottext">((CStringLen -&gt; IO (SodiumSigDSIGN v)) -&gt; IO (SodiumSigDSIGN v))
 -&gt; (CStringLen -&gt; IO (SodiumSigDSIGN v)) -&gt; IO (SodiumSigDSIGN v)
 forall a b. (a -&gt; b) -&gt; a -&gt; b
-</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-glyph">\</span><span class="hs-special">(</span><span id="local-6989586621679139212"><span class="annot"><span class="annottext">Ptr CChar
-</span><a href="#local-6989586621679139212"><span class="hs-identifier hs-var">ptr</span></a></span></span><span class="hs-special">,</span><span id="local-6989586621679139211"><span class="annot"><span class="annottext">Int
-</span><a href="#local-6989586621679139211"><span class="hs-identifier hs-var">len</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
-</span><span id="line-75"></span><span>        </span><span class="annot"><span class="annottext">Proxy v
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-glyph">\</span><span class="hs-special">(</span><span id="local-6989586621679139898"><span class="annot"><span class="annottext">Ptr CChar
+</span><a href="#local-6989586621679139898"><span class="hs-identifier hs-var">ptr</span></a></span></span><span class="hs-special">,</span><span id="local-6989586621679139897"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679139897"><span class="hs-identifier hs-var">len</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-83"></span><span>        </span><span class="annot"><span class="annottext">Proxy v
 -&gt; Ptr CChar
 -&gt; Int
 -&gt; SodiumSignKeyDSIGN v
@@ -104,46 +118,46 @@ SodiumDSIGNAlgorithm v =&gt;
 Proxy v
 -&gt; Ptr a -&gt; Int -&gt; SodiumSignKeyDSIGN v -&gt; IO (SodiumSigDSIGN v)
 </span><a href="Cardano.Crypto.Libsodium.DSIGN.html#naclSignDSIGNPtr"><span class="hs-identifier hs-var">naclSignDSIGNPtr</span></a></span><span> </span><span class="annot"><span class="annottext">Proxy v
-</span><a href="#local-6989586621679139218"><span class="hs-identifier hs-var">pv</span></a></span><span> </span><span class="annot"><span class="annottext">Ptr CChar
-</span><a href="#local-6989586621679139212"><span class="hs-identifier hs-var">ptr</span></a></span><span> </span><span class="annot"><span class="annottext">Int
-</span><a href="#local-6989586621679139211"><span class="hs-identifier hs-var">len</span></a></span><span> </span><span class="annot"><span class="annottext">SodiumSignKeyDSIGN v
-</span><a href="#local-6989586621679139216"><span class="hs-identifier hs-var">sk</span></a></span><span>
-</span><span id="line-76"></span><span>
-</span><span id="line-77"></span><span id="local-6989586621679139209"><span id="local-6989586621679139210"><span class="annot"><a href="Cardano.Crypto.Libsodium.DSIGN.html#naclVerifyDSIGN"><span class="hs-identifier hs-type">naclVerifyDSIGN</span></a></span><span>
-</span><span id="line-78"></span><span>    </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cardano.Crypto.Libsodium.DSIGN.html#SodiumDSIGNAlgorithm"><span class="hs-identifier hs-type">SodiumDSIGNAlgorithm</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679139210"><span class="hs-identifier hs-type">v</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cardano.Crypto.Util.html#SignableRepresentation"><span class="hs-identifier hs-type">SignableRepresentation</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679139209"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span>
-</span><span id="line-79"></span><span>    </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Proxy</span></span><span> </span><span class="annot"><a href="#local-6989586621679139210"><span class="hs-identifier hs-type">v</span></a></span><span>
-</span><span id="line-80"></span><span>    </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cardano.Crypto.Libsodium.DSIGN.html#SodiumVerKeyDSIGN"><span class="hs-identifier hs-type">SodiumVerKeyDSIGN</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679139210"><span class="hs-identifier hs-type">v</span></a></span><span>
-</span><span id="line-81"></span><span>    </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679139209"><span class="hs-identifier hs-type">a</span></a></span><span>
-</span><span id="line-82"></span><span>    </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cardano.Crypto.Libsodium.DSIGN.html#SodiumSigDSIGN"><span class="hs-identifier hs-type">SodiumSigDSIGN</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679139210"><span class="hs-identifier hs-type">v</span></a></span><span>
-</span><span id="line-83"></span><span>    </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Either</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">String</span></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span></span></span><span>
-</span><span id="line-84"></span><span id="naclVerifyDSIGN"><span class="annot"><span class="annottext">naclVerifyDSIGN :: Proxy v
+</span><a href="#local-6989586621679139904"><span class="hs-identifier hs-var">pv</span></a></span><span> </span><span class="annot"><span class="annottext">Ptr CChar
+</span><a href="#local-6989586621679139898"><span class="hs-identifier hs-var">ptr</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679139897"><span class="hs-identifier hs-var">len</span></a></span><span> </span><span class="annot"><span class="annottext">SodiumSignKeyDSIGN v
+</span><a href="#local-6989586621679139902"><span class="hs-identifier hs-var">sk</span></a></span><span>
+</span><span id="line-84"></span><span>
+</span><span id="line-85"></span><span id="local-6989586621679139895"><span id="local-6989586621679139896"><span class="annot"><a href="Cardano.Crypto.Libsodium.DSIGN.html#naclVerifyDSIGN"><span class="hs-identifier hs-type">naclVerifyDSIGN</span></a></span><span>
+</span><span id="line-86"></span><span>    </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cardano.Crypto.Libsodium.DSIGN.html#SodiumDSIGNAlgorithm"><span class="hs-identifier hs-type">SodiumDSIGNAlgorithm</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679139896"><span class="hs-identifier hs-type">v</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cardano.Crypto.Util.html#SignableRepresentation"><span class="hs-identifier hs-type">SignableRepresentation</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679139895"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-87"></span><span>    </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Proxy</span></span><span> </span><span class="annot"><a href="#local-6989586621679139896"><span class="hs-identifier hs-type">v</span></a></span><span>
+</span><span id="line-88"></span><span>    </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cardano.Crypto.Libsodium.DSIGN.html#SodiumVerKeyDSIGN"><span class="hs-identifier hs-type">SodiumVerKeyDSIGN</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679139896"><span class="hs-identifier hs-type">v</span></a></span><span>
+</span><span id="line-89"></span><span>    </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679139895"><span class="hs-identifier hs-type">a</span></a></span><span>
+</span><span id="line-90"></span><span>    </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cardano.Crypto.Libsodium.DSIGN.html#SodiumSigDSIGN"><span class="hs-identifier hs-type">SodiumSigDSIGN</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679139896"><span class="hs-identifier hs-type">v</span></a></span><span>
+</span><span id="line-91"></span><span>    </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Either</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">String</span></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span></span></span><span>
+</span><span id="line-92"></span><span id="naclVerifyDSIGN"><span class="annot"><span class="annottext">naclVerifyDSIGN :: Proxy v
 -&gt; SodiumVerKeyDSIGN v -&gt; a -&gt; SodiumSigDSIGN v -&gt; Either String ()
-</span><a href="Cardano.Crypto.Libsodium.DSIGN.html#naclVerifyDSIGN"><span class="hs-identifier hs-var hs-var">naclVerifyDSIGN</span></a></span></span><span> </span><span id="local-6989586621679139208"><span class="annot"><span class="annottext">Proxy v
-</span><a href="#local-6989586621679139208"><span class="hs-identifier hs-var">pv</span></a></span></span><span> </span><span id="local-6989586621679139207"><span class="annot"><span class="annottext">SodiumVerKeyDSIGN v
-</span><a href="#local-6989586621679139207"><span class="hs-identifier hs-var">vk</span></a></span></span><span> </span><span id="local-6989586621679139206"><span class="annot"><span class="annottext">a
-</span><a href="#local-6989586621679139206"><span class="hs-identifier hs-var">a</span></a></span></span><span> </span><span id="local-6989586621679139205"><span class="annot"><span class="annottext">SodiumSigDSIGN v
-</span><a href="#local-6989586621679139205"><span class="hs-identifier hs-var">sig</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">IO (Either String ()) -&gt; Either String ()
+</span><a href="Cardano.Crypto.Libsodium.DSIGN.html#naclVerifyDSIGN"><span class="hs-identifier hs-var hs-var">naclVerifyDSIGN</span></a></span></span><span> </span><span id="local-6989586621679139894"><span class="annot"><span class="annottext">Proxy v
+</span><a href="#local-6989586621679139894"><span class="hs-identifier hs-var">pv</span></a></span></span><span> </span><span id="local-6989586621679139893"><span class="annot"><span class="annottext">SodiumVerKeyDSIGN v
+</span><a href="#local-6989586621679139893"><span class="hs-identifier hs-var">vk</span></a></span></span><span> </span><span id="local-6989586621679139892"><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679139892"><span class="hs-identifier hs-var">a</span></a></span></span><span> </span><span id="local-6989586621679139891"><span class="annot"><span class="annottext">SodiumSigDSIGN v
+</span><a href="#local-6989586621679139891"><span class="hs-identifier hs-var">sig</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">IO (Either String ()) -&gt; Either String ()
 forall a. IO a -&gt; a
 </span><span class="hs-identifier hs-var">unsafeDupablePerformIO</span></span><span> </span><span class="annot"><span class="annottext">(IO (Either String ()) -&gt; Either String ())
 -&gt; IO (Either String ()) -&gt; Either String ()
 forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-keyword">do</span><span>
-</span><span id="line-85"></span><span>    </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679139204"><span class="annot"><span class="annottext">bs :: ByteString
-</span><a href="#local-6989586621679139204"><span class="hs-identifier hs-var hs-var">bs</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">a -&gt; ByteString
+</span><span id="line-93"></span><span>    </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679139890"><span class="annot"><span class="annottext">bs :: ByteString
+</span><a href="#local-6989586621679139890"><span class="hs-identifier hs-var hs-var">bs</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">a -&gt; ByteString
 forall a. SignableRepresentation a =&gt; a -&gt; ByteString
 </span><a href="Cardano.Crypto.Util.html#getSignableRepresentation"><span class="hs-identifier hs-var">getSignableRepresentation</span></a></span><span> </span><span class="annot"><span class="annottext">a
-</span><a href="#local-6989586621679139206"><span class="hs-identifier hs-var">a</span></a></span><span>
-</span><span id="line-86"></span><span>    </span><span class="annot"><span class="annottext">ByteString
+</span><a href="#local-6989586621679139892"><span class="hs-identifier hs-var">a</span></a></span><span>
+</span><span id="line-94"></span><span>    </span><span class="annot"><span class="annottext">ByteString
 -&gt; (CStringLen -&gt; IO (Either String ())) -&gt; IO (Either String ())
 forall a. ByteString -&gt; (CStringLen -&gt; IO a) -&gt; IO a
 </span><span class="hs-identifier hs-var">BS.useAsCStringLen</span></span><span> </span><span class="annot"><span class="annottext">ByteString
-</span><a href="#local-6989586621679139204"><span class="hs-identifier hs-var">bs</span></a></span><span> </span><span class="annot"><span class="annottext">((CStringLen -&gt; IO (Either String ())) -&gt; IO (Either String ()))
+</span><a href="#local-6989586621679139890"><span class="hs-identifier hs-var">bs</span></a></span><span> </span><span class="annot"><span class="annottext">((CStringLen -&gt; IO (Either String ())) -&gt; IO (Either String ()))
 -&gt; (CStringLen -&gt; IO (Either String ())) -&gt; IO (Either String ())
 forall a b. (a -&gt; b) -&gt; a -&gt; b
-</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-glyph">\</span><span class="hs-special">(</span><span id="local-6989586621679139203"><span class="annot"><span class="annottext">Ptr CChar
-</span><a href="#local-6989586621679139203"><span class="hs-identifier hs-var">ptr</span></a></span></span><span class="hs-special">,</span><span id="local-6989586621679139202"><span class="annot"><span class="annottext">Int
-</span><a href="#local-6989586621679139202"><span class="hs-identifier hs-var">len</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
-</span><span id="line-87"></span><span>        </span><span class="annot"><span class="annottext">Proxy v
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-glyph">\</span><span class="hs-special">(</span><span id="local-6989586621679139889"><span class="annot"><span class="annottext">Ptr CChar
+</span><a href="#local-6989586621679139889"><span class="hs-identifier hs-var">ptr</span></a></span></span><span class="hs-special">,</span><span id="local-6989586621679139888"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679139888"><span class="hs-identifier hs-var">len</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-95"></span><span>        </span><span class="annot"><span class="annottext">Proxy v
 -&gt; SodiumVerKeyDSIGN v
 -&gt; Ptr CChar
 -&gt; Int
@@ -158,32 +172,32 @@ Proxy v
 -&gt; SodiumSigDSIGN v
 -&gt; IO (Either String ())
 </span><a href="Cardano.Crypto.Libsodium.DSIGN.html#naclVerifyDSIGNPtr"><span class="hs-identifier hs-var">naclVerifyDSIGNPtr</span></a></span><span> </span><span class="annot"><span class="annottext">Proxy v
-</span><a href="#local-6989586621679139208"><span class="hs-identifier hs-var">pv</span></a></span><span> </span><span class="annot"><span class="annottext">SodiumVerKeyDSIGN v
-</span><a href="#local-6989586621679139207"><span class="hs-identifier hs-var">vk</span></a></span><span> </span><span class="annot"><span class="annottext">Ptr CChar
-</span><a href="#local-6989586621679139203"><span class="hs-identifier hs-var">ptr</span></a></span><span> </span><span class="annot"><span class="annottext">Int
-</span><a href="#local-6989586621679139202"><span class="hs-identifier hs-var">len</span></a></span><span> </span><span class="annot"><span class="annottext">SodiumSigDSIGN v
-</span><a href="#local-6989586621679139205"><span class="hs-identifier hs-var">sig</span></a></span><span>
-</span><span id="line-88"></span><span>
-</span><span id="line-89"></span><span class="hs-comment">-------------------------------------------------------------------------------</span><span>
-</span><span id="line-90"></span><span class="hs-comment">-- Ed25519 instance</span><span>
-</span><span id="line-91"></span><span class="hs-comment">-------------------------------------------------------------------------------</span><span>
-</span><span id="line-92"></span><span>
-</span><span id="line-93"></span><span class="hs-keyword">instance</span><span> </span><span class="annot"><a href="Cardano.Crypto.Libsodium.DSIGN.html#SodiumDSIGNAlgorithm"><span class="hs-identifier hs-type">SodiumDSIGNAlgorithm</span></a></span><span> </span><span class="annot"><a href="Cardano.Crypto.DSIGN.Ed25519.html#Ed25519DSIGN"><span class="hs-identifier hs-type">Ed25519DSIGN</span></a></span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-94"></span><span>    </span><span id="local-6989586621679139193"><span class="annot"><span class="annottext">naclGenKeyDSIGN :: Proxy Ed25519DSIGN
+</span><a href="#local-6989586621679139894"><span class="hs-identifier hs-var">pv</span></a></span><span> </span><span class="annot"><span class="annottext">SodiumVerKeyDSIGN v
+</span><a href="#local-6989586621679139893"><span class="hs-identifier hs-var">vk</span></a></span><span> </span><span class="annot"><span class="annottext">Ptr CChar
+</span><a href="#local-6989586621679139889"><span class="hs-identifier hs-var">ptr</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679139888"><span class="hs-identifier hs-var">len</span></a></span><span> </span><span class="annot"><span class="annottext">SodiumSigDSIGN v
+</span><a href="#local-6989586621679139891"><span class="hs-identifier hs-var">sig</span></a></span><span>
+</span><span id="line-96"></span><span>
+</span><span id="line-97"></span><span class="hs-comment">-------------------------------------------------------------------------------</span><span>
+</span><span id="line-98"></span><span class="hs-comment">-- Ed25519 instance</span><span>
+</span><span id="line-99"></span><span class="hs-comment">-------------------------------------------------------------------------------</span><span>
+</span><span id="line-100"></span><span>
+</span><span id="line-101"></span><span class="hs-keyword">instance</span><span> </span><span class="annot"><a href="Cardano.Crypto.Libsodium.DSIGN.html#SodiumDSIGNAlgorithm"><span class="hs-identifier hs-type">SodiumDSIGNAlgorithm</span></a></span><span> </span><span class="annot"><a href="Cardano.Crypto.DSIGN.Ed25519.html#Ed25519DSIGN"><span class="hs-identifier hs-type">Ed25519DSIGN</span></a></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-102"></span><span>    </span><span id="local-6989586621679139879"><span class="annot"><span class="annottext">naclGenKeyDSIGN :: Proxy Ed25519DSIGN
 -&gt; MLockedSizedBytes (SeedSizeDSIGN Ed25519DSIGN)
 -&gt; SodiumSignKeyDSIGN Ed25519DSIGN
-</span><a href="#local-6989586621679139193"><span class="hs-identifier hs-var hs-var hs-var hs-var">naclGenKeyDSIGN</span></a></span></span><span> </span><span class="annot"><span class="annottext">Proxy Ed25519DSIGN
+</span><a href="#local-6989586621679139879"><span class="hs-identifier hs-var hs-var hs-var hs-var">naclGenKeyDSIGN</span></a></span></span><span> </span><span class="annot"><span class="annottext">Proxy Ed25519DSIGN
 </span><span class="hs-identifier">_</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">MLockedSizedBytes (SeedSizeDSIGN Ed25519DSIGN)
 -&gt; SodiumSignKeyDSIGN Ed25519DSIGN
 forall a. a -&gt; a
 </span><span class="hs-identifier hs-var">id</span></span><span>
-</span><span id="line-95"></span><span>
-</span><span id="line-96"></span><span>    </span><span id="local-6989586621679139191"><span class="annot"><span class="annottext">naclDeriveVerKeyDSIGN :: Proxy Ed25519DSIGN
+</span><span id="line-103"></span><span>
+</span><span id="line-104"></span><span>    </span><span id="local-6989586621679139877"><span class="annot"><span class="annottext">naclDeriveVerKeyDSIGN :: Proxy Ed25519DSIGN
 -&gt; SodiumSignKeyDSIGN Ed25519DSIGN
 -&gt; SodiumVerKeyDSIGN Ed25519DSIGN
-</span><a href="#local-6989586621679139191"><span class="hs-identifier hs-var hs-var hs-var hs-var">naclDeriveVerKeyDSIGN</span></a></span></span><span> </span><span class="annot"><span class="annottext">Proxy Ed25519DSIGN
-</span><span class="hs-identifier">_</span></span><span> </span><span id="local-6989586621679139190"><span class="annot"><span class="annottext">SodiumSignKeyDSIGN Ed25519DSIGN
-</span><a href="#local-6989586621679139190"><span class="hs-identifier hs-var">seed</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">IO (PinnedSizedBytes CRYPTO_SIGN_ED25519_PUBLICKEYBYTES)
+</span><a href="#local-6989586621679139877"><span class="hs-identifier hs-var hs-var hs-var hs-var">naclDeriveVerKeyDSIGN</span></a></span></span><span> </span><span class="annot"><span class="annottext">Proxy Ed25519DSIGN
+</span><span class="hs-identifier">_</span></span><span> </span><span id="local-6989586621679139876"><span class="annot"><span class="annottext">SodiumSignKeyDSIGN Ed25519DSIGN
+</span><a href="#local-6989586621679139876"><span class="hs-identifier hs-var">seed</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">IO (PinnedSizedBytes CRYPTO_SIGN_ED25519_PUBLICKEYBYTES)
 -&gt; PinnedSizedBytes CRYPTO_SIGN_ED25519_PUBLICKEYBYTES
 forall a. IO a -&gt; a
 </span><span class="hs-identifier hs-var">unsafeDupablePerformIO</span></span><span> </span><span class="annot"><span class="annottext">(IO (PinnedSizedBytes CRYPTO_SIGN_ED25519_PUBLICKEYBYTES)
@@ -192,7 +206,7 @@ forall a. IO a -&gt; a
 -&gt; PinnedSizedBytes CRYPTO_SIGN_ED25519_PUBLICKEYBYTES
 forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span>
-</span><span id="line-97"></span><span>        </span><span class="annot"><span class="annottext">MLockedSizedBytes CRYPTO_SIGN_ED25519_PUBLICKEYBYTES
+</span><span id="line-105"></span><span>        </span><span class="annot"><span class="annottext">MLockedSizedBytes CRYPTO_SIGN_ED25519_PUBLICKEYBYTES
 -&gt; (SizedPtr CRYPTO_SIGN_ED25519_PUBLICKEYBYTES
     -&gt; IO (PinnedSizedBytes CRYPTO_SIGN_ED25519_PUBLICKEYBYTES))
 -&gt; IO (PinnedSizedBytes CRYPTO_SIGN_ED25519_PUBLICKEYBYTES)
@@ -200,16 +214,16 @@ forall (n :: Nat) r.
 MLockedSizedBytes n -&gt; (SizedPtr n -&gt; IO r) -&gt; IO r
 </span><a href="Cardano.Crypto.Libsodium.MLockedBytes.Internal.html#mlsbUseAsSizedPtr"><span class="hs-identifier hs-var">mlsbUseAsSizedPtr</span></a></span><span> </span><span class="annot"><span class="annottext">MLockedSizedBytes CRYPTO_SIGN_ED25519_PUBLICKEYBYTES
 SodiumSignKeyDSIGN Ed25519DSIGN
-</span><a href="#local-6989586621679139190"><span class="hs-identifier hs-var">seed</span></a></span><span> </span><span class="annot"><span class="annottext">((SizedPtr CRYPTO_SIGN_ED25519_PUBLICKEYBYTES
+</span><a href="#local-6989586621679139876"><span class="hs-identifier hs-var">seed</span></a></span><span> </span><span class="annot"><span class="annottext">((SizedPtr CRYPTO_SIGN_ED25519_PUBLICKEYBYTES
   -&gt; IO (PinnedSizedBytes CRYPTO_SIGN_ED25519_PUBLICKEYBYTES))
  -&gt; IO (PinnedSizedBytes CRYPTO_SIGN_ED25519_PUBLICKEYBYTES))
 -&gt; (SizedPtr CRYPTO_SIGN_ED25519_PUBLICKEYBYTES
     -&gt; IO (PinnedSizedBytes CRYPTO_SIGN_ED25519_PUBLICKEYBYTES))
 -&gt; IO (PinnedSizedBytes CRYPTO_SIGN_ED25519_PUBLICKEYBYTES)
 forall a b. (a -&gt; b) -&gt; a -&gt; b
-</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679139188"><span class="annot"><span class="annottext">SizedPtr CRYPTO_SIGN_ED25519_PUBLICKEYBYTES
-</span><a href="#local-6989586621679139188"><span class="hs-identifier hs-var">seedPtr</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
-</span><span id="line-98"></span><span>        </span><span class="annot"><span class="annottext">(SizedPtr CRYPTO_SIGN_ED25519_SECRETKEYBYTES
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679139874"><span class="annot"><span class="annottext">SizedPtr CRYPTO_SIGN_ED25519_PUBLICKEYBYTES
+</span><a href="#local-6989586621679139874"><span class="hs-identifier hs-var">seedPtr</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-106"></span><span>        </span><span class="annot"><span class="annottext">(SizedPtr CRYPTO_SIGN_ED25519_SECRETKEYBYTES
  -&gt; IO (PinnedSizedBytes CRYPTO_SIGN_ED25519_PUBLICKEYBYTES))
 -&gt; IO (PinnedSizedBytes CRYPTO_SIGN_ED25519_PUBLICKEYBYTES)
 forall (n :: Nat) b. KnownNat n =&gt; (SizedPtr n -&gt; IO b) -&gt; IO b
@@ -220,9 +234,9 @@ forall (n :: Nat) b. KnownNat n =&gt; (SizedPtr n -&gt; IO b) -&gt; IO b
     -&gt; IO (PinnedSizedBytes CRYPTO_SIGN_ED25519_PUBLICKEYBYTES))
 -&gt; IO (PinnedSizedBytes CRYPTO_SIGN_ED25519_PUBLICKEYBYTES)
 forall a b. (a -&gt; b) -&gt; a -&gt; b
-</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679139186"><span class="annot"><span class="annottext">SizedPtr CRYPTO_SIGN_ED25519_SECRETKEYBYTES
-</span><a href="#local-6989586621679139186"><span class="hs-identifier hs-var">skPtr</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
-</span><span id="line-99"></span><span>        </span><span class="annot"><span class="annottext">(SizedPtr CRYPTO_SIGN_ED25519_PUBLICKEYBYTES -&gt; IO ())
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679139872"><span class="annot"><span class="annottext">SizedPtr CRYPTO_SIGN_ED25519_SECRETKEYBYTES
+</span><a href="#local-6989586621679139872"><span class="hs-identifier hs-var">skPtr</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-107"></span><span>        </span><span class="annot"><span class="annottext">(SizedPtr CRYPTO_SIGN_ED25519_PUBLICKEYBYTES -&gt; IO ())
 -&gt; IO (PinnedSizedBytes CRYPTO_SIGN_ED25519_PUBLICKEYBYTES)
 forall (n :: Nat).
 KnownNat n =&gt;
@@ -232,53 +246,53 @@ KnownNat n =&gt;
 -&gt; (SizedPtr CRYPTO_SIGN_ED25519_PUBLICKEYBYTES -&gt; IO ())
 -&gt; IO (PinnedSizedBytes CRYPTO_SIGN_ED25519_PUBLICKEYBYTES)
 forall a b. (a -&gt; b) -&gt; a -&gt; b
-</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679139184"><span class="annot"><span class="annottext">SizedPtr CRYPTO_SIGN_ED25519_PUBLICKEYBYTES
-</span><a href="#local-6989586621679139184"><span class="hs-identifier hs-var">pkPtr</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">do</span><span>
-</span><span id="line-100"></span><span>            </span><span id="local-6989586621679139183"><span class="annot"><span class="annottext">Int
-</span><a href="#local-6989586621679139183"><span class="hs-identifier hs-var">res</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">SizedPtr CRYPTO_SIGN_ED25519_PUBLICKEYBYTES
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679139870"><span class="annot"><span class="annottext">SizedPtr CRYPTO_SIGN_ED25519_PUBLICKEYBYTES
+</span><a href="#local-6989586621679139870"><span class="hs-identifier hs-var">pkPtr</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-108"></span><span>            </span><span id="local-6989586621679139869"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679139869"><span class="hs-identifier hs-var">res</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">SizedPtr CRYPTO_SIGN_ED25519_PUBLICKEYBYTES
 -&gt; SizedPtr CRYPTO_SIGN_ED25519_SECRETKEYBYTES
 -&gt; SizedPtr CRYPTO_SIGN_ED25519_PUBLICKEYBYTES
 -&gt; IO Int
 </span><a href="Cardano.Crypto.Libsodium.C.html#c_crypto_sign_ed25519_seed_keypair"><span class="hs-identifier hs-var">c_crypto_sign_ed25519_seed_keypair</span></a></span><span> </span><span class="annot"><span class="annottext">SizedPtr CRYPTO_SIGN_ED25519_PUBLICKEYBYTES
-</span><a href="#local-6989586621679139184"><span class="hs-identifier hs-var">pkPtr</span></a></span><span> </span><span class="annot"><span class="annottext">SizedPtr CRYPTO_SIGN_ED25519_SECRETKEYBYTES
-</span><a href="#local-6989586621679139186"><span class="hs-identifier hs-var">skPtr</span></a></span><span> </span><span class="annot"><span class="annottext">SizedPtr CRYPTO_SIGN_ED25519_PUBLICKEYBYTES
-</span><a href="#local-6989586621679139188"><span class="hs-identifier hs-var">seedPtr</span></a></span><span>
-</span><span id="line-101"></span><span>            </span><span class="annot"><span class="annottext">Bool -&gt; IO () -&gt; IO ()
+</span><a href="#local-6989586621679139870"><span class="hs-identifier hs-var">pkPtr</span></a></span><span> </span><span class="annot"><span class="annottext">SizedPtr CRYPTO_SIGN_ED25519_SECRETKEYBYTES
+</span><a href="#local-6989586621679139872"><span class="hs-identifier hs-var">skPtr</span></a></span><span> </span><span class="annot"><span class="annottext">SizedPtr CRYPTO_SIGN_ED25519_PUBLICKEYBYTES
+</span><a href="#local-6989586621679139874"><span class="hs-identifier hs-var">seedPtr</span></a></span><span>
+</span><span id="line-109"></span><span>            </span><span class="annot"><span class="annottext">Bool -&gt; IO () -&gt; IO ()
 forall (f :: * -&gt; *). Applicative f =&gt; Bool -&gt; f () -&gt; f ()
 </span><span class="hs-identifier hs-var">unless</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
-</span><a href="#local-6989586621679139183"><span class="hs-identifier hs-var">res</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+</span><a href="#local-6989586621679139869"><span class="hs-identifier hs-var">res</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
 forall a. Eq a =&gt; a -&gt; a -&gt; Bool
 </span><span class="hs-operator hs-var">==</span></span><span> </span><span class="annot"><span class="annottext">Int
 </span><span class="hs-number">0</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(IO () -&gt; IO ()) -&gt; IO () -&gt; IO ()
 forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-keyword">do</span><span>
-</span><span id="line-102"></span><span>                </span><span id="local-6989586621679139181"><span class="annot"><span class="annottext">Errno
-</span><a href="#local-6989586621679139181"><span class="hs-identifier hs-var">errno</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">IO Errno
+</span><span id="line-110"></span><span>                </span><span id="local-6989586621679139867"><span class="annot"><span class="annottext">Errno
+</span><a href="#local-6989586621679139867"><span class="hs-identifier hs-var">errno</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">IO Errno
 </span><span class="hs-identifier hs-var">getErrno</span></span><span>
-</span><span id="line-103"></span><span>                </span><span class="annot"><span class="annottext">IOException -&gt; IO ()
+</span><span id="line-111"></span><span>                </span><span class="annot"><span class="annottext">IOException -&gt; IO ()
 forall a. IOException -&gt; IO a
 </span><span class="hs-identifier hs-var">ioException</span></span><span> </span><span class="annot"><span class="annottext">(IOException -&gt; IO ()) -&gt; IOException -&gt; IO ()
 forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">String -&gt; Errno -&gt; Maybe Handle -&gt; Maybe String -&gt; IOException
 </span><span class="hs-identifier hs-var">errnoToIOError</span></span><span> </span><span class="annot"><span class="annottext">String
 </span><span class="hs-string">&quot;naclDeriveVerKeyDSIGN @Ed25519DSIGN: c_crypto_sign_ed25519_seed_keypair&quot;</span></span><span> </span><span class="annot"><span class="annottext">Errno
-</span><a href="#local-6989586621679139181"><span class="hs-identifier hs-var">errno</span></a></span><span> </span><span class="annot"><span class="annottext">Maybe Handle
+</span><a href="#local-6989586621679139867"><span class="hs-identifier hs-var">errno</span></a></span><span> </span><span class="annot"><span class="annottext">Maybe Handle
 forall a. Maybe a
 </span><span class="hs-identifier hs-var">Nothing</span></span><span> </span><span class="annot"><span class="annottext">Maybe String
 forall a. Maybe a
 </span><span class="hs-identifier hs-var">Nothing</span></span><span>
-</span><span id="line-104"></span><span>
-</span><span id="line-105"></span><span>    </span><span id="local-6989586621679139180"><span class="annot"><span class="annottext">naclSignDSIGNPtr :: Proxy Ed25519DSIGN
+</span><span id="line-112"></span><span>
+</span><span id="line-113"></span><span>    </span><span id="local-6989586621679139866"><span class="annot"><span class="annottext">naclSignDSIGNPtr :: Proxy Ed25519DSIGN
 -&gt; Ptr a
 -&gt; Int
 -&gt; SodiumSignKeyDSIGN Ed25519DSIGN
 -&gt; IO (SodiumSigDSIGN Ed25519DSIGN)
-</span><a href="#local-6989586621679139180"><span class="hs-identifier hs-var hs-var hs-var hs-var">naclSignDSIGNPtr</span></a></span></span><span> </span><span class="annot"><span class="annottext">Proxy Ed25519DSIGN
-</span><span class="hs-identifier">_</span></span><span> </span><span id="local-6989586621679139179"><span class="annot"><span class="annottext">Ptr a
-</span><a href="#local-6989586621679139179"><span class="hs-identifier hs-var">ptr</span></a></span></span><span> </span><span id="local-6989586621679139178"><span class="annot"><span class="annottext">Int
-</span><a href="#local-6989586621679139178"><span class="hs-identifier hs-var">len</span></a></span></span><span> </span><span id="local-6989586621679139177"><span class="annot"><span class="annottext">SodiumSignKeyDSIGN Ed25519DSIGN
-</span><a href="#local-6989586621679139177"><span class="hs-identifier hs-var">seed</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
-</span><span id="line-106"></span><span>        </span><span class="annot"><span class="annottext">MLockedSizedBytes CRYPTO_SIGN_ED25519_PUBLICKEYBYTES
+</span><a href="#local-6989586621679139866"><span class="hs-identifier hs-var hs-var hs-var hs-var">naclSignDSIGNPtr</span></a></span></span><span> </span><span class="annot"><span class="annottext">Proxy Ed25519DSIGN
+</span><span class="hs-identifier">_</span></span><span> </span><span id="local-6989586621679139865"><span class="annot"><span class="annottext">Ptr a
+</span><a href="#local-6989586621679139865"><span class="hs-identifier hs-var">ptr</span></a></span></span><span> </span><span id="local-6989586621679139864"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679139864"><span class="hs-identifier hs-var">len</span></a></span></span><span> </span><span id="local-6989586621679139863"><span class="annot"><span class="annottext">SodiumSignKeyDSIGN Ed25519DSIGN
+</span><a href="#local-6989586621679139863"><span class="hs-identifier hs-var">seed</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-114"></span><span>        </span><span class="annot"><span class="annottext">MLockedSizedBytes CRYPTO_SIGN_ED25519_PUBLICKEYBYTES
 -&gt; (SizedPtr CRYPTO_SIGN_ED25519_PUBLICKEYBYTES
     -&gt; IO (PinnedSizedBytes CRYPTO_SIGN_ED25519_SECRETKEYBYTES))
 -&gt; IO (PinnedSizedBytes CRYPTO_SIGN_ED25519_SECRETKEYBYTES)
@@ -286,16 +300,16 @@ forall (n :: Nat) r.
 MLockedSizedBytes n -&gt; (SizedPtr n -&gt; IO r) -&gt; IO r
 </span><a href="Cardano.Crypto.Libsodium.MLockedBytes.Internal.html#mlsbUseAsSizedPtr"><span class="hs-identifier hs-var">mlsbUseAsSizedPtr</span></a></span><span> </span><span class="annot"><span class="annottext">MLockedSizedBytes CRYPTO_SIGN_ED25519_PUBLICKEYBYTES
 SodiumSignKeyDSIGN Ed25519DSIGN
-</span><a href="#local-6989586621679139177"><span class="hs-identifier hs-var">seed</span></a></span><span> </span><span class="annot"><span class="annottext">((SizedPtr CRYPTO_SIGN_ED25519_PUBLICKEYBYTES
+</span><a href="#local-6989586621679139863"><span class="hs-identifier hs-var">seed</span></a></span><span> </span><span class="annot"><span class="annottext">((SizedPtr CRYPTO_SIGN_ED25519_PUBLICKEYBYTES
   -&gt; IO (PinnedSizedBytes CRYPTO_SIGN_ED25519_SECRETKEYBYTES))
  -&gt; IO (PinnedSizedBytes CRYPTO_SIGN_ED25519_SECRETKEYBYTES))
 -&gt; (SizedPtr CRYPTO_SIGN_ED25519_PUBLICKEYBYTES
     -&gt; IO (PinnedSizedBytes CRYPTO_SIGN_ED25519_SECRETKEYBYTES))
 -&gt; IO (PinnedSizedBytes CRYPTO_SIGN_ED25519_SECRETKEYBYTES)
 forall a b. (a -&gt; b) -&gt; a -&gt; b
-</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679139176"><span class="annot"><span class="annottext">SizedPtr CRYPTO_SIGN_ED25519_PUBLICKEYBYTES
-</span><a href="#local-6989586621679139176"><span class="hs-identifier hs-var">seedPtr</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
-</span><span id="line-107"></span><span>        </span><span class="annot"><span class="annottext">(SizedPtr CRYPTO_SIGN_ED25519_SECRETKEYBYTES
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679139862"><span class="annot"><span class="annottext">SizedPtr CRYPTO_SIGN_ED25519_PUBLICKEYBYTES
+</span><a href="#local-6989586621679139862"><span class="hs-identifier hs-var">seedPtr</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-115"></span><span>        </span><span class="annot"><span class="annottext">(SizedPtr CRYPTO_SIGN_ED25519_SECRETKEYBYTES
  -&gt; IO (PinnedSizedBytes CRYPTO_SIGN_ED25519_SECRETKEYBYTES))
 -&gt; IO (PinnedSizedBytes CRYPTO_SIGN_ED25519_SECRETKEYBYTES)
 forall (n :: Nat) b. KnownNat n =&gt; (SizedPtr n -&gt; IO b) -&gt; IO b
@@ -306,9 +320,9 @@ forall (n :: Nat) b. KnownNat n =&gt; (SizedPtr n -&gt; IO b) -&gt; IO b
     -&gt; IO (PinnedSizedBytes CRYPTO_SIGN_ED25519_SECRETKEYBYTES))
 -&gt; IO (PinnedSizedBytes CRYPTO_SIGN_ED25519_SECRETKEYBYTES)
 forall a b. (a -&gt; b) -&gt; a -&gt; b
-</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679139175"><span class="annot"><span class="annottext">SizedPtr CRYPTO_SIGN_ED25519_SECRETKEYBYTES
-</span><a href="#local-6989586621679139175"><span class="hs-identifier hs-var">skPtr</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
-</span><span id="line-108"></span><span>        </span><span class="annot"><span class="annottext">(SizedPtr CRYPTO_SIGN_ED25519_PUBLICKEYBYTES
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679139861"><span class="annot"><span class="annottext">SizedPtr CRYPTO_SIGN_ED25519_SECRETKEYBYTES
+</span><a href="#local-6989586621679139861"><span class="hs-identifier hs-var">skPtr</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-116"></span><span>        </span><span class="annot"><span class="annottext">(SizedPtr CRYPTO_SIGN_ED25519_PUBLICKEYBYTES
  -&gt; IO (PinnedSizedBytes CRYPTO_SIGN_ED25519_SECRETKEYBYTES))
 -&gt; IO (PinnedSizedBytes CRYPTO_SIGN_ED25519_SECRETKEYBYTES)
 forall (n :: Nat) b. KnownNat n =&gt; (SizedPtr n -&gt; IO b) -&gt; IO b
@@ -319,44 +333,44 @@ forall (n :: Nat) b. KnownNat n =&gt; (SizedPtr n -&gt; IO b) -&gt; IO b
     -&gt; IO (PinnedSizedBytes CRYPTO_SIGN_ED25519_SECRETKEYBYTES))
 -&gt; IO (PinnedSizedBytes CRYPTO_SIGN_ED25519_SECRETKEYBYTES)
 forall a b. (a -&gt; b) -&gt; a -&gt; b
-</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679139173"><span class="annot"><span class="annottext">SizedPtr CRYPTO_SIGN_ED25519_PUBLICKEYBYTES
-</span><a href="#local-6989586621679139173"><span class="hs-identifier hs-var">pkPtr</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">do</span><span>
-</span><span id="line-109"></span><span>            </span><span class="hs-comment">-- copy paste</span><span>
-</span><span id="line-110"></span><span>            </span><span id="local-6989586621679139172"><span class="annot"><span class="annottext">Int
-</span><a href="#local-6989586621679139172"><span class="hs-identifier hs-var">res</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">SizedPtr CRYPTO_SIGN_ED25519_PUBLICKEYBYTES
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679139859"><span class="annot"><span class="annottext">SizedPtr CRYPTO_SIGN_ED25519_PUBLICKEYBYTES
+</span><a href="#local-6989586621679139859"><span class="hs-identifier hs-var">pkPtr</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-117"></span><span>            </span><span class="hs-comment">-- copy paste</span><span>
+</span><span id="line-118"></span><span>            </span><span id="local-6989586621679139858"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679139858"><span class="hs-identifier hs-var">res</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">SizedPtr CRYPTO_SIGN_ED25519_PUBLICKEYBYTES
 -&gt; SizedPtr CRYPTO_SIGN_ED25519_SECRETKEYBYTES
 -&gt; SizedPtr CRYPTO_SIGN_ED25519_PUBLICKEYBYTES
 -&gt; IO Int
 </span><a href="Cardano.Crypto.Libsodium.C.html#c_crypto_sign_ed25519_seed_keypair"><span class="hs-identifier hs-var">c_crypto_sign_ed25519_seed_keypair</span></a></span><span> </span><span class="annot"><span class="annottext">SizedPtr CRYPTO_SIGN_ED25519_PUBLICKEYBYTES
-</span><a href="#local-6989586621679139173"><span class="hs-identifier hs-var">pkPtr</span></a></span><span> </span><span class="annot"><span class="annottext">SizedPtr CRYPTO_SIGN_ED25519_SECRETKEYBYTES
-</span><a href="#local-6989586621679139175"><span class="hs-identifier hs-var">skPtr</span></a></span><span> </span><span class="annot"><span class="annottext">SizedPtr CRYPTO_SIGN_ED25519_PUBLICKEYBYTES
-</span><a href="#local-6989586621679139176"><span class="hs-identifier hs-var">seedPtr</span></a></span><span>
-</span><span id="line-111"></span><span>            </span><span class="annot"><span class="annottext">Bool -&gt; IO () -&gt; IO ()
+</span><a href="#local-6989586621679139859"><span class="hs-identifier hs-var">pkPtr</span></a></span><span> </span><span class="annot"><span class="annottext">SizedPtr CRYPTO_SIGN_ED25519_SECRETKEYBYTES
+</span><a href="#local-6989586621679139861"><span class="hs-identifier hs-var">skPtr</span></a></span><span> </span><span class="annot"><span class="annottext">SizedPtr CRYPTO_SIGN_ED25519_PUBLICKEYBYTES
+</span><a href="#local-6989586621679139862"><span class="hs-identifier hs-var">seedPtr</span></a></span><span>
+</span><span id="line-119"></span><span>            </span><span class="annot"><span class="annottext">Bool -&gt; IO () -&gt; IO ()
 forall (f :: * -&gt; *). Applicative f =&gt; Bool -&gt; f () -&gt; f ()
 </span><span class="hs-identifier hs-var">unless</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
-</span><a href="#local-6989586621679139172"><span class="hs-identifier hs-var">res</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+</span><a href="#local-6989586621679139858"><span class="hs-identifier hs-var">res</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
 forall a. Eq a =&gt; a -&gt; a -&gt; Bool
 </span><span class="hs-operator hs-var">==</span></span><span> </span><span class="annot"><span class="annottext">Int
 </span><span class="hs-number">0</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(IO () -&gt; IO ()) -&gt; IO () -&gt; IO ()
 forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-keyword">do</span><span>
-</span><span id="line-112"></span><span>                </span><span id="local-6989586621679139171"><span class="annot"><span class="annottext">Errno
-</span><a href="#local-6989586621679139171"><span class="hs-identifier hs-var">errno</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">IO Errno
+</span><span id="line-120"></span><span>                </span><span id="local-6989586621679139857"><span class="annot"><span class="annottext">Errno
+</span><a href="#local-6989586621679139857"><span class="hs-identifier hs-var">errno</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">IO Errno
 </span><span class="hs-identifier hs-var">getErrno</span></span><span>
-</span><span id="line-113"></span><span>                </span><span class="annot"><span class="annottext">IOException -&gt; IO ()
+</span><span id="line-121"></span><span>                </span><span class="annot"><span class="annottext">IOException -&gt; IO ()
 forall a. IOException -&gt; IO a
 </span><span class="hs-identifier hs-var">ioException</span></span><span> </span><span class="annot"><span class="annottext">(IOException -&gt; IO ()) -&gt; IOException -&gt; IO ()
 forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">String -&gt; Errno -&gt; Maybe Handle -&gt; Maybe String -&gt; IOException
 </span><span class="hs-identifier hs-var">errnoToIOError</span></span><span> </span><span class="annot"><span class="annottext">String
 </span><span class="hs-string">&quot;naclDeriveVerKeyDSIGN @Ed25519DSIGN: c_crypto_sign_ed25519_seed_keypair&quot;</span></span><span> </span><span class="annot"><span class="annottext">Errno
-</span><a href="#local-6989586621679139171"><span class="hs-identifier hs-var">errno</span></a></span><span> </span><span class="annot"><span class="annottext">Maybe Handle
+</span><a href="#local-6989586621679139857"><span class="hs-identifier hs-var">errno</span></a></span><span> </span><span class="annot"><span class="annottext">Maybe Handle
 forall a. Maybe a
 </span><span class="hs-identifier hs-var">Nothing</span></span><span> </span><span class="annot"><span class="annottext">Maybe String
 forall a. Maybe a
 </span><span class="hs-identifier hs-var">Nothing</span></span><span>
-</span><span id="line-114"></span><span>
-</span><span id="line-115"></span><span>            </span><span class="annot"><span class="annottext">(SizedPtr CRYPTO_SIGN_ED25519_SECRETKEYBYTES -&gt; IO ())
+</span><span id="line-122"></span><span>
+</span><span id="line-123"></span><span>            </span><span class="annot"><span class="annottext">(SizedPtr CRYPTO_SIGN_ED25519_SECRETKEYBYTES -&gt; IO ())
 -&gt; IO (PinnedSizedBytes CRYPTO_SIGN_ED25519_SECRETKEYBYTES)
 forall (n :: Nat).
 KnownNat n =&gt;
@@ -366,64 +380,64 @@ KnownNat n =&gt;
 -&gt; (SizedPtr CRYPTO_SIGN_ED25519_SECRETKEYBYTES -&gt; IO ())
 -&gt; IO (PinnedSizedBytes CRYPTO_SIGN_ED25519_SECRETKEYBYTES)
 forall a b. (a -&gt; b) -&gt; a -&gt; b
-</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679139170"><span class="annot"><span class="annottext">SizedPtr CRYPTO_SIGN_ED25519_SECRETKEYBYTES
-</span><a href="#local-6989586621679139170"><span class="hs-identifier hs-var">sigPtr</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">do</span><span>
-</span><span id="line-116"></span><span>                </span><span id="local-6989586621679139169"><span class="annot"><span class="annottext">Int
-</span><a href="#local-6989586621679139169"><span class="hs-identifier hs-var">res2</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">SizedPtr CRYPTO_SIGN_ED25519_SECRETKEYBYTES
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679139856"><span class="annot"><span class="annottext">SizedPtr CRYPTO_SIGN_ED25519_SECRETKEYBYTES
+</span><a href="#local-6989586621679139856"><span class="hs-identifier hs-var">sigPtr</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-124"></span><span>                </span><span id="local-6989586621679139855"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679139855"><span class="hs-identifier hs-var">res2</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">SizedPtr CRYPTO_SIGN_ED25519_SECRETKEYBYTES
 -&gt; Ptr CULLong
 -&gt; Ptr CUChar
 -&gt; CULLong
 -&gt; SizedPtr CRYPTO_SIGN_ED25519_SECRETKEYBYTES
 -&gt; IO Int
 </span><a href="Cardano.Crypto.Libsodium.C.html#c_crypto_sign_ed25519_detached"><span class="hs-identifier hs-var">c_crypto_sign_ed25519_detached</span></a></span><span> </span><span class="annot"><span class="annottext">SizedPtr CRYPTO_SIGN_ED25519_SECRETKEYBYTES
-</span><a href="#local-6989586621679139170"><span class="hs-identifier hs-var">sigPtr</span></a></span><span> </span><span class="annot"><span class="annottext">Ptr CULLong
+</span><a href="#local-6989586621679139856"><span class="hs-identifier hs-var">sigPtr</span></a></span><span> </span><span class="annot"><span class="annottext">Ptr CULLong
 forall a. Ptr a
 </span><span class="hs-identifier hs-var">nullPtr</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Ptr a -&gt; Ptr CUChar
 forall a b. Ptr a -&gt; Ptr b
 </span><span class="hs-identifier hs-var">castPtr</span></span><span> </span><span class="annot"><span class="annottext">Ptr a
-</span><a href="#local-6989586621679139179"><span class="hs-identifier hs-var">ptr</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; CULLong
+</span><a href="#local-6989586621679139865"><span class="hs-identifier hs-var">ptr</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; CULLong
 forall a b. (Integral a, Num b) =&gt; a -&gt; b
 </span><span class="hs-identifier hs-var">fromIntegral</span></span><span> </span><span class="annot"><span class="annottext">Int
-</span><a href="#local-6989586621679139178"><span class="hs-identifier hs-var">len</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">SizedPtr CRYPTO_SIGN_ED25519_SECRETKEYBYTES
-</span><a href="#local-6989586621679139175"><span class="hs-identifier hs-var">skPtr</span></a></span><span>
-</span><span id="line-117"></span><span>                </span><span class="annot"><span class="annottext">Bool -&gt; IO () -&gt; IO ()
+</span><a href="#local-6989586621679139864"><span class="hs-identifier hs-var">len</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">SizedPtr CRYPTO_SIGN_ED25519_SECRETKEYBYTES
+</span><a href="#local-6989586621679139861"><span class="hs-identifier hs-var">skPtr</span></a></span><span>
+</span><span id="line-125"></span><span>                </span><span class="annot"><span class="annottext">Bool -&gt; IO () -&gt; IO ()
 forall (f :: * -&gt; *). Applicative f =&gt; Bool -&gt; f () -&gt; f ()
 </span><span class="hs-identifier hs-var">unless</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
-</span><a href="#local-6989586621679139169"><span class="hs-identifier hs-var">res2</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+</span><a href="#local-6989586621679139855"><span class="hs-identifier hs-var">res2</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
 forall a. Eq a =&gt; a -&gt; a -&gt; Bool
 </span><span class="hs-operator hs-var">==</span></span><span> </span><span class="annot"><span class="annottext">Int
 </span><span class="hs-number">0</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(IO () -&gt; IO ()) -&gt; IO () -&gt; IO ()
 forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-keyword">do</span><span>
-</span><span id="line-118"></span><span>                    </span><span id="local-6989586621679139167"><span class="annot"><span class="annottext">Errno
-</span><a href="#local-6989586621679139167"><span class="hs-identifier hs-var">errno</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">IO Errno
+</span><span id="line-126"></span><span>                    </span><span id="local-6989586621679139853"><span class="annot"><span class="annottext">Errno
+</span><a href="#local-6989586621679139853"><span class="hs-identifier hs-var">errno</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">IO Errno
 </span><span class="hs-identifier hs-var">getErrno</span></span><span>
-</span><span id="line-119"></span><span>                    </span><span class="annot"><span class="annottext">IOException -&gt; IO ()
+</span><span id="line-127"></span><span>                    </span><span class="annot"><span class="annottext">IOException -&gt; IO ()
 forall a. IOException -&gt; IO a
 </span><span class="hs-identifier hs-var">ioException</span></span><span> </span><span class="annot"><span class="annottext">(IOException -&gt; IO ()) -&gt; IOException -&gt; IO ()
 forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">String -&gt; Errno -&gt; Maybe Handle -&gt; Maybe String -&gt; IOException
 </span><span class="hs-identifier hs-var">errnoToIOError</span></span><span> </span><span class="annot"><span class="annottext">String
 </span><span class="hs-string">&quot;naclDeriveVerKeyDSIGN @Ed25519DSIGN: c_crypto_sign_ed25519_seed_keypair&quot;</span></span><span> </span><span class="annot"><span class="annottext">Errno
-</span><a href="#local-6989586621679139167"><span class="hs-identifier hs-var">errno</span></a></span><span> </span><span class="annot"><span class="annottext">Maybe Handle
+</span><a href="#local-6989586621679139853"><span class="hs-identifier hs-var">errno</span></a></span><span> </span><span class="annot"><span class="annottext">Maybe Handle
 forall a. Maybe a
 </span><span class="hs-identifier hs-var">Nothing</span></span><span> </span><span class="annot"><span class="annottext">Maybe String
 forall a. Maybe a
 </span><span class="hs-identifier hs-var">Nothing</span></span><span>
-</span><span id="line-120"></span><span>
-</span><span id="line-121"></span><span>    </span><span id="local-6989586621679139166"><span class="annot"><span class="annottext">naclVerifyDSIGNPtr :: Proxy Ed25519DSIGN
+</span><span id="line-128"></span><span>
+</span><span id="line-129"></span><span>    </span><span id="local-6989586621679139852"><span class="annot"><span class="annottext">naclVerifyDSIGNPtr :: Proxy Ed25519DSIGN
 -&gt; SodiumVerKeyDSIGN Ed25519DSIGN
 -&gt; Ptr a
 -&gt; Int
 -&gt; SodiumSigDSIGN Ed25519DSIGN
 -&gt; IO (Either String ())
-</span><a href="#local-6989586621679139166"><span class="hs-identifier hs-var hs-var hs-var hs-var">naclVerifyDSIGNPtr</span></a></span></span><span> </span><span class="annot"><span class="annottext">Proxy Ed25519DSIGN
-</span><span class="hs-identifier">_</span></span><span> </span><span id="local-6989586621679139165"><span class="annot"><span class="annottext">SodiumVerKeyDSIGN Ed25519DSIGN
-</span><a href="#local-6989586621679139165"><span class="hs-identifier hs-var">vk</span></a></span></span><span> </span><span id="local-6989586621679139164"><span class="annot"><span class="annottext">Ptr a
-</span><a href="#local-6989586621679139164"><span class="hs-identifier hs-var">ptr</span></a></span></span><span> </span><span id="local-6989586621679139163"><span class="annot"><span class="annottext">Int
-</span><a href="#local-6989586621679139163"><span class="hs-identifier hs-var">len</span></a></span></span><span> </span><span id="local-6989586621679139162"><span class="annot"><span class="annottext">SodiumSigDSIGN Ed25519DSIGN
-</span><a href="#local-6989586621679139162"><span class="hs-identifier hs-var">sig</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
-</span><span id="line-122"></span><span>        </span><span class="annot"><span class="annottext">PinnedSizedBytes CRYPTO_SIGN_ED25519_PUBLICKEYBYTES
+</span><a href="#local-6989586621679139852"><span class="hs-identifier hs-var hs-var hs-var hs-var">naclVerifyDSIGNPtr</span></a></span></span><span> </span><span class="annot"><span class="annottext">Proxy Ed25519DSIGN
+</span><span class="hs-identifier">_</span></span><span> </span><span id="local-6989586621679139851"><span class="annot"><span class="annottext">SodiumVerKeyDSIGN Ed25519DSIGN
+</span><a href="#local-6989586621679139851"><span class="hs-identifier hs-var">vk</span></a></span></span><span> </span><span id="local-6989586621679139850"><span class="annot"><span class="annottext">Ptr a
+</span><a href="#local-6989586621679139850"><span class="hs-identifier hs-var">ptr</span></a></span></span><span> </span><span id="local-6989586621679139849"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679139849"><span class="hs-identifier hs-var">len</span></a></span></span><span> </span><span id="local-6989586621679139848"><span class="annot"><span class="annottext">SodiumSigDSIGN Ed25519DSIGN
+</span><a href="#local-6989586621679139848"><span class="hs-identifier hs-var">sig</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-130"></span><span>        </span><span class="annot"><span class="annottext">PinnedSizedBytes CRYPTO_SIGN_ED25519_PUBLICKEYBYTES
 -&gt; (SizedPtr CRYPTO_SIGN_ED25519_PUBLICKEYBYTES
     -&gt; IO (Either String ()))
 -&gt; IO (Either String ())
@@ -431,16 +445,16 @@ forall (n :: Nat) r.
 PinnedSizedBytes n -&gt; (SizedPtr n -&gt; IO r) -&gt; IO r
 </span><a href="Cardano.Crypto.PinnedSizedBytes.html#psbUseAsSizedPtr"><span class="hs-identifier hs-var">psbUseAsSizedPtr</span></a></span><span> </span><span class="annot"><span class="annottext">PinnedSizedBytes CRYPTO_SIGN_ED25519_PUBLICKEYBYTES
 SodiumVerKeyDSIGN Ed25519DSIGN
-</span><a href="#local-6989586621679139165"><span class="hs-identifier hs-var">vk</span></a></span><span> </span><span class="annot"><span class="annottext">((SizedPtr CRYPTO_SIGN_ED25519_PUBLICKEYBYTES
+</span><a href="#local-6989586621679139851"><span class="hs-identifier hs-var">vk</span></a></span><span> </span><span class="annot"><span class="annottext">((SizedPtr CRYPTO_SIGN_ED25519_PUBLICKEYBYTES
   -&gt; IO (Either String ()))
  -&gt; IO (Either String ()))
 -&gt; (SizedPtr CRYPTO_SIGN_ED25519_PUBLICKEYBYTES
     -&gt; IO (Either String ()))
 -&gt; IO (Either String ())
 forall a b. (a -&gt; b) -&gt; a -&gt; b
-</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679139160"><span class="annot"><span class="annottext">SizedPtr CRYPTO_SIGN_ED25519_PUBLICKEYBYTES
-</span><a href="#local-6989586621679139160"><span class="hs-identifier hs-var">vkPtr</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
-</span><span id="line-123"></span><span>        </span><span class="annot"><span class="annottext">PinnedSizedBytes CRYPTO_SIGN_ED25519_SECRETKEYBYTES
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679139846"><span class="annot"><span class="annottext">SizedPtr CRYPTO_SIGN_ED25519_PUBLICKEYBYTES
+</span><a href="#local-6989586621679139846"><span class="hs-identifier hs-var">vkPtr</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-131"></span><span>        </span><span class="annot"><span class="annottext">PinnedSizedBytes CRYPTO_SIGN_ED25519_SECRETKEYBYTES
 -&gt; (SizedPtr CRYPTO_SIGN_ED25519_SECRETKEYBYTES
     -&gt; IO (Either String ()))
 -&gt; IO (Either String ())
@@ -448,72 +462,72 @@ forall (n :: Nat) r.
 PinnedSizedBytes n -&gt; (SizedPtr n -&gt; IO r) -&gt; IO r
 </span><a href="Cardano.Crypto.PinnedSizedBytes.html#psbUseAsSizedPtr"><span class="hs-identifier hs-var">psbUseAsSizedPtr</span></a></span><span> </span><span class="annot"><span class="annottext">PinnedSizedBytes CRYPTO_SIGN_ED25519_SECRETKEYBYTES
 SodiumSigDSIGN Ed25519DSIGN
-</span><a href="#local-6989586621679139162"><span class="hs-identifier hs-var">sig</span></a></span><span> </span><span class="annot"><span class="annottext">((SizedPtr CRYPTO_SIGN_ED25519_SECRETKEYBYTES
+</span><a href="#local-6989586621679139848"><span class="hs-identifier hs-var">sig</span></a></span><span> </span><span class="annot"><span class="annottext">((SizedPtr CRYPTO_SIGN_ED25519_SECRETKEYBYTES
   -&gt; IO (Either String ()))
  -&gt; IO (Either String ()))
 -&gt; (SizedPtr CRYPTO_SIGN_ED25519_SECRETKEYBYTES
     -&gt; IO (Either String ()))
 -&gt; IO (Either String ())
 forall a b. (a -&gt; b) -&gt; a -&gt; b
-</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679139159"><span class="annot"><span class="annottext">SizedPtr CRYPTO_SIGN_ED25519_SECRETKEYBYTES
-</span><a href="#local-6989586621679139159"><span class="hs-identifier hs-var">sigPtr</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">do</span><span>
-</span><span id="line-124"></span><span>            </span><span id="local-6989586621679139158"><span class="annot"><span class="annottext">Int
-</span><a href="#local-6989586621679139158"><span class="hs-identifier hs-var">res</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">SizedPtr CRYPTO_SIGN_ED25519_SECRETKEYBYTES
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679139845"><span class="annot"><span class="annottext">SizedPtr CRYPTO_SIGN_ED25519_SECRETKEYBYTES
+</span><a href="#local-6989586621679139845"><span class="hs-identifier hs-var">sigPtr</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-132"></span><span>            </span><span id="local-6989586621679139844"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679139844"><span class="hs-identifier hs-var">res</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">SizedPtr CRYPTO_SIGN_ED25519_SECRETKEYBYTES
 -&gt; Ptr CUChar
 -&gt; CULLong
 -&gt; SizedPtr CRYPTO_SIGN_ED25519_PUBLICKEYBYTES
 -&gt; IO Int
 </span><a href="Cardano.Crypto.Libsodium.C.html#c_crypto_sign_ed25519_verify_detached"><span class="hs-identifier hs-var">c_crypto_sign_ed25519_verify_detached</span></a></span><span> </span><span class="annot"><span class="annottext">SizedPtr CRYPTO_SIGN_ED25519_SECRETKEYBYTES
-</span><a href="#local-6989586621679139159"><span class="hs-identifier hs-var">sigPtr</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Ptr a -&gt; Ptr CUChar
+</span><a href="#local-6989586621679139845"><span class="hs-identifier hs-var">sigPtr</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Ptr a -&gt; Ptr CUChar
 forall a b. Ptr a -&gt; Ptr b
 </span><span class="hs-identifier hs-var">castPtr</span></span><span> </span><span class="annot"><span class="annottext">Ptr a
-</span><a href="#local-6989586621679139164"><span class="hs-identifier hs-var">ptr</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; CULLong
+</span><a href="#local-6989586621679139850"><span class="hs-identifier hs-var">ptr</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; CULLong
 forall a b. (Integral a, Num b) =&gt; a -&gt; b
 </span><span class="hs-identifier hs-var">fromIntegral</span></span><span> </span><span class="annot"><span class="annottext">Int
-</span><a href="#local-6989586621679139163"><span class="hs-identifier hs-var">len</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">SizedPtr CRYPTO_SIGN_ED25519_PUBLICKEYBYTES
-</span><a href="#local-6989586621679139160"><span class="hs-identifier hs-var">vkPtr</span></a></span><span>
-</span><span id="line-125"></span><span>            </span><span class="hs-keyword">if</span><span> </span><span class="annot"><span class="annottext">Int
-</span><a href="#local-6989586621679139158"><span class="hs-identifier hs-var">res</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+</span><a href="#local-6989586621679139849"><span class="hs-identifier hs-var">len</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">SizedPtr CRYPTO_SIGN_ED25519_PUBLICKEYBYTES
+</span><a href="#local-6989586621679139846"><span class="hs-identifier hs-var">vkPtr</span></a></span><span>
+</span><span id="line-133"></span><span>            </span><span class="hs-keyword">if</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679139844"><span class="hs-identifier hs-var">res</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
 forall a. Eq a =&gt; a -&gt; a -&gt; Bool
 </span><span class="hs-operator hs-var">==</span></span><span> </span><span class="annot"><span class="annottext">Int
 </span><span class="hs-number">0</span></span><span>
-</span><span id="line-126"></span><span>            </span><span class="hs-keyword">then</span><span> </span><span class="annot"><span class="annottext">Either String () -&gt; IO (Either String ())
+</span><span id="line-134"></span><span>            </span><span class="hs-keyword">then</span><span> </span><span class="annot"><span class="annottext">Either String () -&gt; IO (Either String ())
 forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
 </span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">() -&gt; Either String ()
 forall a b. b -&gt; Either a b
 </span><span class="hs-identifier hs-var">Right</span></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
-</span><span id="line-127"></span><span>            </span><span class="hs-keyword">else</span><span> </span><span class="hs-keyword">do</span><span>
-</span><span id="line-128"></span><span>                </span><span class="hs-comment">-- errno &lt;- getErrno</span><span>
-</span><span id="line-129"></span><span>                </span><span class="annot"><span class="annottext">Either String () -&gt; IO (Either String ())
+</span><span id="line-135"></span><span>            </span><span class="hs-keyword">else</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-136"></span><span>                </span><span class="hs-comment">-- errno &lt;- getErrno</span><span>
+</span><span id="line-137"></span><span>                </span><span class="annot"><span class="annottext">Either String () -&gt; IO (Either String ())
 forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
 </span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">String -&gt; Either String ()
 forall a b. a -&gt; Either a b
 </span><span class="hs-identifier hs-var">Left</span></span><span>  </span><span class="annot"><span class="annottext">String
 </span><span class="hs-string">&quot;Verification failed&quot;</span></span><span class="hs-special">)</span><span>
-</span><span id="line-130"></span><span>
-</span><span id="line-131"></span><span class="annot"><a href="Cardano.Crypto.Libsodium.DSIGN.html#_testEd25519a"><span class="hs-identifier hs-type">_testEd25519a</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cardano.Crypto.DSIGN.Class.html#SeedSizeDSIGN"><span class="hs-identifier hs-type">SeedSizeDSIGN</span></a></span><span> </span><span class="annot"><a href="Cardano.Crypto.DSIGN.Ed25519.html#Ed25519DSIGN"><span class="hs-identifier hs-type">Ed25519DSIGN</span></a></span><span> </span><span class="annot"><span class="hs-operator hs-type">:~:</span></span><span> </span><span class="annot"><a href="Cardano.Crypto.Libsodium.Constants.html#CRYPTO_SIGN_ED25519_SEEDBYTES"><span class="hs-identifier hs-type">CRYPTO_SIGN_ED25519_SEEDBYTES</span></a></span><span>
-</span><span id="line-132"></span><span id="_testEd25519a"><span class="annot"><span class="annottext">_testEd25519a :: SeedSizeDSIGN Ed25519DSIGN :~: CRYPTO_SIGN_ED25519_PUBLICKEYBYTES
+</span><span id="line-138"></span><span>
+</span><span id="line-139"></span><span class="annot"><a href="Cardano.Crypto.Libsodium.DSIGN.html#_testEd25519a"><span class="hs-identifier hs-type">_testEd25519a</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cardano.Crypto.DSIGN.Class.html#SeedSizeDSIGN"><span class="hs-identifier hs-type">SeedSizeDSIGN</span></a></span><span> </span><span class="annot"><a href="Cardano.Crypto.DSIGN.Ed25519.html#Ed25519DSIGN"><span class="hs-identifier hs-type">Ed25519DSIGN</span></a></span><span> </span><span class="annot"><span class="hs-operator hs-type">:~:</span></span><span> </span><span class="annot"><a href="Cardano.Crypto.Libsodium.Constants.html#CRYPTO_SIGN_ED25519_SEEDBYTES"><span class="hs-identifier hs-type">CRYPTO_SIGN_ED25519_SEEDBYTES</span></a></span><span>
+</span><span id="line-140"></span><span id="_testEd25519a"><span class="annot"><span class="annottext">_testEd25519a :: SeedSizeDSIGN Ed25519DSIGN :~: CRYPTO_SIGN_ED25519_PUBLICKEYBYTES
 </span><a href="Cardano.Crypto.Libsodium.DSIGN.html#_testEd25519a"><span class="hs-identifier hs-var hs-var">_testEd25519a</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">SeedSizeDSIGN Ed25519DSIGN :~: CRYPTO_SIGN_ED25519_PUBLICKEYBYTES
 forall k (a :: k). a :~: a
 </span><span class="hs-identifier hs-var">Refl</span></span><span>
-</span><span id="line-133"></span><span>
-</span><span id="line-134"></span><span class="annot"><a href="Cardano.Crypto.Libsodium.DSIGN.html#_testEd25519b"><span class="hs-identifier hs-type">_testEd25519b</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cardano.Crypto.DSIGN.Class.html#SizeSignKeyDSIGN"><span class="hs-identifier hs-type">SizeSignKeyDSIGN</span></a></span><span> </span><span class="annot"><a href="Cardano.Crypto.DSIGN.Ed25519.html#Ed25519DSIGN"><span class="hs-identifier hs-type">Ed25519DSIGN</span></a></span><span> </span><span class="annot"><span class="hs-operator hs-type">+</span></span><span> </span><span class="annot"><a href="Cardano.Crypto.DSIGN.Class.html#SizeVerKeyDSIGN"><span class="hs-identifier hs-type">SizeVerKeyDSIGN</span></a></span><span> </span><span class="annot"><a href="Cardano.Crypto.DSIGN.Ed25519.html#Ed25519DSIGN"><span class="hs-identifier hs-type">Ed25519DSIGN</span></a></span><span> </span><span class="annot"><span class="hs-operator hs-type">:~:</span></span><span> </span><span class="annot"><a href="Cardano.Crypto.Libsodium.Constants.html#CRYPTO_SIGN_ED25519_SECRETKEYBYTES"><span class="hs-identifier hs-type">CRYPTO_SIGN_ED25519_SECRETKEYBYTES</span></a></span><span>
-</span><span id="line-135"></span><span id="_testEd25519b"><span class="annot"><span class="annottext">_testEd25519b :: (SizeSignKeyDSIGN Ed25519DSIGN + SizeVerKeyDSIGN Ed25519DSIGN)
+</span><span id="line-141"></span><span>
+</span><span id="line-142"></span><span class="annot"><a href="Cardano.Crypto.Libsodium.DSIGN.html#_testEd25519b"><span class="hs-identifier hs-type">_testEd25519b</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cardano.Crypto.DSIGN.Class.html#SizeSignKeyDSIGN"><span class="hs-identifier hs-type">SizeSignKeyDSIGN</span></a></span><span> </span><span class="annot"><a href="Cardano.Crypto.DSIGN.Ed25519.html#Ed25519DSIGN"><span class="hs-identifier hs-type">Ed25519DSIGN</span></a></span><span> </span><span class="annot"><span class="hs-operator hs-type">+</span></span><span> </span><span class="annot"><a href="Cardano.Crypto.DSIGN.Class.html#SizeVerKeyDSIGN"><span class="hs-identifier hs-type">SizeVerKeyDSIGN</span></a></span><span> </span><span class="annot"><a href="Cardano.Crypto.DSIGN.Ed25519.html#Ed25519DSIGN"><span class="hs-identifier hs-type">Ed25519DSIGN</span></a></span><span> </span><span class="annot"><span class="hs-operator hs-type">:~:</span></span><span> </span><span class="annot"><a href="Cardano.Crypto.Libsodium.Constants.html#CRYPTO_SIGN_ED25519_SECRETKEYBYTES"><span class="hs-identifier hs-type">CRYPTO_SIGN_ED25519_SECRETKEYBYTES</span></a></span><span>
+</span><span id="line-143"></span><span id="_testEd25519b"><span class="annot"><span class="annottext">_testEd25519b :: (SizeSignKeyDSIGN Ed25519DSIGN + SizeVerKeyDSIGN Ed25519DSIGN)
 :~: CRYPTO_SIGN_ED25519_SECRETKEYBYTES
 </span><a href="Cardano.Crypto.Libsodium.DSIGN.html#_testEd25519b"><span class="hs-identifier hs-var hs-var">_testEd25519b</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(SizeSignKeyDSIGN Ed25519DSIGN + SizeVerKeyDSIGN Ed25519DSIGN)
 :~: CRYPTO_SIGN_ED25519_SECRETKEYBYTES
 forall k (a :: k). a :~: a
 </span><span class="hs-identifier hs-var">Refl</span></span><span>
-</span><span id="line-136"></span><span>
-</span><span id="line-137"></span><span class="annot"><a href="Cardano.Crypto.Libsodium.DSIGN.html#_testEd25519c"><span class="hs-identifier hs-type">_testEd25519c</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cardano.Crypto.DSIGN.Class.html#SizeVerKeyDSIGN"><span class="hs-identifier hs-type">SizeVerKeyDSIGN</span></a></span><span> </span><span class="annot"><a href="Cardano.Crypto.DSIGN.Ed25519.html#Ed25519DSIGN"><span class="hs-identifier hs-type">Ed25519DSIGN</span></a></span><span> </span><span class="annot"><span class="hs-operator hs-type">:~:</span></span><span> </span><span class="annot"><a href="Cardano.Crypto.Libsodium.Constants.html#CRYPTO_SIGN_ED25519_PUBLICKEYBYTES"><span class="hs-identifier hs-type">CRYPTO_SIGN_ED25519_PUBLICKEYBYTES</span></a></span><span>
-</span><span id="line-138"></span><span id="_testEd25519c"><span class="annot"><span class="annottext">_testEd25519c :: SizeVerKeyDSIGN Ed25519DSIGN :~: CRYPTO_SIGN_ED25519_PUBLICKEYBYTES
+</span><span id="line-144"></span><span>
+</span><span id="line-145"></span><span class="annot"><a href="Cardano.Crypto.Libsodium.DSIGN.html#_testEd25519c"><span class="hs-identifier hs-type">_testEd25519c</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cardano.Crypto.DSIGN.Class.html#SizeVerKeyDSIGN"><span class="hs-identifier hs-type">SizeVerKeyDSIGN</span></a></span><span> </span><span class="annot"><a href="Cardano.Crypto.DSIGN.Ed25519.html#Ed25519DSIGN"><span class="hs-identifier hs-type">Ed25519DSIGN</span></a></span><span> </span><span class="annot"><span class="hs-operator hs-type">:~:</span></span><span> </span><span class="annot"><a href="Cardano.Crypto.Libsodium.Constants.html#CRYPTO_SIGN_ED25519_PUBLICKEYBYTES"><span class="hs-identifier hs-type">CRYPTO_SIGN_ED25519_PUBLICKEYBYTES</span></a></span><span>
+</span><span id="line-146"></span><span id="_testEd25519c"><span class="annot"><span class="annottext">_testEd25519c :: SizeVerKeyDSIGN Ed25519DSIGN :~: CRYPTO_SIGN_ED25519_PUBLICKEYBYTES
 </span><a href="Cardano.Crypto.Libsodium.DSIGN.html#_testEd25519c"><span class="hs-identifier hs-var hs-var">_testEd25519c</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">SizeVerKeyDSIGN Ed25519DSIGN :~: CRYPTO_SIGN_ED25519_PUBLICKEYBYTES
 forall k (a :: k). a :~: a
 </span><span class="hs-identifier hs-var">Refl</span></span><span>
-</span><span id="line-139"></span><span>
-</span><span id="line-140"></span><span class="annot"><a href="Cardano.Crypto.Libsodium.DSIGN.html#_testEd25519d"><span class="hs-identifier hs-type">_testEd25519d</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cardano.Crypto.DSIGN.Class.html#SizeSigDSIGN"><span class="hs-identifier hs-type">SizeSigDSIGN</span></a></span><span> </span><span class="annot"><a href="Cardano.Crypto.DSIGN.Ed25519.html#Ed25519DSIGN"><span class="hs-identifier hs-type">Ed25519DSIGN</span></a></span><span> </span><span class="annot"><span class="hs-operator hs-type">:~:</span></span><span> </span><span class="annot"><a href="Cardano.Crypto.Libsodium.Constants.html#CRYPTO_SIGN_ED25519_BYTES"><span class="hs-identifier hs-type">CRYPTO_SIGN_ED25519_BYTES</span></a></span><span>
-</span><span id="line-141"></span><span id="_testEd25519d"><span class="annot"><span class="annottext">_testEd25519d :: SizeSigDSIGN Ed25519DSIGN :~: CRYPTO_SIGN_ED25519_SECRETKEYBYTES
+</span><span id="line-147"></span><span>
+</span><span id="line-148"></span><span class="annot"><a href="Cardano.Crypto.Libsodium.DSIGN.html#_testEd25519d"><span class="hs-identifier hs-type">_testEd25519d</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cardano.Crypto.DSIGN.Class.html#SizeSigDSIGN"><span class="hs-identifier hs-type">SizeSigDSIGN</span></a></span><span> </span><span class="annot"><a href="Cardano.Crypto.DSIGN.Ed25519.html#Ed25519DSIGN"><span class="hs-identifier hs-type">Ed25519DSIGN</span></a></span><span> </span><span class="annot"><span class="hs-operator hs-type">:~:</span></span><span> </span><span class="annot"><a href="Cardano.Crypto.Libsodium.Constants.html#CRYPTO_SIGN_ED25519_BYTES"><span class="hs-identifier hs-type">CRYPTO_SIGN_ED25519_BYTES</span></a></span><span>
+</span><span id="line-149"></span><span id="_testEd25519d"><span class="annot"><span class="annottext">_testEd25519d :: SizeSigDSIGN Ed25519DSIGN :~: CRYPTO_SIGN_ED25519_SECRETKEYBYTES
 </span><a href="Cardano.Crypto.Libsodium.DSIGN.html#_testEd25519d"><span class="hs-identifier hs-var hs-var">_testEd25519d</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">SizeSigDSIGN Ed25519DSIGN :~: CRYPTO_SIGN_ED25519_SECRETKEYBYTES
 forall k (a :: k). a :~: a
 </span><span class="hs-identifier hs-var">Refl</span></span><span>
-</span><span id="line-142"></span></pre></body></html>
+</span><span id="line-150"></span></pre></body></html>
