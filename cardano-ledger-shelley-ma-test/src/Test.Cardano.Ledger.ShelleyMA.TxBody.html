@@ -1,0 +1,330 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-pragma">{-# LANGUAGE DataKinds #-}</span><span>
+</span><span id="line-2"></span><span class="hs-pragma">{-# LANGUAGE FlexibleContexts #-}</span><span>
+</span><span id="line-3"></span><span class="hs-pragma">{-# LANGUAGE FlexibleInstances #-}</span><span>
+</span><span id="line-4"></span><span class="hs-pragma">{-# LANGUAGE OverloadedStrings #-}</span><span>
+</span><span id="line-5"></span><span class="hs-pragma">{-# LANGUAGE ScopedTypeVariables #-}</span><span>
+</span><span id="line-6"></span><span class="hs-pragma">{-# LANGUAGE TypeApplications #-}</span><span>
+</span><span id="line-7"></span><span class="hs-pragma">{-# LANGUAGE TypeFamilies #-}</span><span>
+</span><span id="line-8"></span><span>
+</span><span id="line-9"></span><span class="hs-comment">-- =========================</span><span>
+</span><span id="line-10"></span><span>
+</span><span id="line-11"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Test.Cardano.Ledger.ShelleyMA.TxBody</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Test.Cardano.Ledger.ShelleyMA.TxBody.html#txBodyTest"><span class="hs-identifier">txBodyTest</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Test.Cardano.Ledger.ShelleyMA.TestEra.html#TestEra"><span class="hs-identifier">TestEra</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-12"></span><span>
+</span><span id="line-13"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/shelley-spec-ledger-0.1.0.0/noopt/doc/html/shelley-spec-ledger/src"><span class="hs-identifier">Cardano.Ledger.Core</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/shelley-spec-ledger-0.1.0.0/noopt/doc/html/shelley-spec-ledger/src"><span class="hs-identifier">Script</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/shelley-spec-ledger-0.1.0.0/noopt/doc/html/shelley-spec-ledger/src"><span class="hs-identifier">TxBody</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/shelley-spec-ledger-0.1.0.0/noopt/doc/html/shelley-spec-ledger/src"><span class="hs-identifier">Value</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-14"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-ledger-shelley-ma-0.1.0.0/noopt/doc/html/cardano-ledger-shelley-ma/src"><span class="hs-identifier">Cardano.Ledger.Mary.Value</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
+</span><span id="line-15"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-ledger-shelley-ma-0.1.0.0/noopt/doc/html/cardano-ledger-shelley-ma/src"><span class="hs-identifier">Cardano.Ledger.Mary.Value</span></a></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">ConcreteValue</span></span><span>
+</span><span id="line-16"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-ledger-shelley-ma-0.1.0.0/noopt/doc/html/cardano-ledger-shelley-ma/src"><span class="hs-identifier">Cardano.Ledger.ShelleyMA.Timelocks</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-ledger-shelley-ma-0.1.0.0/noopt/doc/html/cardano-ledger-shelley-ma/src"><span class="hs-identifier">ValidityInterval</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-17"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-ledger-shelley-ma-0.1.0.0/noopt/doc/html/cardano-ledger-shelley-ma/src"><span class="hs-identifier">Cardano.Ledger.ShelleyMA.TxBody</span></a></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Mary</span></span><span>
+</span><span id="line-18"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/shelley-spec-ledger-0.1.0.0/noopt/doc/html/shelley-spec-ledger/src"><span class="hs-identifier">Cardano.Ledger.Val</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/shelley-spec-ledger-0.1.0.0/noopt/doc/html/shelley-spec-ledger/src"><span class="hs-identifier">Val</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-19"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-slotting-0.1.0.0/noopt/doc/html/cardano-slotting/src"><span class="hs-identifier">Cardano.Slotting.Slot</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-slotting-0.1.0.0/noopt/doc/html/cardano-slotting/src"><span class="hs-identifier">SlotNo</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-20"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.ByteString.Short</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">ShortByteString</span></span><span class="hs-special">)</span><span>
+</span><span id="line-21"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Data.ByteString.Short</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Short</span></span><span>
+</span><span id="line-22"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Data.Map.Strict</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Map</span></span><span>
+</span><span id="line-23"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/small-steps-0.1.0.0/noopt/doc/html/small-steps/src"><span class="hs-identifier">Data.MemoBytes</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/small-steps-0.1.0.0/noopt/doc/html/small-steps/src"><span class="hs-identifier">MemoBytes</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/small-steps-0.1.0.0/noopt/doc/html/small-steps/src"><span class="hs-identifier">Memo</span></a></span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/small-steps-0.1.0.0/noopt/doc/html/small-steps/src"><span class="hs-identifier">roundTripMemo</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-24"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-prelude-0.1.0.0/noopt/doc/html/cardano-prelude/src"><span class="hs-identifier">Data.Sequence.Strict</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-prelude-0.1.0.0/noopt/doc/html/cardano-prelude/src"><span class="hs-identifier">StrictSeq</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-prelude-0.1.0.0/noopt/doc/html/cardano-prelude/src"><span class="hs-identifier">fromList</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-25"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Set</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">empty</span></span><span class="hs-special">)</span><span>
+</span><span id="line-26"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">GHC.Records</span></span><span>
+</span><span id="line-27"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/shelley-spec-ledger-0.1.0.0/noopt/doc/html/shelley-spec-ledger/src"><span class="hs-identifier">Shelley.Spec.Ledger.BaseTypes</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/shelley-spec-ledger-0.1.0.0/noopt/doc/html/shelley-spec-ledger/src"><span class="hs-identifier">StrictMaybe</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/shelley-spec-ledger-0.1.0.0/noopt/doc/html/shelley-spec-ledger/src"><span class="hs-identifier">SJust</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/shelley-spec-ledger-0.1.0.0/noopt/doc/html/shelley-spec-ledger/src"><span class="hs-identifier">SNothing</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-28"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/shelley-spec-ledger-0.1.0.0/noopt/doc/html/shelley-spec-ledger/src"><span class="hs-identifier">Shelley.Spec.Ledger.Coin</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/shelley-spec-ledger-0.1.0.0/noopt/doc/html/shelley-spec-ledger/src"><span class="hs-identifier">Coin</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-29"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/shelley-spec-ledger-0.1.0.0/noopt/doc/html/shelley-spec-ledger/src"><span class="hs-identifier">Shelley.Spec.Ledger.TxBody</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/shelley-spec-ledger-0.1.0.0/noopt/doc/html/shelley-spec-ledger/src"><span class="hs-identifier">Wdrl</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-30"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Test.Tasty</span></span><span>
+</span><span id="line-31"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Test.Tasty.HUnit</span></span><span>
+</span><span id="line-32"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Test.Cardano.Ledger.ShelleyMA.TestEra.html"><span class="hs-identifier">Test.Cardano.Ledger.ShelleyMA.TestEra</span></a></span><span class="hs-special">(</span><span class="annot"><a href="Test.Cardano.Ledger.ShelleyMA.TestEra.html#TestEra"><span class="hs-identifier">TestEra</span></a></span><span class="hs-special">,</span><span class="annot"><a href="Test.Cardano.Ledger.ShelleyMA.TestEra.html#TestScript"><span class="hs-identifier">TestScript</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-33"></span><span>
+</span><span id="line-34"></span><span class="hs-comment">-- ============================================================================================</span><span>
+</span><span id="line-35"></span><span class="hs-comment">-- make an example</span><span>
+</span><span id="line-36"></span><span class="hs-comment">-- ============================================================================================</span><span>
+</span><span id="line-37"></span><span>
+</span><span id="line-38"></span><span class="hs-comment">-- First make a fully concrete Era where the Hashing is concrete</span><span>
+</span><span id="line-39"></span><span class="hs-comment">-- without this we won't be able to Serialize or Hash TxID. We use</span><span>
+</span><span id="line-40"></span><span class="hs-comment">--the tools supplied by Test.Cardano.Ledger.ShelleyMA.TestEra(TestEra,TestScript)</span><span>
+</span><span id="line-41"></span><span>
+</span><span id="line-42"></span><span class="hs-keyword">type</span><span> </span><span class="hs-keyword">instance</span><span> </span><span id="Value"><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/shelley-spec-ledger-0.1.0.0/noopt/doc/html/shelley-spec-ledger/src"><span class="hs-identifier hs-var">Value</span></a></span></span><span> </span><span class="annot"><a href="Test.Cardano.Ledger.ShelleyMA.TestEra.html#TestEra"><span class="hs-identifier hs-type">TestEra</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-ledger-shelley-ma-0.1.0.0/noopt/doc/html/cardano-ledger-shelley-ma/src"><span class="hs-identifier hs-type">ConcreteValue.Value</span></a></span><span> </span><span class="annot"><a href="Test.Cardano.Ledger.ShelleyMA.TestEra.html#TestEra"><span class="hs-identifier hs-type">TestEra</span></a></span><span>
+</span><span id="line-43"></span><span class="hs-keyword">type</span><span> </span><span class="hs-keyword">instance</span><span> </span><span id="Script"><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/shelley-spec-ledger-0.1.0.0/noopt/doc/html/shelley-spec-ledger/src"><span class="hs-identifier hs-var">Script</span></a></span></span><span> </span><span class="annot"><a href="Test.Cardano.Ledger.ShelleyMA.TestEra.html#TestEra"><span class="hs-identifier hs-type">TestEra</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><a href="Test.Cardano.Ledger.ShelleyMA.TestEra.html#TestScript"><span class="hs-identifier hs-type">TestScript</span></a></span><span>
+</span><span id="line-44"></span><span class="hs-keyword">type</span><span> </span><span class="hs-keyword">instance</span><span> </span><span id="TxBody"><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/shelley-spec-ledger-0.1.0.0/noopt/doc/html/shelley-spec-ledger/src"><span class="hs-identifier hs-var">TxBody</span></a></span></span><span> </span><span class="annot"><a href="Test.Cardano.Ledger.ShelleyMA.TestEra.html#TestEra"><span class="hs-identifier hs-type">TestEra</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-ledger-shelley-ma-0.1.0.0/noopt/doc/html/cardano-ledger-shelley-ma/src"><span class="hs-identifier hs-type">Mary.TxBody</span></a></span><span> </span><span class="annot"><a href="Test.Cardano.Ledger.ShelleyMA.TestEra.html#TestEra"><span class="hs-identifier hs-type">TestEra</span></a></span><span>
+</span><span id="line-45"></span><span>
+</span><span id="line-46"></span><span class="hs-comment">-- ====================================================================================================</span><span>
+</span><span id="line-47"></span><span class="hs-comment">-- Make a TxBody to test with</span><span>
+</span><span id="line-48"></span><span>
+</span><span id="line-49"></span><span id="local-6989586621679141051"><span class="annot"><a href="Test.Cardano.Ledger.ShelleyMA.TxBody.html#eseq"><span class="hs-identifier hs-type">eseq</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-prelude-0.1.0.0/noopt/doc/html/cardano-prelude/src"><span class="hs-identifier hs-type">StrictSeq</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679141051"><span class="hs-identifier hs-type">a</span></a></span></span><span>
+</span><span id="line-50"></span><span id="eseq"><span class="annot"><span class="annottext">eseq :: StrictSeq a
+</span><a href="Test.Cardano.Ledger.ShelleyMA.TxBody.html#eseq"><span class="hs-identifier hs-var hs-var">eseq</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[a] -&gt; StrictSeq a
+forall a. [a] -&gt; StrictSeq a
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-prelude-0.1.0.0/noopt/doc/html/cardano-prelude/src"><span class="hs-identifier hs-var">fromList</span></a></span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span>
+</span><span id="line-51"></span><span>
+</span><span id="line-52"></span><span class="annot"><a href="Test.Cardano.Ledger.ShelleyMA.TxBody.html#tx"><span class="hs-identifier hs-type">tx</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-ledger-shelley-ma-0.1.0.0/noopt/doc/html/cardano-ledger-shelley-ma/src"><span class="hs-identifier hs-type">Mary.TxBody</span></a></span><span> </span><span class="annot"><a href="Test.Cardano.Ledger.ShelleyMA.TestEra.html#TestEra"><span class="hs-identifier hs-type">TestEra</span></a></span><span>
+</span><span id="line-53"></span><span id="tx"><span class="annot"><span class="annottext">tx :: TxBody TestEra
+</span><a href="Test.Cardano.Ledger.ShelleyMA.TxBody.html#tx"><span class="hs-identifier hs-var hs-var">tx</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-54"></span><span>  </span><span class="annot"><span class="annottext">Set (TxIn TestEra)
+-&gt; StrictSeq (TxOut TestEra)
+-&gt; StrictSeq (DCert TestEra)
+-&gt; Wdrl TestEra
+-&gt; Coin
+-&gt; ValidityInterval
+-&gt; StrictMaybe (Update TestEra)
+-&gt; StrictMaybe (MetaDataHash TestEra)
+-&gt; Value TestEra
+-&gt; TxBody TestEra
+forall era.
+FamsTo era =&gt;
+Set (TxIn era)
+-&gt; StrictSeq (TxOut era)
+-&gt; StrictSeq (DCert era)
+-&gt; Wdrl era
+-&gt; Coin
+-&gt; ValidityInterval
+-&gt; StrictMaybe (Update era)
+-&gt; StrictMaybe (MetaDataHash era)
+-&gt; Value era
+-&gt; TxBody era
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-ledger-shelley-ma-0.1.0.0/noopt/doc/html/cardano-ledger-shelley-ma/src"><span class="hs-identifier hs-var">Mary.TxBody</span></a></span><span>
+</span><span id="line-55"></span><span>    </span><span class="annot"><span class="annottext">Set (TxIn TestEra)
+forall a. Set a
+</span><span class="hs-identifier hs-var">empty</span></span><span>
+</span><span id="line-56"></span><span>    </span><span class="annot"><span class="annottext">StrictSeq (TxOut TestEra)
+forall a. StrictSeq a
+</span><a href="Test.Cardano.Ledger.ShelleyMA.TxBody.html#eseq"><span class="hs-identifier hs-var">eseq</span></a></span><span>
+</span><span id="line-57"></span><span>    </span><span class="annot"><span class="annottext">StrictSeq (DCert TestEra)
+forall a. StrictSeq a
+</span><a href="Test.Cardano.Ledger.ShelleyMA.TxBody.html#eseq"><span class="hs-identifier hs-var">eseq</span></a></span><span>
+</span><span id="line-58"></span><span>    </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Map (RewardAcnt TestEra) Coin -&gt; Wdrl TestEra
+forall era. Map (RewardAcnt era) Coin -&gt; Wdrl era
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/shelley-spec-ledger-0.1.0.0/noopt/doc/html/shelley-spec-ledger/src"><span class="hs-identifier hs-var">Wdrl</span></a></span><span> </span><span class="annot"><span class="annottext">Map (RewardAcnt TestEra) Coin
+forall k a. Map k a
+</span><span class="hs-identifier hs-var">Map.empty</span></span><span class="hs-special">)</span><span>
+</span><span id="line-59"></span><span>    </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Integer -&gt; Coin
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/shelley-spec-ledger-0.1.0.0/noopt/doc/html/shelley-spec-ledger/src"><span class="hs-identifier hs-var">Coin</span></a></span><span> </span><span class="annot"><span class="annottext">Integer
+</span><span class="hs-number">6</span></span><span class="hs-special">)</span><span>
+</span><span id="line-60"></span><span>    </span><span class="hs-special">(</span><span class="annot"><span class="annottext">StrictMaybe SlotNo -&gt; StrictMaybe SlotNo -&gt; ValidityInterval
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-ledger-shelley-ma-0.1.0.0/noopt/doc/html/cardano-ledger-shelley-ma/src"><span class="hs-identifier hs-var">ValidityInterval</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">SlotNo -&gt; StrictMaybe SlotNo
+forall a. a -&gt; StrictMaybe a
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/shelley-spec-ledger-0.1.0.0/noopt/doc/html/shelley-spec-ledger/src"><span class="hs-identifier hs-var">SJust</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Word64 -&gt; SlotNo
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-slotting-0.1.0.0/noopt/doc/html/cardano-slotting/src"><span class="hs-identifier hs-var">SlotNo</span></a></span><span> </span><span class="annot"><span class="annottext">Word64
+</span><span class="hs-number">3</span></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">SlotNo -&gt; StrictMaybe SlotNo
+forall a. a -&gt; StrictMaybe a
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/shelley-spec-ledger-0.1.0.0/noopt/doc/html/shelley-spec-ledger/src"><span class="hs-identifier hs-var">SJust</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Word64 -&gt; SlotNo
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-slotting-0.1.0.0/noopt/doc/html/cardano-slotting/src"><span class="hs-identifier hs-var">SlotNo</span></a></span><span> </span><span class="annot"><span class="annottext">Word64
+</span><span class="hs-number">42</span></span><span class="hs-special">)</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-61"></span><span>    </span><span class="annot"><span class="annottext">StrictMaybe (Update TestEra)
+forall a. StrictMaybe a
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/shelley-spec-ledger-0.1.0.0/noopt/doc/html/shelley-spec-ledger/src"><span class="hs-identifier hs-var">SNothing</span></a></span><span>
+</span><span id="line-62"></span><span>    </span><span class="annot"><span class="annottext">StrictMaybe (MetaDataHash TestEra)
+forall a. StrictMaybe a
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/shelley-spec-ledger-0.1.0.0/noopt/doc/html/shelley-spec-ledger/src"><span class="hs-identifier hs-var">SNothing</span></a></span><span>
+</span><span id="line-63"></span><span>    </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Coin -&gt; Value TestEra
+forall t. Val t =&gt; Coin -&gt; t
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/shelley-spec-ledger-0.1.0.0/noopt/doc/html/shelley-spec-ledger/src"><span class="hs-identifier hs-var">inject</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Integer -&gt; Coin
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/shelley-spec-ledger-0.1.0.0/noopt/doc/html/shelley-spec-ledger/src"><span class="hs-identifier hs-var">Coin</span></a></span><span> </span><span class="annot"><span class="annottext">Integer
+</span><span class="hs-number">2</span></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-64"></span><span>
+</span><span id="line-65"></span><span id="local-6989586621679141022"><span class="annot"><a href="Test.Cardano.Ledger.ShelleyMA.TxBody.html#bytes"><span class="hs-identifier hs-type">bytes</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-ledger-shelley-ma-0.1.0.0/noopt/doc/html/cardano-ledger-shelley-ma/src"><span class="hs-identifier hs-type">Mary.TxBody</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679141022"><span class="hs-identifier hs-type">era</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">ShortByteString</span></span></span><span>
+</span><span id="line-66"></span><span id="bytes"><span class="annot"><span class="annottext">bytes :: TxBody era -&gt; ShortByteString
+</span><a href="Test.Cardano.Ledger.ShelleyMA.TxBody.html#bytes"><span class="hs-identifier hs-var hs-var">bytes</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-ledger-shelley-ma-0.1.0.0/noopt/doc/html/cardano-ledger-shelley-ma/src"><span class="hs-identifier hs-type">Mary.STxBody</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/small-steps-0.1.0.0/noopt/doc/html/small-steps/src"><span class="hs-identifier hs-type">Memo</span></a></span><span> </span><span class="annot"><span class="annottext">TxBody' era
+</span><span class="hs-identifier">_</span></span><span> </span><span id="local-6989586621679141000"><span class="annot"><span class="annottext">ShortByteString
+</span><a href="#local-6989586621679141000"><span class="hs-identifier hs-var">b</span></a></span></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">ShortByteString
+</span><a href="#local-6989586621679141000"><span class="hs-identifier hs-var">b</span></a></span><span>
+</span><span id="line-67"></span><span>
+</span><span id="line-68"></span><span class="annot"><a href="Test.Cardano.Ledger.ShelleyMA.TxBody.html#fieldTests"><span class="hs-identifier hs-type">fieldTests</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">TestTree</span></span><span>
+</span><span id="line-69"></span><span id="fieldTests"><span class="annot"><span class="annottext">fieldTests :: TestTree
+</span><a href="Test.Cardano.Ledger.ShelleyMA.TxBody.html#fieldTests"><span class="hs-identifier hs-var hs-var">fieldTests</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-70"></span><span>  </span><span class="annot"><span class="annottext">TestName -&gt; [TestTree] -&gt; TestTree
+</span><span class="hs-identifier hs-var">testGroup</span></span><span>
+</span><span id="line-71"></span><span>    </span><span class="annot"><span class="annottext">TestName
+</span><span class="hs-string">&quot;getField tests&quot;</span></span><span>
+</span><span id="line-72"></span><span>    </span><span class="hs-special">[</span><span> </span><span class="annot"><span class="annottext">TestName -&gt; Assertion -&gt; TestTree
+</span><span class="hs-identifier hs-var">testCase</span></span><span> </span><span class="annot"><span class="annottext">TestName
+</span><span class="hs-string">&quot;inputs&quot;</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">TestName -&gt; Set (TxIn TestEra) -&gt; Set (TxIn TestEra) -&gt; Assertion
+forall a.
+(Eq a, Show a, HasCallStack) =&gt;
+TestName -&gt; a -&gt; a -&gt; Assertion
+</span><span class="hs-identifier hs-var">assertEqual</span></span><span> </span><span class="annot"><span class="annottext">TestName
+</span><span class="hs-string">&quot;inputs&quot;</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">TxBody TestEra -&gt; Set (TxIn TestEra)
+forall k (x :: k) r a. HasField x r a =&gt; r -&gt; a
+</span><span class="hs-identifier hs-var">getField</span></span><span> </span><span class="hs-glyph">@</span><span class="annot"><span class="hs-string">&quot;inputs&quot;</span></span><span> </span><span class="annot"><span class="annottext">TxBody TestEra
+</span><a href="Test.Cardano.Ledger.ShelleyMA.TxBody.html#tx"><span class="hs-identifier hs-var">tx</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Set (TxIn TestEra)
+forall a. Set a
+</span><span class="hs-identifier hs-var">empty</span></span><span class="hs-special">)</span><span class="hs-special">,</span><span>
+</span><span id="line-73"></span><span>      </span><span class="annot"><span class="annottext">TestName -&gt; Assertion -&gt; TestTree
+</span><span class="hs-identifier hs-var">testCase</span></span><span> </span><span class="annot"><span class="annottext">TestName
+</span><span class="hs-string">&quot;outputs&quot;</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">TestName
+-&gt; StrictSeq (TxOut TestEra)
+-&gt; StrictSeq (TxOut TestEra)
+-&gt; Assertion
+forall a.
+(Eq a, Show a, HasCallStack) =&gt;
+TestName -&gt; a -&gt; a -&gt; Assertion
+</span><span class="hs-identifier hs-var">assertEqual</span></span><span> </span><span class="annot"><span class="annottext">TestName
+</span><span class="hs-string">&quot;outputs&quot;</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">TxBody TestEra -&gt; StrictSeq (TxOut TestEra)
+forall k (x :: k) r a. HasField x r a =&gt; r -&gt; a
+</span><span class="hs-identifier hs-var">getField</span></span><span> </span><span class="hs-glyph">@</span><span class="annot"><span class="hs-string">&quot;outputs&quot;</span></span><span> </span><span class="annot"><span class="annottext">TxBody TestEra
+</span><a href="Test.Cardano.Ledger.ShelleyMA.TxBody.html#tx"><span class="hs-identifier hs-var">tx</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">StrictSeq (TxOut TestEra)
+forall a. StrictSeq a
+</span><a href="Test.Cardano.Ledger.ShelleyMA.TxBody.html#eseq"><span class="hs-identifier hs-var">eseq</span></a></span><span class="hs-special">)</span><span class="hs-special">,</span><span>
+</span><span id="line-74"></span><span>      </span><span class="annot"><span class="annottext">TestName -&gt; Assertion -&gt; TestTree
+</span><span class="hs-identifier hs-var">testCase</span></span><span> </span><span class="annot"><span class="annottext">TestName
+</span><span class="hs-string">&quot;certs&quot;</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">TestName
+-&gt; StrictSeq (DCert TestEra)
+-&gt; StrictSeq (DCert TestEra)
+-&gt; Assertion
+forall a.
+(Eq a, Show a, HasCallStack) =&gt;
+TestName -&gt; a -&gt; a -&gt; Assertion
+</span><span class="hs-identifier hs-var">assertEqual</span></span><span> </span><span class="annot"><span class="annottext">TestName
+</span><span class="hs-string">&quot;certs&quot;</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">TxBody TestEra -&gt; StrictSeq (DCert TestEra)
+forall k (x :: k) r a. HasField x r a =&gt; r -&gt; a
+</span><span class="hs-identifier hs-var">getField</span></span><span> </span><span class="hs-glyph">@</span><span class="annot"><span class="hs-string">&quot;certs&quot;</span></span><span> </span><span class="annot"><span class="annottext">TxBody TestEra
+</span><a href="Test.Cardano.Ledger.ShelleyMA.TxBody.html#tx"><span class="hs-identifier hs-var">tx</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">StrictSeq (DCert TestEra)
+forall a. StrictSeq a
+</span><a href="Test.Cardano.Ledger.ShelleyMA.TxBody.html#eseq"><span class="hs-identifier hs-var">eseq</span></a></span><span class="hs-special">)</span><span class="hs-special">,</span><span>
+</span><span id="line-75"></span><span>      </span><span class="annot"><span class="annottext">TestName -&gt; Assertion -&gt; TestTree
+</span><span class="hs-identifier hs-var">testCase</span></span><span> </span><span class="annot"><span class="annottext">TestName
+</span><span class="hs-string">&quot;wdrls&quot;</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">TestName -&gt; Wdrl TestEra -&gt; Wdrl TestEra -&gt; Assertion
+forall a.
+(Eq a, Show a, HasCallStack) =&gt;
+TestName -&gt; a -&gt; a -&gt; Assertion
+</span><span class="hs-identifier hs-var">assertEqual</span></span><span> </span><span class="annot"><span class="annottext">TestName
+</span><span class="hs-string">&quot;wdrls&quot;</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">TxBody TestEra -&gt; Wdrl TestEra
+forall k (x :: k) r a. HasField x r a =&gt; r -&gt; a
+</span><span class="hs-identifier hs-var">getField</span></span><span> </span><span class="hs-glyph">@</span><span class="annot"><span class="hs-string">&quot;wdrls&quot;</span></span><span> </span><span class="annot"><span class="annottext">TxBody TestEra
+</span><a href="Test.Cardano.Ledger.ShelleyMA.TxBody.html#tx"><span class="hs-identifier hs-var">tx</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Map (RewardAcnt TestEra) Coin -&gt; Wdrl TestEra
+forall era. Map (RewardAcnt era) Coin -&gt; Wdrl era
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/shelley-spec-ledger-0.1.0.0/noopt/doc/html/shelley-spec-ledger/src"><span class="hs-identifier hs-var">Wdrl</span></a></span><span> </span><span class="annot"><span class="annottext">Map (RewardAcnt TestEra) Coin
+forall k a. Map k a
+</span><span class="hs-identifier hs-var">Map.empty</span></span><span class="hs-special">)</span><span class="hs-special">)</span><span class="hs-special">,</span><span>
+</span><span id="line-76"></span><span>      </span><span class="annot"><span class="annottext">TestName -&gt; Assertion -&gt; TestTree
+</span><span class="hs-identifier hs-var">testCase</span></span><span> </span><span class="annot"><span class="annottext">TestName
+</span><span class="hs-string">&quot;txfree&quot;</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">TestName -&gt; Coin -&gt; Coin -&gt; Assertion
+forall a.
+(Eq a, Show a, HasCallStack) =&gt;
+TestName -&gt; a -&gt; a -&gt; Assertion
+</span><span class="hs-identifier hs-var">assertEqual</span></span><span> </span><span class="annot"><span class="annottext">TestName
+</span><span class="hs-string">&quot;txfree&quot;</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">TxBody TestEra -&gt; Coin
+forall k (x :: k) r a. HasField x r a =&gt; r -&gt; a
+</span><span class="hs-identifier hs-var">getField</span></span><span> </span><span class="hs-glyph">@</span><span class="annot"><span class="hs-string">&quot;txfee&quot;</span></span><span> </span><span class="annot"><span class="annottext">TxBody TestEra
+</span><a href="Test.Cardano.Ledger.ShelleyMA.TxBody.html#tx"><span class="hs-identifier hs-var">tx</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Integer -&gt; Coin
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/shelley-spec-ledger-0.1.0.0/noopt/doc/html/shelley-spec-ledger/src"><span class="hs-identifier hs-var">Coin</span></a></span><span> </span><span class="annot"><span class="annottext">Integer
+</span><span class="hs-number">6</span></span><span class="hs-special">)</span><span class="hs-special">)</span><span class="hs-special">,</span><span>
+</span><span id="line-77"></span><span>      </span><span class="annot"><span class="annottext">TestName -&gt; Assertion -&gt; TestTree
+</span><span class="hs-identifier hs-var">testCase</span></span><span> </span><span class="annot"><span class="annottext">TestName
+</span><span class="hs-string">&quot;vldt&quot;</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">TestName -&gt; ValidityInterval -&gt; ValidityInterval -&gt; Assertion
+forall a.
+(Eq a, Show a, HasCallStack) =&gt;
+TestName -&gt; a -&gt; a -&gt; Assertion
+</span><span class="hs-identifier hs-var">assertEqual</span></span><span> </span><span class="annot"><span class="annottext">TestName
+</span><span class="hs-string">&quot;vldt&quot;</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">TxBody TestEra -&gt; ValidityInterval
+forall k (x :: k) r a. HasField x r a =&gt; r -&gt; a
+</span><span class="hs-identifier hs-var">getField</span></span><span> </span><span class="hs-glyph">@</span><span class="annot"><span class="hs-string">&quot;vldt&quot;</span></span><span> </span><span class="annot"><span class="annottext">TxBody TestEra
+</span><a href="Test.Cardano.Ledger.ShelleyMA.TxBody.html#tx"><span class="hs-identifier hs-var">tx</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">StrictMaybe SlotNo -&gt; StrictMaybe SlotNo -&gt; ValidityInterval
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-ledger-shelley-ma-0.1.0.0/noopt/doc/html/cardano-ledger-shelley-ma/src"><span class="hs-identifier hs-var">ValidityInterval</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">SlotNo -&gt; StrictMaybe SlotNo
+forall a. a -&gt; StrictMaybe a
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/shelley-spec-ledger-0.1.0.0/noopt/doc/html/shelley-spec-ledger/src"><span class="hs-identifier hs-var">SJust</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Word64 -&gt; SlotNo
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-slotting-0.1.0.0/noopt/doc/html/cardano-slotting/src"><span class="hs-identifier hs-var">SlotNo</span></a></span><span> </span><span class="annot"><span class="annottext">Word64
+</span><span class="hs-number">3</span></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">SlotNo -&gt; StrictMaybe SlotNo
+forall a. a -&gt; StrictMaybe a
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/shelley-spec-ledger-0.1.0.0/noopt/doc/html/shelley-spec-ledger/src"><span class="hs-identifier hs-var">SJust</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Word64 -&gt; SlotNo
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-slotting-0.1.0.0/noopt/doc/html/cardano-slotting/src"><span class="hs-identifier hs-var">SlotNo</span></a></span><span> </span><span class="annot"><span class="annottext">Word64
+</span><span class="hs-number">42</span></span><span class="hs-special">)</span><span class="hs-special">)</span><span class="hs-special">)</span><span class="hs-special">)</span><span class="hs-special">,</span><span>
+</span><span id="line-78"></span><span>      </span><span class="annot"><span class="annottext">TestName -&gt; Assertion -&gt; TestTree
+</span><span class="hs-identifier hs-var">testCase</span></span><span> </span><span class="annot"><span class="annottext">TestName
+</span><span class="hs-string">&quot;update&quot;</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">TestName
+-&gt; StrictMaybe (Update TestEra)
+-&gt; StrictMaybe (Update TestEra)
+-&gt; Assertion
+forall a.
+(Eq a, Show a, HasCallStack) =&gt;
+TestName -&gt; a -&gt; a -&gt; Assertion
+</span><span class="hs-identifier hs-var">assertEqual</span></span><span> </span><span class="annot"><span class="annottext">TestName
+</span><span class="hs-string">&quot;update&quot;</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">TxBody TestEra -&gt; StrictMaybe (Update TestEra)
+forall k (x :: k) r a. HasField x r a =&gt; r -&gt; a
+</span><span class="hs-identifier hs-var">getField</span></span><span> </span><span class="hs-glyph">@</span><span class="annot"><span class="hs-string">&quot;update&quot;</span></span><span> </span><span class="annot"><span class="annottext">TxBody TestEra
+</span><a href="Test.Cardano.Ledger.ShelleyMA.TxBody.html#tx"><span class="hs-identifier hs-var">tx</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">StrictMaybe (Update TestEra)
+forall a. StrictMaybe a
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/shelley-spec-ledger-0.1.0.0/noopt/doc/html/shelley-spec-ledger/src"><span class="hs-identifier hs-var">SNothing</span></a></span><span class="hs-special">)</span><span class="hs-special">,</span><span>
+</span><span id="line-79"></span><span>      </span><span class="annot"><span class="annottext">TestName -&gt; Assertion -&gt; TestTree
+</span><span class="hs-identifier hs-var">testCase</span></span><span> </span><span class="annot"><span class="annottext">TestName
+</span><span class="hs-string">&quot;mdHash&quot;</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">TestName
+-&gt; StrictMaybe (MetaDataHash TestEra)
+-&gt; StrictMaybe (MetaDataHash TestEra)
+-&gt; Assertion
+forall a.
+(Eq a, Show a, HasCallStack) =&gt;
+TestName -&gt; a -&gt; a -&gt; Assertion
+</span><span class="hs-identifier hs-var">assertEqual</span></span><span> </span><span class="annot"><span class="annottext">TestName
+</span><span class="hs-string">&quot;mdHash&quot;</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">TxBody TestEra -&gt; StrictMaybe (MetaDataHash TestEra)
+forall k (x :: k) r a. HasField x r a =&gt; r -&gt; a
+</span><span class="hs-identifier hs-var">getField</span></span><span> </span><span class="hs-glyph">@</span><span class="annot"><span class="hs-string">&quot;mdHash&quot;</span></span><span> </span><span class="annot"><span class="annottext">TxBody TestEra
+</span><a href="Test.Cardano.Ledger.ShelleyMA.TxBody.html#tx"><span class="hs-identifier hs-var">tx</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">StrictMaybe (MetaDataHash TestEra)
+forall a. StrictMaybe a
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/shelley-spec-ledger-0.1.0.0/noopt/doc/html/shelley-spec-ledger/src"><span class="hs-identifier hs-var">SNothing</span></a></span><span class="hs-special">)</span><span class="hs-special">,</span><span>
+</span><span id="line-80"></span><span>      </span><span class="annot"><span class="annottext">TestName -&gt; Assertion -&gt; TestTree
+</span><span class="hs-identifier hs-var">testCase</span></span><span> </span><span class="annot"><span class="annottext">TestName
+</span><span class="hs-string">&quot;forge&quot;</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">TestName -&gt; Value TestEra -&gt; Value TestEra -&gt; Assertion
+forall a.
+(Eq a, Show a, HasCallStack) =&gt;
+TestName -&gt; a -&gt; a -&gt; Assertion
+</span><span class="hs-identifier hs-var">assertEqual</span></span><span> </span><span class="annot"><span class="annottext">TestName
+</span><span class="hs-string">&quot;forge&quot;</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">TxBody TestEra -&gt; Value TestEra
+forall k (x :: k) r a. HasField x r a =&gt; r -&gt; a
+</span><span class="hs-identifier hs-var">getField</span></span><span> </span><span class="hs-glyph">@</span><span class="annot"><span class="hs-string">&quot;forge&quot;</span></span><span> </span><span class="annot"><span class="annottext">TxBody TestEra
+</span><a href="Test.Cardano.Ledger.ShelleyMA.TxBody.html#tx"><span class="hs-identifier hs-var">tx</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Coin -&gt; Value TestEra
+forall t. Val t =&gt; Coin -&gt; t
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/shelley-spec-ledger-0.1.0.0/noopt/doc/html/shelley-spec-ledger/src"><span class="hs-identifier hs-var">inject</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Integer -&gt; Coin
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/shelley-spec-ledger-0.1.0.0/noopt/doc/html/shelley-spec-ledger/src"><span class="hs-identifier hs-var">Coin</span></a></span><span> </span><span class="annot"><span class="annottext">Integer
+</span><span class="hs-number">2</span></span><span class="hs-special">)</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-81"></span><span>    </span><span class="hs-special">]</span><span>
+</span><span id="line-82"></span><span>
+</span><span id="line-83"></span><span class="annot"><a href="Test.Cardano.Ledger.ShelleyMA.TxBody.html#roundtrip"><span class="hs-identifier hs-type">roundtrip</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-ledger-shelley-ma-0.1.0.0/noopt/doc/html/cardano-ledger-shelley-ma/src"><span class="hs-identifier hs-type">Mary.TxBody</span></a></span><span> </span><span class="annot"><a href="Test.Cardano.Ledger.ShelleyMA.TestEra.html#TestEra"><span class="hs-identifier hs-type">TestEra</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span><span>
+</span><span id="line-84"></span><span id="roundtrip"><span class="annot"><span class="annottext">roundtrip :: TxBody TestEra -&gt; Bool
+</span><a href="Test.Cardano.Ledger.ShelleyMA.TxBody.html#roundtrip"><span class="hs-identifier hs-var hs-var">roundtrip</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-ledger-shelley-ma-0.1.0.0/noopt/doc/html/cardano-ledger-shelley-ma/src"><span class="hs-identifier hs-type">Mary.STxBody</span></a></span><span> </span><span id="local-6989586621679140993"><span class="annot"><span class="annottext">MemoBytes (TxBody' TestEra)
+</span><a href="#local-6989586621679140993"><span class="hs-identifier hs-var">memo</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-85"></span><span>  </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">MemoBytes (TxBody' TestEra)
+-&gt; Either
+     DeserialiseFailure (ByteString, MemoBytes (TxBody' TestEra))
+forall t.
+FromCBOR t =&gt;
+MemoBytes t -&gt; Either DeserialiseFailure (ByteString, MemoBytes t)
+</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/small-steps-0.1.0.0/noopt/doc/html/small-steps/src"><span class="hs-identifier hs-var">roundTripMemo</span></a></span><span> </span><span class="annot"><span class="annottext">MemoBytes (TxBody' TestEra)
+</span><a href="#local-6989586621679140993"><span class="hs-identifier hs-var">memo</span></a></span><span> </span><span class="hs-keyword">of</span><span>
+</span><span id="line-86"></span><span>    </span><span class="annot"><span class="hs-identifier hs-type">Right</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">ByteString
+</span><span class="hs-string">&quot;&quot;</span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679140992"><span class="annot"><span class="annottext">MemoBytes (TxBody' TestEra)
+</span><a href="#local-6989586621679140992"><span class="hs-identifier hs-var">new</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">MemoBytes (TxBody' TestEra)
+</span><a href="#local-6989586621679140992"><span class="hs-identifier hs-var">new</span></a></span><span> </span><span class="annot"><span class="annottext">MemoBytes (TxBody' TestEra) -&gt; MemoBytes (TxBody' TestEra) -&gt; Bool
+forall a. Eq a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">==</span></span><span> </span><span class="annot"><span class="annottext">MemoBytes (TxBody' TestEra)
+</span><a href="#local-6989586621679140993"><span class="hs-identifier hs-var">memo</span></a></span><span>
+</span><span id="line-87"></span><span>    </span><span id="local-6989586621679140991"><span class="annot"><span class="annottext">Either DeserialiseFailure (ByteString, MemoBytes (TxBody' TestEra))
+</span><a href="#local-6989586621679140991"><span class="hs-identifier hs-var">_other</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">False</span></span><span>
+</span><span id="line-88"></span><span>
+</span><span id="line-89"></span><span class="annot"><a href="Test.Cardano.Ledger.ShelleyMA.TxBody.html#txBodyTest"><span class="hs-identifier hs-type">txBodyTest</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">TestTree</span></span><span>
+</span><span id="line-90"></span><span id="txBodyTest"><span class="annot"><span class="annottext">txBodyTest :: TestTree
+</span><a href="Test.Cardano.Ledger.ShelleyMA.TxBody.html#txBodyTest"><span class="hs-identifier hs-var hs-var">txBodyTest</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-91"></span><span>  </span><span class="annot"><span class="annottext">TestName -&gt; [TestTree] -&gt; TestTree
+</span><span class="hs-identifier hs-var">testGroup</span></span><span>
+</span><span id="line-92"></span><span>    </span><span class="annot"><span class="annottext">TestName
+</span><span class="hs-string">&quot;TxBody&quot;</span></span><span>
+</span><span id="line-93"></span><span>    </span><span class="hs-special">[</span><span> </span><span class="annot"><span class="annottext">TestTree
+</span><a href="Test.Cardano.Ledger.ShelleyMA.TxBody.html#fieldTests"><span class="hs-identifier hs-var">fieldTests</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-94"></span><span>      </span><span class="annot"><span class="annottext">TestName -&gt; Assertion -&gt; TestTree
+</span><span class="hs-identifier hs-var">testCase</span></span><span> </span><span class="annot"><span class="annottext">TestName
+</span><span class="hs-string">&quot;length&quot;</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">TestName -&gt; Int -&gt; Int -&gt; Assertion
+forall a.
+(Eq a, Show a, HasCallStack) =&gt;
+TestName -&gt; a -&gt; a -&gt; Assertion
+</span><span class="hs-identifier hs-var">assertEqual</span></span><span> </span><span class="annot"><span class="annottext">TestName
+</span><span class="hs-string">&quot;length&quot;</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">ShortByteString -&gt; Int
+</span><span class="hs-identifier hs-var">Short.length</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">TxBody TestEra -&gt; ShortByteString
+forall era. TxBody era -&gt; ShortByteString
+</span><a href="Test.Cardano.Ledger.ShelleyMA.TxBody.html#bytes"><span class="hs-identifier hs-var">bytes</span></a></span><span> </span><span class="annot"><span class="annottext">TxBody TestEra
+</span><a href="Test.Cardano.Ledger.ShelleyMA.TxBody.html#tx"><span class="hs-identifier hs-var">tx</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">19</span></span><span class="hs-special">)</span><span class="hs-special">,</span><span>
+</span><span id="line-95"></span><span>      </span><span class="annot"><span class="annottext">TestName -&gt; Assertion -&gt; TestTree
+</span><span class="hs-identifier hs-var">testCase</span></span><span> </span><span class="annot"><span class="annottext">TestName
+</span><span class="hs-string">&quot;roundtrip&quot;</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">HasCallStack =&gt; TestName -&gt; Bool -&gt; Assertion
+TestName -&gt; Bool -&gt; Assertion
+</span><span class="hs-identifier hs-var">assertBool</span></span><span> </span><span class="annot"><span class="annottext">TestName
+</span><span class="hs-string">&quot;rountrip&quot;</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">TxBody TestEra -&gt; Bool
+</span><a href="Test.Cardano.Ledger.ShelleyMA.TxBody.html#roundtrip"><span class="hs-identifier hs-var">roundtrip</span></a></span><span> </span><span class="annot"><span class="annottext">TxBody TestEra
+</span><a href="Test.Cardano.Ledger.ShelleyMA.TxBody.html#tx"><span class="hs-identifier hs-var">tx</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-96"></span><span>    </span><span class="hs-special">]</span><span>
+</span><span id="line-97"></span></pre></body></html>
