@@ -635,7 +635,8 @@ runDataDiffusion tracers
     -- RNGs used for picking random peers from the ledger and for
     -- demoting/promoting peers.
     rng <- newStdGen
-    let (ledgerPeersRng, policyRng) = split rng
+    let (ledgerPeersRng, rng') = split rng
+        (policyRng, churnRng)  = split rng'
     policyRngVar <- newTVarIO policyRng
 
     -- Request interface, supply the number of peers desired.
@@ -828,7 +829,7 @@ runDataDiffusion tracers
                       dtTraceLocalRootPeersTracer
                       dtTracePublicRootPeersTracer
                       timeout
-                      daPeerSelectionTargets
+                      (readTVar peerSelectionTargetsVar)
                       [] -- TODO
                       daLocalRootPeers
                       daPublicRootPeers
@@ -849,6 +850,7 @@ runDataDiffusion tracers
                           $ \governorThread ->
                             Async.withAsync
                               (Governor.peerChurnGovernor
+                                churnRng
                                 daPeerSelectionTargets
                                 peerSelectionTargetsVar)
                               $ \churnGovernorThread ->
@@ -935,7 +937,7 @@ runDataDiffusion tracers
                       dtTraceLocalRootPeersTracer
                       dtTracePublicRootPeersTracer
                       timeout
-                      daPeerSelectionTargets
+                      (readTVar peerSelectionTargetsVar)
                       [] -- TODO
                       daLocalRootPeers
                       daPublicRootPeers
@@ -985,6 +987,7 @@ runDataDiffusion tracers
                                 $ \serverThread ->
                                   Async.withAsync
                                     (Governor.peerChurnGovernor
+                                      churnRng
                                       daPeerSelectionTargets
                                       peerSelectionTargetsVar)
                                     $ \churnGovernorThread ->
