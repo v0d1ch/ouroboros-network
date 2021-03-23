@@ -1,0 +1,79 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-pragma">{-# OPTIONS_GHC -Wno-orphans #-}</span><span>
+</span><span id="line-2"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Ouroboros.Consensus.HardFork.Combinator.Node.Metrics</span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-3"></span><span>
+</span><span id="line-4"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="Data.SOP.Strict.html"><span class="hs-identifier">Data.SOP.Strict</span></a></span><span>
+</span><span id="line-5"></span><span>
+</span><span id="line-6"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="Ouroboros.Consensus.Block.SupportsMetrics.html"><span class="hs-identifier">Ouroboros.Consensus.Block.SupportsMetrics</span></a></span><span>
+</span><span id="line-7"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="Ouroboros.Consensus.Util.html"><span class="hs-identifier">Ouroboros.Consensus.Util</span></a></span><span>
+</span><span id="line-8"></span><span>
+</span><span id="line-9"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="Ouroboros.Consensus.HardFork.Combinator.Abstract.html"><span class="hs-identifier">Ouroboros.Consensus.HardFork.Combinator.Abstract</span></a></span><span>
+</span><span id="line-10"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="Ouroboros.Consensus.HardFork.Combinator.AcrossEras.html"><span class="hs-identifier">Ouroboros.Consensus.HardFork.Combinator.AcrossEras</span></a></span><span>
+</span><span id="line-11"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="Ouroboros.Consensus.HardFork.Combinator.Basics.html"><span class="hs-identifier">Ouroboros.Consensus.HardFork.Combinator.Basics</span></a></span><span>
+</span><span id="line-12"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="Ouroboros.Consensus.HardFork.Combinator.Block.html"><span class="hs-identifier">Ouroboros.Consensus.HardFork.Combinator.Block</span></a></span><span>
+</span><span id="line-13"></span><span>
+</span><span id="line-14"></span><span id="local-6989586621680017124"><span class="hs-keyword">instance</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.HardFork.Combinator.Abstract.CanHardFork.html#CanHardFork"><span class="hs-identifier hs-type">CanHardFork</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680017124"><span class="hs-identifier hs-type">xs</span></a></span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Block.SupportsMetrics.html#BlockSupportsMetrics"><span class="hs-identifier hs-type">BlockSupportsMetrics</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Consensus.HardFork.Combinator.Basics.html#HardForkBlock"><span class="hs-identifier hs-type">HardForkBlock</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680017124"><span class="hs-identifier hs-type">xs</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-15"></span><span>  </span><span id="local-6989586621680017121"><span class="annot"><span class="annottext">isSelfIssued :: BlockConfig (HardForkBlock xs)
+-&gt; Header (HardForkBlock xs) -&gt; WhetherSelfIssued
+</span><a href="Ouroboros.Consensus.Block.SupportsMetrics.html#isSelfIssued"><span class="hs-identifier hs-var hs-var hs-var hs-var">isSelfIssued</span></a></span></span><span> </span><span id="local-6989586621680017119"><span class="annot"><span class="annottext">BlockConfig (HardForkBlock xs)
+</span><a href="#local-6989586621680017119"><span class="hs-identifier hs-var">cfg</span></a></span></span><span> </span><span id="local-6989586621680017118"><span class="annot"><span class="annottext">Header (HardForkBlock xs)
+</span><a href="#local-6989586621680017118"><span class="hs-identifier hs-var">hdr</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-16"></span><span>        </span><span class="annot"><span class="annottext">NS (K WhetherSelfIssued) xs -&gt; CollapseTo NS WhetherSelfIssued
+forall k l (h :: (k -&gt; *) -&gt; l -&gt; *) (xs :: l) a.
+(HCollapse h, SListIN h xs) =&gt;
+h (K a) xs -&gt; CollapseTo h a
+</span><span class="hs-identifier hs-var">hcollapse</span></span><span>
+</span><span id="line-17"></span><span>      </span><span class="annot"><span class="annottext">(NS (K WhetherSelfIssued) xs -&gt; CollapseTo NS WhetherSelfIssued)
+-&gt; NS (K WhetherSelfIssued) xs -&gt; CollapseTo NS WhetherSelfIssued
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Proxy SingleEraBlock
+-&gt; (forall a.
+    SingleEraBlock a =&gt;
+    BlockConfig a -&gt; Header a -&gt; K WhetherSelfIssued a)
+-&gt; Prod NS BlockConfig xs
+-&gt; NS Header xs
+-&gt; NS (K WhetherSelfIssued) xs
+forall k l (h :: (k -&gt; *) -&gt; l -&gt; *) (c :: k -&gt; Constraint)
+       (xs :: l) (proxy :: (k -&gt; Constraint) -&gt; *) (f :: k -&gt; *)
+       (f' :: k -&gt; *) (f'' :: k -&gt; *).
+(AllN (Prod h) c xs, HAp h, HAp (Prod h)) =&gt;
+proxy c
+-&gt; (forall (a :: k). c a =&gt; f a -&gt; f' a -&gt; f'' a)
+-&gt; Prod h f xs
+-&gt; h f' xs
+-&gt; h f'' xs
+</span><span class="hs-identifier hs-var">hczipWith</span></span><span>
+</span><span id="line-18"></span><span>          </span><span class="annot"><span class="annottext">Proxy SingleEraBlock
+</span><a href="Ouroboros.Consensus.HardFork.Combinator.Abstract.SingleEraBlock.html#proxySingle"><span class="hs-identifier hs-var">proxySingle</span></a></span><span>
+</span><span id="line-19"></span><span>          </span><span class="hs-special">(</span><span class="annot"><span class="annottext">WhetherSelfIssued -&gt; K WhetherSelfIssued a
+forall k a (b :: k). a -&gt; K a b
+</span><span class="hs-identifier hs-var">K</span></span><span> </span><span class="annot"><span class="annottext">(WhetherSelfIssued -&gt; K WhetherSelfIssued a)
+-&gt; (BlockConfig a -&gt; Header a -&gt; WhetherSelfIssued)
+-&gt; BlockConfig a
+-&gt; Header a
+-&gt; K WhetherSelfIssued a
+forall y z x0 x1. (y -&gt; z) -&gt; (x0 -&gt; x1 -&gt; y) -&gt; x0 -&gt; x1 -&gt; z
+</span><a href="Ouroboros.Consensus.Util.html#.%3A"><span class="hs-operator hs-var">.:</span></a></span><span> </span><span class="annot"><span class="annottext">BlockConfig a -&gt; Header a -&gt; WhetherSelfIssued
+forall blk.
+BlockSupportsMetrics blk =&gt;
+BlockConfig blk -&gt; Header blk -&gt; WhetherSelfIssued
+</span><a href="Ouroboros.Consensus.Block.SupportsMetrics.html#isSelfIssued"><span class="hs-identifier hs-var">isSelfIssued</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-20"></span><span>          </span><span class="hs-special">(</span><span class="annot"><span class="annottext">PerEraBlockConfig xs -&gt; NP BlockConfig xs
+forall (xs :: [*]). PerEraBlockConfig xs -&gt; NP BlockConfig xs
+</span><a href="Ouroboros.Consensus.HardFork.Combinator.AcrossEras.html#getPerEraBlockConfig"><span class="hs-identifier hs-var hs-var">getPerEraBlockConfig</span></a></span><span> </span><span class="annot"><span class="annottext">(PerEraBlockConfig xs -&gt; NP BlockConfig xs)
+-&gt; PerEraBlockConfig xs -&gt; NP BlockConfig xs
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">BlockConfig (HardForkBlock xs) -&gt; PerEraBlockConfig xs
+forall (xs :: [*]).
+BlockConfig (HardForkBlock xs) -&gt; PerEraBlockConfig xs
+</span><a href="Ouroboros.Consensus.HardFork.Combinator.Basics.html#hardForkBlockConfigPerEra"><span class="hs-identifier hs-var hs-var">hardForkBlockConfigPerEra</span></a></span><span> </span><span class="annot"><span class="annottext">BlockConfig (HardForkBlock xs)
+</span><a href="#local-6989586621680017119"><span class="hs-identifier hs-var">cfg</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-21"></span><span>          </span><span class="hs-special">(</span><span class="annot"><span class="annottext">OneEraHeader xs -&gt; NS Header xs
+forall (xs :: [*]). OneEraHeader xs -&gt; NS Header xs
+</span><a href="Ouroboros.Consensus.HardFork.Combinator.AcrossEras.html#getOneEraHeader"><span class="hs-identifier hs-var hs-var">getOneEraHeader</span></a></span><span>      </span><span class="annot"><span class="annottext">(OneEraHeader xs -&gt; NS Header xs)
+-&gt; OneEraHeader xs -&gt; NS Header xs
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Header (HardForkBlock xs) -&gt; OneEraHeader xs
+forall (xs :: [*]). Header (HardForkBlock xs) -&gt; OneEraHeader xs
+</span><a href="Ouroboros.Consensus.HardFork.Combinator.Block.html#getHardForkHeader"><span class="hs-identifier hs-var hs-var">getHardForkHeader</span></a></span><span>         </span><span class="annot"><span class="annottext">Header (HardForkBlock xs)
+</span><a href="#local-6989586621680017118"><span class="hs-identifier hs-var">hdr</span></a></span><span class="hs-special">)</span></span><span>
+</span><span id="line-22"></span></pre></body></html>

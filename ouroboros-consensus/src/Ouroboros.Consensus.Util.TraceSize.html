@@ -1,42 +1,44 @@
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-pragma">{-# LANGUAGE BangPatterns #-}</span><span>
-</span><span id="line-2"></span><span>
-</span><span id="line-3"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Ouroboros.Consensus.Util.TraceSize</span><span> </span><span class="hs-special">(</span><span>
-</span><span id="line-4"></span><span>    </span><span class="annot"><span class="hs-comment">-- * Generic</span></span><span>
-</span><span id="line-5"></span><span>    </span><span class="annot"><a href="Ouroboros.Consensus.Util.TraceSize.html#traceSize"><span class="hs-identifier">traceSize</span></a></span><span>
-</span><span id="line-6"></span><span>    </span><span class="annot"><span class="hs-comment">-- * Ledger DB specific</span></span><span>
-</span><span id="line-7"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Util.TraceSize.html#LedgerDbSize"><span class="hs-identifier">LedgerDbSize</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
-</span><span id="line-8"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Util.TraceSize.html#traceLedgerDbSize"><span class="hs-identifier">traceLedgerDbSize</span></a></span><span>
-</span><span id="line-9"></span><span>  </span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-10"></span><span>
-</span><span id="line-11"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-prelude-0.1.0.0/noopt/doc/html/cardano-prelude/src"><span class="hs-identifier">Cardano.Prelude</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-prelude-0.1.0.0/noopt/doc/html/cardano-prelude/src"><span class="hs-identifier">CountFailure</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-prelude-0.1.0.0/noopt/doc/html/cardano-prelude/src"><span class="hs-identifier">computeHeapSize</span></a></span><span class="hs-special">)</span><span>
-</span><span id="line-12"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><span class="hs-identifier">Control.Monad</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">when</span></span><span class="hs-special">)</span><span>
-</span><span id="line-13"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><span class="hs-identifier">Control.Monad.IO.Class</span></span><span>
-</span><span id="line-14"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/contra-tracer-0.1.0.0/noopt/doc/html/contra-tracer/src"><span class="hs-identifier">Control.Tracer</span></a></span><span>
-</span><span id="line-15"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><span class="hs-identifier">Data.Word</span></span><span>
-</span><span id="line-16"></span><span>
-</span><span id="line-17"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="Ouroboros.Consensus.Block.html"><span class="hs-identifier">Ouroboros.Consensus.Block</span></a></span><span>
-</span><span id="line-18"></span><span>
-</span><span id="line-19"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="Ouroboros.Consensus.Storage.LedgerDB.InMemory.html"><span class="hs-identifier">Ouroboros.Consensus.Storage.LedgerDB.InMemory</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Consensus.Storage.LedgerDB.InMemory.html#LedgerDB"><span class="hs-identifier">LedgerDB</span></a></span><span class="hs-special">)</span><span>
-</span><span id="line-20"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Storage.LedgerDB.InMemory.html"><span class="hs-identifier">Ouroboros.Consensus.Storage.LedgerDB.InMemory</span></a></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">LedgerDB</span></span><span>
-</span><span id="line-21"></span><span>
-</span><span id="line-22"></span><span class="hs-comment">{-------------------------------------------------------------------------------
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-pragma">{-# LANGUAGE BangPatterns        #-}</span><span>
+</span><span id="line-2"></span><span class="hs-pragma">{-# LANGUAGE ScopedTypeVariables #-}</span><span>
+</span><span id="line-3"></span><span>
+</span><span id="line-4"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Ouroboros.Consensus.Util.TraceSize</span><span> </span><span class="hs-special">(</span><span>
+</span><span id="line-5"></span><span>    </span><span class="annot"><span class="hs-comment">-- * Generic</span></span><span>
+</span><span id="line-6"></span><span>    </span><span class="annot"><a href="Ouroboros.Consensus.Util.TraceSize.html#traceSize"><span class="hs-identifier">traceSize</span></a></span><span>
+</span><span id="line-7"></span><span>    </span><span class="annot"><span class="hs-comment">-- * Ledger DB specific</span></span><span>
+</span><span id="line-8"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Util.TraceSize.html#LedgerDbSize"><span class="hs-identifier">LedgerDbSize</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
+</span><span id="line-9"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Util.TraceSize.html#traceLedgerDbSize"><span class="hs-identifier">traceLedgerDbSize</span></a></span><span>
+</span><span id="line-10"></span><span>  </span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-11"></span><span>
+</span><span id="line-12"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><span class="hs-identifier">Cardano.Prelude</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">CountFailure</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">computeHeapSize</span></span><span class="hs-special">)</span><span>
+</span><span id="line-13"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><span class="hs-identifier">Control.Monad</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">when</span></span><span class="hs-special">)</span><span>
+</span><span id="line-14"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><span class="hs-identifier">Control.Monad.IO.Class</span></span><span>
+</span><span id="line-15"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><span class="hs-identifier">Control.Tracer</span></span><span>
+</span><span id="line-16"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><span class="hs-identifier">Data.Word</span></span><span>
+</span><span id="line-17"></span><span>
+</span><span id="line-18"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="Ouroboros.Consensus.Block.html"><span class="hs-identifier">Ouroboros.Consensus.Block</span></a></span><span>
+</span><span id="line-19"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="Ouroboros.Consensus.Ledger.Basics.html"><span class="hs-identifier">Ouroboros.Consensus.Ledger.Basics</span></a></span><span>
+</span><span id="line-20"></span><span>
+</span><span id="line-21"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="Ouroboros.Consensus.Storage.LedgerDB.InMemory.html"><span class="hs-identifier">Ouroboros.Consensus.Storage.LedgerDB.InMemory</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Consensus.Storage.LedgerDB.InMemory.html#LedgerDB"><span class="hs-identifier">LedgerDB</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-22"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Storage.LedgerDB.InMemory.html"><span class="hs-identifier">Ouroboros.Consensus.Storage.LedgerDB.InMemory</span></a></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">LedgerDB</span></span><span>
+</span><span id="line-23"></span><span>
+</span><span id="line-24"></span><span class="hs-comment">{-------------------------------------------------------------------------------
   Generic
 -------------------------------------------------------------------------------}</span><span>
-</span><span id="line-25"></span><span>
-</span><span id="line-26"></span><span class="hs-comment">-- | Generic helper to trace a value and its size</span><span>
-</span><span id="line-27"></span><span id="local-6989586621680045103"><span id="local-6989586621680045104"><span class="annot"><a href="Ouroboros.Consensus.Util.TraceSize.html#traceSize"><span class="hs-identifier hs-type">traceSize</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">MonadIO</span></span><span> </span><span class="annot"><a href="#local-6989586621680045104"><span class="hs-identifier hs-type">m</span></a></span><span>
-</span><span id="line-28"></span><span>          </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/contra-tracer-0.1.0.0/noopt/doc/html/contra-tracer/src"><span class="hs-identifier hs-type">Tracer</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680045104"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="#local-6989586621680045103"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Either</span></span><span> </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-prelude-0.1.0.0/noopt/doc/html/cardano-prelude/src"><span class="hs-identifier hs-type">CountFailure</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Word64</span></span><span class="hs-special">)</span><span>
-</span><span id="line-29"></span><span>          </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/contra-tracer-0.1.0.0/noopt/doc/html/contra-tracer/src"><span class="hs-identifier hs-type">Tracer</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680045104"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680045103"><span class="hs-identifier hs-type">a</span></a></span></span></span><span>
-</span><span id="line-30"></span><span id="traceSize"><span class="annot"><span class="annottext">traceSize :: Tracer m (a, Either CountFailure Word64) -&gt; Tracer m a
-</span><a href="Ouroboros.Consensus.Util.TraceSize.html#traceSize"><span class="hs-identifier hs-var hs-var">traceSize</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/contra-tracer-0.1.0.0/noopt/doc/html/contra-tracer/src"><span class="hs-identifier hs-type">Tracer</span></a></span><span> </span><span id="local-6989586621680045101"><span class="annot"><span class="annottext">(a, Either CountFailure Word64) -&gt; m ()
-</span><a href="#local-6989586621680045101"><span class="hs-identifier hs-var">f</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(a -&gt; m ()) -&gt; Tracer m a
+</span><span id="line-27"></span><span>
+</span><span id="line-28"></span><span class="hs-comment">-- | Generic helper to trace a value and its size</span><span>
+</span><span id="line-29"></span><span id="local-6989586621680011121"><span id="local-6989586621680011122"><span class="annot"><a href="Ouroboros.Consensus.Util.TraceSize.html#traceSize"><span class="hs-identifier hs-type">traceSize</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">MonadIO</span></span><span> </span><span class="annot"><a href="#local-6989586621680011122"><span class="hs-identifier hs-type">m</span></a></span><span>
+</span><span id="line-30"></span><span>          </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Tracer</span></span><span> </span><span class="annot"><a href="#local-6989586621680011122"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="#local-6989586621680011121"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Either</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">CountFailure</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Word64</span></span><span class="hs-special">)</span><span>
+</span><span id="line-31"></span><span>          </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Tracer</span></span><span> </span><span class="annot"><a href="#local-6989586621680011122"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680011121"><span class="hs-identifier hs-type">a</span></a></span></span></span><span>
+</span><span id="line-32"></span><span id="traceSize"><span class="annot"><span class="annottext">traceSize :: Tracer m (a, Either CountFailure Word64) -&gt; Tracer m a
+</span><a href="Ouroboros.Consensus.Util.TraceSize.html#traceSize"><span class="hs-identifier hs-var hs-var">traceSize</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Tracer</span></span><span> </span><span id="local-6989586621680011119"><span class="annot"><span class="annottext">(a, Either CountFailure Word64) -&gt; m ()
+</span><a href="#local-6989586621680011119"><span class="hs-identifier hs-var">f</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(a -&gt; m ()) -&gt; Tracer m a
 forall (m :: * -&gt; *) a. (a -&gt; m ()) -&gt; Tracer m a
-</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/contra-tracer-0.1.0.0/noopt/doc/html/contra-tracer/src"><span class="hs-identifier hs-var">Tracer</span></a></span><span> </span><span class="annot"><span class="annottext">((a -&gt; m ()) -&gt; Tracer m a) -&gt; (a -&gt; m ()) -&gt; Tracer m a
+</span><span class="hs-identifier hs-var">Tracer</span></span><span> </span><span class="annot"><span class="annottext">((a -&gt; m ()) -&gt; Tracer m a) -&gt; (a -&gt; m ()) -&gt; Tracer m a
 forall a b. (a -&gt; b) -&gt; a -&gt; b
-</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621680045100"><span class="annot"><span class="annottext">a
-</span><a href="#local-6989586621680045100"><span class="hs-identifier hs-var">a</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">do</span><span>
-</span><span id="line-31"></span><span>    </span><span id="local-6989586621680045099"><span class="annot"><span class="annottext">Either CountFailure Word64
-</span><a href="#local-6989586621680045099"><span class="hs-identifier hs-var">sz</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">IO (Either CountFailure Word64) -&gt; m (Either CountFailure Word64)
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621680011118"><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621680011118"><span class="hs-identifier hs-var">a</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-33"></span><span>    </span><span id="local-6989586621680011117"><span class="annot"><span class="annottext">Either CountFailure Word64
+</span><a href="#local-6989586621680011117"><span class="hs-identifier hs-var">sz</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">IO (Either CountFailure Word64) -&gt; m (Either CountFailure Word64)
 forall (m :: * -&gt; *) a. MonadIO m =&gt; IO a -&gt; m a
 </span><span class="hs-identifier hs-var">liftIO</span></span><span> </span><span class="annot"><span class="annottext">(IO (Either CountFailure Word64) -&gt; m (Either CountFailure Word64))
 -&gt; IO (Either CountFailure Word64)
@@ -44,94 +46,89 @@ forall (m :: * -&gt; *) a. MonadIO m =&gt; IO a -&gt; m a
 forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">a -&gt; IO (Either CountFailure Word64)
 forall a. a -&gt; IO (Either CountFailure Word64)
-</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-prelude-0.1.0.0/noopt/doc/html/cardano-prelude/src"><span class="hs-identifier hs-var">computeHeapSize</span></a></span><span> </span><span class="annot"><span class="annottext">a
-</span><a href="#local-6989586621680045100"><span class="hs-identifier hs-var">a</span></a></span><span>
-</span><span id="line-32"></span><span>    </span><span class="annot"><span class="annottext">(a, Either CountFailure Word64) -&gt; m ()
-</span><a href="#local-6989586621680045101"><span class="hs-identifier hs-var">f</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">a
-</span><a href="#local-6989586621680045100"><span class="hs-identifier hs-var">a</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Either CountFailure Word64
-</span><a href="#local-6989586621680045099"><span class="hs-identifier hs-var">sz</span></a></span><span class="hs-special">)</span><span>
-</span><span id="line-33"></span><span>
-</span><span id="line-34"></span><span class="hs-comment">{-------------------------------------------------------------------------------
+</span><span class="hs-identifier hs-var">computeHeapSize</span></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621680011118"><span class="hs-identifier hs-var">a</span></a></span><span>
+</span><span id="line-34"></span><span>    </span><span class="annot"><span class="annottext">(a, Either CountFailure Word64) -&gt; m ()
+</span><a href="#local-6989586621680011119"><span class="hs-identifier hs-var">f</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621680011118"><span class="hs-identifier hs-var">a</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Either CountFailure Word64
+</span><a href="#local-6989586621680011117"><span class="hs-identifier hs-var">sz</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-35"></span><span>
+</span><span id="line-36"></span><span class="hs-comment">{-------------------------------------------------------------------------------
   Ledger DB specific
 -------------------------------------------------------------------------------}</span><span>
-</span><span id="line-37"></span><span>
-</span><span id="line-38"></span><span class="hs-keyword">data</span><span> </span><span id="LedgerDbSize"><span class="annot"><a href="Ouroboros.Consensus.Util.TraceSize.html#LedgerDbSize"><span class="hs-identifier hs-var">LedgerDbSize</span></a></span></span><span> </span><span id="local-6989586621680045113"><span class="annot"><a href="#local-6989586621680045113"><span class="hs-identifier hs-type">blk</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="LedgerDbSize"><span class="annot"><a href="Ouroboros.Consensus.Util.TraceSize.html#LedgerDbSize"><span class="hs-identifier hs-var">LedgerDbSize</span></a></span></span><span> </span><span class="hs-special">{</span><span>
-</span><span id="line-39"></span><span>      </span><span class="hs-comment">-- | The tip of the ledger DB</span><span>
-</span><span id="line-40"></span><span>      </span><span id="ledgerDbTip"><span class="annot"><span class="annottext">LedgerDbSize blk -&gt; Point blk
-</span><a href="Ouroboros.Consensus.Util.TraceSize.html#ledgerDbTip"><span class="hs-identifier hs-var hs-var">ledgerDbTip</span></a></span></span><span>       </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/ouroboros-network-0.1.0.0/noopt/doc/html/ouroboros-network/src"><span class="hs-identifier hs-type">Point</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680045113"><span class="hs-identifier hs-type">blk</span></a></span><span>
-</span><span id="line-41"></span><span>
-</span><span id="line-42"></span><span>      </span><span class="hs-comment">-- | Size of the ledger at the tip of the DB</span><span>
-</span><span id="line-43"></span><span>    </span><span class="hs-special">,</span><span> </span><span id="ledgerDbSizeTip"><span class="annot"><span class="annottext">LedgerDbSize blk -&gt; Either CountFailure Word64
-</span><a href="Ouroboros.Consensus.Util.TraceSize.html#ledgerDbSizeTip"><span class="hs-identifier hs-var hs-var">ledgerDbSizeTip</span></a></span></span><span>   </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Either</span></span><span> </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-prelude-0.1.0.0/noopt/doc/html/cardano-prelude/src"><span class="hs-identifier hs-type">CountFailure</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Word64</span></span><span>
-</span><span id="line-44"></span><span>
-</span><span id="line-45"></span><span>      </span><span class="hs-comment">-- | Size of the entire (in-memory) ledger DB</span><span>
-</span><span id="line-46"></span><span>    </span><span class="hs-special">,</span><span> </span><span id="ledgerDbSizeTotal"><span class="annot"><span class="annottext">LedgerDbSize blk -&gt; Either CountFailure Word64
-</span><a href="Ouroboros.Consensus.Util.TraceSize.html#ledgerDbSizeTotal"><span class="hs-identifier hs-var hs-var">ledgerDbSizeTotal</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Either</span></span><span> </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-prelude-0.1.0.0/noopt/doc/html/cardano-prelude/src"><span class="hs-identifier hs-type">CountFailure</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Word64</span></span><span>
-</span><span id="line-47"></span><span>    </span><span class="hs-special">}</span><span>
-</span><span id="line-48"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621680045088"><span id="local-6989586621680045090"><span id="local-6989586621680045092"><span class="annot"><span class="annottext">Int -&gt; LedgerDbSize blk -&gt; ShowS
-[LedgerDbSize blk] -&gt; ShowS
-LedgerDbSize blk -&gt; String
-(Int -&gt; LedgerDbSize blk -&gt; ShowS)
--&gt; (LedgerDbSize blk -&gt; String)
--&gt; ([LedgerDbSize blk] -&gt; ShowS)
--&gt; Show (LedgerDbSize blk)
-forall blk. StandardHash blk =&gt; Int -&gt; LedgerDbSize blk -&gt; ShowS
-forall blk. StandardHash blk =&gt; [LedgerDbSize blk] -&gt; ShowS
-forall blk. StandardHash blk =&gt; LedgerDbSize blk -&gt; String
+</span><span id="line-39"></span><span>
+</span><span id="line-40"></span><span class="hs-keyword">data</span><span> </span><span id="LedgerDbSize"><span class="annot"><a href="Ouroboros.Consensus.Util.TraceSize.html#LedgerDbSize"><span class="hs-identifier hs-var">LedgerDbSize</span></a></span></span><span> </span><span id="local-6989586621680011129"><span class="annot"><a href="#local-6989586621680011129"><span class="hs-identifier hs-type">l</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="LedgerDbSize"><span class="annot"><a href="Ouroboros.Consensus.Util.TraceSize.html#LedgerDbSize"><span class="hs-identifier hs-var">LedgerDbSize</span></a></span></span><span> </span><span class="hs-special">{</span><span>
+</span><span id="line-41"></span><span>      </span><span class="hs-comment">-- | The tip of the ledger DB</span><span>
+</span><span id="line-42"></span><span>      </span><span id="ledgerDbTip"><span class="annot"><span class="annottext">LedgerDbSize l -&gt; Point l
+</span><a href="Ouroboros.Consensus.Util.TraceSize.html#ledgerDbTip"><span class="hs-identifier hs-var hs-var">ledgerDbTip</span></a></span></span><span>       </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-network-0.1.0.0/noopt/doc/html/ouroboros-network/src"><span class="hs-identifier hs-type">Point</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680011129"><span class="hs-identifier hs-type">l</span></a></span><span>
+</span><span id="line-43"></span><span>
+</span><span id="line-44"></span><span>      </span><span class="hs-comment">-- | Size of the ledger at the tip of the DB</span><span>
+</span><span id="line-45"></span><span>    </span><span class="hs-special">,</span><span> </span><span id="ledgerDbSizeTip"><span class="annot"><span class="annottext">LedgerDbSize l -&gt; Either CountFailure Word64
+</span><a href="Ouroboros.Consensus.Util.TraceSize.html#ledgerDbSizeTip"><span class="hs-identifier hs-var hs-var">ledgerDbSizeTip</span></a></span></span><span>   </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Either</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">CountFailure</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Word64</span></span><span>
+</span><span id="line-46"></span><span>
+</span><span id="line-47"></span><span>      </span><span class="hs-comment">-- | Size of the entire (in-memory) ledger DB</span><span>
+</span><span id="line-48"></span><span>    </span><span class="hs-special">,</span><span> </span><span id="ledgerDbSizeTotal"><span class="annot"><span class="annottext">LedgerDbSize l -&gt; Either CountFailure Word64
+</span><a href="Ouroboros.Consensus.Util.TraceSize.html#ledgerDbSizeTotal"><span class="hs-identifier hs-var hs-var">ledgerDbSizeTotal</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Either</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">CountFailure</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Word64</span></span><span>
+</span><span id="line-49"></span><span>    </span><span class="hs-special">}</span><span>
+</span><span id="line-50"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621680011106"><span id="local-6989586621680011108"><span id="local-6989586621680011110"><span class="annot"><span class="annottext">Int -&gt; LedgerDbSize l -&gt; ShowS
+[LedgerDbSize l] -&gt; ShowS
+LedgerDbSize l -&gt; String
+(Int -&gt; LedgerDbSize l -&gt; ShowS)
+-&gt; (LedgerDbSize l -&gt; String)
+-&gt; ([LedgerDbSize l] -&gt; ShowS)
+-&gt; Show (LedgerDbSize l)
+forall l. StandardHash l =&gt; Int -&gt; LedgerDbSize l -&gt; ShowS
+forall l. StandardHash l =&gt; [LedgerDbSize l] -&gt; ShowS
+forall l. StandardHash l =&gt; LedgerDbSize l -&gt; String
 forall a.
 (Int -&gt; a -&gt; ShowS) -&gt; (a -&gt; String) -&gt; ([a] -&gt; ShowS) -&gt; Show a
-showList :: [LedgerDbSize blk] -&gt; ShowS
-$cshowList :: forall blk. StandardHash blk =&gt; [LedgerDbSize blk] -&gt; ShowS
-show :: LedgerDbSize blk -&gt; String
-$cshow :: forall blk. StandardHash blk =&gt; LedgerDbSize blk -&gt; String
-showsPrec :: Int -&gt; LedgerDbSize blk -&gt; ShowS
-$cshowsPrec :: forall blk. StandardHash blk =&gt; Int -&gt; LedgerDbSize blk -&gt; ShowS
+showList :: [LedgerDbSize l] -&gt; ShowS
+$cshowList :: forall l. StandardHash l =&gt; [LedgerDbSize l] -&gt; ShowS
+show :: LedgerDbSize l -&gt; String
+$cshow :: forall l. StandardHash l =&gt; LedgerDbSize l -&gt; String
+showsPrec :: Int -&gt; LedgerDbSize l -&gt; ShowS
+$cshowsPrec :: forall l. StandardHash l =&gt; Int -&gt; LedgerDbSize l -&gt; ShowS
 </span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">)</span><span>
-</span><span id="line-49"></span><span>
-</span><span id="line-50"></span><span class="hs-comment">-- | Trace the size of the ledger</span><span>
-</span><span id="line-51"></span><span class="hs-comment">--</span><span>
-</span><span id="line-52"></span><span class="hs-comment">-- Only traces slots for which the predicate results true (genesis will be</span><span>
-</span><span id="line-53"></span><span class="hs-comment">-- considered to be slot 0).</span><span>
-</span><span id="line-54"></span><span id="local-6989586621680045084"><span id="local-6989586621680045085"><span id="local-6989586621680045086"><span class="annot"><a href="Ouroboros.Consensus.Util.TraceSize.html#traceLedgerDbSize"><span class="hs-identifier hs-type">traceLedgerDbSize</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">MonadIO</span></span><span> </span><span class="annot"><a href="#local-6989586621680045086"><span class="hs-identifier hs-type">m</span></a></span><span>
-</span><span id="line-55"></span><span>                  </span><span class="hs-glyph">=&gt;</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Word64</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span><span class="hs-special">)</span><span>
-</span><span id="line-56"></span><span>                  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/contra-tracer-0.1.0.0/noopt/doc/html/contra-tracer/src"><span class="hs-identifier hs-type">Tracer</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680045086"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Consensus.Util.TraceSize.html#LedgerDbSize"><span class="hs-identifier hs-type">LedgerDbSize</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680045085"><span class="hs-identifier hs-type">blk</span></a></span><span class="hs-special">)</span><span>
-</span><span id="line-57"></span><span>                  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/contra-tracer-0.1.0.0/noopt/doc/html/contra-tracer/src"><span class="hs-identifier hs-type">Tracer</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680045086"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Consensus.Storage.LedgerDB.InMemory.html#LedgerDB"><span class="hs-identifier hs-type">LedgerDB</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680045084"><span class="hs-identifier hs-type">l</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Consensus.Block.RealPoint.html#RealPoint"><span class="hs-identifier hs-type">RealPoint</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680045085"><span class="hs-identifier hs-type">blk</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span></span></span></span><span>
-</span><span id="line-58"></span><span id="traceLedgerDbSize"><span class="annot"><span class="annottext">traceLedgerDbSize :: (Word64 -&gt; Bool)
--&gt; Tracer m (LedgerDbSize blk)
--&gt; Tracer m (LedgerDB l (RealPoint blk))
-</span><a href="Ouroboros.Consensus.Util.TraceSize.html#traceLedgerDbSize"><span class="hs-identifier hs-var hs-var">traceLedgerDbSize</span></a></span></span><span> </span><span id="local-6989586621680045083"><span class="annot"><span class="annottext">Word64 -&gt; Bool
-</span><a href="#local-6989586621680045083"><span class="hs-identifier hs-var">p</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/contra-tracer-0.1.0.0/noopt/doc/html/contra-tracer/src"><span class="hs-identifier hs-type">Tracer</span></a></span><span> </span><span id="local-6989586621680045082"><span class="annot"><span class="annottext">LedgerDbSize blk -&gt; m ()
-</span><a href="#local-6989586621680045082"><span class="hs-identifier hs-var">f</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(LedgerDB l (RealPoint blk) -&gt; m ())
--&gt; Tracer m (LedgerDB l (RealPoint blk))
+</span><span id="line-51"></span><span>
+</span><span id="line-52"></span><span class="hs-comment">-- | Trace the size of the ledger</span><span>
+</span><span id="line-53"></span><span class="hs-comment">--</span><span>
+</span><span id="line-54"></span><span class="hs-comment">-- Only traces slots for which the predicate results true (genesis will be</span><span>
+</span><span id="line-55"></span><span class="hs-comment">-- considered to be slot 0).</span><span>
+</span><span id="line-56"></span><span class="annot"><a href="Ouroboros.Consensus.Util.TraceSize.html#traceLedgerDbSize"><span class="hs-identifier hs-type">traceLedgerDbSize</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-keyword">forall</span><span> </span><span id="local-6989586621680011104"><span class="annot"><a href="#local-6989586621680011104"><span class="hs-identifier hs-type">m</span></a></span></span><span> </span><span id="local-6989586621680011103"><span class="annot"><a href="#local-6989586621680011103"><span class="hs-identifier hs-type">l</span></a></span></span><span class="hs-operator">.</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">MonadIO</span></span><span> </span><span class="annot"><a href="#local-6989586621680011104"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Ledger.Basics.html#GetTip"><span class="hs-identifier hs-type">GetTip</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680011103"><span class="hs-identifier hs-type">l</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-57"></span><span>                  </span><span class="hs-glyph">=&gt;</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Word64</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span><span class="hs-special">)</span><span>
+</span><span id="line-58"></span><span>                  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Tracer</span></span><span> </span><span class="annot"><a href="#local-6989586621680011104"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Consensus.Util.TraceSize.html#LedgerDbSize"><span class="hs-identifier hs-type">LedgerDbSize</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680011103"><span class="hs-identifier hs-type">l</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-59"></span><span>                  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Tracer</span></span><span> </span><span class="annot"><a href="#local-6989586621680011104"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Consensus.Storage.LedgerDB.InMemory.html#LedgerDB"><span class="hs-identifier hs-type">LedgerDB</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680011103"><span class="hs-identifier hs-type">l</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-60"></span><span id="traceLedgerDbSize"><span class="annot"><span class="annottext">traceLedgerDbSize :: (Word64 -&gt; Bool)
+-&gt; Tracer m (LedgerDbSize l) -&gt; Tracer m (LedgerDB l)
+</span><a href="Ouroboros.Consensus.Util.TraceSize.html#traceLedgerDbSize"><span class="hs-identifier hs-var hs-var">traceLedgerDbSize</span></a></span></span><span> </span><span id="local-6989586621680011102"><span class="annot"><span class="annottext">Word64 -&gt; Bool
+</span><a href="#local-6989586621680011102"><span class="hs-identifier hs-var">p</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Tracer</span></span><span> </span><span id="local-6989586621680011101"><span class="annot"><span class="annottext">LedgerDbSize l -&gt; m ()
+</span><a href="#local-6989586621680011101"><span class="hs-identifier hs-var">f</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(LedgerDB l -&gt; m ()) -&gt; Tracer m (LedgerDB l)
 forall (m :: * -&gt; *) a. (a -&gt; m ()) -&gt; Tracer m a
-</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/contra-tracer-0.1.0.0/noopt/doc/html/contra-tracer/src"><span class="hs-identifier hs-var">Tracer</span></a></span><span> </span><span class="annot"><span class="annottext">((LedgerDB l (RealPoint blk) -&gt; m ())
- -&gt; Tracer m (LedgerDB l (RealPoint blk)))
--&gt; (LedgerDB l (RealPoint blk) -&gt; m ())
--&gt; Tracer m (LedgerDB l (RealPoint blk))
+</span><span class="hs-identifier hs-var">Tracer</span></span><span> </span><span class="annot"><span class="annottext">((LedgerDB l -&gt; m ()) -&gt; Tracer m (LedgerDB l))
+-&gt; (LedgerDB l -&gt; m ()) -&gt; Tracer m (LedgerDB l)
 forall a b. (a -&gt; b) -&gt; a -&gt; b
-</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-glyph">\</span><span class="hs-special">(</span><span class="hs-glyph">!</span><span id="local-6989586621680045081"><span class="annot"><span class="annottext">LedgerDB l (RealPoint blk)
-</span><a href="#local-6989586621680045081"><span class="hs-identifier hs-var">db</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">do</span><span>
-</span><span id="line-59"></span><span>    </span><span class="hs-keyword">let</span><span> </span><span class="hs-glyph">!</span><span id="local-6989586621680045080"><span class="annot"><span class="annottext">ledger :: l
-</span><a href="#local-6989586621680045080"><span class="hs-identifier hs-var hs-var">ledger</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">LedgerDB l (RealPoint blk) -&gt; l
-forall l r. LedgerDB l r -&gt; l
-</span><a href="Ouroboros.Consensus.Storage.LedgerDB.InMemory.html#ledgerDbCurrent"><span class="hs-identifier hs-var">LedgerDB.ledgerDbCurrent</span></a></span><span> </span><span class="annot"><span class="annottext">LedgerDB l (RealPoint blk)
-</span><a href="#local-6989586621680045081"><span class="hs-identifier hs-var">db</span></a></span><span>
-</span><span id="line-60"></span><span>        </span><span class="hs-glyph">!</span><span id="local-6989586621680045078"><span class="annot"><span class="annottext">tip :: WithOrigin (RealPoint blk)
-</span><a href="#local-6989586621680045078"><span class="hs-identifier hs-var hs-var">tip</span></a></span></span><span>    </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">LedgerDB l (RealPoint blk) -&gt; WithOrigin (RealPoint blk)
-forall l r. LedgerDB l r -&gt; WithOrigin r
-</span><a href="Ouroboros.Consensus.Storage.LedgerDB.InMemory.html#ledgerDbTip"><span class="hs-identifier hs-var">LedgerDB.ledgerDbTip</span></a></span><span> </span><span class="annot"><span class="annottext">LedgerDB l (RealPoint blk)
-</span><a href="#local-6989586621680045081"><span class="hs-identifier hs-var">db</span></a></span><span>
-</span><span id="line-61"></span><span>
-</span><span id="line-62"></span><span>    </span><span class="annot"><span class="annottext">Bool -&gt; m () -&gt; m ()
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-glyph">\</span><span class="hs-special">(</span><span class="hs-glyph">!</span><span id="local-6989586621680011100"><span class="annot"><span class="annottext">LedgerDB l
+</span><a href="#local-6989586621680011100"><span class="hs-identifier hs-var">db</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-61"></span><span>    </span><span class="hs-keyword">let</span><span> </span><span class="hs-glyph">!</span><span id="local-6989586621680011099"><span class="annot"><span class="annottext">ledger :: l
+</span><a href="#local-6989586621680011099"><span class="hs-identifier hs-var hs-var">ledger</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">LedgerDB l -&gt; l
+forall l. GetTip l =&gt; LedgerDB l -&gt; l
+</span><a href="Ouroboros.Consensus.Storage.LedgerDB.InMemory.html#ledgerDbCurrent"><span class="hs-identifier hs-var">LedgerDB.ledgerDbCurrent</span></a></span><span> </span><span class="annot"><span class="annottext">LedgerDB l
+</span><a href="#local-6989586621680011100"><span class="hs-identifier hs-var">db</span></a></span><span>
+</span><span id="line-62"></span><span>        </span><span class="hs-glyph">!</span><span id="local-6989586621680011097"><span class="annot"><span class="annottext">tip :: Point l
+</span><a href="#local-6989586621680011097"><span class="hs-identifier hs-var hs-var">tip</span></a></span></span><span>    </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">l -&gt; Point l
+forall l. GetTip l =&gt; l -&gt; Point l
+</span><a href="Ouroboros.Consensus.Ledger.Basics.html#getTip"><span class="hs-identifier hs-var">getTip</span></a></span><span> </span><span class="annot"><span class="annottext">l
+</span><a href="#local-6989586621680011099"><span class="hs-identifier hs-var">ledger</span></a></span><span>
+</span><span id="line-63"></span><span>
+</span><span id="line-64"></span><span>    </span><span class="annot"><span class="annottext">Bool -&gt; m () -&gt; m ()
 forall (f :: * -&gt; *). Applicative f =&gt; Bool -&gt; f () -&gt; f ()
-</span><span class="hs-identifier hs-var">when</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">WithOrigin (RealPoint blk) -&gt; Bool
-forall blk. WithOrigin (RealPoint blk) -&gt; Bool
-</span><a href="#local-6989586621680045076"><span class="hs-identifier hs-var">shouldTrace</span></a></span><span> </span><span class="annot"><span class="annottext">WithOrigin (RealPoint blk)
-</span><a href="#local-6989586621680045078"><span class="hs-identifier hs-var">tip</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(m () -&gt; m ()) -&gt; m () -&gt; m ()
+</span><span class="hs-identifier hs-var">when</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Point l -&gt; Bool
+</span><a href="#local-6989586621680011095"><span class="hs-identifier hs-var">shouldTrace</span></a></span><span> </span><span class="annot"><span class="annottext">Point l
+</span><a href="#local-6989586621680011097"><span class="hs-identifier hs-var">tip</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(m () -&gt; m ()) -&gt; m () -&gt; m ()
 forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-keyword">do</span><span>
-</span><span id="line-63"></span><span>      </span><span id="local-6989586621680045075"><span class="annot"><span class="annottext">Either CountFailure Word64
-</span><a href="#local-6989586621680045075"><span class="hs-identifier hs-var">sizeTip</span></a></span></span><span>   </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">IO (Either CountFailure Word64) -&gt; m (Either CountFailure Word64)
+</span><span id="line-65"></span><span>      </span><span id="local-6989586621680011094"><span class="annot"><span class="annottext">Either CountFailure Word64
+</span><a href="#local-6989586621680011094"><span class="hs-identifier hs-var">sizeTip</span></a></span></span><span>   </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">IO (Either CountFailure Word64) -&gt; m (Either CountFailure Word64)
 forall (m :: * -&gt; *) a. MonadIO m =&gt; IO a -&gt; m a
 </span><span class="hs-identifier hs-var">liftIO</span></span><span> </span><span class="annot"><span class="annottext">(IO (Either CountFailure Word64) -&gt; m (Either CountFailure Word64))
 -&gt; IO (Either CountFailure Word64)
@@ -139,52 +136,49 @@ forall (m :: * -&gt; *) a. MonadIO m =&gt; IO a -&gt; m a
 forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">l -&gt; IO (Either CountFailure Word64)
 forall a. a -&gt; IO (Either CountFailure Word64)
-</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-prelude-0.1.0.0/noopt/doc/html/cardano-prelude/src"><span class="hs-identifier hs-var">computeHeapSize</span></a></span><span> </span><span class="annot"><span class="annottext">l
-</span><a href="#local-6989586621680045080"><span class="hs-identifier hs-var">ledger</span></a></span><span>
-</span><span id="line-64"></span><span>      </span><span id="local-6989586621680045074"><span class="annot"><span class="annottext">Either CountFailure Word64
-</span><a href="#local-6989586621680045074"><span class="hs-identifier hs-var">sizeTotal</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">IO (Either CountFailure Word64) -&gt; m (Either CountFailure Word64)
+</span><span class="hs-identifier hs-var">computeHeapSize</span></span><span> </span><span class="annot"><span class="annottext">l
+</span><a href="#local-6989586621680011099"><span class="hs-identifier hs-var">ledger</span></a></span><span>
+</span><span id="line-66"></span><span>      </span><span id="local-6989586621680011093"><span class="annot"><span class="annottext">Either CountFailure Word64
+</span><a href="#local-6989586621680011093"><span class="hs-identifier hs-var">sizeTotal</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">IO (Either CountFailure Word64) -&gt; m (Either CountFailure Word64)
 forall (m :: * -&gt; *) a. MonadIO m =&gt; IO a -&gt; m a
 </span><span class="hs-identifier hs-var">liftIO</span></span><span> </span><span class="annot"><span class="annottext">(IO (Either CountFailure Word64) -&gt; m (Either CountFailure Word64))
 -&gt; IO (Either CountFailure Word64)
 -&gt; m (Either CountFailure Word64)
 forall a b. (a -&gt; b) -&gt; a -&gt; b
-</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">LedgerDB l (RealPoint blk) -&gt; IO (Either CountFailure Word64)
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">LedgerDB l -&gt; IO (Either CountFailure Word64)
 forall a. a -&gt; IO (Either CountFailure Word64)
-</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-prelude-0.1.0.0/noopt/doc/html/cardano-prelude/src"><span class="hs-identifier hs-var">computeHeapSize</span></a></span><span> </span><span class="annot"><span class="annottext">LedgerDB l (RealPoint blk)
-</span><a href="#local-6989586621680045081"><span class="hs-identifier hs-var">db</span></a></span><span>
-</span><span id="line-65"></span><span>      </span><span class="annot"><span class="annottext">LedgerDbSize blk -&gt; m ()
-</span><a href="#local-6989586621680045082"><span class="hs-identifier hs-var">f</span></a></span><span> </span><span class="annot"><span class="annottext">(LedgerDbSize blk -&gt; m ()) -&gt; LedgerDbSize blk -&gt; m ()
+</span><span class="hs-identifier hs-var">computeHeapSize</span></span><span> </span><span class="annot"><span class="annottext">LedgerDB l
+</span><a href="#local-6989586621680011100"><span class="hs-identifier hs-var">db</span></a></span><span>
+</span><span id="line-67"></span><span>      </span><span class="annot"><span class="annottext">LedgerDbSize l -&gt; m ()
+</span><a href="#local-6989586621680011101"><span class="hs-identifier hs-var">f</span></a></span><span> </span><span class="annot"><span class="annottext">(LedgerDbSize l -&gt; m ()) -&gt; LedgerDbSize l -&gt; m ()
 forall a b. (a -&gt; b) -&gt; a -&gt; b
-</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">LedgerDbSize :: forall blk.
-Point blk
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">LedgerDbSize :: forall l.
+Point l
 -&gt; Either CountFailure Word64
 -&gt; Either CountFailure Word64
--&gt; LedgerDbSize blk
+-&gt; LedgerDbSize l
 </span><a href="Ouroboros.Consensus.Util.TraceSize.html#LedgerDbSize"><span class="hs-identifier hs-type">LedgerDbSize</span></a></span><span> </span><span class="hs-special">{</span><span>
-</span><span id="line-66"></span><span>              </span><span class="annot"><span class="annottext">ledgerDbTip :: Point blk
-</span><a href="Ouroboros.Consensus.Util.TraceSize.html#ledgerDbTip"><span class="hs-identifier hs-var">ledgerDbTip</span></a></span><span>       </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">WithOrigin (RealPoint blk) -&gt; Point blk
-forall blk. WithOrigin (RealPoint blk) -&gt; Point blk
-</span><a href="Ouroboros.Consensus.Block.RealPoint.html#withOriginRealPointToPoint"><span class="hs-identifier hs-var">withOriginRealPointToPoint</span></a></span><span> </span><span class="annot"><span class="annottext">WithOrigin (RealPoint blk)
-</span><a href="#local-6989586621680045078"><span class="hs-identifier hs-var">tip</span></a></span><span>
-</span><span id="line-67"></span><span>            </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">ledgerDbSizeTip :: Either CountFailure Word64
+</span><span id="line-68"></span><span>              </span><span class="annot"><span class="annottext">ledgerDbTip :: Point l
+</span><a href="Ouroboros.Consensus.Util.TraceSize.html#ledgerDbTip"><span class="hs-identifier hs-var">ledgerDbTip</span></a></span><span>       </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Point l
+</span><a href="#local-6989586621680011097"><span class="hs-identifier hs-var">tip</span></a></span><span>
+</span><span id="line-69"></span><span>            </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">ledgerDbSizeTip :: Either CountFailure Word64
 </span><a href="Ouroboros.Consensus.Util.TraceSize.html#ledgerDbSizeTip"><span class="hs-identifier hs-var">ledgerDbSizeTip</span></a></span><span>   </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Either CountFailure Word64
-</span><a href="#local-6989586621680045075"><span class="hs-identifier hs-var">sizeTip</span></a></span><span>
-</span><span id="line-68"></span><span>            </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">ledgerDbSizeTotal :: Either CountFailure Word64
+</span><a href="#local-6989586621680011094"><span class="hs-identifier hs-var">sizeTip</span></a></span><span>
+</span><span id="line-70"></span><span>            </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">ledgerDbSizeTotal :: Either CountFailure Word64
 </span><a href="Ouroboros.Consensus.Util.TraceSize.html#ledgerDbSizeTotal"><span class="hs-identifier hs-var">ledgerDbSizeTotal</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Either CountFailure Word64
-</span><a href="#local-6989586621680045074"><span class="hs-identifier hs-var">sizeTotal</span></a></span><span>
-</span><span id="line-69"></span><span>            </span><span class="hs-special">}</span><span>
-</span><span id="line-70"></span><span>  </span><span class="hs-keyword">where</span><span>
-</span><span id="line-71"></span><span>    </span><span id="local-6989586621680045114"><span class="annot"><a href="#local-6989586621680045076"><span class="hs-identifier hs-type">shouldTrace</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-slotting-0.1.0.0/noopt/doc/html/cardano-slotting/src"><span class="hs-identifier hs-type">WithOrigin</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Consensus.Block.RealPoint.html#RealPoint"><span class="hs-identifier hs-type">RealPoint</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680045114"><span class="hs-identifier hs-type">blk</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span></span><span>
-</span><span id="line-72"></span><span>    </span><span id="local-6989586621680045076"><span class="annot"><span class="annottext">shouldTrace :: WithOrigin (RealPoint blk) -&gt; Bool
-</span><a href="#local-6989586621680045076"><span class="hs-identifier hs-var hs-var">shouldTrace</span></a></span></span><span> </span><span class="annot"><span class="annottext">WithOrigin (RealPoint blk)
-</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-slotting-0.1.0.0/noopt/doc/html/cardano-slotting/src"><span class="hs-identifier hs-var">Origin</span></a></span><span>         </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Word64 -&gt; Bool
-</span><a href="#local-6989586621680045083"><span class="hs-identifier hs-var">p</span></a></span><span> </span><span class="annot"><span class="annottext">Word64
+</span><a href="#local-6989586621680011093"><span class="hs-identifier hs-var">sizeTotal</span></a></span><span>
+</span><span id="line-71"></span><span>            </span><span class="hs-special">}</span><span>
+</span><span id="line-72"></span><span>  </span><span class="hs-keyword">where</span><span>
+</span><span id="line-73"></span><span>    </span><span class="annot"><a href="#local-6989586621680011095"><span class="hs-identifier hs-type">shouldTrace</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-network-0.1.0.0/noopt/doc/html/ouroboros-network/src"><span class="hs-identifier hs-type">Point</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680011103"><span class="hs-identifier hs-type">l</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span><span>
+</span><span id="line-74"></span><span>    </span><span id="local-6989586621680011095"><span class="annot"><span class="annottext">shouldTrace :: Point l -&gt; Bool
+</span><a href="#local-6989586621680011095"><span class="hs-identifier hs-var hs-var">shouldTrace</span></a></span></span><span> </span><span class="annot"><span class="annottext">Point l
+</span><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-network-0.1.0.0/noopt/doc/html/ouroboros-network/src"><span class="hs-identifier hs-var">GenesisPoint</span></a></span><span>     </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Word64 -&gt; Bool
+</span><a href="#local-6989586621680011102"><span class="hs-identifier hs-var">p</span></a></span><span> </span><span class="annot"><span class="annottext">Word64
 </span><span class="hs-number">0</span></span><span>
-</span><span id="line-73"></span><span>    </span><span class="annot"><a href="#local-6989586621680045076"><span class="hs-identifier hs-var">shouldTrace</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Consensus.Block.Abstract.html#NotOrigin"><span class="hs-identifier hs-type">NotOrigin</span></a></span><span> </span><span id="local-6989586621680045070"><span class="annot"><span class="annottext">RealPoint blk
-</span><a href="#local-6989586621680045070"><span class="hs-identifier hs-var">pt</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Word64 -&gt; Bool
-</span><a href="#local-6989586621680045083"><span class="hs-identifier hs-var">p</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">SlotNo -&gt; Word64
-</span><a href="../file:///__w/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-slotting-0.1.0.0/noopt/doc/html/cardano-slotting/src"><span class="hs-identifier hs-var hs-var">unSlotNo</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">RealPoint blk -&gt; SlotNo
-forall blk. RealPoint blk -&gt; SlotNo
-</span><a href="Ouroboros.Consensus.Block.RealPoint.html#realPointSlot"><span class="hs-identifier hs-var">realPointSlot</span></a></span><span> </span><span class="annot"><span class="annottext">RealPoint blk
-</span><a href="#local-6989586621680045070"><span class="hs-identifier hs-var">pt</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
-</span><span id="line-74"></span></pre></body></html>
+</span><span id="line-75"></span><span>    </span><span class="annot"><a href="#local-6989586621680011095"><span class="hs-identifier hs-var">shouldTrace</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-network-0.1.0.0/noopt/doc/html/ouroboros-network/src"><span class="hs-identifier hs-type">BlockPoint</span></a></span><span> </span><span id="local-6989586621680011090"><span class="annot"><span class="annottext">SlotNo
+</span><a href="#local-6989586621680011090"><span class="hs-identifier hs-var">s</span></a></span></span><span> </span><span class="annot"><span class="annottext">HeaderHash l
+</span><span class="hs-identifier">_</span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Word64 -&gt; Bool
+</span><a href="#local-6989586621680011102"><span class="hs-identifier hs-var">p</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">SlotNo -&gt; Word64
+</span><span class="hs-identifier hs-var hs-var">unSlotNo</span></span><span> </span><span class="annot"><span class="annottext">SlotNo
+</span><a href="#local-6989586621680011090"><span class="hs-identifier hs-var">s</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-76"></span></pre></body></html>
