@@ -1,0 +1,168 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-pragma">{-# LANGUAGE DeriveAnyClass     #-}</span><span>
+</span><span id="line-2"></span><span class="hs-pragma">{-# LANGUAGE DeriveGeneric      #-}</span><span>
+</span><span id="line-3"></span><span class="hs-pragma">{-# LANGUAGE DerivingStrategies #-}</span><span>
+</span><span id="line-4"></span><span>
+</span><span id="line-5"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Ouroboros.Consensus.Node.Types</span><span> </span><span class="hs-special">(</span><span>
+</span><span id="line-6"></span><span>  </span><span class="annot"><a href="Ouroboros.Consensus.Node.Types.html#CandidateDecline"><span class="hs-identifier">CandidateDecline</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span>
+</span><span id="line-7"></span><span>  </span><span class="annot"><a href="Ouroboros.Consensus.Node.Types.html#CandidateFragment"><span class="hs-identifier">CandidateFragment</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span>
+</span><span id="line-8"></span><span>  </span><span class="annot"><a href="Ouroboros.Consensus.Node.Types.html#CandidateFingerprint"><span class="hs-identifier">CandidateFingerprint</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span>
+</span><span id="line-9"></span><span>  </span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-10"></span><span>
+</span><span id="line-11"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><span class="hs-identifier">GHC.Generics</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Generic</span></span><span class="hs-special">)</span><span>
+</span><span id="line-12"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><span class="hs-identifier">NoThunks.Class</span></span><span>
+</span><span id="line-13"></span><span>
+</span><span id="line-14"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-network-0.1.0.0/noopt/doc/html/ouroboros-network/src"><span class="hs-identifier">Ouroboros.Network.AnchoredFragment</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-network-0.1.0.0/noopt/doc/html/ouroboros-network/src"><span class="hs-identifier">AnchoredFragment</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-15"></span><span>
+</span><span id="line-16"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="Ouroboros.Consensus.Block.html"><span class="hs-identifier">Ouroboros.Consensus.Block</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-network-0.1.0.0/noopt/doc/html/ouroboros-network/src"><span class="hs-identifier">Point</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-17"></span><span>
+</span><span id="line-18"></span><span class="hs-comment">-- | What ChainSync provides per peer to BlockFetch.</span><span>
+</span><span id="line-19"></span><span id="local-6989586621679996924"><span id="local-6989586621679996925"></span></span><span class="hs-keyword">data</span><span> </span><span id="CandidateFragment"><span class="annot"><a href="Ouroboros.Consensus.Node.Types.html#CandidateFragment"><span class="hs-identifier hs-var">CandidateFragment</span></a></span></span><span> </span><span id="local-6989586621679996923"><span class="annot"><a href="#local-6989586621679996923"><span class="hs-identifier hs-type">header</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="CandidateFragment"><span class="annot"><a href="Ouroboros.Consensus.Node.Types.html#CandidateFragment"><span class="hs-identifier hs-var">CandidateFragment</span></a></span></span><span> </span><span class="hs-special">{</span><span>
+</span><span id="line-20"></span><span>    </span><span id="candidateIsLowDensity"><span class="annot"><span class="annottext">CandidateFragment header -&gt; Bool
+</span><a href="Ouroboros.Consensus.Node.Types.html#candidateIsLowDensity"><span class="hs-identifier hs-var hs-var">candidateIsLowDensity</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-glyph">!</span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span><span>
+</span><span id="line-21"></span><span>  </span><span class="hs-special">,</span><span> </span><span id="candidateChain"><span class="annot"><span class="annottext">CandidateFragment header -&gt; AnchoredFragment header
+</span><a href="Ouroboros.Consensus.Node.Types.html#candidateChain"><span class="hs-identifier hs-var hs-var">candidateChain</span></a></span></span><span>        </span><span class="hs-glyph">::</span><span> </span><span class="hs-glyph">!</span><span class="hs-special">(</span><span class="annot"><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-network-0.1.0.0/noopt/doc/html/ouroboros-network/src"><span class="hs-identifier hs-type">AnchoredFragment</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679996923"><span class="hs-identifier hs-type">header</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-22"></span><span>  </span><span class="hs-special">}</span><span>
+</span><span id="line-23"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="annot"><span class="hs-keyword">stock</span></span><span>    </span><span class="hs-special">(</span><span class="annot"><span class="annottext">(forall x.
+ CandidateFragment header -&gt; Rep (CandidateFragment header) x)
+-&gt; (forall x.
+    Rep (CandidateFragment header) x -&gt; CandidateFragment header)
+-&gt; Generic (CandidateFragment header)
+forall x.
+Rep (CandidateFragment header) x -&gt; CandidateFragment header
+forall x.
+CandidateFragment header -&gt; Rep (CandidateFragment header) x
+forall a.
+(forall x. a -&gt; Rep a x) -&gt; (forall x. Rep a x -&gt; a) -&gt; Generic a
+forall header x.
+Rep (CandidateFragment header) x -&gt; CandidateFragment header
+forall header x.
+CandidateFragment header -&gt; Rep (CandidateFragment header) x
+$cto :: forall header x.
+Rep (CandidateFragment header) x -&gt; CandidateFragment header
+$cfrom :: forall header x.
+CandidateFragment header -&gt; Rep (CandidateFragment header) x
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">Generic</span></span><span class="hs-special">)</span><span>
+</span><span id="line-24"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="annot"><span class="hs-keyword">anyclass</span></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679996911"><span id="local-6989586621679996913"><span id="local-6989586621679996915"><span class="annot"><span class="annottext">Context -&gt; CandidateFragment header -&gt; IO (Maybe ThunkInfo)
+Proxy (CandidateFragment header) -&gt; String
+(Context -&gt; CandidateFragment header -&gt; IO (Maybe ThunkInfo))
+-&gt; (Context -&gt; CandidateFragment header -&gt; IO (Maybe ThunkInfo))
+-&gt; (Proxy (CandidateFragment header) -&gt; String)
+-&gt; NoThunks (CandidateFragment header)
+forall header.
+(StandardHash header, NoThunks header) =&gt;
+Context -&gt; CandidateFragment header -&gt; IO (Maybe ThunkInfo)
+forall header.
+(StandardHash header, NoThunks header) =&gt;
+Proxy (CandidateFragment header) -&gt; String
+forall a.
+(Context -&gt; a -&gt; IO (Maybe ThunkInfo))
+-&gt; (Context -&gt; a -&gt; IO (Maybe ThunkInfo))
+-&gt; (Proxy a -&gt; String)
+-&gt; NoThunks a
+showTypeOf :: Proxy (CandidateFragment header) -&gt; String
+$cshowTypeOf :: forall header.
+(StandardHash header, NoThunks header) =&gt;
+Proxy (CandidateFragment header) -&gt; String
+wNoThunks :: Context -&gt; CandidateFragment header -&gt; IO (Maybe ThunkInfo)
+$cwNoThunks :: forall header.
+(StandardHash header, NoThunks header) =&gt;
+Context -&gt; CandidateFragment header -&gt; IO (Maybe ThunkInfo)
+noThunks :: Context -&gt; CandidateFragment header -&gt; IO (Maybe ThunkInfo)
+$cnoThunks :: forall header.
+(StandardHash header, NoThunks header) =&gt;
+Context -&gt; CandidateFragment header -&gt; IO (Maybe ThunkInfo)
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">NoThunks</span></span></span></span></span><span class="hs-special">)</span><span>
+</span><span id="line-25"></span><span>
+</span><span id="line-26"></span><span class="hs-comment">-- | A reason that we might choose to ignore a 'CandidateFragment'.</span><span>
+</span><span id="line-27"></span><span class="hs-keyword">data</span><span> </span><span id="CandidateDecline"><span class="annot"><a href="Ouroboros.Consensus.Node.Types.html#CandidateDecline"><span class="hs-identifier hs-var">CandidateDecline</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-28"></span><span>    </span><span class="hs-comment">-- | The 'candidateChain' is not better than our current selected chain.</span><span>
+</span><span id="line-29"></span><span>    </span><span id="DeclineNotPlausible"><span class="annot"><a href="Ouroboros.Consensus.Node.Types.html#DeclineNotPlausible"><span class="hs-identifier hs-var">DeclineNotPlausible</span></a></span></span><span>
+</span><span id="line-30"></span><span>    </span><span class="hs-comment">-- | The candidate is empty (which should only happen if</span><span>
+</span><span id="line-31"></span><span>    </span><span class="hs-comment">-- 'candidateIsLowDensity').</span><span>
+</span><span id="line-32"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span id="DeclineNull"><span class="annot"><a href="Ouroboros.Consensus.Node.Types.html#DeclineNull"><span class="hs-identifier hs-var">DeclineNull</span></a></span></span><span>
+</span><span id="line-33"></span><span>    </span><span class="hs-comment">-- | The candidate does not even intersect the current selected chain. This</span><span>
+</span><span id="line-34"></span><span>    </span><span class="hs-comment">-- can happen if BlockFetch has re-checked before ChainSync has had a chance</span><span>
+</span><span id="line-35"></span><span>    </span><span class="hs-comment">-- to update the candidate.</span><span>
+</span><span id="line-36"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span id="DeclineStale"><span class="annot"><a href="Ouroboros.Consensus.Node.Types.html#DeclineStale"><span class="hs-identifier hs-var">DeclineStale</span></a></span></span><span>
+</span><span id="line-37"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679996903"><span id="local-6989586621679996905"><span class="annot"><span class="annottext">CandidateDecline -&gt; CandidateDecline -&gt; Bool
+(CandidateDecline -&gt; CandidateDecline -&gt; Bool)
+-&gt; (CandidateDecline -&gt; CandidateDecline -&gt; Bool)
+-&gt; Eq CandidateDecline
+forall a. (a -&gt; a -&gt; Bool) -&gt; (a -&gt; a -&gt; Bool) -&gt; Eq a
+/= :: CandidateDecline -&gt; CandidateDecline -&gt; Bool
+$c/= :: CandidateDecline -&gt; CandidateDecline -&gt; Bool
+== :: CandidateDecline -&gt; CandidateDecline -&gt; Bool
+$c== :: CandidateDecline -&gt; CandidateDecline -&gt; Bool
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679996896"><span id="local-6989586621679996898"><span id="local-6989586621679996900"><span class="annot"><span class="annottext">Int -&gt; CandidateDecline -&gt; ShowS
+[CandidateDecline] -&gt; ShowS
+CandidateDecline -&gt; String
+(Int -&gt; CandidateDecline -&gt; ShowS)
+-&gt; (CandidateDecline -&gt; String)
+-&gt; ([CandidateDecline] -&gt; ShowS)
+-&gt; Show CandidateDecline
+forall a.
+(Int -&gt; a -&gt; ShowS) -&gt; (a -&gt; String) -&gt; ([a] -&gt; ShowS) -&gt; Show a
+showList :: [CandidateDecline] -&gt; ShowS
+$cshowList :: [CandidateDecline] -&gt; ShowS
+show :: CandidateDecline -&gt; String
+$cshow :: CandidateDecline -&gt; String
+showsPrec :: Int -&gt; CandidateDecline -&gt; ShowS
+$cshowsPrec :: Int -&gt; CandidateDecline -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">)</span><span>
+</span><span id="line-38"></span><span>
+</span><span id="line-39"></span><span class="hs-comment">-- | A summary of 'CandidateFragment' used to avoid busy work in the BlockFetch</span><span>
+</span><span id="line-40"></span><span class="hs-comment">-- decision logic.</span><span>
+</span><span id="line-41"></span><span class="hs-keyword">data</span><span> </span><span id="CandidateFingerprint"><span class="annot"><a href="Ouroboros.Consensus.Node.Types.html#CandidateFingerprint"><span class="hs-identifier hs-var">CandidateFingerprint</span></a></span></span><span> </span><span id="local-6989586621679996894"><span class="annot"><a href="#local-6989586621679996894"><span class="hs-identifier hs-type">header</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-42"></span><span>    </span><span id="CandidateFingerprint"><span class="annot"><a href="Ouroboros.Consensus.Node.Types.html#CandidateFingerprint"><span class="hs-identifier hs-var">CandidateFingerprint</span></a></span></span><span>
+</span><span id="line-43"></span><span>      </span><span class="hs-special">(</span><span class="annot"><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-network-0.1.0.0/noopt/doc/html/ouroboros-network/src"><span class="hs-identifier hs-type">Point</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679996894"><span class="hs-identifier hs-type">header</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-44"></span><span>      </span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span><span>
+</span><span id="line-45"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679996889"><span id="local-6989586621679996891"><span class="annot"><span class="annottext">CandidateFingerprint header -&gt; CandidateFingerprint header -&gt; Bool
+(CandidateFingerprint header
+ -&gt; CandidateFingerprint header -&gt; Bool)
+-&gt; (CandidateFingerprint header
+    -&gt; CandidateFingerprint header -&gt; Bool)
+-&gt; Eq (CandidateFingerprint header)
+forall header.
+StandardHash header =&gt;
+CandidateFingerprint header -&gt; CandidateFingerprint header -&gt; Bool
+forall a. (a -&gt; a -&gt; Bool) -&gt; (a -&gt; a -&gt; Bool) -&gt; Eq a
+/= :: CandidateFingerprint header -&gt; CandidateFingerprint header -&gt; Bool
+$c/= :: forall header.
+StandardHash header =&gt;
+CandidateFingerprint header -&gt; CandidateFingerprint header -&gt; Bool
+== :: CandidateFingerprint header -&gt; CandidateFingerprint header -&gt; Bool
+$c== :: forall header.
+StandardHash header =&gt;
+CandidateFingerprint header -&gt; CandidateFingerprint header -&gt; Bool
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679996883"><span id="local-6989586621679996885"><span id="local-6989586621679996887"><span class="annot"><span class="annottext">Int -&gt; CandidateFingerprint header -&gt; ShowS
+[CandidateFingerprint header] -&gt; ShowS
+CandidateFingerprint header -&gt; String
+(Int -&gt; CandidateFingerprint header -&gt; ShowS)
+-&gt; (CandidateFingerprint header -&gt; String)
+-&gt; ([CandidateFingerprint header] -&gt; ShowS)
+-&gt; Show (CandidateFingerprint header)
+forall header.
+StandardHash header =&gt;
+Int -&gt; CandidateFingerprint header -&gt; ShowS
+forall header.
+StandardHash header =&gt;
+[CandidateFingerprint header] -&gt; ShowS
+forall header.
+StandardHash header =&gt;
+CandidateFingerprint header -&gt; String
+forall a.
+(Int -&gt; a -&gt; ShowS) -&gt; (a -&gt; String) -&gt; ([a] -&gt; ShowS) -&gt; Show a
+showList :: [CandidateFingerprint header] -&gt; ShowS
+$cshowList :: forall header.
+StandardHash header =&gt;
+[CandidateFingerprint header] -&gt; ShowS
+show :: CandidateFingerprint header -&gt; String
+$cshow :: forall header.
+StandardHash header =&gt;
+CandidateFingerprint header -&gt; String
+showsPrec :: Int -&gt; CandidateFingerprint header -&gt; ShowS
+$cshowsPrec :: forall header.
+StandardHash header =&gt;
+Int -&gt; CandidateFingerprint header -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">)</span><span>
+</span><span id="line-46"></span></pre></body></html>
