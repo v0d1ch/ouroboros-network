@@ -1,0 +1,507 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-pragma">{-# LANGUAGE ConstraintKinds          #-}</span><span>
+</span><span id="line-2"></span><span class="hs-pragma">{-# LANGUAGE DataKinds                #-}</span><span>
+</span><span id="line-3"></span><span class="hs-pragma">{-# LANGUAGE DeriveAnyClass           #-}</span><span>
+</span><span id="line-4"></span><span class="hs-pragma">{-# LANGUAGE DeriveGeneric            #-}</span><span>
+</span><span id="line-5"></span><span class="hs-pragma">{-# LANGUAGE DisambiguateRecordFields #-}</span><span>
+</span><span id="line-6"></span><span class="hs-pragma">{-# LANGUAGE FlexibleContexts         #-}</span><span>
+</span><span id="line-7"></span><span class="hs-pragma">{-# LANGUAGE FlexibleInstances        #-}</span><span>
+</span><span id="line-8"></span><span class="hs-pragma">{-# LANGUAGE LambdaCase               #-}</span><span>
+</span><span id="line-9"></span><span class="hs-pragma">{-# LANGUAGE MultiParamTypeClasses    #-}</span><span>
+</span><span id="line-10"></span><span class="hs-pragma">{-# LANGUAGE NamedFieldPuns           #-}</span><span>
+</span><span id="line-11"></span><span class="hs-pragma">{-# LANGUAGE OverloadedStrings        #-}</span><span>
+</span><span id="line-12"></span><span class="hs-pragma">{-# LANGUAGE RecordWildCards          #-}</span><span>
+</span><span id="line-13"></span><span class="hs-pragma">{-# LANGUAGE ScopedTypeVariables      #-}</span><span>
+</span><span id="line-14"></span><span class="hs-pragma">{-# LANGUAGE TupleSections            #-}</span><span>
+</span><span id="line-15"></span><span class="hs-pragma">{-# LANGUAGE TypeApplications         #-}</span><span>
+</span><span id="line-16"></span><span class="hs-pragma">{-# LANGUAGE TypeFamilies             #-}</span><span>
+</span><span id="line-17"></span><span class="hs-pragma">{-# LANGUAGE TypeOperators            #-}</span><span>
+</span><span id="line-18"></span><span class="hs-pragma">{-# LANGUAGE UndecidableInstances     #-}</span><span>
+</span><span id="line-19"></span><span class="hs-pragma">{-# OPTIONS_GHC -Wno-orphans #-}</span><span>
+</span><span id="line-20"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Ouroboros.Consensus.Example.CanHardFork</span><span> </span><span class="hs-special">(</span><span>
+</span><span id="line-21"></span><span>    </span><span class="annot"><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier">TriggerHardFork</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
+</span><span id="line-22"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-consensus-shelley-0.1.0.0/noopt/doc/html/ouroboros-consensus-shelley/src"><span class="hs-identifier">ShelleyPartialLedgerConfig</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
+</span><span id="line-23"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Example.CanHardFork.html#ExampleHardForkConstraints"><span class="hs-identifier">ExampleHardForkConstraints</span></a></span><span>
+</span><span id="line-24"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-consensus-shelley-0.1.0.0/noopt/doc/html/ouroboros-consensus-shelley/src"><span class="hs-identifier">forecastAcrossShelley</span></a></span><span>
+</span><span id="line-25"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-consensus-shelley-0.1.0.0/noopt/doc/html/ouroboros-consensus-shelley/src"><span class="hs-identifier">translateChainDepStateAcrossShelley</span></a></span><span>
+</span><span id="line-26"></span><span>  </span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-27"></span><span>
+</span><span id="line-28"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><span class="hs-identifier">Control.Monad.Except</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">runExcept</span></span><span class="hs-special">)</span><span>
+</span><span id="line-29"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier">Data.SOP.Strict</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-operator">(:.:)</span></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="annot"><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier">NP</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">unComp</span></span><span class="hs-special">)</span><span>
+</span><span id="line-30"></span><span>
+</span><span id="line-31"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier">Ouroboros.Consensus.Ledger.Abstract</span></a></span><span>
+</span><span id="line-32"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier">Ouroboros.Consensus.TypeFamilyWrappers</span></a></span><span>
+</span><span id="line-33"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier">Ouroboros.Consensus.Util</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier">eitherToMaybe</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-34"></span><span>
+</span><span id="line-35"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier">Ouroboros.Consensus.HardFork.Combinator</span></a></span><span>
+</span><span id="line-36"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier">Ouroboros.Consensus.HardFork.Combinator.State.Types</span></a></span><span>
+</span><span id="line-37"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier">Ouroboros.Consensus.HardFork.Combinator.Util.InPairs</span></a></span><span>
+</span><span id="line-38"></span><span>                     </span><span class="hs-special">(</span><span class="annot"><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier">RequiringBoth</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="annot"><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier">ignoringBoth</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-39"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier">Ouroboros.Consensus.HardFork.Combinator.Util.Tails</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier">Tails</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-40"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier">Ouroboros.Consensus.HardFork.Simple</span></a></span><span>
+</span><span id="line-41"></span><span>
+</span><span id="line-42"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-consensus-shelley-0.1.0.0/noopt/doc/html/ouroboros-consensus-shelley/src"><span class="hs-identifier">Ouroboros.Consensus.Shelley.Ledger</span></a></span><span>
+</span><span id="line-43"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-consensus-shelley-0.1.0.0/noopt/doc/html/ouroboros-consensus-shelley/src"><span class="hs-identifier">Ouroboros.Consensus.Shelley.ShelleyHFC</span></a></span><span>
+</span><span id="line-44"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-consensus-shelley-0.1.0.0/noopt/doc/html/ouroboros-consensus-shelley/src"><span class="hs-identifier">Ouroboros.Consensus.Shelley.Node</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
+</span><span id="line-45"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-consensus-shelley-0.1.0.0/noopt/doc/html/ouroboros-consensus-shelley/src"><span class="hs-identifier">Ouroboros.Consensus.Shelley.Protocol</span></a></span><span>
+</span><span id="line-46"></span><span>
+</span><span id="line-47"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Cardano.Ledger.Era</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">SL</span></span><span>
+</span><span id="line-48"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><span class="hs-identifier">Cardano.Ledger.Example.Translation</span></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
+</span><span id="line-49"></span><span>
+</span><span id="line-50"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="Ouroboros.Consensus.Example.Block.html"><span class="hs-identifier">Ouroboros.Consensus.Example.Block</span></a></span><span>
+</span><span id="line-51"></span><span>
+</span><span id="line-52"></span><span class="hs-comment">{-------------------------------------------------------------------------------
+  CanHardFork
+-------------------------------------------------------------------------------}</span><span>
+</span><span id="line-55"></span><span>
+</span><span id="line-56"></span><span class="hs-keyword">type</span><span> </span><span id="ExampleHardForkConstraints"><span class="annot"><a href="Ouroboros.Consensus.Example.CanHardFork.html#ExampleHardForkConstraints"><span class="hs-identifier hs-var">ExampleHardForkConstraints</span></a></span></span><span> </span><span id="local-6989586621679211390"><span class="annot"><a href="#local-6989586621679211390"><span class="hs-identifier hs-type">c</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-57"></span><span>  </span><span class="hs-special">(</span><span> </span><span class="annot"><span class="hs-identifier hs-type">PraosCrypto</span></span><span> </span><span class="annot"><a href="#local-6989586621679211390"><span class="hs-identifier hs-type">c</span></a></span><span>
+</span><span id="line-58"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-consensus-shelley-0.1.0.0/noopt/doc/html/ouroboros-consensus-shelley/src"><span class="hs-identifier hs-type">ShelleyBasedEra</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">ShelleyEra</span></span><span> </span><span class="annot"><a href="#local-6989586621679211390"><span class="hs-identifier hs-type">c</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-59"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-consensus-shelley-0.1.0.0/noopt/doc/html/ouroboros-consensus-shelley/src"><span class="hs-identifier hs-type">ShelleyBasedEra</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">ExampleEra</span></span><span> </span><span class="annot"><a href="#local-6989586621679211390"><span class="hs-identifier hs-type">c</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-60"></span><span>  </span><span class="hs-special">)</span><span>
+</span><span id="line-61"></span><span>
+</span><span id="line-62"></span><span id="local-6989586621679211389"><span class="hs-keyword">instance</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Example.CanHardFork.html#ExampleHardForkConstraints"><span class="hs-identifier hs-type">ExampleHardForkConstraints</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679211389"><span class="hs-identifier hs-type">c</span></a></span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier hs-type">CanHardFork</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Consensus.Example.Block.html#ExampleEras"><span class="hs-identifier hs-type">ExampleEras</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679211389"><span class="hs-identifier hs-type">c</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-63"></span><span>  </span><span id="local-6989586621679211381"><span class="annot"><span class="annottext">hardForkEraTranslation :: EraTranslation (ExampleEras c)
+</span><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier hs-var hs-var hs-var hs-var">hardForkEraTranslation</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">EraTranslation :: forall (xs :: [*]).
+InPairs (RequiringBoth WrapLedgerConfig (Translate LedgerState)) xs
+-&gt; InPairs
+     (RequiringBoth WrapConsensusConfig (Translate WrapChainDepState))
+     xs
+-&gt; InPairs
+     (RequiringBoth
+        WrapLedgerConfig (TranslateForecast LedgerState WrapLedgerView))
+     xs
+-&gt; EraTranslation xs
+</span><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier hs-type">EraTranslation</span></a></span><span> </span><span class="hs-special">{</span><span>
+</span><span id="line-64"></span><span>      </span><span class="annot"><span class="annottext">translateLedgerState :: InPairs
+  (RequiringBoth WrapLedgerConfig (Translate LedgerState))
+  (ExampleEras c)
+</span><a href="#local-6989586621679211378"><span class="hs-identifier hs-var">translateLedgerState</span></a></span><span>   </span><span class="hs-glyph">=</span><span>
+</span><span id="line-65"></span><span>          </span><span class="annot"><span class="annottext">RequiringBoth
+  WrapLedgerConfig
+  (Translate LedgerState)
+  (ShelleyBlock (ShelleyEra c))
+  (ShelleyBlock (ExampleEra c))
+-&gt; InPairs
+     (RequiringBoth WrapLedgerConfig (Translate LedgerState))
+     '[ShelleyBlock (ExampleEra c)]
+-&gt; InPairs
+     (RequiringBoth WrapLedgerConfig (Translate LedgerState))
+     (ExampleEras c)
+forall k (f :: k -&gt; k -&gt; *) (x :: k) (y :: k) (zs :: [k]).
+f x y -&gt; InPairs f (y : zs) -&gt; InPairs f (x : y : zs)
+</span><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier hs-var">PCons</span></a></span><span> </span><span class="annot"><span class="annottext">RequiringBoth
+  WrapLedgerConfig
+  (Translate LedgerState)
+  (ShelleyBlock (ShelleyEra c))
+  (ShelleyBlock (ExampleEra c))
+forall c.
+PraosCrypto c =&gt;
+RequiringBoth
+  WrapLedgerConfig
+  (Translate LedgerState)
+  (ShelleyBlock (ShelleyEra c))
+  (ShelleyBlock (ExampleEra c))
+</span><a href="Ouroboros.Consensus.Example.CanHardFork.html#translateLedgerStateShelleyToExampleWrapper"><span class="hs-identifier hs-var">translateLedgerStateShelleyToExampleWrapper</span></a></span><span>
+</span><span id="line-66"></span><span>        </span><span class="annot"><span class="annottext">(InPairs
+   (RequiringBoth WrapLedgerConfig (Translate LedgerState))
+   '[ShelleyBlock (ExampleEra c)]
+ -&gt; InPairs
+      (RequiringBoth WrapLedgerConfig (Translate LedgerState))
+      (ExampleEras c))
+-&gt; InPairs
+     (RequiringBoth WrapLedgerConfig (Translate LedgerState))
+     '[ShelleyBlock (ExampleEra c)]
+-&gt; InPairs
+     (RequiringBoth WrapLedgerConfig (Translate LedgerState))
+     (ExampleEras c)
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">InPairs
+  (RequiringBoth WrapLedgerConfig (Translate LedgerState))
+  '[ShelleyBlock (ExampleEra c)]
+forall k (f :: k -&gt; k -&gt; *) (x :: k). InPairs f '[x]
+</span><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier hs-var">PNil</span></a></span><span>
+</span><span id="line-67"></span><span>    </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">translateChainDepState :: InPairs
+  (RequiringBoth WrapConsensusConfig (Translate WrapChainDepState))
+  (ExampleEras c)
+</span><a href="#local-6989586621679211374"><span class="hs-identifier hs-var">translateChainDepState</span></a></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-68"></span><span>          </span><span class="annot"><span class="annottext">RequiringBoth
+  WrapConsensusConfig
+  (Translate WrapChainDepState)
+  (ShelleyBlock (ShelleyEra c))
+  (ShelleyBlock (ExampleEra c))
+-&gt; InPairs
+     (RequiringBoth WrapConsensusConfig (Translate WrapChainDepState))
+     '[ShelleyBlock (ExampleEra c)]
+-&gt; InPairs
+     (RequiringBoth WrapConsensusConfig (Translate WrapChainDepState))
+     (ExampleEras c)
+forall k (f :: k -&gt; k -&gt; *) (x :: k) (y :: k) (zs :: [k]).
+f x y -&gt; InPairs f (y : zs) -&gt; InPairs f (x : y : zs)
+</span><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier hs-var">PCons</span></a></span><span> </span><span class="annot"><span class="annottext">RequiringBoth
+  WrapConsensusConfig
+  (Translate WrapChainDepState)
+  (ShelleyBlock (ShelleyEra c))
+  (ShelleyBlock (ExampleEra c))
+forall eraFrom eraTo.
+(EraCrypto eraFrom ~ EraCrypto eraTo) =&gt;
+RequiringBoth
+  WrapConsensusConfig
+  (Translate WrapChainDepState)
+  (ShelleyBlock eraFrom)
+  (ShelleyBlock eraTo)
+</span><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-consensus-shelley-0.1.0.0/noopt/doc/html/ouroboros-consensus-shelley/src"><span class="hs-identifier hs-var">translateChainDepStateAcrossShelley</span></a></span><span>
+</span><span id="line-69"></span><span>        </span><span class="annot"><span class="annottext">(InPairs
+   (RequiringBoth WrapConsensusConfig (Translate WrapChainDepState))
+   '[ShelleyBlock (ExampleEra c)]
+ -&gt; InPairs
+      (RequiringBoth WrapConsensusConfig (Translate WrapChainDepState))
+      (ExampleEras c))
+-&gt; InPairs
+     (RequiringBoth WrapConsensusConfig (Translate WrapChainDepState))
+     '[ShelleyBlock (ExampleEra c)]
+-&gt; InPairs
+     (RequiringBoth WrapConsensusConfig (Translate WrapChainDepState))
+     (ExampleEras c)
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">InPairs
+  (RequiringBoth WrapConsensusConfig (Translate WrapChainDepState))
+  '[ShelleyBlock (ExampleEra c)]
+forall k (f :: k -&gt; k -&gt; *) (x :: k). InPairs f '[x]
+</span><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier hs-var">PNil</span></a></span><span>
+</span><span id="line-70"></span><span>    </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">translateLedgerView :: InPairs
+  (RequiringBoth
+     WrapLedgerConfig (TranslateForecast LedgerState WrapLedgerView))
+  (ExampleEras c)
+</span><a href="#local-6989586621679211373"><span class="hs-identifier hs-var">translateLedgerView</span></a></span><span>    </span><span class="hs-glyph">=</span><span>
+</span><span id="line-71"></span><span>          </span><span class="annot"><span class="annottext">RequiringBoth
+  WrapLedgerConfig
+  (TranslateForecast LedgerState WrapLedgerView)
+  (ShelleyBlock (ShelleyEra c))
+  (ShelleyBlock (ExampleEra c))
+-&gt; InPairs
+     (RequiringBoth
+        WrapLedgerConfig (TranslateForecast LedgerState WrapLedgerView))
+     '[ShelleyBlock (ExampleEra c)]
+-&gt; InPairs
+     (RequiringBoth
+        WrapLedgerConfig (TranslateForecast LedgerState WrapLedgerView))
+     (ExampleEras c)
+forall k (f :: k -&gt; k -&gt; *) (x :: k) (y :: k) (zs :: [k]).
+f x y -&gt; InPairs f (y : zs) -&gt; InPairs f (x : y : zs)
+</span><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier hs-var">PCons</span></a></span><span> </span><span class="annot"><span class="annottext">RequiringBoth
+  WrapLedgerConfig
+  (TranslateForecast LedgerState WrapLedgerView)
+  (ShelleyBlock (ShelleyEra c))
+  (ShelleyBlock (ExampleEra c))
+forall eraFrom eraTo.
+(EraCrypto eraFrom ~ EraCrypto eraTo, ShelleyBasedEra eraFrom) =&gt;
+RequiringBoth
+  WrapLedgerConfig
+  (TranslateForecast LedgerState WrapLedgerView)
+  (ShelleyBlock eraFrom)
+  (ShelleyBlock eraTo)
+</span><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-consensus-shelley-0.1.0.0/noopt/doc/html/ouroboros-consensus-shelley/src"><span class="hs-identifier hs-var">translateLedgerViewAcrossShelley</span></a></span><span>
+</span><span id="line-72"></span><span>        </span><span class="annot"><span class="annottext">(InPairs
+   (RequiringBoth
+      WrapLedgerConfig (TranslateForecast LedgerState WrapLedgerView))
+   '[ShelleyBlock (ExampleEra c)]
+ -&gt; InPairs
+      (RequiringBoth
+         WrapLedgerConfig (TranslateForecast LedgerState WrapLedgerView))
+      (ExampleEras c))
+-&gt; InPairs
+     (RequiringBoth
+        WrapLedgerConfig (TranslateForecast LedgerState WrapLedgerView))
+     '[ShelleyBlock (ExampleEra c)]
+-&gt; InPairs
+     (RequiringBoth
+        WrapLedgerConfig (TranslateForecast LedgerState WrapLedgerView))
+     (ExampleEras c)
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">InPairs
+  (RequiringBoth
+     WrapLedgerConfig (TranslateForecast LedgerState WrapLedgerView))
+  '[ShelleyBlock (ExampleEra c)]
+forall k (f :: k -&gt; k -&gt; *) (x :: k). InPairs f '[x]
+</span><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier hs-var">PNil</span></a></span><span>
+</span><span id="line-73"></span><span>    </span><span class="hs-special">}</span><span>
+</span><span id="line-74"></span><span>  </span><span id="local-6989586621679211371"><span class="annot"><span class="annottext">hardForkChainSel :: Tails AcrossEraSelection (ExampleEras c)
+</span><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier hs-var hs-var hs-var hs-var">hardForkChainSel</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-75"></span><span>        </span><span class="hs-comment">-- Shelley &lt;-&gt; Example, ...</span><span>
+</span><span id="line-76"></span><span>        </span><span class="annot"><span class="annottext">NP
+  (AcrossEraSelection (ShelleyBlock (ShelleyEra c)))
+  '[ShelleyBlock (ExampleEra c)]
+-&gt; Tails AcrossEraSelection '[ShelleyBlock (ExampleEra c)]
+-&gt; Tails AcrossEraSelection (ExampleEras c)
+forall k (f :: k -&gt; k -&gt; *) (x :: k) (xs1 :: [k]).
+NP (f x) xs1 -&gt; Tails f xs1 -&gt; Tails f (x : xs1)
+</span><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier hs-var">TCons</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">AcrossEraSelection
+  (ShelleyBlock (ShelleyEra c)) (ShelleyBlock (ExampleEra c))
+forall a b.
+(BlockProtocol a ~ BlockProtocol b) =&gt;
+AcrossEraSelection a b
+</span><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier hs-var">SelectSameProtocol</span></a></span><span> </span><span class="annot"><span class="annottext">AcrossEraSelection
+  (ShelleyBlock (ShelleyEra c)) (ShelleyBlock (ExampleEra c))
+-&gt; NP (AcrossEraSelection (ShelleyBlock (ShelleyEra c))) '[]
+-&gt; NP
+     (AcrossEraSelection (ShelleyBlock (ShelleyEra c)))
+     '[ShelleyBlock (ExampleEra c)]
+forall k (a :: k -&gt; *) (x :: k) (xs :: [k]).
+a x -&gt; NP a xs -&gt; NP a (x : xs)
+</span><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-operator hs-var">:*</span></a></span><span> </span><span class="annot"><span class="annottext">NP (AcrossEraSelection (ShelleyBlock (ShelleyEra c))) '[]
+forall k (a :: k -&gt; *). NP a '[]
+</span><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier hs-var">Nil</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-77"></span><span>        </span><span class="hs-comment">-- Example &lt;-&gt; ...</span><span>
+</span><span id="line-78"></span><span>      </span><span class="annot"><span class="annottext">(Tails AcrossEraSelection '[ShelleyBlock (ExampleEra c)]
+ -&gt; Tails AcrossEraSelection (ExampleEras c))
+-&gt; Tails AcrossEraSelection '[ShelleyBlock (ExampleEra c)]
+-&gt; Tails AcrossEraSelection (ExampleEras c)
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">NP (AcrossEraSelection (ShelleyBlock (ExampleEra c))) '[]
+-&gt; Tails AcrossEraSelection '[]
+-&gt; Tails AcrossEraSelection '[ShelleyBlock (ExampleEra c)]
+forall k (f :: k -&gt; k -&gt; *) (x :: k) (xs1 :: [k]).
+NP (f x) xs1 -&gt; Tails f xs1 -&gt; Tails f (x : xs1)
+</span><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier hs-var">TCons</span></a></span><span> </span><span class="annot"><span class="annottext">NP (AcrossEraSelection (ShelleyBlock (ExampleEra c))) '[]
+forall k (a :: k -&gt; *). NP a '[]
+</span><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier hs-var">Nil</span></a></span><span>
+</span><span id="line-79"></span><span>      </span><span class="annot"><span class="annottext">(Tails AcrossEraSelection '[]
+ -&gt; Tails AcrossEraSelection '[ShelleyBlock (ExampleEra c)])
+-&gt; Tails AcrossEraSelection '[]
+-&gt; Tails AcrossEraSelection '[ShelleyBlock (ExampleEra c)]
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Tails AcrossEraSelection '[]
+forall k (f :: k -&gt; k -&gt; *). Tails f '[]
+</span><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier hs-var">TNil</span></a></span><span>
+</span><span id="line-80"></span><span>  </span><span id="local-6989586621679211364"><span class="annot"><span class="annottext">hardForkInjectTxs :: InPairs (RequiringBoth WrapLedgerConfig InjectTx) (ExampleEras c)
+</span><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier hs-var hs-var hs-var hs-var">hardForkInjectTxs</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-81"></span><span>        </span><span class="annot"><span class="annottext">RequiringBoth
+  WrapLedgerConfig
+  InjectTx
+  (ShelleyBlock (ShelleyEra c))
+  (ShelleyBlock (ExampleEra c))
+-&gt; InPairs
+     (RequiringBoth WrapLedgerConfig InjectTx)
+     '[ShelleyBlock (ExampleEra c)]
+-&gt; InPairs
+     (RequiringBoth WrapLedgerConfig InjectTx) (ExampleEras c)
+forall k (f :: k -&gt; k -&gt; *) (x :: k) (y :: k) (zs :: [k]).
+f x y -&gt; InPairs f (y : zs) -&gt; InPairs f (x : y : zs)
+</span><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier hs-var">PCons</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">InjectTx
+  (ShelleyBlock (ShelleyEra c)) (ShelleyBlock (ExampleEra c))
+-&gt; RequiringBoth
+     WrapLedgerConfig
+     InjectTx
+     (ShelleyBlock (ShelleyEra c))
+     (ShelleyBlock (ExampleEra c))
+forall k (f :: k -&gt; k -&gt; *) (x :: k) (y :: k) (h :: k -&gt; *).
+f x y -&gt; RequiringBoth h f x y
+</span><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier hs-var">ignoringBoth</span></a></span><span> </span><span class="annot"><span class="annottext">InjectTx
+  (ShelleyBlock (ShelleyEra c)) (ShelleyBlock (ExampleEra c))
+forall c.
+PraosCrypto c =&gt;
+InjectTx
+  (ShelleyBlock (ShelleyEra c)) (ShelleyBlock (ExampleEra c))
+</span><a href="Ouroboros.Consensus.Example.CanHardFork.html#translateTxShelleyToExampleWrapper"><span class="hs-identifier hs-var">translateTxShelleyToExampleWrapper</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-82"></span><span>      </span><span class="annot"><span class="annottext">(InPairs
+   (RequiringBoth WrapLedgerConfig InjectTx)
+   '[ShelleyBlock (ExampleEra c)]
+ -&gt; InPairs
+      (RequiringBoth WrapLedgerConfig InjectTx) (ExampleEras c))
+-&gt; InPairs
+     (RequiringBoth WrapLedgerConfig InjectTx)
+     '[ShelleyBlock (ExampleEra c)]
+-&gt; InPairs
+     (RequiringBoth WrapLedgerConfig InjectTx) (ExampleEras c)
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">InPairs
+  (RequiringBoth WrapLedgerConfig InjectTx)
+  '[ShelleyBlock (ExampleEra c)]
+forall k (f :: k -&gt; k -&gt; *) (x :: k). InPairs f '[x]
+</span><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier hs-var">PNil</span></a></span></span><span>
+</span><span id="line-83"></span><span>
+</span><span id="line-84"></span><span class="hs-comment">{-------------------------------------------------------------------------------
+  Translation from Shelley to Example
+-------------------------------------------------------------------------------}</span><span>
+</span><span id="line-87"></span><span>
+</span><span id="line-88"></span><span id="local-6989586621679211469"><span class="annot"><a href="Ouroboros.Consensus.Example.CanHardFork.html#translateLedgerStateShelleyToExampleWrapper"><span class="hs-identifier hs-type">translateLedgerStateShelleyToExampleWrapper</span></a></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-89"></span><span>     </span><span class="annot"><span class="hs-identifier hs-type">PraosCrypto</span></span><span> </span><span class="annot"><a href="#local-6989586621679211469"><span class="hs-identifier hs-type">c</span></a></span><span>
+</span><span id="line-90"></span><span>  </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier hs-type">RequiringBoth</span></a></span><span>
+</span><span id="line-91"></span><span>       </span><span class="annot"><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier hs-type">WrapLedgerConfig</span></a></span><span>
+</span><span id="line-92"></span><span>       </span><span class="hs-special">(</span><span class="annot"><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier hs-type">Translate</span></a></span><span> </span><span class="annot"><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier hs-type">LedgerState</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-93"></span><span>       </span><span class="hs-special">(</span><span class="annot"><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-consensus-shelley-0.1.0.0/noopt/doc/html/ouroboros-consensus-shelley/src"><span class="hs-identifier hs-type">ShelleyBlock</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">ShelleyEra</span></span><span> </span><span class="annot"><a href="#local-6989586621679211469"><span class="hs-identifier hs-type">c</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-94"></span><span>       </span><span class="hs-special">(</span><span class="annot"><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-consensus-shelley-0.1.0.0/noopt/doc/html/ouroboros-consensus-shelley/src"><span class="hs-identifier hs-type">ShelleyBlock</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">ExampleEra</span></span><span> </span><span class="annot"><a href="#local-6989586621679211469"><span class="hs-identifier hs-type">c</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span></span><span>
+</span><span id="line-95"></span><span id="translateLedgerStateShelleyToExampleWrapper"><span class="annot"><span class="annottext">translateLedgerStateShelleyToExampleWrapper :: RequiringBoth
+  WrapLedgerConfig
+  (Translate LedgerState)
+  (ShelleyBlock (ShelleyEra c))
+  (ShelleyBlock (ExampleEra c))
+</span><a href="Ouroboros.Consensus.Example.CanHardFork.html#translateLedgerStateShelleyToExampleWrapper"><span class="hs-identifier hs-var hs-var">translateLedgerStateShelleyToExampleWrapper</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-96"></span><span>    </span><span class="annot"><span class="annottext">Translate
+  LedgerState
+  (ShelleyBlock (ShelleyEra c))
+  (ShelleyBlock (ExampleEra c))
+-&gt; RequiringBoth
+     WrapLedgerConfig
+     (Translate LedgerState)
+     (ShelleyBlock (ShelleyEra c))
+     (ShelleyBlock (ExampleEra c))
+forall k (f :: k -&gt; k -&gt; *) (x :: k) (y :: k) (h :: k -&gt; *).
+f x y -&gt; RequiringBoth h f x y
+</span><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier hs-var">ignoringBoth</span></a></span><span> </span><span class="annot"><span class="annottext">(Translate
+   LedgerState
+   (ShelleyBlock (ShelleyEra c))
+   (ShelleyBlock (ExampleEra c))
+ -&gt; RequiringBoth
+      WrapLedgerConfig
+      (Translate LedgerState)
+      (ShelleyBlock (ShelleyEra c))
+      (ShelleyBlock (ExampleEra c)))
+-&gt; Translate
+     LedgerState
+     (ShelleyBlock (ShelleyEra c))
+     (ShelleyBlock (ExampleEra c))
+-&gt; RequiringBoth
+     WrapLedgerConfig
+     (Translate LedgerState)
+     (ShelleyBlock (ShelleyEra c))
+     (ShelleyBlock (ExampleEra c))
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span>
+</span><span id="line-97"></span><span>      </span><span class="annot"><span class="annottext">(EpochNo
+ -&gt; LedgerState (ShelleyBlock (ShelleyEra c))
+ -&gt; LedgerState (ShelleyBlock (ExampleEra c)))
+-&gt; Translate
+     LedgerState
+     (ShelleyBlock (ShelleyEra c))
+     (ShelleyBlock (ExampleEra c))
+forall (f :: * -&gt; *) x y.
+(EpochNo -&gt; f x -&gt; f y) -&gt; Translate f x y
+</span><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier hs-var">Translate</span></a></span><span> </span><span class="annot"><span class="annottext">((EpochNo
+  -&gt; LedgerState (ShelleyBlock (ShelleyEra c))
+  -&gt; LedgerState (ShelleyBlock (ExampleEra c)))
+ -&gt; Translate
+      LedgerState
+      (ShelleyBlock (ShelleyEra c))
+      (ShelleyBlock (ExampleEra c)))
+-&gt; (EpochNo
+    -&gt; LedgerState (ShelleyBlock (ShelleyEra c))
+    -&gt; LedgerState (ShelleyBlock (ExampleEra c)))
+-&gt; Translate
+     LedgerState
+     (ShelleyBlock (ShelleyEra c))
+     (ShelleyBlock (ExampleEra c))
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679211360"><span class="annot"><span class="annottext">EpochNo
+</span><a href="#local-6989586621679211360"><span class="hs-identifier hs-var">_epochNo</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-98"></span><span>        </span><span class="annot"><span class="annottext">(:.:) LedgerState ShelleyBlock (ExampleEra c)
+-&gt; LedgerState (ShelleyBlock (ExampleEra c))
+forall l k (f :: l -&gt; *) (g :: k -&gt; l) (p :: k).
+(:.:) f g p -&gt; f (g p)
+</span><span class="hs-identifier hs-var">unComp</span></span><span> </span><span class="annot"><span class="annottext">((:.:) LedgerState ShelleyBlock (ExampleEra c)
+ -&gt; LedgerState (ShelleyBlock (ExampleEra c)))
+-&gt; (LedgerState (ShelleyBlock (ShelleyEra c))
+    -&gt; (:.:) LedgerState ShelleyBlock (ExampleEra c))
+-&gt; LedgerState (ShelleyBlock (ShelleyEra c))
+-&gt; LedgerState (ShelleyBlock (ExampleEra c))
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">TranslationContext (ExampleEra c)
+-&gt; (:.:) LedgerState ShelleyBlock (PreviousEra (ExampleEra c))
+-&gt; (:.:) LedgerState ShelleyBlock (ExampleEra c)
+forall era (f :: * -&gt; *).
+(TranslateEra era f, TranslationError era f ~ Void) =&gt;
+TranslationContext era -&gt; f (PreviousEra era) -&gt; f era
+</span><span class="hs-identifier hs-var">SL.translateEra'</span></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">((:.:) LedgerState ShelleyBlock (ShelleyEra c)
+ -&gt; (:.:) LedgerState ShelleyBlock (ExampleEra c))
+-&gt; (LedgerState (ShelleyBlock (ShelleyEra c))
+    -&gt; (:.:) LedgerState ShelleyBlock (ShelleyEra c))
+-&gt; LedgerState (ShelleyBlock (ShelleyEra c))
+-&gt; (:.:) LedgerState ShelleyBlock (ExampleEra c)
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">LedgerState (ShelleyBlock (ShelleyEra c))
+-&gt; (:.:) LedgerState ShelleyBlock (ShelleyEra c)
+forall l k (f :: l -&gt; *) (g :: k -&gt; l) (p :: k).
+f (g p) -&gt; (:.:) f g p
+</span><span class="hs-identifier hs-var">Comp</span></span><span>
+</span><span id="line-99"></span><span>
+</span><span id="line-100"></span><span id="local-6989586621679211440"><span class="annot"><a href="Ouroboros.Consensus.Example.CanHardFork.html#translateTxShelleyToExampleWrapper"><span class="hs-identifier hs-type">translateTxShelleyToExampleWrapper</span></a></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-101"></span><span>     </span><span class="annot"><span class="hs-identifier hs-type">PraosCrypto</span></span><span> </span><span class="annot"><a href="#local-6989586621679211440"><span class="hs-identifier hs-type">c</span></a></span><span>
+</span><span id="line-102"></span><span>  </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier hs-type">InjectTx</span></a></span><span>
+</span><span id="line-103"></span><span>       </span><span class="hs-special">(</span><span class="annot"><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-consensus-shelley-0.1.0.0/noopt/doc/html/ouroboros-consensus-shelley/src"><span class="hs-identifier hs-type">ShelleyBlock</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">ShelleyEra</span></span><span> </span><span class="annot"><a href="#local-6989586621679211440"><span class="hs-identifier hs-type">c</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-104"></span><span>       </span><span class="hs-special">(</span><span class="annot"><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-consensus-shelley-0.1.0.0/noopt/doc/html/ouroboros-consensus-shelley/src"><span class="hs-identifier hs-type">ShelleyBlock</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">ExampleEra</span></span><span> </span><span class="annot"><a href="#local-6989586621679211440"><span class="hs-identifier hs-type">c</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span></span><span>
+</span><span id="line-105"></span><span id="translateTxShelleyToExampleWrapper"><span class="annot"><span class="annottext">translateTxShelleyToExampleWrapper :: InjectTx
+  (ShelleyBlock (ShelleyEra c)) (ShelleyBlock (ExampleEra c))
+</span><a href="Ouroboros.Consensus.Example.CanHardFork.html#translateTxShelleyToExampleWrapper"><span class="hs-identifier hs-var hs-var">translateTxShelleyToExampleWrapper</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(GenTx (ShelleyBlock (ShelleyEra c))
+ -&gt; Maybe (GenTx (ShelleyBlock (ExampleEra c))))
+-&gt; InjectTx
+     (ShelleyBlock (ShelleyEra c)) (ShelleyBlock (ExampleEra c))
+forall blk blk'.
+(GenTx blk -&gt; Maybe (GenTx blk')) -&gt; InjectTx blk blk'
+</span><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier hs-var">InjectTx</span></a></span><span> </span><span class="annot"><span class="annottext">((GenTx (ShelleyBlock (ShelleyEra c))
+  -&gt; Maybe (GenTx (ShelleyBlock (ExampleEra c))))
+ -&gt; InjectTx
+      (ShelleyBlock (ShelleyEra c)) (ShelleyBlock (ExampleEra c)))
+-&gt; (GenTx (ShelleyBlock (ShelleyEra c))
+    -&gt; Maybe (GenTx (ShelleyBlock (ExampleEra c))))
+-&gt; InjectTx
+     (ShelleyBlock (ShelleyEra c)) (ShelleyBlock (ExampleEra c))
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span>
+</span><span id="line-106"></span><span>    </span><span class="annot"><span class="annottext">((:.:) GenTx ShelleyBlock (ExampleEra c)
+ -&gt; GenTx (ShelleyBlock (ExampleEra c)))
+-&gt; Maybe ((:.:) GenTx ShelleyBlock (ExampleEra c))
+-&gt; Maybe (GenTx (ShelleyBlock (ExampleEra c)))
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-identifier hs-var">fmap</span></span><span> </span><span class="annot"><span class="annottext">(:.:) GenTx ShelleyBlock (ExampleEra c)
+-&gt; GenTx (ShelleyBlock (ExampleEra c))
+forall l k (f :: l -&gt; *) (g :: k -&gt; l) (p :: k).
+(:.:) f g p -&gt; f (g p)
+</span><span class="hs-identifier hs-var">unComp</span></span><span> </span><span class="annot"><span class="annottext">(Maybe ((:.:) GenTx ShelleyBlock (ExampleEra c))
+ -&gt; Maybe (GenTx (ShelleyBlock (ExampleEra c))))
+-&gt; (GenTx (ShelleyBlock (ShelleyEra c))
+    -&gt; Maybe ((:.:) GenTx ShelleyBlock (ExampleEra c)))
+-&gt; GenTx (ShelleyBlock (ShelleyEra c))
+-&gt; Maybe (GenTx (ShelleyBlock (ExampleEra c)))
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Either DecoderError ((:.:) GenTx ShelleyBlock (ExampleEra c))
+-&gt; Maybe ((:.:) GenTx ShelleyBlock (ExampleEra c))
+forall a b. Either a b -&gt; Maybe b
+</span><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier hs-var">eitherToMaybe</span></a></span><span> </span><span class="annot"><span class="annottext">(Either DecoderError ((:.:) GenTx ShelleyBlock (ExampleEra c))
+ -&gt; Maybe ((:.:) GenTx ShelleyBlock (ExampleEra c)))
+-&gt; (GenTx (ShelleyBlock (ShelleyEra c))
+    -&gt; Either DecoderError ((:.:) GenTx ShelleyBlock (ExampleEra c)))
+-&gt; GenTx (ShelleyBlock (ShelleyEra c))
+-&gt; Maybe ((:.:) GenTx ShelleyBlock (ExampleEra c))
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Except DecoderError ((:.:) GenTx ShelleyBlock (ExampleEra c))
+-&gt; Either DecoderError ((:.:) GenTx ShelleyBlock (ExampleEra c))
+forall e a. Except e a -&gt; Either e a
+</span><span class="hs-identifier hs-var">runExcept</span></span><span> </span><span class="annot"><span class="annottext">(Except DecoderError ((:.:) GenTx ShelleyBlock (ExampleEra c))
+ -&gt; Either DecoderError ((:.:) GenTx ShelleyBlock (ExampleEra c)))
+-&gt; (GenTx (ShelleyBlock (ShelleyEra c))
+    -&gt; Except DecoderError ((:.:) GenTx ShelleyBlock (ExampleEra c)))
+-&gt; GenTx (ShelleyBlock (ShelleyEra c))
+-&gt; Either DecoderError ((:.:) GenTx ShelleyBlock (ExampleEra c))
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">TranslationContext (ExampleEra c)
+-&gt; (:.:) GenTx ShelleyBlock (PreviousEra (ExampleEra c))
+-&gt; Except
+     (TranslationError (ExampleEra c) (GenTx :.: ShelleyBlock))
+     ((:.:) GenTx ShelleyBlock (ExampleEra c))
+forall era (f :: * -&gt; *).
+TranslateEra era f =&gt;
+TranslationContext era
+-&gt; f (PreviousEra era) -&gt; Except (TranslationError era f) (f era)
+</span><span class="hs-identifier hs-var">SL.translateEra</span></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">((:.:) GenTx ShelleyBlock (ShelleyEra c)
+ -&gt; Except DecoderError ((:.:) GenTx ShelleyBlock (ExampleEra c)))
+-&gt; (GenTx (ShelleyBlock (ShelleyEra c))
+    -&gt; (:.:) GenTx ShelleyBlock (ShelleyEra c))
+-&gt; GenTx (ShelleyBlock (ShelleyEra c))
+-&gt; Except DecoderError ((:.:) GenTx ShelleyBlock (ExampleEra c))
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">GenTx (ShelleyBlock (ShelleyEra c))
+-&gt; (:.:) GenTx ShelleyBlock (ShelleyEra c)
+forall l k (f :: l -&gt; *) (g :: k -&gt; l) (p :: k).
+f (g p) -&gt; (:.:) f g p
+</span><span class="hs-identifier hs-var">Comp</span></span><span>
+</span><span id="line-107"></span></pre></body></html>
