@@ -2,50 +2,48 @@
 </span><span id="line-2"></span><span class="hs-pragma">{-# LANGUAGE FlexibleInstances #-}</span><span>
 </span><span id="line-3"></span><span class="hs-pragma">{-# LANGUAGE TypeApplications  #-}</span><span>
 </span><span id="line-4"></span><span class="hs-pragma">{-# OPTIONS_GHC -Wno-orphans #-}</span><span>
-</span><span id="line-5"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Ouroboros.Consensus.Cardano.ByronHFC</span><span> </span><span class="hs-special">(</span><span>
-</span><span id="line-6"></span><span>    </span><span class="annot"><a href="Ouroboros.Consensus.Cardano.ByronHFC.html#ByronBlockHFC"><span class="hs-identifier">ByronBlockHFC</span></a></span><span>
-</span><span id="line-7"></span><span>  </span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-8"></span><span>
-</span><span id="line-9"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Data.Map.Strict</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Map</span></span><span>
-</span><span id="line-10"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier">Data.SOP.Strict</span></a></span><span>
-</span><span id="line-11"></span><span>
-</span><span id="line-12"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier">Ouroboros.Consensus.Block</span></a></span><span>
-</span><span id="line-13"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier">Ouroboros.Consensus.Config</span></a></span><span>
-</span><span id="line-14"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier">Ouroboros.Consensus.Node.NetworkProtocolVersion</span></a></span><span>
-</span><span id="line-15"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier">Ouroboros.Consensus.Storage.Serialisation</span></a></span><span>
-</span><span id="line-16"></span><span>
-</span><span id="line-17"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier">Ouroboros.Consensus.HardFork.Combinator</span></a></span><span>
-</span><span id="line-18"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier">Ouroboros.Consensus.HardFork.Combinator.Degenerate</span></a></span><span>
-</span><span id="line-19"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier">Ouroboros.Consensus.HardFork.Combinator.Serialisation.Common</span></a></span><span>
-</span><span id="line-20"></span><span>
-</span><span id="line-21"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-consensus-byron-0.1.0.0/noopt/doc/html/ouroboros-consensus-byron/src"><span class="hs-identifier">Ouroboros.Consensus.Byron.Ledger</span></a></span><span>
-</span><span id="line-22"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-consensus-byron-0.1.0.0/noopt/doc/html/ouroboros-consensus-byron/src"><span class="hs-identifier">Ouroboros.Consensus.Byron.Node</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
-</span><span id="line-23"></span><span>
-</span><span id="line-24"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="Ouroboros.Consensus.Cardano.CanHardFork.html"><span class="hs-identifier">Ouroboros.Consensus.Cardano.CanHardFork</span></a></span><span>
-</span><span id="line-25"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="Ouroboros.Consensus.Cardano.Node.html"><span class="hs-identifier">Ouroboros.Consensus.Cardano.Node</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
-</span><span id="line-26"></span><span>
-</span><span id="line-27"></span><span class="hs-comment">{-------------------------------------------------------------------------------
+</span><span id="line-5"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Ouroboros.Consensus.Cardano.ByronHFC</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Consensus.Cardano.ByronHFC.html#ByronBlockHFC"><span class="hs-identifier">ByronBlockHFC</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-6"></span><span>
+</span><span id="line-7"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Data.Map.Strict</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Map</span></span><span>
+</span><span id="line-8"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier">Data.SOP.Strict</span></a></span><span>
+</span><span id="line-9"></span><span>
+</span><span id="line-10"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier">Ouroboros.Consensus.Block</span></a></span><span>
+</span><span id="line-11"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier">Ouroboros.Consensus.Config</span></a></span><span>
+</span><span id="line-12"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier">Ouroboros.Consensus.Node.NetworkProtocolVersion</span></a></span><span>
+</span><span id="line-13"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier">Ouroboros.Consensus.Storage.Serialisation</span></a></span><span>
+</span><span id="line-14"></span><span>
+</span><span id="line-15"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier">Ouroboros.Consensus.HardFork.Combinator</span></a></span><span>
+</span><span id="line-16"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier">Ouroboros.Consensus.HardFork.Combinator.Degenerate</span></a></span><span>
+</span><span id="line-17"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier">Ouroboros.Consensus.HardFork.Combinator.Serialisation.Common</span></a></span><span>
+</span><span id="line-18"></span><span>
+</span><span id="line-19"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-consensus-byron-0.1.0.0/noopt/doc/html/ouroboros-consensus-byron/src"><span class="hs-identifier">Ouroboros.Consensus.Byron.Ledger</span></a></span><span>
+</span><span id="line-20"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-consensus-byron-0.1.0.0/noopt/doc/html/ouroboros-consensus-byron/src"><span class="hs-identifier">Ouroboros.Consensus.Byron.Node</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
+</span><span id="line-21"></span><span>
+</span><span id="line-22"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="Ouroboros.Consensus.Cardano.CanHardFork.html"><span class="hs-identifier">Ouroboros.Consensus.Cardano.CanHardFork</span></a></span><span>
+</span><span id="line-23"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="Ouroboros.Consensus.Cardano.Node.html"><span class="hs-identifier">Ouroboros.Consensus.Cardano.Node</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
+</span><span id="line-24"></span><span>
+</span><span id="line-25"></span><span class="hs-comment">{-------------------------------------------------------------------------------
   Synonym for convenience
 -------------------------------------------------------------------------------}</span><span>
-</span><span id="line-30"></span><span>
-</span><span id="line-31"></span><span class="hs-comment">-- | Byron as the single era in the hard fork combinator</span><span>
-</span><span id="line-32"></span><span class="hs-keyword">type</span><span> </span><span id="ByronBlockHFC"><span class="annot"><a href="Ouroboros.Consensus.Cardano.ByronHFC.html#ByronBlockHFC"><span class="hs-identifier hs-var">ByronBlockHFC</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier hs-type">HardForkBlock</span></a></span><span> </span><span class="hs-special">'</span><span class="hs-special">[</span><span class="annot"><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-consensus-byron-0.1.0.0/noopt/doc/html/ouroboros-consensus-byron/src"><span class="hs-identifier hs-type">ByronBlock</span></a></span><span class="hs-special">]</span><span>
-</span><span id="line-33"></span><span>
-</span><span id="line-34"></span><span class="hs-comment">{-------------------------------------------------------------------------------
+</span><span id="line-28"></span><span>
+</span><span id="line-29"></span><span class="hs-comment">-- | Byron as the single era in the hard fork combinator</span><span>
+</span><span id="line-30"></span><span class="hs-keyword">type</span><span> </span><span id="ByronBlockHFC"><span class="annot"><a href="Ouroboros.Consensus.Cardano.ByronHFC.html#ByronBlockHFC"><span class="hs-identifier hs-var">ByronBlockHFC</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier hs-type">HardForkBlock</span></a></span><span> </span><span class="hs-special">'</span><span class="hs-special">[</span><span class="annot"><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-consensus-byron-0.1.0.0/noopt/doc/html/ouroboros-consensus-byron/src"><span class="hs-identifier hs-type">ByronBlock</span></a></span><span class="hs-special">]</span><span>
+</span><span id="line-31"></span><span>
+</span><span id="line-32"></span><span class="hs-comment">{-------------------------------------------------------------------------------
   NoHardForks instance
 -------------------------------------------------------------------------------}</span><span>
-</span><span id="line-37"></span><span>
-</span><span id="line-38"></span><span class="hs-keyword">instance</span><span> </span><span class="annot"><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier hs-type">NoHardForks</span></a></span><span> </span><span class="annot"><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-consensus-byron-0.1.0.0/noopt/doc/html/ouroboros-consensus-byron/src"><span class="hs-identifier hs-type">ByronBlock</span></a></span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-39"></span><span>  </span><span id="local-6989586621679239357"><span class="annot"><span class="annottext">getEraParams :: TopLevelConfig ByronBlock -&gt; EraParams
+</span><span id="line-35"></span><span>
+</span><span id="line-36"></span><span class="hs-keyword">instance</span><span> </span><span class="annot"><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier hs-type">NoHardForks</span></a></span><span> </span><span class="annot"><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-consensus-byron-0.1.0.0/noopt/doc/html/ouroboros-consensus-byron/src"><span class="hs-identifier hs-type">ByronBlock</span></a></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-37"></span><span>  </span><span id="local-6989586621679239357"><span class="annot"><span class="annottext">getEraParams :: TopLevelConfig ByronBlock -&gt; EraParams
 </span><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier hs-var hs-var hs-var hs-var">getEraParams</span></a></span></span><span> </span><span id="local-6989586621679239355"><span class="annot"><span class="annottext">TopLevelConfig ByronBlock
 </span><a href="#local-6989586621679239355"><span class="hs-identifier hs-var">cfg</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
-</span><span id="line-40"></span><span>      </span><span class="annot"><span class="annottext">Config -&gt; EraParams
+</span><span id="line-38"></span><span>      </span><span class="annot"><span class="annottext">Config -&gt; EraParams
 </span><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-consensus-byron-0.1.0.0/noopt/doc/html/ouroboros-consensus-byron/src"><span class="hs-identifier hs-var">byronEraParamsNeverHardForks</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">BlockConfig ByronBlock -&gt; Config
 </span><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-consensus-byron-0.1.0.0/noopt/doc/html/ouroboros-consensus-byron/src"><span class="hs-identifier hs-var hs-var">byronGenesisConfig</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">TopLevelConfig ByronBlock -&gt; BlockConfig ByronBlock
 forall blk. TopLevelConfig blk -&gt; BlockConfig blk
 </span><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier hs-var">configBlock</span></a></span><span> </span><span class="annot"><span class="annottext">TopLevelConfig ByronBlock
 </span><a href="#local-6989586621679239355"><span class="hs-identifier hs-var">cfg</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
-</span><span id="line-41"></span><span>  </span><span id="local-6989586621679239351"><span class="annot"><span class="annottext">toPartialConsensusConfig :: proxy ByronBlock
+</span><span id="line-39"></span><span>  </span><span id="local-6989586621679239351"><span class="annot"><span class="annottext">toPartialConsensusConfig :: proxy ByronBlock
 -&gt; ConsensusConfig (BlockProtocol ByronBlock)
 -&gt; PartialConsensusConfig (BlockProtocol ByronBlock)
 </span><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier hs-var hs-var hs-var hs-var">toPartialConsensusConfig</span></a></span></span><span> </span><span class="annot"><span class="annottext">proxy ByronBlock
@@ -53,34 +51,34 @@ forall blk. TopLevelConfig blk -&gt; BlockConfig blk
 -&gt; PartialConsensusConfig (BlockProtocol ByronBlock)
 forall a. a -&gt; a
 </span><span class="hs-identifier hs-var">id</span></span><span>
-</span><span id="line-42"></span><span>  </span><span id="local-6989586621679239348"><span class="annot"><span class="annottext">toPartialLedgerConfig :: proxy ByronBlock
+</span><span id="line-40"></span><span>  </span><span id="local-6989586621679239348"><span class="annot"><span class="annottext">toPartialLedgerConfig :: proxy ByronBlock
 -&gt; LedgerConfig ByronBlock -&gt; PartialLedgerConfig ByronBlock
 </span><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier hs-var hs-var hs-var hs-var">toPartialLedgerConfig</span></a></span></span><span> </span><span class="annot"><span class="annottext">proxy ByronBlock
 </span><span class="hs-identifier">_</span></span><span> </span><span id="local-6989586621679239346"><span class="annot"><span class="annottext">LedgerConfig ByronBlock
 </span><a href="#local-6989586621679239346"><span class="hs-identifier hs-var">cfg</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">ByronPartialLedgerConfig :: LedgerConfig ByronBlock
 -&gt; TriggerHardFork -&gt; ByronPartialLedgerConfig
 </span><a href="Ouroboros.Consensus.Cardano.CanHardFork.html#ByronPartialLedgerConfig"><span class="hs-identifier hs-type">ByronPartialLedgerConfig</span></a></span><span> </span><span class="hs-special">{</span><span>
-</span><span id="line-43"></span><span>        </span><span class="annot"><span class="annottext">byronLedgerConfig :: LedgerConfig ByronBlock
+</span><span id="line-41"></span><span>        </span><span class="annot"><span class="annottext">byronLedgerConfig :: LedgerConfig ByronBlock
 </span><a href="#local-6989586621679239344"><span class="hs-identifier hs-var">byronLedgerConfig</span></a></span><span>    </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">LedgerConfig ByronBlock
 </span><a href="#local-6989586621679239346"><span class="hs-identifier hs-var">cfg</span></a></span><span>
-</span><span id="line-44"></span><span>      </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">byronTriggerHardFork :: TriggerHardFork
+</span><span id="line-42"></span><span>      </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">byronTriggerHardFork :: TriggerHardFork
 </span><a href="#local-6989586621679239343"><span class="hs-identifier hs-var">byronTriggerHardFork</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">TriggerHardFork
 </span><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier hs-var">TriggerHardForkNever</span></a></span><span>
-</span><span id="line-45"></span><span>      </span><span class="hs-special">}</span><span>
-</span><span id="line-46"></span><span>
-</span><span id="line-47"></span><span class="hs-comment">{-------------------------------------------------------------------------------
+</span><span id="line-43"></span><span>      </span><span class="hs-special">}</span><span>
+</span><span id="line-44"></span><span>
+</span><span id="line-45"></span><span class="hs-comment">{-------------------------------------------------------------------------------
   SupportedNetworkProtocolVersion instance
 -------------------------------------------------------------------------------}</span><span>
-</span><span id="line-50"></span><span>
-</span><span id="line-51"></span><span class="hs-comment">-- | Forward to the ByronBlock instance. Only supports</span><span>
-</span><span id="line-52"></span><span class="hs-comment">-- 'HardForkNodeToNodeDisabled', which is compatible with nodes running with</span><span>
-</span><span id="line-53"></span><span class="hs-comment">-- 'ByronBlock'.</span><span>
-</span><span id="line-54"></span><span class="hs-keyword">instance</span><span> </span><span class="annot"><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier hs-type">SupportedNetworkProtocolVersion</span></a></span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Cardano.ByronHFC.html#ByronBlockHFC"><span class="hs-identifier hs-type">ByronBlockHFC</span></a></span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-55"></span><span>  </span><span id="local-6989586621679239336"><span class="annot"><span class="annottext">supportedNodeToNodeVersions :: Proxy ByronBlockHFC
+</span><span id="line-48"></span><span>
+</span><span id="line-49"></span><span class="hs-comment">-- | Forward to the ByronBlock instance. Only supports</span><span>
+</span><span id="line-50"></span><span class="hs-comment">-- 'HardForkNodeToNodeDisabled', which is compatible with nodes running with</span><span>
+</span><span id="line-51"></span><span class="hs-comment">-- 'ByronBlock'.</span><span>
+</span><span id="line-52"></span><span class="hs-keyword">instance</span><span> </span><span class="annot"><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier hs-type">SupportedNetworkProtocolVersion</span></a></span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Cardano.ByronHFC.html#ByronBlockHFC"><span class="hs-identifier hs-type">ByronBlockHFC</span></a></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-53"></span><span>  </span><span id="local-6989586621679239336"><span class="annot"><span class="annottext">supportedNodeToNodeVersions :: Proxy ByronBlockHFC
 -&gt; Map NodeToNodeVersion (BlockNodeToNodeVersion ByronBlockHFC)
 </span><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier hs-var hs-var hs-var hs-var">supportedNodeToNodeVersions</span></a></span></span><span> </span><span class="annot"><span class="annottext">Proxy ByronBlockHFC
 </span><span class="hs-identifier">_</span></span><span> </span><span class="hs-glyph">=</span><span>
-</span><span id="line-56"></span><span>      </span><span class="annot"><span class="annottext">(ByronNodeToNodeVersion -&gt; HardForkNodeToNodeVersion '[ByronBlock])
+</span><span id="line-54"></span><span>      </span><span class="annot"><span class="annottext">(ByronNodeToNodeVersion -&gt; HardForkNodeToNodeVersion '[ByronBlock])
 -&gt; Map NodeToNodeVersion ByronNodeToNodeVersion
 -&gt; Map NodeToNodeVersion (HardForkNodeToNodeVersion '[ByronBlock])
 forall a b k. (a -&gt; b) -&gt; Map k a -&gt; Map k b
@@ -93,7 +91,7 @@ BlockNodeToNodeVersion x -&gt; HardForkNodeToNodeVersion (x : xs1)
 -&gt; Map NodeToNodeVersion (HardForkNodeToNodeVersion '[ByronBlock])
 forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span>
-</span><span id="line-57"></span><span>      </span><span class="annot"><span class="annottext">Proxy ByronBlock
+</span><span id="line-55"></span><span>      </span><span class="annot"><span class="annottext">Proxy ByronBlock
 -&gt; Map NodeToNodeVersion (BlockNodeToNodeVersion ByronBlock)
 forall blk.
 SupportedNetworkProtocolVersion blk =&gt;
@@ -101,12 +99,12 @@ Proxy blk -&gt; Map NodeToNodeVersion (BlockNodeToNodeVersion blk)
 </span><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier hs-var">supportedNodeToNodeVersions</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Proxy ByronBlock
 forall k (t :: k). Proxy t
 </span><span class="hs-identifier hs-var">Proxy</span></span><span> </span><span class="hs-glyph">@</span><span class="annot"><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-consensus-byron-0.1.0.0/noopt/doc/html/ouroboros-consensus-byron/src"><span class="hs-identifier hs-type">ByronBlock</span></a></span><span class="hs-special">)</span><span>
-</span><span id="line-58"></span><span>
-</span><span id="line-59"></span><span>  </span><span id="local-6989586621679239331"><span class="annot"><span class="annottext">supportedNodeToClientVersions :: Proxy ByronBlockHFC
+</span><span id="line-56"></span><span>
+</span><span id="line-57"></span><span>  </span><span id="local-6989586621679239331"><span class="annot"><span class="annottext">supportedNodeToClientVersions :: Proxy ByronBlockHFC
 -&gt; Map NodeToClientVersion (BlockNodeToClientVersion ByronBlockHFC)
 </span><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier hs-var hs-var hs-var hs-var">supportedNodeToClientVersions</span></a></span></span><span> </span><span class="annot"><span class="annottext">Proxy ByronBlockHFC
 </span><span class="hs-identifier">_</span></span><span> </span><span class="hs-glyph">=</span><span>
-</span><span id="line-60"></span><span>      </span><span class="annot"><span class="annottext">(ByronNodeToClientVersion
+</span><span id="line-58"></span><span>      </span><span class="annot"><span class="annottext">(ByronNodeToClientVersion
  -&gt; HardForkNodeToClientVersion '[ByronBlock])
 -&gt; Map NodeToClientVersion ByronNodeToClientVersion
 -&gt; Map
@@ -124,7 +122,7 @@ BlockNodeToClientVersion x -&gt; HardForkNodeToClientVersion (x : xs1)
      NodeToClientVersion (HardForkNodeToClientVersion '[ByronBlock])
 forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span>
-</span><span id="line-61"></span><span>      </span><span class="annot"><span class="annottext">Proxy ByronBlock
+</span><span id="line-59"></span><span>      </span><span class="annot"><span class="annottext">Proxy ByronBlock
 -&gt; Map NodeToClientVersion (BlockNodeToClientVersion ByronBlock)
 forall blk.
 SupportedNetworkProtocolVersion blk =&gt;
@@ -132,8 +130,8 @@ Proxy blk -&gt; Map NodeToClientVersion (BlockNodeToClientVersion blk)
 </span><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier hs-var">supportedNodeToClientVersions</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Proxy ByronBlock
 forall k (t :: k). Proxy t
 </span><span class="hs-identifier hs-var">Proxy</span></span><span> </span><span class="hs-glyph">@</span><span class="annot"><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-consensus-byron-0.1.0.0/noopt/doc/html/ouroboros-consensus-byron/src"><span class="hs-identifier hs-type">ByronBlock</span></a></span><span class="hs-special">)</span><span>
-</span><span id="line-62"></span><span>
-</span><span id="line-63"></span><span>  </span><span id="local-6989586621679239328"><span class="annot"><span class="annottext">latestReleasedNodeVersion :: Proxy ByronBlockHFC
+</span><span id="line-60"></span><span>
+</span><span id="line-61"></span><span>  </span><span id="local-6989586621679239328"><span class="annot"><span class="annottext">latestReleasedNodeVersion :: Proxy ByronBlockHFC
 -&gt; (Maybe NodeToNodeVersion, Maybe NodeToClientVersion)
 </span><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier hs-var hs-var hs-var hs-var">latestReleasedNodeVersion</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Proxy ByronBlockHFC
 -&gt; (Maybe NodeToNodeVersion, Maybe NodeToClientVersion)
@@ -141,29 +139,29 @@ forall blk.
 SupportedNetworkProtocolVersion blk =&gt;
 Proxy blk -&gt; (Maybe NodeToNodeVersion, Maybe NodeToClientVersion)
 </span><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier hs-var">latestReleasedNodeVersionDefault</span></a></span><span>
-</span><span id="line-64"></span><span>
-</span><span id="line-65"></span><span class="hs-comment">{-------------------------------------------------------------------------------
+</span><span id="line-62"></span><span>
+</span><span id="line-63"></span><span class="hs-comment">{-------------------------------------------------------------------------------
   SerialiseHFC instance
 -------------------------------------------------------------------------------}</span><span>
-</span><span id="line-68"></span><span>
-</span><span id="line-69"></span><span class="hs-comment">-- | Forward to the ByronBlock instance, this means we don't add an era</span><span>
-</span><span id="line-70"></span><span class="hs-comment">-- wrapper around blocks on disk. This makes sure we're compatible with the</span><span>
-</span><span id="line-71"></span><span class="hs-comment">-- existing Byron blocks.</span><span>
-</span><span id="line-72"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679239310"><span class="annot"><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier hs-type">SerialiseHFC</span></a></span><span> </span><span class="hs-special">'</span><span class="hs-special">[</span><span class="annot"><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-consensus-byron-0.1.0.0/noopt/doc/html/ouroboros-consensus-byron/src"><span class="hs-identifier hs-type">ByronBlock</span></a></span><span class="hs-special">]</span></span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-73"></span><span>  </span><span id="local-6989586621679239308"><span class="annot"><span class="annottext">encodeDiskHfcBlock :: CodecConfig ByronBlockHFC -&gt; ByronBlockHFC -&gt; Encoding
+</span><span id="line-66"></span><span>
+</span><span id="line-67"></span><span class="hs-comment">-- | Forward to the ByronBlock instance, this means we don't add an era</span><span>
+</span><span id="line-68"></span><span class="hs-comment">-- wrapper around blocks on disk. This makes sure we're compatible with the</span><span>
+</span><span id="line-69"></span><span class="hs-comment">-- existing Byron blocks.</span><span>
+</span><span id="line-70"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679239310"><span class="annot"><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier hs-type">SerialiseHFC</span></a></span><span> </span><span class="hs-special">'</span><span class="hs-special">[</span><span class="annot"><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-consensus-byron-0.1.0.0/noopt/doc/html/ouroboros-consensus-byron/src"><span class="hs-identifier hs-type">ByronBlock</span></a></span><span class="hs-special">]</span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-71"></span><span>  </span><span id="local-6989586621679239308"><span class="annot"><span class="annottext">encodeDiskHfcBlock :: CodecConfig ByronBlockHFC -&gt; ByronBlockHFC -&gt; Encoding
 </span><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier hs-var hs-var hs-var hs-var">encodeDiskHfcBlock</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier hs-type">DegenCodecConfig</span></a></span><span> </span><span id="local-6989586621679239305"><span class="annot"><span class="annottext">CodecConfig ByronBlock
 </span><a href="#local-6989586621679239305"><span class="hs-identifier hs-var">ccfg</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier hs-type">DegenBlock</span></a></span><span> </span><span id="local-6989586621679239303"><span class="annot"><span class="annottext">ByronBlock
 </span><a href="#local-6989586621679239303"><span class="hs-identifier hs-var">b</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span>
-</span><span id="line-74"></span><span>      </span><span class="annot"><span class="annottext">CodecConfig ByronBlock -&gt; ByronBlock -&gt; Encoding
+</span><span id="line-72"></span><span>      </span><span class="annot"><span class="annottext">CodecConfig ByronBlock -&gt; ByronBlock -&gt; Encoding
 forall blk a. EncodeDisk blk a =&gt; CodecConfig blk -&gt; a -&gt; Encoding
 </span><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier hs-var">encodeDisk</span></a></span><span> </span><span class="annot"><span class="annottext">CodecConfig ByronBlock
 </span><a href="#local-6989586621679239305"><span class="hs-identifier hs-var">ccfg</span></a></span><span> </span><span class="annot"><span class="annottext">ByronBlock
 </span><a href="#local-6989586621679239303"><span class="hs-identifier hs-var">b</span></a></span><span>
-</span><span id="line-75"></span><span>  </span><span id="local-6989586621679239301"><span class="annot"><span class="annottext">decodeDiskHfcBlock :: CodecConfig ByronBlockHFC
+</span><span id="line-73"></span><span>  </span><span id="local-6989586621679239301"><span class="annot"><span class="annottext">decodeDiskHfcBlock :: CodecConfig ByronBlockHFC
 -&gt; forall s. Decoder s (ByteString -&gt; ByronBlockHFC)
 </span><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier hs-var hs-var hs-var hs-var">decodeDiskHfcBlock</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier hs-type">DegenCodecConfig</span></a></span><span> </span><span id="local-6989586621679239299"><span class="annot"><span class="annottext">CodecConfig ByronBlock
 </span><a href="#local-6989586621679239299"><span class="hs-identifier hs-var">ccfg</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span>
-</span><span id="line-76"></span><span>      </span><span class="annot"><span class="annottext">(ByronBlock -&gt; ByronBlockHFC)
+</span><span id="line-74"></span><span>      </span><span class="annot"><span class="annottext">(ByronBlock -&gt; ByronBlockHFC)
 -&gt; (ByteString -&gt; ByronBlock) -&gt; ByteString -&gt; ByronBlockHFC
 forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
 </span><span class="hs-identifier hs-var">fmap</span></span><span> </span><span class="annot"><span class="annottext">ByronBlock -&gt; ByronBlockHFC
@@ -179,17 +177,17 @@ DecodeDisk blk a =&gt;
 CodecConfig blk -&gt; forall s. Decoder s a
 </span><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier hs-var">decodeDisk</span></a></span><span> </span><span class="annot"><span class="annottext">CodecConfig ByronBlock
 </span><a href="#local-6989586621679239299"><span class="hs-identifier hs-var">ccfg</span></a></span><span>
-</span><span id="line-77"></span><span>  </span><span id="local-6989586621679239296"><span class="annot"><span class="annottext">reconstructHfcPrefixLen :: proxy (Header ByronBlockHFC) -&gt; PrefixLen
+</span><span id="line-75"></span><span>  </span><span id="local-6989586621679239296"><span class="annot"><span class="annottext">reconstructHfcPrefixLen :: proxy (Header ByronBlockHFC) -&gt; PrefixLen
 </span><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier hs-var hs-var hs-var hs-var">reconstructHfcPrefixLen</span></a></span></span><span> </span><span class="annot"><span class="annottext">proxy (Header ByronBlockHFC)
 </span><span class="hs-identifier">_</span></span><span> </span><span class="hs-glyph">=</span><span>
-</span><span id="line-78"></span><span>      </span><span class="annot"><span class="annottext">Proxy (Header ByronBlock) -&gt; PrefixLen
+</span><span id="line-76"></span><span>      </span><span class="annot"><span class="annottext">Proxy (Header ByronBlock) -&gt; PrefixLen
 forall (f :: * -&gt; *) blk (proxy :: * -&gt; *).
 ReconstructNestedCtxt f blk =&gt;
 proxy (f blk) -&gt; PrefixLen
 </span><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier hs-var">reconstructPrefixLen</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Proxy (Header ByronBlock)
 forall k (t :: k). Proxy t
 </span><span class="hs-identifier hs-var">Proxy</span></span><span> </span><span class="hs-glyph">@</span><span class="hs-special">(</span><span class="annot"><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier hs-type">Header</span></a></span><span> </span><span class="annot"><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-consensus-byron-0.1.0.0/noopt/doc/html/ouroboros-consensus-byron/src"><span class="hs-identifier hs-type">ByronBlock</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
-</span><span id="line-79"></span><span>  </span><span id="local-6989586621679239293"><span class="annot"><span class="annottext">reconstructHfcNestedCtxt :: proxy (Header ByronBlockHFC)
+</span><span id="line-77"></span><span>  </span><span id="local-6989586621679239293"><span class="annot"><span class="annottext">reconstructHfcNestedCtxt :: proxy (Header ByronBlockHFC)
 -&gt; ShortByteString
 -&gt; SizeInBytes
 -&gt; SomeSecond (NestedCtxt Header) ByronBlockHFC
@@ -197,7 +195,7 @@ forall k (t :: k). Proxy t
 </span><span class="hs-identifier">_</span></span><span> </span><span id="local-6989586621679239291"><span class="annot"><span class="annottext">ShortByteString
 </span><a href="#local-6989586621679239291"><span class="hs-identifier hs-var">prefix</span></a></span></span><span> </span><span id="local-6989586621679239290"><span class="annot"><span class="annottext">SizeInBytes
 </span><a href="#local-6989586621679239290"><span class="hs-identifier hs-var">blockSize</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
-</span><span id="line-80"></span><span>      </span><span class="annot"><span class="annottext">(forall a.
+</span><span id="line-78"></span><span>      </span><span class="annot"><span class="annottext">(forall a.
  NestedCtxt_ ByronBlock Header a
  -&gt; NestedCtxt_ ByronBlockHFC Header a)
 -&gt; SomeSecond (NestedCtxt Header) ByronBlock
@@ -216,7 +214,7 @@ NestedCtxt_ x a b -&gt; NestedCtxt_ (HardForkBlock (x : xs1)) a b
 -&gt; SomeSecond (NestedCtxt Header) ByronBlockHFC
 forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span>
-</span><span id="line-81"></span><span>        </span><span class="annot"><span class="annottext">Proxy (Header ByronBlock)
+</span><span id="line-79"></span><span>        </span><span class="annot"><span class="annottext">Proxy (Header ByronBlock)
 -&gt; ShortByteString
 -&gt; SizeInBytes
 -&gt; SomeSecond (NestedCtxt Header) ByronBlock
@@ -229,11 +227,11 @@ forall k (t :: k). Proxy t
 </span><span class="hs-identifier hs-var">Proxy</span></span><span> </span><span class="hs-glyph">@</span><span class="hs-special">(</span><span class="annot"><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier hs-type">Header</span></a></span><span> </span><span class="annot"><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-consensus-byron-0.1.0.0/noopt/doc/html/ouroboros-consensus-byron/src"><span class="hs-identifier hs-type">ByronBlock</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">ShortByteString
 </span><a href="#local-6989586621679239291"><span class="hs-identifier hs-var">prefix</span></a></span><span> </span><span class="annot"><span class="annottext">SizeInBytes
 </span><a href="#local-6989586621679239290"><span class="hs-identifier hs-var">blockSize</span></a></span><span>
-</span><span id="line-82"></span><span>  </span><span id="local-6989586621679239286"><span class="annot"><span class="annottext">getHfcBinaryBlockInfo :: ByronBlockHFC -&gt; BinaryBlockInfo
+</span><span id="line-80"></span><span>  </span><span id="local-6989586621679239286"><span class="annot"><span class="annottext">getHfcBinaryBlockInfo :: ByronBlockHFC -&gt; BinaryBlockInfo
 </span><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier hs-var hs-var hs-var hs-var">getHfcBinaryBlockInfo</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier hs-type">DegenBlock</span></a></span><span> </span><span id="local-6989586621679239284"><span class="annot"><span class="annottext">ByronBlock
 </span><a href="#local-6989586621679239284"><span class="hs-identifier hs-var">b</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span>
-</span><span id="line-83"></span><span>      </span><span class="annot"><span class="annottext">ByronBlock -&gt; BinaryBlockInfo
+</span><span id="line-81"></span><span>      </span><span class="annot"><span class="annottext">ByronBlock -&gt; BinaryBlockInfo
 forall blk. HasBinaryBlockInfo blk =&gt; blk -&gt; BinaryBlockInfo
 </span><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier hs-var">getBinaryBlockInfo</span></a></span><span> </span><span class="annot"><span class="annottext">ByronBlock
 </span><a href="#local-6989586621679239284"><span class="hs-identifier hs-var">b</span></a></span><span>
-</span><span id="line-84"></span></pre></body></html>
+</span><span id="line-82"></span></pre></body></html>
