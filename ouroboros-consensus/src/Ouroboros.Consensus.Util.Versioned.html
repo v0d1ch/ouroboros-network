@@ -6,31 +6,30 @@
 </span><span id="line-6"></span><span class="hs-pragma">{-# LANGUAGE OverloadedStrings          #-}</span><span>
 </span><span id="line-7"></span><span class="hs-pragma">{-# LANGUAGE RankNTypes                 #-}</span><span>
 </span><span id="line-8"></span><span class="hs-pragma">{-# LANGUAGE ScopedTypeVariables        #-}</span><span>
-</span><span id="line-9"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Ouroboros.Consensus.Util.Versioned</span><span> </span><span class="hs-special">(</span><span>
-</span><span id="line-10"></span><span>    </span><span class="annot"><a href="Ouroboros.Consensus.Util.Versioned.html#VersionDecoder"><span class="hs-identifier">VersionDecoder</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
-</span><span id="line-11"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Util.Versioned.html#VersionError"><span class="hs-identifier">VersionError</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
-</span><span id="line-12"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Util.Versioned.html#Versioned"><span class="hs-identifier">Versioned</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
-</span><span id="line-13"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Util.Versioned.html#decodeVersion"><span class="hs-identifier">decodeVersion</span></a></span><span>
-</span><span id="line-14"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Util.Versioned.html#decodeVersionWithHook"><span class="hs-identifier">decodeVersionWithHook</span></a></span><span>
-</span><span id="line-15"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Util.Versioned.html#decodeVersioned"><span class="hs-identifier">decodeVersioned</span></a></span><span>
-</span><span id="line-16"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Util.Versioned.html#encodeVersion"><span class="hs-identifier">encodeVersion</span></a></span><span>
-</span><span id="line-17"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Util.Versioned.html#encodeVersioned"><span class="hs-identifier">encodeVersioned</span></a></span><span>
-</span><span id="line-18"></span><span>    </span><span class="annot"><span class="hs-comment">-- * opaque</span></span><span>
-</span><span id="line-19"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Util.Versioned.html#VersionNumber"><span class="hs-identifier">VersionNumber</span></a></span><span>
-</span><span id="line-20"></span><span>  </span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-21"></span><span>
-</span><span id="line-22"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Codec.CBOR.Decoding</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Dec</span></span><span>
-</span><span id="line-23"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><span class="hs-identifier">Codec.Serialise</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Serialise</span></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
-</span><span id="line-24"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><span class="hs-identifier">Codec.Serialise.Decoding</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Decoder</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">decodeWord8</span></span><span class="hs-special">)</span><span>
-</span><span id="line-25"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><span class="hs-identifier">Codec.Serialise.Encoding</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Encoding</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">encodeListLen</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">encodeWord8</span></span><span class="hs-special">)</span><span>
-</span><span id="line-26"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><span class="hs-identifier">Control.Exception</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Exception</span></span><span class="hs-special">)</span><span>
-</span><span id="line-27"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><span class="hs-identifier">Data.Word</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Word8</span></span><span class="hs-special">)</span><span>
-</span><span id="line-28"></span><span>
-</span><span id="line-29"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><span class="hs-identifier">Cardano.Binary</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">enforceSize</span></span><span class="hs-special">)</span><span>
+</span><span id="line-9"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Ouroboros.Consensus.Util.Versioned</span><span>
+</span><span id="line-10"></span><span>  </span><span class="hs-special">(</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Util.Versioned.html#Versioned"><span class="hs-identifier">Versioned</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
+</span><span id="line-11"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Util.Versioned.html#VersionNumber"><span class="hs-identifier">VersionNumber</span></a></span><span> </span><span class="hs-comment">-- opaque</span><span>
+</span><span id="line-12"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Util.Versioned.html#VersionError"><span class="hs-identifier">VersionError</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
+</span><span id="line-13"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Util.Versioned.html#VersionDecoder"><span class="hs-identifier">VersionDecoder</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
+</span><span id="line-14"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Util.Versioned.html#encodeVersioned"><span class="hs-identifier">encodeVersioned</span></a></span><span>
+</span><span id="line-15"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Util.Versioned.html#encodeVersion"><span class="hs-identifier">encodeVersion</span></a></span><span>
+</span><span id="line-16"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Util.Versioned.html#decodeVersioned"><span class="hs-identifier">decodeVersioned</span></a></span><span>
+</span><span id="line-17"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Util.Versioned.html#decodeVersion"><span class="hs-identifier">decodeVersion</span></a></span><span>
+</span><span id="line-18"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Util.Versioned.html#decodeVersionWithHook"><span class="hs-identifier">decodeVersionWithHook</span></a></span><span>
+</span><span id="line-19"></span><span>  </span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-20"></span><span>
+</span><span id="line-21"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Codec.CBOR.Decoding</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Dec</span></span><span>
+</span><span id="line-22"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><span class="hs-identifier">Codec.Serialise</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Serialise</span></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-23"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><span class="hs-identifier">Codec.Serialise.Decoding</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Decoder</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">decodeWord8</span></span><span class="hs-special">)</span><span>
+</span><span id="line-24"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><span class="hs-identifier">Codec.Serialise.Encoding</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Encoding</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">encodeListLen</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">encodeWord8</span></span><span class="hs-special">)</span><span>
+</span><span id="line-25"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><span class="hs-identifier">Control.Exception</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Exception</span></span><span class="hs-special">)</span><span>
+</span><span id="line-26"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><span class="hs-identifier">Data.Word</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Word8</span></span><span class="hs-special">)</span><span>
+</span><span id="line-27"></span><span>
+</span><span id="line-28"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><span class="hs-identifier">Cardano.Binary</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">enforceSize</span></span><span class="hs-special">)</span><span>
+</span><span id="line-29"></span><span>
 </span><span id="line-30"></span><span>
-</span><span id="line-31"></span><span>
-</span><span id="line-32"></span><span class="hs-keyword">newtype</span><span> </span><span id="VersionNumber"><span class="annot"><a href="Ouroboros.Consensus.Util.Versioned.html#VersionNumber"><span class="hs-identifier hs-var">VersionNumber</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="VersionNumber"><span class="annot"><a href="Ouroboros.Consensus.Util.Versioned.html#VersionNumber"><span class="hs-identifier hs-var">VersionNumber</span></a></span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Word8</span></span><span>
-</span><span id="line-33"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="annot"><span class="hs-keyword">newtype</span></span><span> </span><span class="hs-special">(</span><span id="local-6989586621680010925"><span id="local-6989586621680010927"><span class="annot"><span class="annottext">VersionNumber -&gt; VersionNumber -&gt; Bool
+</span><span id="line-31"></span><span class="hs-keyword">newtype</span><span> </span><span id="VersionNumber"><span class="annot"><a href="Ouroboros.Consensus.Util.Versioned.html#VersionNumber"><span class="hs-identifier hs-var">VersionNumber</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="VersionNumber"><span class="annot"><a href="Ouroboros.Consensus.Util.Versioned.html#VersionNumber"><span class="hs-identifier hs-var">VersionNumber</span></a></span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Word8</span></span><span>
+</span><span id="line-32"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="annot"><span class="hs-keyword">newtype</span></span><span> </span><span class="hs-special">(</span><span id="local-6989586621680010511"><span id="local-6989586621680010513"><span class="annot"><span class="annottext">VersionNumber -&gt; VersionNumber -&gt; Bool
 (VersionNumber -&gt; VersionNumber -&gt; Bool)
 -&gt; (VersionNumber -&gt; VersionNumber -&gt; Bool) -&gt; Eq VersionNumber
 forall a. (a -&gt; a -&gt; Bool) -&gt; (a -&gt; a -&gt; Bool) -&gt; Eq a
@@ -38,7 +37,7 @@ forall a. (a -&gt; a -&gt; Bool) -&gt; (a -&gt; a -&gt; Bool) -&gt; Eq a
 $c/= :: VersionNumber -&gt; VersionNumber -&gt; Bool
 == :: VersionNumber -&gt; VersionNumber -&gt; Bool
 $c== :: VersionNumber -&gt; VersionNumber -&gt; Bool
-</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621680010909"><span id="local-6989586621680010911"><span id="local-6989586621680010913"><span id="local-6989586621680010915"><span id="local-6989586621680010917"><span id="local-6989586621680010919"><span id="local-6989586621680010921"><span class="annot"><span class="annottext">Eq VersionNumber
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621680010495"><span id="local-6989586621680010497"><span id="local-6989586621680010499"><span id="local-6989586621680010501"><span id="local-6989586621680010503"><span id="local-6989586621680010505"><span id="local-6989586621680010507"><span class="annot"><span class="annottext">Eq VersionNumber
 Eq VersionNumber
 -&gt; (VersionNumber -&gt; VersionNumber -&gt; Ordering)
 -&gt; (VersionNumber -&gt; VersionNumber -&gt; Bool)
@@ -76,7 +75,7 @@ $c&lt; :: VersionNumber -&gt; VersionNumber -&gt; Bool
 compare :: VersionNumber -&gt; VersionNumber -&gt; Ordering
 $ccompare :: VersionNumber -&gt; VersionNumber -&gt; Ordering
 $cp1Ord :: Eq VersionNumber
-</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Ord</span></span></span></span></span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621680010894"><span id="local-6989586621680010896"><span id="local-6989586621680010898"><span id="local-6989586621680010900"><span id="local-6989586621680010902"><span id="local-6989586621680010904"><span id="local-6989586621680010906"><span class="annot"><span class="annottext">Integer -&gt; VersionNumber
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Ord</span></span></span></span></span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621680010480"><span id="local-6989586621680010482"><span id="local-6989586621680010484"><span id="local-6989586621680010486"><span id="local-6989586621680010488"><span id="local-6989586621680010490"><span id="local-6989586621680010492"><span class="annot"><span class="annottext">Integer -&gt; VersionNumber
 VersionNumber -&gt; VersionNumber
 VersionNumber -&gt; VersionNumber -&gt; VersionNumber
 (VersionNumber -&gt; VersionNumber -&gt; VersionNumber)
@@ -110,7 +109,7 @@ $c* :: VersionNumber -&gt; VersionNumber -&gt; VersionNumber
 $c- :: VersionNumber -&gt; VersionNumber -&gt; VersionNumber
 + :: VersionNumber -&gt; VersionNumber -&gt; VersionNumber
 $c+ :: VersionNumber -&gt; VersionNumber -&gt; VersionNumber
-</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Num</span></span></span></span></span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621680010887"><span id="local-6989586621680010889"><span id="local-6989586621680010891"><span class="annot"><span class="annottext">Int -&gt; VersionNumber -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Num</span></span></span></span></span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621680010473"><span id="local-6989586621680010475"><span id="local-6989586621680010477"><span class="annot"><span class="annottext">Int -&gt; VersionNumber -&gt; ShowS
 [VersionNumber] -&gt; ShowS
 VersionNumber -&gt; String
 (Int -&gt; VersionNumber -&gt; ShowS)
@@ -126,14 +125,14 @@ $cshow :: VersionNumber -&gt; String
 showsPrec :: Int -&gt; VersionNumber -&gt; ShowS
 $cshowsPrec :: Int -&gt; VersionNumber -&gt; ShowS
 </span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">)</span><span>
-</span><span id="line-34"></span><span>
-</span><span id="line-35"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621680010880"><span id="local-6989586621680010882"><span class="annot"><span class="hs-identifier hs-type">Serialise</span></span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Util.Versioned.html#VersionNumber"><span class="hs-identifier hs-type">VersionNumber</span></a></span></span></span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-36"></span><span>  </span><span id="local-6989586621680010878"><span class="annot"><span class="annottext">encode :: VersionNumber -&gt; Encoding
-</span><span class="hs-identifier hs-var hs-var hs-var hs-var">encode</span></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Consensus.Util.Versioned.html#VersionNumber"><span class="hs-identifier hs-type">VersionNumber</span></a></span><span> </span><span id="local-6989586621680010876"><span class="annot"><span class="annottext">Word8
-</span><a href="#local-6989586621680010876"><span class="hs-identifier hs-var">w</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Word8 -&gt; Encoding
+</span><span id="line-33"></span><span>
+</span><span id="line-34"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621680010466"><span id="local-6989586621680010468"><span class="annot"><span class="hs-identifier hs-type">Serialise</span></span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Util.Versioned.html#VersionNumber"><span class="hs-identifier hs-type">VersionNumber</span></a></span></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-35"></span><span>  </span><span id="local-6989586621680010464"><span class="annot"><span class="annottext">encode :: VersionNumber -&gt; Encoding
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">encode</span></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Consensus.Util.Versioned.html#VersionNumber"><span class="hs-identifier hs-type">VersionNumber</span></a></span><span> </span><span id="local-6989586621680010462"><span class="annot"><span class="annottext">Word8
+</span><a href="#local-6989586621680010462"><span class="hs-identifier hs-var">w</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Word8 -&gt; Encoding
 </span><span class="hs-identifier hs-var">encodeWord8</span></span><span> </span><span class="annot"><span class="annottext">Word8
-</span><a href="#local-6989586621680010876"><span class="hs-identifier hs-var">w</span></a></span><span>
-</span><span id="line-37"></span><span>  </span><span id="local-6989586621680010875"><span class="annot"><span class="annottext">decode :: Decoder s VersionNumber
+</span><a href="#local-6989586621680010462"><span class="hs-identifier hs-var">w</span></a></span><span>
+</span><span id="line-36"></span><span>  </span><span id="local-6989586621680010461"><span class="annot"><span class="annottext">decode :: Decoder s VersionNumber
 </span><span class="hs-identifier hs-var hs-var hs-var hs-var">decode</span></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Word8 -&gt; VersionNumber
 </span><a href="Ouroboros.Consensus.Util.Versioned.html#VersionNumber"><span class="hs-identifier hs-var">VersionNumber</span></a></span><span> </span><span class="annot"><span class="annottext">(Word8 -&gt; VersionNumber)
 -&gt; Decoder s Word8 -&gt; Decoder s VersionNumber
@@ -141,13 +140,13 @@ forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
 </span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">Decoder s Word8
 forall s. Decoder s Word8
 </span><span class="hs-identifier hs-var">decodeWord8</span></span><span>
-</span><span id="line-38"></span><span>
-</span><span id="line-39"></span><span class="hs-keyword">data</span><span> </span><span id="Versioned"><span class="annot"><a href="Ouroboros.Consensus.Util.Versioned.html#Versioned"><span class="hs-identifier hs-var">Versioned</span></a></span></span><span> </span><span id="local-6989586621680010958"><span class="annot"><a href="#local-6989586621680010958"><span class="hs-identifier hs-type">a</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="Versioned"><span class="annot"><a href="Ouroboros.Consensus.Util.Versioned.html#Versioned"><span class="hs-identifier hs-var">Versioned</span></a></span></span><span>
-</span><span id="line-40"></span><span>  </span><span class="hs-special">{</span><span> </span><span id="versionNumber"><span class="annot"><span class="annottext">Versioned a -&gt; VersionNumber
+</span><span id="line-37"></span><span>
+</span><span id="line-38"></span><span class="hs-keyword">data</span><span> </span><span id="Versioned"><span class="annot"><a href="Ouroboros.Consensus.Util.Versioned.html#Versioned"><span class="hs-identifier hs-var">Versioned</span></a></span></span><span> </span><span id="local-6989586621680010544"><span class="annot"><a href="#local-6989586621680010544"><span class="hs-identifier hs-type">a</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="Versioned"><span class="annot"><a href="Ouroboros.Consensus.Util.Versioned.html#Versioned"><span class="hs-identifier hs-var">Versioned</span></a></span></span><span>
+</span><span id="line-39"></span><span>  </span><span class="hs-special">{</span><span> </span><span id="versionNumber"><span class="annot"><span class="annottext">Versioned a -&gt; VersionNumber
 </span><a href="Ouroboros.Consensus.Util.Versioned.html#versionNumber"><span class="hs-identifier hs-var hs-var">versionNumber</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-glyph">!</span><span class="annot"><a href="Ouroboros.Consensus.Util.Versioned.html#VersionNumber"><span class="hs-identifier hs-type">VersionNumber</span></a></span><span>
-</span><span id="line-41"></span><span>  </span><span class="hs-special">,</span><span> </span><span id="versioned"><span class="annot"><span class="annottext">Versioned a -&gt; a
-</span><a href="Ouroboros.Consensus.Util.Versioned.html#versioned"><span class="hs-identifier hs-var hs-var">versioned</span></a></span></span><span>     </span><span class="hs-glyph">::</span><span> </span><span class="hs-glyph">!</span><span class="annot"><a href="#local-6989586621680010958"><span class="hs-identifier hs-type">a</span></a></span><span>
-</span><span id="line-42"></span><span>  </span><span class="hs-special">}</span><span> </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621680010866"><span id="local-6989586621680010868"><span class="annot"><span class="annottext">Versioned a -&gt; Versioned a -&gt; Bool
+</span><span id="line-40"></span><span>  </span><span class="hs-special">,</span><span> </span><span id="versioned"><span class="annot"><span class="annottext">Versioned a -&gt; a
+</span><a href="Ouroboros.Consensus.Util.Versioned.html#versioned"><span class="hs-identifier hs-var hs-var">versioned</span></a></span></span><span>     </span><span class="hs-glyph">::</span><span> </span><span class="hs-glyph">!</span><span class="annot"><a href="#local-6989586621680010544"><span class="hs-identifier hs-type">a</span></a></span><span>
+</span><span id="line-41"></span><span>  </span><span class="hs-special">}</span><span> </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621680010452"><span id="local-6989586621680010454"><span class="annot"><span class="annottext">Versioned a -&gt; Versioned a -&gt; Bool
 (Versioned a -&gt; Versioned a -&gt; Bool)
 -&gt; (Versioned a -&gt; Versioned a -&gt; Bool) -&gt; Eq (Versioned a)
 forall a. Eq a =&gt; Versioned a -&gt; Versioned a -&gt; Bool
@@ -156,7 +155,7 @@ forall a. (a -&gt; a -&gt; Bool) -&gt; (a -&gt; a -&gt; Bool) -&gt; Eq a
 $c/= :: forall a. Eq a =&gt; Versioned a -&gt; Versioned a -&gt; Bool
 == :: Versioned a -&gt; Versioned a -&gt; Bool
 $c== :: forall a. Eq a =&gt; Versioned a -&gt; Versioned a -&gt; Bool
-</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621680010860"><span id="local-6989586621680010862"><span id="local-6989586621680010864"><span class="annot"><span class="annottext">Int -&gt; Versioned a -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621680010446"><span id="local-6989586621680010448"><span id="local-6989586621680010450"><span class="annot"><span class="annottext">Int -&gt; Versioned a -&gt; ShowS
 [Versioned a] -&gt; ShowS
 Versioned a -&gt; String
 (Int -&gt; Versioned a -&gt; ShowS)
@@ -175,19 +174,19 @@ $cshow :: forall a. Show a =&gt; Versioned a -&gt; String
 showsPrec :: Int -&gt; Versioned a -&gt; ShowS
 $cshowsPrec :: forall a. Show a =&gt; Int -&gt; Versioned a -&gt; ShowS
 </span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">)</span><span>
-</span><span id="line-43"></span><span>
-</span><span id="line-44"></span><span class="hs-keyword">data</span><span> </span><span id="VersionError"><span class="annot"><a href="Ouroboros.Consensus.Util.Versioned.html#VersionError"><span class="hs-identifier hs-var">VersionError</span></a></span></span><span>
-</span><span id="line-45"></span><span>  </span><span class="hs-glyph">=</span><span> </span><span id="IncompatibleVersion"><span class="annot"><a href="Ouroboros.Consensus.Util.Versioned.html#IncompatibleVersion"><span class="hs-identifier hs-var">IncompatibleVersion</span></a></span></span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Util.Versioned.html#VersionNumber"><span class="hs-identifier hs-type">VersionNumber</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">String</span></span><span>
-</span><span id="line-46"></span><span>    </span><span class="hs-comment">-- ^ We cannot deserialise the version of the data with the given</span><span>
-</span><span id="line-47"></span><span>    </span><span class="hs-comment">-- 'VersionNumber' because its data format is incompatible.</span><span>
-</span><span id="line-48"></span><span>    </span><span class="hs-comment">--</span><span>
-</span><span id="line-49"></span><span>    </span><span class="hs-comment">-- For example, the given format lacks data that was added in later</span><span>
-</span><span id="line-50"></span><span>    </span><span class="hs-comment">-- version that cannot be reconstructed from scratch.</span><span>
-</span><span id="line-51"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span id="UnknownVersion"><span class="annot"><a href="Ouroboros.Consensus.Util.Versioned.html#UnknownVersion"><span class="hs-identifier hs-var">UnknownVersion</span></a></span></span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Util.Versioned.html#VersionNumber"><span class="hs-identifier hs-type">VersionNumber</span></a></span><span>
-</span><span id="line-52"></span><span>    </span><span class="hs-comment">-- ^ The given 'VersionNumber' is unknown and thus not supported.</span><span>
-</span><span id="line-53"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span id="MigrationFailed"><span class="annot"><a href="Ouroboros.Consensus.Util.Versioned.html#MigrationFailed"><span class="hs-identifier hs-var">MigrationFailed</span></a></span></span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Util.Versioned.html#VersionNumber"><span class="hs-identifier hs-type">VersionNumber</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">String</span></span><span>
-</span><span id="line-54"></span><span>    </span><span class="hs-comment">-- ^ A migration from the given 'VersionNumber' failed. See 'Migrate'.</span><span>
-</span><span id="line-55"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="annot"><span class="hs-keyword">stock</span></span><span>    </span><span class="hs-special">(</span><span id="local-6989586621680010851"><span id="local-6989586621680010853"><span id="local-6989586621680010855"><span class="annot"><span class="annottext">Int -&gt; VersionError -&gt; ShowS
+</span><span id="line-42"></span><span>
+</span><span id="line-43"></span><span class="hs-keyword">data</span><span> </span><span id="VersionError"><span class="annot"><a href="Ouroboros.Consensus.Util.Versioned.html#VersionError"><span class="hs-identifier hs-var">VersionError</span></a></span></span><span>
+</span><span id="line-44"></span><span>  </span><span class="hs-glyph">=</span><span> </span><span id="IncompatibleVersion"><span class="annot"><a href="Ouroboros.Consensus.Util.Versioned.html#IncompatibleVersion"><span class="hs-identifier hs-var">IncompatibleVersion</span></a></span></span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Util.Versioned.html#VersionNumber"><span class="hs-identifier hs-type">VersionNumber</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">String</span></span><span>
+</span><span id="line-45"></span><span>    </span><span class="hs-comment">-- ^ We cannot deserialise the version of the data with the given</span><span>
+</span><span id="line-46"></span><span>    </span><span class="hs-comment">-- 'VersionNumber' because its data format is incompatible.</span><span>
+</span><span id="line-47"></span><span>    </span><span class="hs-comment">--</span><span>
+</span><span id="line-48"></span><span>    </span><span class="hs-comment">-- For example, the given format lacks data that was added in later</span><span>
+</span><span id="line-49"></span><span>    </span><span class="hs-comment">-- version that cannot be reconstructed from scratch.</span><span>
+</span><span id="line-50"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span id="UnknownVersion"><span class="annot"><a href="Ouroboros.Consensus.Util.Versioned.html#UnknownVersion"><span class="hs-identifier hs-var">UnknownVersion</span></a></span></span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Util.Versioned.html#VersionNumber"><span class="hs-identifier hs-type">VersionNumber</span></a></span><span>
+</span><span id="line-51"></span><span>    </span><span class="hs-comment">-- ^ The given 'VersionNumber' is unknown and thus not supported.</span><span>
+</span><span id="line-52"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span id="MigrationFailed"><span class="annot"><a href="Ouroboros.Consensus.Util.Versioned.html#MigrationFailed"><span class="hs-identifier hs-var">MigrationFailed</span></a></span></span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Util.Versioned.html#VersionNumber"><span class="hs-identifier hs-type">VersionNumber</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">String</span></span><span>
+</span><span id="line-53"></span><span>    </span><span class="hs-comment">-- ^ A migration from the given 'VersionNumber' failed. See 'Migrate'.</span><span>
+</span><span id="line-54"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="annot"><span class="hs-keyword">stock</span></span><span>    </span><span class="hs-special">(</span><span id="local-6989586621680010437"><span id="local-6989586621680010439"><span id="local-6989586621680010441"><span class="annot"><span class="annottext">Int -&gt; VersionError -&gt; ShowS
 [VersionError] -&gt; ShowS
 VersionError -&gt; String
 (Int -&gt; VersionError -&gt; ShowS)
@@ -203,7 +202,7 @@ $cshow :: VersionError -&gt; String
 showsPrec :: Int -&gt; VersionError -&gt; ShowS
 $cshowsPrec :: Int -&gt; VersionError -&gt; ShowS
 </span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">)</span><span>
-</span><span id="line-56"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="annot"><span class="hs-keyword">anyclass</span></span><span> </span><span class="hs-special">(</span><span id="local-6989586621680010843"><span id="local-6989586621680010845"><span id="local-6989586621680010847"><span class="annot"><span class="annottext">Show VersionError
+</span><span id="line-55"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="annot"><span class="hs-keyword">anyclass</span></span><span> </span><span class="hs-special">(</span><span id="local-6989586621680010429"><span id="local-6989586621680010431"><span id="local-6989586621680010433"><span class="annot"><span class="annottext">Show VersionError
 Typeable VersionError
 Typeable VersionError
 -&gt; Show VersionError
@@ -230,34 +229,34 @@ $ctoException :: VersionError -&gt; SomeException
 $cp2Exception :: Show VersionError
 $cp1Exception :: Typeable VersionError
 </span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Exception</span></span></span></span></span><span class="hs-special">)</span><span>
-</span><span id="line-57"></span><span>
-</span><span id="line-58"></span><span class="hs-comment">-- | How to decode a version of a format.</span><span>
-</span><span id="line-59"></span><span class="hs-keyword">data</span><span> </span><span id="VersionDecoder"><span class="annot"><a href="Ouroboros.Consensus.Util.Versioned.html#VersionDecoder"><span class="hs-identifier hs-var">VersionDecoder</span></a></span></span><span> </span><span id="local-6989586621680010841"><span class="annot"><a href="#local-6989586621680010841"><span class="hs-identifier hs-type">a</span></a></span></span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-60"></span><span>  </span><span class="hs-comment">-- | This version is incompatible, fail with 'IncompatibleVersion' and the</span><span>
-</span><span id="line-61"></span><span>  </span><span class="hs-comment">-- given message.</span><span>
-</span><span id="line-62"></span><span>  </span><span id="local-6989586621680010840"><span id="Incompatible"><span class="annot"><a href="Ouroboros.Consensus.Util.Versioned.html#Incompatible"><span class="hs-identifier hs-var">Incompatible</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">String</span></span><span>
-</span><span id="line-63"></span><span>               </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Util.Versioned.html#VersionDecoder"><span class="hs-identifier hs-type">VersionDecoder</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680010840"><span class="hs-identifier hs-type">a</span></a></span></span><span>
-</span><span id="line-64"></span><span>
-</span><span id="line-65"></span><span>  </span><span class="hs-comment">-- | Decode the version using the given 'Decoder'.</span><span>
-</span><span id="line-66"></span><span>  </span><span id="local-6989586621680010838"><span id="Decode"><span class="annot"><a href="Ouroboros.Consensus.Util.Versioned.html#Decode"><span class="hs-identifier hs-var">Decode</span></a></span></span><span>       </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="hs-keyword">forall</span><span> </span><span id="local-6989586621680010836"><span class="annot"><a href="#local-6989586621680010836"><span class="hs-identifier hs-type">s</span></a></span></span><span class="hs-operator">.</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Decoder</span></span><span> </span><span class="annot"><a href="#local-6989586621680010836"><span class="hs-identifier hs-type">s</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680010838"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span>
-</span><span id="line-67"></span><span>               </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Util.Versioned.html#VersionDecoder"><span class="hs-identifier hs-type">VersionDecoder</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680010838"><span class="hs-identifier hs-type">a</span></a></span></span><span>
-</span><span id="line-68"></span><span>
-</span><span id="line-69"></span><span>  </span><span class="hs-comment">-- | Decode an other format (@from@) and migrate from that. When migration</span><span>
-</span><span id="line-70"></span><span>  </span><span class="hs-comment">-- fails, the version decoder will fail with @MigrationFailed@.</span><span>
-</span><span id="line-71"></span><span>  </span><span id="local-6989586621680010834"><span id="local-6989586621680010835"><span id="Migrate"><span class="annot"><a href="Ouroboros.Consensus.Util.Versioned.html#Migrate"><span class="hs-identifier hs-var">Migrate</span></a></span></span><span>      </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Util.Versioned.html#VersionDecoder"><span class="hs-identifier hs-type">VersionDecoder</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680010835"><span class="hs-identifier hs-type">from</span></a></span><span>
-</span><span id="line-72"></span><span>               </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="#local-6989586621680010835"><span class="hs-identifier hs-type">from</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Either</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">String</span></span><span> </span><span class="annot"><a href="#local-6989586621680010834"><span class="hs-identifier hs-type">to</span></a></span><span class="hs-special">)</span><span>
-</span><span id="line-73"></span><span>               </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Util.Versioned.html#VersionDecoder"><span class="hs-identifier hs-type">VersionDecoder</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680010834"><span class="hs-identifier hs-type">to</span></a></span></span></span><span>
-</span><span id="line-74"></span><span>
-</span><span id="line-75"></span><span class="hs-comment">-- | Return a 'Decoder' for the given 'VersionDecoder'.</span><span>
-</span><span id="line-76"></span><span id="local-6989586621680010964"><span class="annot"><a href="Ouroboros.Consensus.Util.Versioned.html#getVersionDecoder"><span class="hs-identifier hs-type">getVersionDecoder</span></a></span><span>
-</span><span id="line-77"></span><span>  </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Util.Versioned.html#VersionNumber"><span class="hs-identifier hs-type">VersionNumber</span></a></span><span>
-</span><span id="line-78"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Util.Versioned.html#VersionDecoder"><span class="hs-identifier hs-type">VersionDecoder</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680010964"><span class="hs-identifier hs-type">a</span></a></span><span>
-</span><span id="line-79"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">forall</span><span> </span><span id="local-6989586621680010972"><span class="annot"><a href="#local-6989586621680010972"><span class="hs-identifier hs-type">s</span></a></span></span><span class="hs-operator">.</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Decoder</span></span><span> </span><span class="annot"><a href="#local-6989586621680010972"><span class="hs-identifier hs-type">s</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680010964"><span class="hs-identifier hs-type">a</span></a></span></span><span>
-</span><span id="line-80"></span><span id="getVersionDecoder"><span class="annot"><span class="annottext">getVersionDecoder :: VersionNumber -&gt; VersionDecoder a -&gt; forall s. Decoder s a
-</span><a href="Ouroboros.Consensus.Util.Versioned.html#getVersionDecoder"><span class="hs-identifier hs-var hs-var">getVersionDecoder</span></a></span></span><span> </span><span id="local-6989586621680010831"><span class="annot"><span class="annottext">VersionNumber
-</span><a href="#local-6989586621680010831"><span class="hs-identifier hs-var">vn</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-glyph">\</span><span class="hs-glyph">case</span><span>
-</span><span id="line-81"></span><span>    </span><span class="annot"><a href="Ouroboros.Consensus.Util.Versioned.html#Incompatible"><span class="hs-identifier hs-type">Incompatible</span></a></span><span> </span><span id="local-6989586621680010830"><span class="annot"><span class="annottext">String
-</span><a href="#local-6989586621680010830"><span class="hs-identifier hs-var">msg</span></a></span></span><span>     </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">String -&gt; Decoder s a
+</span><span id="line-56"></span><span>
+</span><span id="line-57"></span><span class="hs-comment">-- | How to decode a version of a format.</span><span>
+</span><span id="line-58"></span><span class="hs-keyword">data</span><span> </span><span id="VersionDecoder"><span class="annot"><a href="Ouroboros.Consensus.Util.Versioned.html#VersionDecoder"><span class="hs-identifier hs-var">VersionDecoder</span></a></span></span><span> </span><span id="local-6989586621680010427"><span class="annot"><a href="#local-6989586621680010427"><span class="hs-identifier hs-type">a</span></a></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-59"></span><span>  </span><span class="hs-comment">-- | This version is incompatible, fail with 'IncompatibleVersion' and the</span><span>
+</span><span id="line-60"></span><span>  </span><span class="hs-comment">-- given message.</span><span>
+</span><span id="line-61"></span><span>  </span><span id="local-6989586621680010426"><span id="Incompatible"><span class="annot"><a href="Ouroboros.Consensus.Util.Versioned.html#Incompatible"><span class="hs-identifier hs-var">Incompatible</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">String</span></span><span>
+</span><span id="line-62"></span><span>               </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Util.Versioned.html#VersionDecoder"><span class="hs-identifier hs-type">VersionDecoder</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680010426"><span class="hs-identifier hs-type">a</span></a></span></span><span>
+</span><span id="line-63"></span><span>
+</span><span id="line-64"></span><span>  </span><span class="hs-comment">-- | Decode the version using the given 'Decoder'.</span><span>
+</span><span id="line-65"></span><span>  </span><span id="local-6989586621680010424"><span id="Decode"><span class="annot"><a href="Ouroboros.Consensus.Util.Versioned.html#Decode"><span class="hs-identifier hs-var">Decode</span></a></span></span><span>       </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="hs-keyword">forall</span><span> </span><span id="local-6989586621680010422"><span class="annot"><a href="#local-6989586621680010422"><span class="hs-identifier hs-type">s</span></a></span></span><span class="hs-operator">.</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Decoder</span></span><span> </span><span class="annot"><a href="#local-6989586621680010422"><span class="hs-identifier hs-type">s</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680010424"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-66"></span><span>               </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Util.Versioned.html#VersionDecoder"><span class="hs-identifier hs-type">VersionDecoder</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680010424"><span class="hs-identifier hs-type">a</span></a></span></span><span>
+</span><span id="line-67"></span><span>
+</span><span id="line-68"></span><span>  </span><span class="hs-comment">-- | Decode an other format (@from@) and migrate from that. When migration</span><span>
+</span><span id="line-69"></span><span>  </span><span class="hs-comment">-- fails, the version decoder will fail with @MigrationFailed@.</span><span>
+</span><span id="line-70"></span><span>  </span><span id="local-6989586621680010420"><span id="local-6989586621680010421"><span id="Migrate"><span class="annot"><a href="Ouroboros.Consensus.Util.Versioned.html#Migrate"><span class="hs-identifier hs-var">Migrate</span></a></span></span><span>      </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Util.Versioned.html#VersionDecoder"><span class="hs-identifier hs-type">VersionDecoder</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680010421"><span class="hs-identifier hs-type">from</span></a></span><span>
+</span><span id="line-71"></span><span>               </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="#local-6989586621680010421"><span class="hs-identifier hs-type">from</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Either</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">String</span></span><span> </span><span class="annot"><a href="#local-6989586621680010420"><span class="hs-identifier hs-type">to</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-72"></span><span>               </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Util.Versioned.html#VersionDecoder"><span class="hs-identifier hs-type">VersionDecoder</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680010420"><span class="hs-identifier hs-type">to</span></a></span></span></span><span>
+</span><span id="line-73"></span><span>
+</span><span id="line-74"></span><span class="hs-comment">-- | Return a 'Decoder' for the given 'VersionDecoder'.</span><span>
+</span><span id="line-75"></span><span id="local-6989586621680010550"><span class="annot"><a href="Ouroboros.Consensus.Util.Versioned.html#getVersionDecoder"><span class="hs-identifier hs-type">getVersionDecoder</span></a></span><span>
+</span><span id="line-76"></span><span>  </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Util.Versioned.html#VersionNumber"><span class="hs-identifier hs-type">VersionNumber</span></a></span><span>
+</span><span id="line-77"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Util.Versioned.html#VersionDecoder"><span class="hs-identifier hs-type">VersionDecoder</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680010550"><span class="hs-identifier hs-type">a</span></a></span><span>
+</span><span id="line-78"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">forall</span><span> </span><span id="local-6989586621680010558"><span class="annot"><a href="#local-6989586621680010558"><span class="hs-identifier hs-type">s</span></a></span></span><span class="hs-operator">.</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Decoder</span></span><span> </span><span class="annot"><a href="#local-6989586621680010558"><span class="hs-identifier hs-type">s</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680010550"><span class="hs-identifier hs-type">a</span></a></span></span><span>
+</span><span id="line-79"></span><span id="getVersionDecoder"><span class="annot"><span class="annottext">getVersionDecoder :: VersionNumber -&gt; VersionDecoder a -&gt; forall s. Decoder s a
+</span><a href="Ouroboros.Consensus.Util.Versioned.html#getVersionDecoder"><span class="hs-identifier hs-var hs-var">getVersionDecoder</span></a></span></span><span> </span><span id="local-6989586621680010417"><span class="annot"><span class="annottext">VersionNumber
+</span><a href="#local-6989586621680010417"><span class="hs-identifier hs-var">vn</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-glyph">\</span><span class="hs-glyph">case</span><span>
+</span><span id="line-80"></span><span>    </span><span class="annot"><a href="Ouroboros.Consensus.Util.Versioned.html#Incompatible"><span class="hs-identifier hs-type">Incompatible</span></a></span><span> </span><span id="local-6989586621680010416"><span class="annot"><span class="annottext">String
+</span><a href="#local-6989586621680010416"><span class="hs-identifier hs-var">msg</span></a></span></span><span>     </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">String -&gt; Decoder s a
 forall (m :: * -&gt; *) a. MonadFail m =&gt; String -&gt; m a
 </span><span class="hs-identifier hs-var">fail</span></span><span> </span><span class="annot"><span class="annottext">(String -&gt; Decoder s a) -&gt; String -&gt; Decoder s a
 forall a b. (a -&gt; b) -&gt; a -&gt; b
@@ -267,27 +266,27 @@ forall a. Show a =&gt; a -&gt; String
 forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">VersionNumber -&gt; String -&gt; VersionError
 </span><a href="Ouroboros.Consensus.Util.Versioned.html#IncompatibleVersion"><span class="hs-identifier hs-var">IncompatibleVersion</span></a></span><span> </span><span class="annot"><span class="annottext">VersionNumber
-</span><a href="#local-6989586621680010831"><span class="hs-identifier hs-var">vn</span></a></span><span> </span><span class="annot"><span class="annottext">String
-</span><a href="#local-6989586621680010830"><span class="hs-identifier hs-var">msg</span></a></span><span>
-</span><span id="line-82"></span><span>    </span><span class="annot"><a href="Ouroboros.Consensus.Util.Versioned.html#Decode"><span class="hs-identifier hs-type">Decode</span></a></span><span> </span><span id="local-6989586621680010828"><span class="annot"><span class="annottext">forall s. Decoder s a
-</span><a href="#local-6989586621680010828"><span class="hs-identifier hs-var">dec</span></a></span></span><span>           </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Decoder s a
+</span><a href="#local-6989586621680010417"><span class="hs-identifier hs-var">vn</span></a></span><span> </span><span class="annot"><span class="annottext">String
+</span><a href="#local-6989586621680010416"><span class="hs-identifier hs-var">msg</span></a></span><span>
+</span><span id="line-81"></span><span>    </span><span class="annot"><a href="Ouroboros.Consensus.Util.Versioned.html#Decode"><span class="hs-identifier hs-type">Decode</span></a></span><span> </span><span id="local-6989586621680010414"><span class="annot"><span class="annottext">forall s. Decoder s a
+</span><a href="#local-6989586621680010414"><span class="hs-identifier hs-var">dec</span></a></span></span><span>           </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Decoder s a
 forall s. Decoder s a
-</span><a href="#local-6989586621680010828"><span class="hs-identifier hs-var">dec</span></a></span><span>
-</span><span id="line-83"></span><span>    </span><span class="annot"><a href="Ouroboros.Consensus.Util.Versioned.html#Migrate"><span class="hs-identifier hs-type">Migrate</span></a></span><span> </span><span id="local-6989586621680010827"><span class="annot"><span class="annottext">VersionDecoder from
-</span><a href="#local-6989586621680010827"><span class="hs-identifier hs-var">vDec</span></a></span></span><span> </span><span id="local-6989586621680010826"><span class="annot"><span class="annottext">from -&gt; Either String a
-</span><a href="#local-6989586621680010826"><span class="hs-identifier hs-var">migrate</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">do</span><span>
-</span><span id="line-84"></span><span>      </span><span id="local-6989586621680010825"><span class="annot"><span class="annottext">from
-</span><a href="#local-6989586621680010825"><span class="hs-identifier hs-var">from</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">VersionNumber -&gt; VersionDecoder from -&gt; forall s. Decoder s from
+</span><a href="#local-6989586621680010414"><span class="hs-identifier hs-var">dec</span></a></span><span>
+</span><span id="line-82"></span><span>    </span><span class="annot"><a href="Ouroboros.Consensus.Util.Versioned.html#Migrate"><span class="hs-identifier hs-type">Migrate</span></a></span><span> </span><span id="local-6989586621680010413"><span class="annot"><span class="annottext">VersionDecoder from
+</span><a href="#local-6989586621680010413"><span class="hs-identifier hs-var">vDec</span></a></span></span><span> </span><span id="local-6989586621680010412"><span class="annot"><span class="annottext">from -&gt; Either String a
+</span><a href="#local-6989586621680010412"><span class="hs-identifier hs-var">migrate</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-83"></span><span>      </span><span id="local-6989586621680010411"><span class="annot"><span class="annottext">from
+</span><a href="#local-6989586621680010411"><span class="hs-identifier hs-var">from</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">VersionNumber -&gt; VersionDecoder from -&gt; forall s. Decoder s from
 forall a.
 VersionNumber -&gt; VersionDecoder a -&gt; forall s. Decoder s a
 </span><a href="Ouroboros.Consensus.Util.Versioned.html#getVersionDecoder"><span class="hs-identifier hs-var">getVersionDecoder</span></a></span><span> </span><span class="annot"><span class="annottext">VersionNumber
-</span><a href="#local-6989586621680010831"><span class="hs-identifier hs-var">vn</span></a></span><span> </span><span class="annot"><span class="annottext">VersionDecoder from
-</span><a href="#local-6989586621680010827"><span class="hs-identifier hs-var">vDec</span></a></span><span>
-</span><span id="line-85"></span><span>      </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">from -&gt; Either String a
-</span><a href="#local-6989586621680010826"><span class="hs-identifier hs-var">migrate</span></a></span><span> </span><span class="annot"><span class="annottext">from
-</span><a href="#local-6989586621680010825"><span class="hs-identifier hs-var">from</span></a></span><span> </span><span class="hs-keyword">of</span><span>
-</span><span id="line-86"></span><span>        </span><span class="annot"><span class="hs-identifier hs-type">Left</span></span><span> </span><span id="local-6989586621680010824"><span class="annot"><span class="annottext">String
-</span><a href="#local-6989586621680010824"><span class="hs-identifier hs-var">msg</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">String -&gt; Decoder s a
+</span><a href="#local-6989586621680010417"><span class="hs-identifier hs-var">vn</span></a></span><span> </span><span class="annot"><span class="annottext">VersionDecoder from
+</span><a href="#local-6989586621680010413"><span class="hs-identifier hs-var">vDec</span></a></span><span>
+</span><span id="line-84"></span><span>      </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">from -&gt; Either String a
+</span><a href="#local-6989586621680010412"><span class="hs-identifier hs-var">migrate</span></a></span><span> </span><span class="annot"><span class="annottext">from
+</span><a href="#local-6989586621680010411"><span class="hs-identifier hs-var">from</span></a></span><span> </span><span class="hs-keyword">of</span><span>
+</span><span id="line-85"></span><span>        </span><span class="annot"><span class="hs-identifier hs-type">Left</span></span><span> </span><span id="local-6989586621680010410"><span class="annot"><span class="annottext">String
+</span><a href="#local-6989586621680010410"><span class="hs-identifier hs-var">msg</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">String -&gt; Decoder s a
 forall (m :: * -&gt; *) a. MonadFail m =&gt; String -&gt; m a
 </span><span class="hs-identifier hs-var">fail</span></span><span> </span><span class="annot"><span class="annottext">(String -&gt; Decoder s a) -&gt; String -&gt; Decoder s a
 forall a b. (a -&gt; b) -&gt; a -&gt; b
@@ -297,51 +296,51 @@ forall a. Show a =&gt; a -&gt; String
 forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">VersionNumber -&gt; String -&gt; VersionError
 </span><a href="Ouroboros.Consensus.Util.Versioned.html#MigrationFailed"><span class="hs-identifier hs-var">MigrationFailed</span></a></span><span> </span><span class="annot"><span class="annottext">VersionNumber
-</span><a href="#local-6989586621680010831"><span class="hs-identifier hs-var">vn</span></a></span><span> </span><span class="annot"><span class="annottext">String
-</span><a href="#local-6989586621680010824"><span class="hs-identifier hs-var">msg</span></a></span><span>
-</span><span id="line-87"></span><span>        </span><span class="annot"><span class="hs-identifier hs-type">Right</span></span><span> </span><span id="local-6989586621680010823"><span class="annot"><span class="annottext">a
-</span><a href="#local-6989586621680010823"><span class="hs-identifier hs-var">to</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">a -&gt; Decoder s a
+</span><a href="#local-6989586621680010417"><span class="hs-identifier hs-var">vn</span></a></span><span> </span><span class="annot"><span class="annottext">String
+</span><a href="#local-6989586621680010410"><span class="hs-identifier hs-var">msg</span></a></span><span>
+</span><span id="line-86"></span><span>        </span><span class="annot"><span class="hs-identifier hs-type">Right</span></span><span> </span><span id="local-6989586621680010409"><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621680010409"><span class="hs-identifier hs-var">to</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">a -&gt; Decoder s a
 forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
 </span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">a
-</span><a href="#local-6989586621680010823"><span class="hs-identifier hs-var">to</span></a></span><span>
-</span><span id="line-88"></span><span>
-</span><span id="line-89"></span><span class="hs-comment">-- | Given a 'VersionNumber' and the encoding of an @a@, encode the</span><span>
-</span><span id="line-90"></span><span class="hs-comment">-- corresponding @'Versioned' a@. Use 'decodeVersion' to decode it.</span><span>
-</span><span id="line-91"></span><span class="annot"><a href="Ouroboros.Consensus.Util.Versioned.html#encodeVersion"><span class="hs-identifier hs-type">encodeVersion</span></a></span><span>
-</span><span id="line-92"></span><span>  </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Util.Versioned.html#VersionNumber"><span class="hs-identifier hs-type">VersionNumber</span></a></span><span>
+</span><a href="#local-6989586621680010409"><span class="hs-identifier hs-var">to</span></a></span><span>
+</span><span id="line-87"></span><span>
+</span><span id="line-88"></span><span class="hs-comment">-- | Given a 'VersionNumber' and the encoding of an @a@, encode the</span><span>
+</span><span id="line-89"></span><span class="hs-comment">-- corresponding @'Versioned' a@. Use 'decodeVersion' to decode it.</span><span>
+</span><span id="line-90"></span><span class="annot"><a href="Ouroboros.Consensus.Util.Versioned.html#encodeVersion"><span class="hs-identifier hs-type">encodeVersion</span></a></span><span>
+</span><span id="line-91"></span><span>  </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Util.Versioned.html#VersionNumber"><span class="hs-identifier hs-type">VersionNumber</span></a></span><span>
+</span><span id="line-92"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Encoding</span></span><span>
 </span><span id="line-93"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Encoding</span></span><span>
-</span><span id="line-94"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Encoding</span></span><span>
-</span><span id="line-95"></span><span id="encodeVersion"><span class="annot"><span class="annottext">encodeVersion :: VersionNumber -&gt; Encoding -&gt; Encoding
-</span><a href="Ouroboros.Consensus.Util.Versioned.html#encodeVersion"><span class="hs-identifier hs-var hs-var">encodeVersion</span></a></span></span><span> </span><span id="local-6989586621680010822"><span class="annot"><span class="annottext">VersionNumber
-</span><a href="#local-6989586621680010822"><span class="hs-identifier hs-var">vn</span></a></span></span><span> </span><span id="local-6989586621680010821"><span class="annot"><span class="annottext">Encoding
-</span><a href="#local-6989586621680010821"><span class="hs-identifier hs-var">encodedA</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[Encoding] -&gt; Encoding
+</span><span id="line-94"></span><span id="encodeVersion"><span class="annot"><span class="annottext">encodeVersion :: VersionNumber -&gt; Encoding -&gt; Encoding
+</span><a href="Ouroboros.Consensus.Util.Versioned.html#encodeVersion"><span class="hs-identifier hs-var hs-var">encodeVersion</span></a></span></span><span> </span><span id="local-6989586621680010408"><span class="annot"><span class="annottext">VersionNumber
+</span><a href="#local-6989586621680010408"><span class="hs-identifier hs-var">vn</span></a></span></span><span> </span><span id="local-6989586621680010407"><span class="annot"><span class="annottext">Encoding
+</span><a href="#local-6989586621680010407"><span class="hs-identifier hs-var">encodedA</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[Encoding] -&gt; Encoding
 forall a. Monoid a =&gt; [a] -&gt; a
 </span><span class="hs-identifier hs-var">mconcat</span></span><span>
-</span><span id="line-96"></span><span>    </span><span class="hs-special">[</span><span> </span><span class="annot"><span class="annottext">Word -&gt; Encoding
+</span><span id="line-95"></span><span>    </span><span class="hs-special">[</span><span> </span><span class="annot"><span class="annottext">Word -&gt; Encoding
 </span><span class="hs-identifier hs-var">encodeListLen</span></span><span> </span><span class="annot"><span class="annottext">Word
 </span><span class="hs-number">2</span></span><span>
-</span><span id="line-97"></span><span>    </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">VersionNumber -&gt; Encoding
+</span><span id="line-96"></span><span>    </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">VersionNumber -&gt; Encoding
 forall a. Serialise a =&gt; a -&gt; Encoding
 </span><span class="hs-identifier hs-var">encode</span></span><span> </span><span class="annot"><span class="annottext">VersionNumber
-</span><a href="#local-6989586621680010822"><span class="hs-identifier hs-var">vn</span></a></span><span>
-</span><span id="line-98"></span><span>    </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Encoding
-</span><a href="#local-6989586621680010821"><span class="hs-identifier hs-var">encodedA</span></a></span><span>
-</span><span id="line-99"></span><span>    </span><span class="hs-special">]</span><span>
-</span><span id="line-100"></span><span>
-</span><span id="line-101"></span><span class="hs-comment">-- | Decode a /versioned/ @a@ (encoded using 'encodeVersion' or</span><span>
-</span><span id="line-102"></span><span class="hs-comment">-- 'encodeVersioned').</span><span>
-</span><span id="line-103"></span><span class="hs-comment">--</span><span>
-</span><span id="line-104"></span><span class="hs-comment">-- The corresponding 'VersionDecoder' for the deserialised 'VersionNumber' is</span><span>
-</span><span id="line-105"></span><span class="hs-comment">-- looked up in the given list. The first match is used (using the semantics</span><span>
-</span><span id="line-106"></span><span class="hs-comment">-- of 'lookup'). When no match is found, a decoder that fails with</span><span>
-</span><span id="line-107"></span><span class="hs-comment">-- 'UnknownVersion' is returned.</span><span>
-</span><span id="line-108"></span><span id="local-6989586621680010820"><span class="annot"><a href="Ouroboros.Consensus.Util.Versioned.html#decodeVersion"><span class="hs-identifier hs-type">decodeVersion</span></a></span><span>
-</span><span id="line-109"></span><span>  </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">[</span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Consensus.Util.Versioned.html#VersionNumber"><span class="hs-identifier hs-type">VersionNumber</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Util.Versioned.html#VersionDecoder"><span class="hs-identifier hs-type">VersionDecoder</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680010820"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span class="hs-special">]</span><span>
-</span><span id="line-110"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">forall</span><span> </span><span id="local-6989586621680010959"><span class="annot"><a href="#local-6989586621680010959"><span class="hs-identifier hs-type">s</span></a></span></span><span class="hs-operator">.</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Decoder</span></span><span> </span><span class="annot"><a href="#local-6989586621680010959"><span class="hs-identifier hs-type">s</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680010820"><span class="hs-identifier hs-type">a</span></a></span></span><span>
-</span><span id="line-111"></span><span id="decodeVersion"><span class="annot"><span class="annottext">decodeVersion :: [(VersionNumber, VersionDecoder a)] -&gt; forall s. Decoder s a
-</span><a href="Ouroboros.Consensus.Util.Versioned.html#decodeVersion"><span class="hs-identifier hs-var hs-var">decodeVersion</span></a></span></span><span> </span><span id="local-6989586621680010819"><span class="annot"><span class="annottext">[(VersionNumber, VersionDecoder a)]
-</span><a href="#local-6989586621680010819"><span class="hs-identifier hs-var">versionDecoders</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
-</span><span id="line-112"></span><span>    </span><span class="annot"><span class="annottext">Versioned a -&gt; a
+</span><a href="#local-6989586621680010408"><span class="hs-identifier hs-var">vn</span></a></span><span>
+</span><span id="line-97"></span><span>    </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Encoding
+</span><a href="#local-6989586621680010407"><span class="hs-identifier hs-var">encodedA</span></a></span><span>
+</span><span id="line-98"></span><span>    </span><span class="hs-special">]</span><span>
+</span><span id="line-99"></span><span>
+</span><span id="line-100"></span><span class="hs-comment">-- | Decode a /versioned/ @a@ (encoded using 'encodeVersion' or</span><span>
+</span><span id="line-101"></span><span class="hs-comment">-- 'encodeVersioned').</span><span>
+</span><span id="line-102"></span><span class="hs-comment">--</span><span>
+</span><span id="line-103"></span><span class="hs-comment">-- The corresponding 'VersionDecoder' for the deserialised 'VersionNumber' is</span><span>
+</span><span id="line-104"></span><span class="hs-comment">-- looked up in the given list. The first match is used (using the semantics</span><span>
+</span><span id="line-105"></span><span class="hs-comment">-- of 'lookup'). When no match is found, a decoder that fails with</span><span>
+</span><span id="line-106"></span><span class="hs-comment">-- 'UnknownVersion' is returned.</span><span>
+</span><span id="line-107"></span><span id="local-6989586621680010406"><span class="annot"><a href="Ouroboros.Consensus.Util.Versioned.html#decodeVersion"><span class="hs-identifier hs-type">decodeVersion</span></a></span><span>
+</span><span id="line-108"></span><span>  </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">[</span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Consensus.Util.Versioned.html#VersionNumber"><span class="hs-identifier hs-type">VersionNumber</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Util.Versioned.html#VersionDecoder"><span class="hs-identifier hs-type">VersionDecoder</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680010406"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span class="hs-special">]</span><span>
+</span><span id="line-109"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">forall</span><span> </span><span id="local-6989586621680010545"><span class="annot"><a href="#local-6989586621680010545"><span class="hs-identifier hs-type">s</span></a></span></span><span class="hs-operator">.</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Decoder</span></span><span> </span><span class="annot"><a href="#local-6989586621680010545"><span class="hs-identifier hs-type">s</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680010406"><span class="hs-identifier hs-type">a</span></a></span></span><span>
+</span><span id="line-110"></span><span id="decodeVersion"><span class="annot"><span class="annottext">decodeVersion :: [(VersionNumber, VersionDecoder a)] -&gt; forall s. Decoder s a
+</span><a href="Ouroboros.Consensus.Util.Versioned.html#decodeVersion"><span class="hs-identifier hs-var hs-var">decodeVersion</span></a></span></span><span> </span><span id="local-6989586621680010405"><span class="annot"><span class="annottext">[(VersionNumber, VersionDecoder a)]
+</span><a href="#local-6989586621680010405"><span class="hs-identifier hs-var">versionDecoders</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-111"></span><span>    </span><span class="annot"><span class="annottext">Versioned a -&gt; a
 forall a. Versioned a -&gt; a
 </span><a href="Ouroboros.Consensus.Util.Versioned.html#versioned"><span class="hs-identifier hs-var hs-var">versioned</span></a></span><span> </span><span class="annot"><span class="annottext">(Versioned a -&gt; a) -&gt; Decoder s (Versioned a) -&gt; Decoder s a
 forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
@@ -351,94 +350,94 @@ forall a.
 [(VersionNumber, VersionDecoder a)]
 -&gt; forall s. Decoder s (Versioned a)
 </span><a href="Ouroboros.Consensus.Util.Versioned.html#decodeVersioned"><span class="hs-identifier hs-var">decodeVersioned</span></a></span><span> </span><span class="annot"><span class="annottext">[(VersionNumber, VersionDecoder a)]
-</span><a href="#local-6989586621680010819"><span class="hs-identifier hs-var">versionDecoders</span></a></span><span>
-</span><span id="line-113"></span><span>
-</span><span id="line-114"></span><span class="hs-comment">-- | Same as 'decodeVersion', but with a hook that gets called in case the</span><span>
-</span><span id="line-115"></span><span class="hs-comment">-- encoding was not produced by a versioned encoder. This allows a transition</span><span>
-</span><span id="line-116"></span><span class="hs-comment">-- from non-versioned to versioned encodings.</span><span>
-</span><span id="line-117"></span><span class="hs-comment">--</span><span>
-</span><span id="line-118"></span><span class="hs-comment">-- Versioned encodings start with list length 2. Whenever the encoding starts</span><span>
-</span><span id="line-119"></span><span class="hs-comment">-- this way, this decoder will use the regular versioned decoder. When the</span><span>
-</span><span id="line-120"></span><span class="hs-comment">-- encoding starts differently, either with a different list length ('Just' as</span><span>
-</span><span id="line-121"></span><span class="hs-comment">-- argument) or with another token ('Nothing' as argument), the hook is called,</span><span>
-</span><span id="line-122"></span><span class="hs-comment">-- allowing the previous non-versioned decoder to try to decode the encoding.</span><span>
-</span><span id="line-123"></span><span class="hs-comment">--</span><span>
-</span><span id="line-124"></span><span class="hs-comment">-- Note that the hook should /not/ try to decode the list length /again/.</span><span>
-</span><span id="line-125"></span><span class="hs-comment">--</span><span>
-</span><span id="line-126"></span><span class="hs-comment">-- Note that this will not work if the previous encoding can start with list</span><span>
-</span><span id="line-127"></span><span class="hs-comment">-- length 2, as the new versioned decoder will be called in those cases, not the</span><span>
-</span><span id="line-128"></span><span class="hs-comment">-- hook.</span><span>
-</span><span id="line-129"></span><span class="annot"><a href="Ouroboros.Consensus.Util.Versioned.html#decodeVersionWithHook"><span class="hs-identifier hs-type">decodeVersionWithHook</span></a></span><span>
-</span><span id="line-130"></span><span>  </span><span class="hs-glyph">::</span><span> </span><span class="hs-keyword">forall</span><span> </span><span id="local-6989586621680010818"><span class="annot"><a href="#local-6989586621680010818"><span class="hs-identifier hs-type">a</span></a></span></span><span class="hs-operator">.</span><span>
-</span><span id="line-131"></span><span>     </span><span class="hs-special">(</span><span class="hs-keyword">forall</span><span> </span><span id="local-6989586621680010954"><span class="annot"><a href="#local-6989586621680010954"><span class="hs-identifier hs-type">s</span></a></span></span><span class="hs-operator">.</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Decoder</span></span><span> </span><span class="annot"><a href="#local-6989586621680010954"><span class="hs-identifier hs-type">s</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680010818"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span>
-</span><span id="line-132"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">[</span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Consensus.Util.Versioned.html#VersionNumber"><span class="hs-identifier hs-type">VersionNumber</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Util.Versioned.html#VersionDecoder"><span class="hs-identifier hs-type">VersionDecoder</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680010818"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span class="hs-special">]</span><span>
-</span><span id="line-133"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">forall</span><span> </span><span id="local-6989586621680010952"><span class="annot"><a href="#local-6989586621680010952"><span class="hs-identifier hs-type">s</span></a></span></span><span class="hs-operator">.</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Decoder</span></span><span> </span><span class="annot"><a href="#local-6989586621680010952"><span class="hs-identifier hs-type">s</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680010818"><span class="hs-identifier hs-type">a</span></a></span><span>
-</span><span id="line-134"></span><span id="decodeVersionWithHook"><span class="annot"><span class="annottext">decodeVersionWithHook :: (forall s. Maybe Int -&gt; Decoder s a)
+</span><a href="#local-6989586621680010405"><span class="hs-identifier hs-var">versionDecoders</span></a></span><span>
+</span><span id="line-112"></span><span>
+</span><span id="line-113"></span><span class="hs-comment">-- | Same as 'decodeVersion', but with a hook that gets called in case the</span><span>
+</span><span id="line-114"></span><span class="hs-comment">-- encoding was not produced by a versioned encoder. This allows a transition</span><span>
+</span><span id="line-115"></span><span class="hs-comment">-- from non-versioned to versioned encodings.</span><span>
+</span><span id="line-116"></span><span class="hs-comment">--</span><span>
+</span><span id="line-117"></span><span class="hs-comment">-- Versioned encodings start with list length 2. Whenever the encoding starts</span><span>
+</span><span id="line-118"></span><span class="hs-comment">-- this way, this decoder will use the regular versioned decoder. When the</span><span>
+</span><span id="line-119"></span><span class="hs-comment">-- encoding starts differently, either with a different list length ('Just' as</span><span>
+</span><span id="line-120"></span><span class="hs-comment">-- argument) or with another token ('Nothing' as argument), the hook is called,</span><span>
+</span><span id="line-121"></span><span class="hs-comment">-- allowing the previous non-versioned decoder to try to decode the encoding.</span><span>
+</span><span id="line-122"></span><span class="hs-comment">--</span><span>
+</span><span id="line-123"></span><span class="hs-comment">-- Note that the hook should /not/ try to decode the list length /again/.</span><span>
+</span><span id="line-124"></span><span class="hs-comment">--</span><span>
+</span><span id="line-125"></span><span class="hs-comment">-- Note that this will not work if the previous encoding can start with list</span><span>
+</span><span id="line-126"></span><span class="hs-comment">-- length 2, as the new versioned decoder will be called in those cases, not the</span><span>
+</span><span id="line-127"></span><span class="hs-comment">-- hook.</span><span>
+</span><span id="line-128"></span><span class="annot"><a href="Ouroboros.Consensus.Util.Versioned.html#decodeVersionWithHook"><span class="hs-identifier hs-type">decodeVersionWithHook</span></a></span><span>
+</span><span id="line-129"></span><span>  </span><span class="hs-glyph">::</span><span> </span><span class="hs-keyword">forall</span><span> </span><span id="local-6989586621680010404"><span class="annot"><a href="#local-6989586621680010404"><span class="hs-identifier hs-type">a</span></a></span></span><span class="hs-operator">.</span><span>
+</span><span id="line-130"></span><span>     </span><span class="hs-special">(</span><span class="hs-keyword">forall</span><span> </span><span id="local-6989586621680010540"><span class="annot"><a href="#local-6989586621680010540"><span class="hs-identifier hs-type">s</span></a></span></span><span class="hs-operator">.</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Decoder</span></span><span> </span><span class="annot"><a href="#local-6989586621680010540"><span class="hs-identifier hs-type">s</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680010404"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-131"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">[</span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Consensus.Util.Versioned.html#VersionNumber"><span class="hs-identifier hs-type">VersionNumber</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Util.Versioned.html#VersionDecoder"><span class="hs-identifier hs-type">VersionDecoder</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680010404"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span class="hs-special">]</span><span>
+</span><span id="line-132"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">forall</span><span> </span><span id="local-6989586621680010538"><span class="annot"><a href="#local-6989586621680010538"><span class="hs-identifier hs-type">s</span></a></span></span><span class="hs-operator">.</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Decoder</span></span><span> </span><span class="annot"><a href="#local-6989586621680010538"><span class="hs-identifier hs-type">s</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680010404"><span class="hs-identifier hs-type">a</span></a></span><span>
+</span><span id="line-133"></span><span id="decodeVersionWithHook"><span class="annot"><span class="annottext">decodeVersionWithHook :: (forall s. Maybe Int -&gt; Decoder s a)
 -&gt; [(VersionNumber, VersionDecoder a)] -&gt; forall s. Decoder s a
-</span><a href="Ouroboros.Consensus.Util.Versioned.html#decodeVersionWithHook"><span class="hs-identifier hs-var hs-var">decodeVersionWithHook</span></a></span></span><span> </span><span id="local-6989586621680010817"><span class="annot"><span class="annottext">forall s. Maybe Int -&gt; Decoder s a
-</span><a href="#local-6989586621680010817"><span class="hs-identifier hs-var">hook</span></a></span></span><span> </span><span id="local-6989586621680010816"><span class="annot"><span class="annottext">[(VersionNumber, VersionDecoder a)]
-</span><a href="#local-6989586621680010816"><span class="hs-identifier hs-var">versionDecoders</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
-</span><span id="line-135"></span><span>    </span><span id="local-6989586621680010815"><span class="annot"><span class="annottext">TokenType
-</span><a href="#local-6989586621680010815"><span class="hs-identifier hs-var">tokenType</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Decoder s TokenType
+</span><a href="Ouroboros.Consensus.Util.Versioned.html#decodeVersionWithHook"><span class="hs-identifier hs-var hs-var">decodeVersionWithHook</span></a></span></span><span> </span><span id="local-6989586621680010403"><span class="annot"><span class="annottext">forall s. Maybe Int -&gt; Decoder s a
+</span><a href="#local-6989586621680010403"><span class="hs-identifier hs-var">hook</span></a></span></span><span> </span><span id="local-6989586621680010402"><span class="annot"><span class="annottext">[(VersionNumber, VersionDecoder a)]
+</span><a href="#local-6989586621680010402"><span class="hs-identifier hs-var">versionDecoders</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-134"></span><span>    </span><span id="local-6989586621680010401"><span class="annot"><span class="annottext">TokenType
+</span><a href="#local-6989586621680010401"><span class="hs-identifier hs-var">tokenType</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Decoder s TokenType
 forall s. Decoder s TokenType
 </span><span class="hs-identifier hs-var">Dec.peekTokenType</span></span><span>
-</span><span id="line-136"></span><span>
-</span><span id="line-137"></span><span>    </span><span class="hs-keyword">if</span><span> </span><span class="annot"><span class="annottext">TokenType -&gt; Bool
-</span><a href="#local-6989586621680010813"><span class="hs-identifier hs-var">isListLen</span></a></span><span> </span><span class="annot"><span class="annottext">TokenType
-</span><a href="#local-6989586621680010815"><span class="hs-identifier hs-var">tokenType</span></a></span><span> </span><span class="hs-keyword">then</span><span> </span><span class="hs-keyword">do</span><span>
-</span><span id="line-138"></span><span>      </span><span id="local-6989586621680010812"><span class="annot"><span class="annottext">Int
-</span><a href="#local-6989586621680010812"><span class="hs-identifier hs-var">len</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Decoder s Int
+</span><span id="line-135"></span><span>
+</span><span id="line-136"></span><span>    </span><span class="hs-keyword">if</span><span> </span><span class="annot"><span class="annottext">TokenType -&gt; Bool
+</span><a href="#local-6989586621680010399"><span class="hs-identifier hs-var">isListLen</span></a></span><span> </span><span class="annot"><span class="annottext">TokenType
+</span><a href="#local-6989586621680010401"><span class="hs-identifier hs-var">tokenType</span></a></span><span> </span><span class="hs-keyword">then</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-137"></span><span>      </span><span id="local-6989586621680010398"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621680010398"><span class="hs-identifier hs-var">len</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Decoder s Int
 forall s. Decoder s Int
 </span><span class="hs-identifier hs-var">Dec.decodeListLen</span></span><span>
-</span><span id="line-139"></span><span>      </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">Int
-</span><a href="#local-6989586621680010812"><span class="hs-identifier hs-var">len</span></a></span><span> </span><span class="hs-keyword">of</span><span>
-</span><span id="line-140"></span><span>        </span><span class="annot"><span class="annottext">Int
+</span><span id="line-138"></span><span>      </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621680010398"><span class="hs-identifier hs-var">len</span></a></span><span> </span><span class="hs-keyword">of</span><span>
+</span><span id="line-139"></span><span>        </span><span class="annot"><span class="annottext">Int
 </span><span class="hs-number">2</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Decoder s a
 forall s. Decoder s a
-</span><a href="#local-6989586621680010810"><span class="hs-identifier hs-var">goVersioned</span></a></span><span>
-</span><span id="line-141"></span><span>        </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621680010396"><span class="hs-identifier hs-var">goVersioned</span></a></span><span>
+</span><span id="line-140"></span><span>        </span><span class="annot"><span class="annottext">Int
 </span><span class="hs-identifier">_</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Maybe Int -&gt; Decoder s a
 forall s. Maybe Int -&gt; Decoder s a
-</span><a href="#local-6989586621680010817"><span class="hs-identifier hs-var">hook</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; Maybe Int
+</span><a href="#local-6989586621680010403"><span class="hs-identifier hs-var">hook</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; Maybe Int
 forall a. a -&gt; Maybe a
 </span><span class="hs-identifier hs-var">Just</span></span><span> </span><span class="annot"><span class="annottext">Int
-</span><a href="#local-6989586621680010812"><span class="hs-identifier hs-var">len</span></a></span><span class="hs-special">)</span><span>
-</span><span id="line-142"></span><span>
-</span><span id="line-143"></span><span>    </span><span class="hs-keyword">else</span><span>
-</span><span id="line-144"></span><span>      </span><span class="annot"><span class="annottext">Maybe Int -&gt; Decoder s a
+</span><a href="#local-6989586621680010398"><span class="hs-identifier hs-var">len</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-141"></span><span>
+</span><span id="line-142"></span><span>    </span><span class="hs-keyword">else</span><span>
+</span><span id="line-143"></span><span>      </span><span class="annot"><span class="annottext">Maybe Int -&gt; Decoder s a
 forall s. Maybe Int -&gt; Decoder s a
-</span><a href="#local-6989586621680010817"><span class="hs-identifier hs-var">hook</span></a></span><span> </span><span class="annot"><span class="annottext">Maybe Int
+</span><a href="#local-6989586621680010403"><span class="hs-identifier hs-var">hook</span></a></span><span> </span><span class="annot"><span class="annottext">Maybe Int
 forall a. Maybe a
 </span><span class="hs-identifier hs-var">Nothing</span></span><span>
-</span><span id="line-145"></span><span>
-</span><span id="line-146"></span><span>  </span><span class="hs-keyword">where</span><span>
-</span><span id="line-147"></span><span>    </span><span class="annot"><a href="#local-6989586621680010813"><span class="hs-identifier hs-type">isListLen</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Dec.TokenType</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span><span>
-</span><span id="line-148"></span><span>    </span><span id="local-6989586621680010813"><span class="annot"><span class="annottext">isListLen :: TokenType -&gt; Bool
-</span><a href="#local-6989586621680010813"><span class="hs-identifier hs-var hs-var">isListLen</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-glyph">\</span><span class="hs-glyph">case</span><span>
-</span><span id="line-149"></span><span>        </span><span class="annot"><span class="annottext">TokenType
+</span><span id="line-144"></span><span>
+</span><span id="line-145"></span><span>  </span><span class="hs-keyword">where</span><span>
+</span><span id="line-146"></span><span>    </span><span class="annot"><a href="#local-6989586621680010399"><span class="hs-identifier hs-type">isListLen</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Dec.TokenType</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span><span>
+</span><span id="line-147"></span><span>    </span><span id="local-6989586621680010399"><span class="annot"><span class="annottext">isListLen :: TokenType -&gt; Bool
+</span><a href="#local-6989586621680010399"><span class="hs-identifier hs-var hs-var">isListLen</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-glyph">\</span><span class="hs-glyph">case</span><span>
+</span><span id="line-148"></span><span>        </span><span class="annot"><span class="annottext">TokenType
 </span><span class="hs-identifier hs-var">Dec.TypeListLen</span></span><span>   </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Bool
 </span><span class="hs-identifier hs-var">True</span></span><span>
-</span><span id="line-150"></span><span>        </span><span class="annot"><span class="annottext">TokenType
+</span><span id="line-149"></span><span>        </span><span class="annot"><span class="annottext">TokenType
 </span><span class="hs-identifier hs-var">Dec.TypeListLen64</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Bool
 </span><span class="hs-identifier hs-var">True</span></span><span>
-</span><span id="line-151"></span><span>        </span><span class="annot"><span class="annottext">TokenType
+</span><span id="line-150"></span><span>        </span><span class="annot"><span class="annottext">TokenType
 </span><span class="hs-identifier">_</span></span><span>                 </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Bool
 </span><span class="hs-identifier hs-var">False</span></span><span>
-</span><span id="line-152"></span><span>
-</span><span id="line-153"></span><span>    </span><span class="annot"><a href="#local-6989586621680010810"><span class="hs-identifier hs-type">goVersioned</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-keyword">forall</span><span> </span><span id="local-6989586621680010807"><span class="annot"><a href="#local-6989586621680010807"><span class="hs-identifier hs-type">s</span></a></span></span><span class="hs-operator">.</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Decoder</span></span><span> </span><span class="annot"><a href="#local-6989586621680010807"><span class="hs-identifier hs-type">s</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680010818"><span class="hs-identifier hs-type">a</span></a></span><span>
-</span><span id="line-154"></span><span>    </span><span id="local-6989586621680010810"><span class="annot"><span class="annottext">goVersioned :: Decoder s a
-</span><a href="#local-6989586621680010810"><span class="hs-identifier hs-var hs-var">goVersioned</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
-</span><span id="line-155"></span><span>        </span><span id="local-6989586621680010806"><span class="annot"><span class="annottext">VersionNumber
-</span><a href="#local-6989586621680010806"><span class="hs-identifier hs-var">vn</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Decoder s VersionNumber
+</span><span id="line-151"></span><span>
+</span><span id="line-152"></span><span>    </span><span class="annot"><a href="#local-6989586621680010396"><span class="hs-identifier hs-type">goVersioned</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-keyword">forall</span><span> </span><span id="local-6989586621680010393"><span class="annot"><a href="#local-6989586621680010393"><span class="hs-identifier hs-type">s</span></a></span></span><span class="hs-operator">.</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Decoder</span></span><span> </span><span class="annot"><a href="#local-6989586621680010393"><span class="hs-identifier hs-type">s</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680010404"><span class="hs-identifier hs-type">a</span></a></span><span>
+</span><span id="line-153"></span><span>    </span><span id="local-6989586621680010396"><span class="annot"><span class="annottext">goVersioned :: Decoder s a
+</span><a href="#local-6989586621680010396"><span class="hs-identifier hs-var hs-var">goVersioned</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-154"></span><span>        </span><span id="local-6989586621680010392"><span class="annot"><span class="annottext">VersionNumber
+</span><a href="#local-6989586621680010392"><span class="hs-identifier hs-var">vn</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Decoder s VersionNumber
 forall a s. Serialise a =&gt; Decoder s a
 </span><span class="hs-identifier hs-var">decode</span></span><span>
-</span><span id="line-156"></span><span>        </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">VersionNumber
+</span><span id="line-155"></span><span>        </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">VersionNumber
 -&gt; [(VersionNumber, VersionDecoder a)] -&gt; Maybe (VersionDecoder a)
 forall a b. Eq a =&gt; a -&gt; [(a, b)] -&gt; Maybe b
 </span><span class="hs-identifier hs-var">lookup</span></span><span> </span><span class="annot"><span class="annottext">VersionNumber
-</span><a href="#local-6989586621680010806"><span class="hs-identifier hs-var">vn</span></a></span><span> </span><span class="annot"><span class="annottext">[(VersionNumber, VersionDecoder a)]
-</span><a href="#local-6989586621680010816"><span class="hs-identifier hs-var">versionDecoders</span></a></span><span> </span><span class="hs-keyword">of</span><span>
-</span><span id="line-157"></span><span>          </span><span class="annot"><span class="annottext">Maybe (VersionDecoder a)
+</span><a href="#local-6989586621680010392"><span class="hs-identifier hs-var">vn</span></a></span><span> </span><span class="annot"><span class="annottext">[(VersionNumber, VersionDecoder a)]
+</span><a href="#local-6989586621680010402"><span class="hs-identifier hs-var">versionDecoders</span></a></span><span> </span><span class="hs-keyword">of</span><span>
+</span><span id="line-156"></span><span>          </span><span class="annot"><span class="annottext">Maybe (VersionDecoder a)
 </span><span class="hs-identifier hs-var">Nothing</span></span><span>   </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">String -&gt; Decoder s a
 forall (m :: * -&gt; *) a. MonadFail m =&gt; String -&gt; m a
 </span><span class="hs-identifier hs-var">fail</span></span><span> </span><span class="annot"><span class="annottext">(String -&gt; Decoder s a) -&gt; String -&gt; Decoder s a
@@ -449,52 +448,52 @@ forall a. Show a =&gt; a -&gt; String
 forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">VersionNumber -&gt; VersionError
 </span><a href="Ouroboros.Consensus.Util.Versioned.html#UnknownVersion"><span class="hs-identifier hs-var">UnknownVersion</span></a></span><span> </span><span class="annot"><span class="annottext">VersionNumber
-</span><a href="#local-6989586621680010806"><span class="hs-identifier hs-var">vn</span></a></span><span>
-</span><span id="line-158"></span><span>          </span><span class="annot"><span class="hs-identifier hs-type">Just</span></span><span> </span><span id="local-6989586621680010804"><span class="annot"><span class="annottext">VersionDecoder a
-</span><a href="#local-6989586621680010804"><span class="hs-identifier hs-var">vDec</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">VersionNumber -&gt; VersionDecoder a -&gt; forall s. Decoder s a
+</span><a href="#local-6989586621680010392"><span class="hs-identifier hs-var">vn</span></a></span><span>
+</span><span id="line-157"></span><span>          </span><span class="annot"><span class="hs-identifier hs-type">Just</span></span><span> </span><span id="local-6989586621680010390"><span class="annot"><span class="annottext">VersionDecoder a
+</span><a href="#local-6989586621680010390"><span class="hs-identifier hs-var">vDec</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">VersionNumber -&gt; VersionDecoder a -&gt; forall s. Decoder s a
 forall a.
 VersionNumber -&gt; VersionDecoder a -&gt; forall s. Decoder s a
 </span><a href="Ouroboros.Consensus.Util.Versioned.html#getVersionDecoder"><span class="hs-identifier hs-var">getVersionDecoder</span></a></span><span> </span><span class="annot"><span class="annottext">VersionNumber
-</span><a href="#local-6989586621680010806"><span class="hs-identifier hs-var">vn</span></a></span><span> </span><span class="annot"><span class="annottext">VersionDecoder a
-</span><a href="#local-6989586621680010804"><span class="hs-identifier hs-var">vDec</span></a></span><span>
-</span><span id="line-159"></span><span>
-</span><span id="line-160"></span><span id="local-6989586621680010803"><span class="annot"><a href="Ouroboros.Consensus.Util.Versioned.html#encodeVersioned"><span class="hs-identifier hs-type">encodeVersioned</span></a></span><span>
-</span><span id="line-161"></span><span>  </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span>          </span><span class="annot"><a href="#local-6989586621680010803"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Encoding</span></span><span class="hs-special">)</span><span>
-</span><span id="line-162"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Consensus.Util.Versioned.html#Versioned"><span class="hs-identifier hs-type">Versioned</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680010803"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Encoding</span></span><span class="hs-special">)</span></span><span>
-</span><span id="line-163"></span><span id="encodeVersioned"><span class="annot"><span class="annottext">encodeVersioned :: (a -&gt; Encoding) -&gt; Versioned a -&gt; Encoding
-</span><a href="Ouroboros.Consensus.Util.Versioned.html#encodeVersioned"><span class="hs-identifier hs-var hs-var">encodeVersioned</span></a></span></span><span> </span><span id="local-6989586621680010802"><span class="annot"><span class="annottext">a -&gt; Encoding
-</span><a href="#local-6989586621680010802"><span class="hs-identifier hs-var">enc</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Consensus.Util.Versioned.html#Versioned"><span class="hs-identifier hs-type">Versioned</span></a></span><span> </span><span id="local-6989586621680010801"><span class="annot"><span class="annottext">VersionNumber
-</span><a href="#local-6989586621680010801"><span class="hs-identifier hs-var">vn</span></a></span></span><span> </span><span id="local-6989586621680010800"><span class="annot"><span class="annottext">a
-</span><a href="#local-6989586621680010800"><span class="hs-identifier hs-var">a</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span>
-</span><span id="line-164"></span><span>    </span><span class="annot"><span class="annottext">VersionNumber -&gt; Encoding -&gt; Encoding
+</span><a href="#local-6989586621680010392"><span class="hs-identifier hs-var">vn</span></a></span><span> </span><span class="annot"><span class="annottext">VersionDecoder a
+</span><a href="#local-6989586621680010390"><span class="hs-identifier hs-var">vDec</span></a></span><span>
+</span><span id="line-158"></span><span>
+</span><span id="line-159"></span><span id="local-6989586621680010389"><span class="annot"><a href="Ouroboros.Consensus.Util.Versioned.html#encodeVersioned"><span class="hs-identifier hs-type">encodeVersioned</span></a></span><span>
+</span><span id="line-160"></span><span>  </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span>          </span><span class="annot"><a href="#local-6989586621680010389"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Encoding</span></span><span class="hs-special">)</span><span>
+</span><span id="line-161"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Consensus.Util.Versioned.html#Versioned"><span class="hs-identifier hs-type">Versioned</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680010389"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Encoding</span></span><span class="hs-special">)</span></span><span>
+</span><span id="line-162"></span><span id="encodeVersioned"><span class="annot"><span class="annottext">encodeVersioned :: (a -&gt; Encoding) -&gt; Versioned a -&gt; Encoding
+</span><a href="Ouroboros.Consensus.Util.Versioned.html#encodeVersioned"><span class="hs-identifier hs-var hs-var">encodeVersioned</span></a></span></span><span> </span><span id="local-6989586621680010388"><span class="annot"><span class="annottext">a -&gt; Encoding
+</span><a href="#local-6989586621680010388"><span class="hs-identifier hs-var">enc</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Consensus.Util.Versioned.html#Versioned"><span class="hs-identifier hs-type">Versioned</span></a></span><span> </span><span id="local-6989586621680010387"><span class="annot"><span class="annottext">VersionNumber
+</span><a href="#local-6989586621680010387"><span class="hs-identifier hs-var">vn</span></a></span></span><span> </span><span id="local-6989586621680010386"><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621680010386"><span class="hs-identifier hs-var">a</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-163"></span><span>    </span><span class="annot"><span class="annottext">VersionNumber -&gt; Encoding -&gt; Encoding
 </span><a href="Ouroboros.Consensus.Util.Versioned.html#encodeVersion"><span class="hs-identifier hs-var">encodeVersion</span></a></span><span> </span><span class="annot"><span class="annottext">VersionNumber
-</span><a href="#local-6989586621680010801"><span class="hs-identifier hs-var">vn</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">a -&gt; Encoding
-</span><a href="#local-6989586621680010802"><span class="hs-identifier hs-var">enc</span></a></span><span> </span><span class="annot"><span class="annottext">a
-</span><a href="#local-6989586621680010800"><span class="hs-identifier hs-var">a</span></a></span><span class="hs-special">)</span><span>
-</span><span id="line-165"></span><span>
-</span><span id="line-166"></span><span id="local-6989586621680010955"><span class="annot"><a href="Ouroboros.Consensus.Util.Versioned.html#decodeVersioned"><span class="hs-identifier hs-type">decodeVersioned</span></a></span><span>
-</span><span id="line-167"></span><span>  </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">[</span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Consensus.Util.Versioned.html#VersionNumber"><span class="hs-identifier hs-type">VersionNumber</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Util.Versioned.html#VersionDecoder"><span class="hs-identifier hs-type">VersionDecoder</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680010955"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span class="hs-special">]</span><span>
-</span><span id="line-168"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">forall</span><span> </span><span id="local-6989586621680010956"><span class="annot"><a href="#local-6989586621680010956"><span class="hs-identifier hs-type">s</span></a></span></span><span class="hs-operator">.</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Decoder</span></span><span> </span><span class="annot"><a href="#local-6989586621680010956"><span class="hs-identifier hs-type">s</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Consensus.Util.Versioned.html#Versioned"><span class="hs-identifier hs-type">Versioned</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680010955"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span></span><span>
-</span><span id="line-169"></span><span id="decodeVersioned"><span class="annot"><span class="annottext">decodeVersioned :: [(VersionNumber, VersionDecoder a)]
+</span><a href="#local-6989586621680010387"><span class="hs-identifier hs-var">vn</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">a -&gt; Encoding
+</span><a href="#local-6989586621680010388"><span class="hs-identifier hs-var">enc</span></a></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621680010386"><span class="hs-identifier hs-var">a</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-164"></span><span>
+</span><span id="line-165"></span><span id="local-6989586621680010541"><span class="annot"><a href="Ouroboros.Consensus.Util.Versioned.html#decodeVersioned"><span class="hs-identifier hs-type">decodeVersioned</span></a></span><span>
+</span><span id="line-166"></span><span>  </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">[</span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Consensus.Util.Versioned.html#VersionNumber"><span class="hs-identifier hs-type">VersionNumber</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Util.Versioned.html#VersionDecoder"><span class="hs-identifier hs-type">VersionDecoder</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680010541"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span class="hs-special">]</span><span>
+</span><span id="line-167"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">forall</span><span> </span><span id="local-6989586621680010542"><span class="annot"><a href="#local-6989586621680010542"><span class="hs-identifier hs-type">s</span></a></span></span><span class="hs-operator">.</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Decoder</span></span><span> </span><span class="annot"><a href="#local-6989586621680010542"><span class="hs-identifier hs-type">s</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Consensus.Util.Versioned.html#Versioned"><span class="hs-identifier hs-type">Versioned</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680010541"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span></span><span>
+</span><span id="line-168"></span><span id="decodeVersioned"><span class="annot"><span class="annottext">decodeVersioned :: [(VersionNumber, VersionDecoder a)]
 -&gt; forall s. Decoder s (Versioned a)
-</span><a href="Ouroboros.Consensus.Util.Versioned.html#decodeVersioned"><span class="hs-identifier hs-var hs-var">decodeVersioned</span></a></span></span><span> </span><span id="local-6989586621680010799"><span class="annot"><span class="annottext">[(VersionNumber, VersionDecoder a)]
-</span><a href="#local-6989586621680010799"><span class="hs-identifier hs-var">versionDecoders</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
-</span><span id="line-170"></span><span>    </span><span class="annot"><span class="annottext">Text -&gt; Int -&gt; Decoder s ()
+</span><a href="Ouroboros.Consensus.Util.Versioned.html#decodeVersioned"><span class="hs-identifier hs-var hs-var">decodeVersioned</span></a></span></span><span> </span><span id="local-6989586621680010385"><span class="annot"><span class="annottext">[(VersionNumber, VersionDecoder a)]
+</span><a href="#local-6989586621680010385"><span class="hs-identifier hs-var">versionDecoders</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-169"></span><span>    </span><span class="annot"><span class="annottext">Text -&gt; Int -&gt; Decoder s ()
 forall s. Text -&gt; Int -&gt; Decoder s ()
 </span><span class="hs-identifier hs-var">enforceSize</span></span><span> </span><span class="annot"><span class="annottext">Text
 </span><span class="hs-string">&quot;Versioned&quot;</span></span><span> </span><span class="annot"><span class="annottext">Int
 </span><span class="hs-number">2</span></span><span>
-</span><span id="line-171"></span><span>    </span><span id="local-6989586621680010798"><span class="annot"><span class="annottext">VersionNumber
-</span><a href="#local-6989586621680010798"><span class="hs-identifier hs-var">vn</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Decoder s VersionNumber
+</span><span id="line-170"></span><span>    </span><span id="local-6989586621680010384"><span class="annot"><span class="annottext">VersionNumber
+</span><a href="#local-6989586621680010384"><span class="hs-identifier hs-var">vn</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Decoder s VersionNumber
 forall a s. Serialise a =&gt; Decoder s a
 </span><span class="hs-identifier hs-var">decode</span></span><span>
-</span><span id="line-172"></span><span>    </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">VersionNumber
+</span><span id="line-171"></span><span>    </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">VersionNumber
 -&gt; [(VersionNumber, VersionDecoder a)] -&gt; Maybe (VersionDecoder a)
 forall a b. Eq a =&gt; a -&gt; [(a, b)] -&gt; Maybe b
 </span><span class="hs-identifier hs-var">lookup</span></span><span> </span><span class="annot"><span class="annottext">VersionNumber
-</span><a href="#local-6989586621680010798"><span class="hs-identifier hs-var">vn</span></a></span><span> </span><span class="annot"><span class="annottext">[(VersionNumber, VersionDecoder a)]
-</span><a href="#local-6989586621680010799"><span class="hs-identifier hs-var">versionDecoders</span></a></span><span> </span><span class="hs-keyword">of</span><span>
-</span><span id="line-173"></span><span>      </span><span class="annot"><span class="annottext">Maybe (VersionDecoder a)
+</span><a href="#local-6989586621680010384"><span class="hs-identifier hs-var">vn</span></a></span><span> </span><span class="annot"><span class="annottext">[(VersionNumber, VersionDecoder a)]
+</span><a href="#local-6989586621680010385"><span class="hs-identifier hs-var">versionDecoders</span></a></span><span> </span><span class="hs-keyword">of</span><span>
+</span><span id="line-172"></span><span>      </span><span class="annot"><span class="annottext">Maybe (VersionDecoder a)
 </span><span class="hs-identifier hs-var">Nothing</span></span><span>   </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">String -&gt; Decoder s (Versioned a)
 forall (m :: * -&gt; *) a. MonadFail m =&gt; String -&gt; m a
 </span><span class="hs-identifier hs-var">fail</span></span><span> </span><span class="annot"><span class="annottext">(String -&gt; Decoder s (Versioned a))
@@ -506,17 +505,17 @@ forall a. Show a =&gt; a -&gt; String
 forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">VersionNumber -&gt; VersionError
 </span><a href="Ouroboros.Consensus.Util.Versioned.html#UnknownVersion"><span class="hs-identifier hs-var">UnknownVersion</span></a></span><span> </span><span class="annot"><span class="annottext">VersionNumber
-</span><a href="#local-6989586621680010798"><span class="hs-identifier hs-var">vn</span></a></span><span>
-</span><span id="line-174"></span><span>      </span><span class="annot"><span class="hs-identifier hs-type">Just</span></span><span> </span><span id="local-6989586621680010797"><span class="annot"><span class="annottext">VersionDecoder a
-</span><a href="#local-6989586621680010797"><span class="hs-identifier hs-var">vDec</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">VersionNumber -&gt; a -&gt; Versioned a
+</span><a href="#local-6989586621680010384"><span class="hs-identifier hs-var">vn</span></a></span><span>
+</span><span id="line-173"></span><span>      </span><span class="annot"><span class="hs-identifier hs-type">Just</span></span><span> </span><span id="local-6989586621680010383"><span class="annot"><span class="annottext">VersionDecoder a
+</span><a href="#local-6989586621680010383"><span class="hs-identifier hs-var">vDec</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">VersionNumber -&gt; a -&gt; Versioned a
 forall a. VersionNumber -&gt; a -&gt; Versioned a
 </span><a href="Ouroboros.Consensus.Util.Versioned.html#Versioned"><span class="hs-identifier hs-var">Versioned</span></a></span><span> </span><span class="annot"><span class="annottext">VersionNumber
-</span><a href="#local-6989586621680010798"><span class="hs-identifier hs-var">vn</span></a></span><span> </span><span class="annot"><span class="annottext">(a -&gt; Versioned a) -&gt; Decoder s a -&gt; Decoder s (Versioned a)
+</span><a href="#local-6989586621680010384"><span class="hs-identifier hs-var">vn</span></a></span><span> </span><span class="annot"><span class="annottext">(a -&gt; Versioned a) -&gt; Decoder s a -&gt; Decoder s (Versioned a)
 forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
 </span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">VersionNumber -&gt; VersionDecoder a -&gt; forall s. Decoder s a
 forall a.
 VersionNumber -&gt; VersionDecoder a -&gt; forall s. Decoder s a
 </span><a href="Ouroboros.Consensus.Util.Versioned.html#getVersionDecoder"><span class="hs-identifier hs-var">getVersionDecoder</span></a></span><span> </span><span class="annot"><span class="annottext">VersionNumber
-</span><a href="#local-6989586621680010798"><span class="hs-identifier hs-var">vn</span></a></span><span> </span><span class="annot"><span class="annottext">VersionDecoder a
-</span><a href="#local-6989586621680010797"><span class="hs-identifier hs-var">vDec</span></a></span><span>
-</span><span id="line-175"></span></pre></body></html>
+</span><a href="#local-6989586621680010384"><span class="hs-identifier hs-var">vn</span></a></span><span> </span><span class="annot"><span class="annottext">VersionDecoder a
+</span><a href="#local-6989586621680010383"><span class="hs-identifier hs-var">vDec</span></a></span><span>
+</span><span id="line-174"></span></pre></body></html>
