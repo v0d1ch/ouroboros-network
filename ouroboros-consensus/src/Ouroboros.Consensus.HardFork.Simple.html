@@ -1,25 +1,27 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-pragma">{-# LANGUAGE DeriveAnyClass #-}</span><span>
 </span><span id="line-2"></span><span class="hs-pragma">{-# LANGUAGE DeriveGeneric  #-}</span><span>
 </span><span id="line-3"></span><span>
-</span><span id="line-4"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Ouroboros.Consensus.HardFork.Simple</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Consensus.HardFork.Simple.html#TriggerHardFork"><span class="hs-identifier">TriggerHardFork</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-5"></span><span>
-</span><span id="line-6"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><span class="hs-identifier">Data.Word</span></span><span>
-</span><span id="line-7"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><span class="hs-identifier">GHC.Generics</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Generic</span></span><span class="hs-special">)</span><span>
-</span><span id="line-8"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><span class="hs-identifier">NoThunks.Class</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">NoThunks</span></span><span class="hs-special">)</span><span>
-</span><span id="line-9"></span><span>
-</span><span id="line-10"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><span class="hs-identifier">Cardano.Slotting.Slot</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">EpochNo</span></span><span class="hs-special">)</span><span>
+</span><span id="line-4"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Ouroboros.Consensus.HardFork.Simple</span><span> </span><span class="hs-special">(</span><span>
+</span><span id="line-5"></span><span>    </span><span class="annot"><a href="Ouroboros.Consensus.HardFork.Simple.html#TriggerHardFork"><span class="hs-identifier">TriggerHardFork</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
+</span><span id="line-6"></span><span>  </span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-7"></span><span>
+</span><span id="line-8"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><span class="hs-identifier">Data.Word</span></span><span>
+</span><span id="line-9"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><span class="hs-identifier">GHC.Generics</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Generic</span></span><span class="hs-special">)</span><span>
+</span><span id="line-10"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><span class="hs-identifier">NoThunks.Class</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">NoThunks</span></span><span class="hs-special">)</span><span>
 </span><span id="line-11"></span><span>
-</span><span id="line-12"></span><span class="hs-comment">-- | The trigger condition that will cause the hard fork transition.</span><span>
-</span><span id="line-13"></span><span id="local-6989586621679982140"><span id="local-6989586621679982141"></span></span><span class="hs-keyword">data</span><span> </span><span id="TriggerHardFork"><span class="annot"><a href="Ouroboros.Consensus.HardFork.Simple.html#TriggerHardFork"><span class="hs-identifier hs-var">TriggerHardFork</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
-</span><span id="line-14"></span><span>    </span><span class="hs-comment">-- | Trigger the transition when the on-chain protocol major version (from</span><span>
-</span><span id="line-15"></span><span>    </span><span class="hs-comment">-- the ledger state) reaches this number.</span><span>
-</span><span id="line-16"></span><span>    </span><span id="TriggerHardForkAtVersion"><span class="annot"><a href="Ouroboros.Consensus.HardFork.Simple.html#TriggerHardForkAtVersion"><span class="hs-identifier hs-var">TriggerHardForkAtVersion</span></a></span></span><span> </span><span class="hs-glyph">!</span><span class="annot"><span class="hs-identifier hs-type">Word16</span></span><span>
-</span><span id="line-17"></span><span>    </span><span class="hs-comment">-- | For testing only, trigger the transition at a specific hard-coded</span><span>
-</span><span id="line-18"></span><span>    </span><span class="hs-comment">-- epoch, irrespective of the ledger state.</span><span>
-</span><span id="line-19"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span id="TriggerHardForkAtEpoch"><span class="annot"><a href="Ouroboros.Consensus.HardFork.Simple.html#TriggerHardForkAtEpoch"><span class="hs-identifier hs-var">TriggerHardForkAtEpoch</span></a></span></span><span> </span><span class="hs-glyph">!</span><span class="annot"><span class="hs-identifier hs-type">EpochNo</span></span><span>
-</span><span id="line-20"></span><span>    </span><span class="hs-comment">-- | Never trigger a hard fork</span><span>
-</span><span id="line-21"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span id="TriggerHardForkNever"><span class="annot"><a href="Ouroboros.Consensus.HardFork.Simple.html#TriggerHardForkNever"><span class="hs-identifier hs-var">TriggerHardForkNever</span></a></span></span><span>
-</span><span id="line-22"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679982131"><span id="local-6989586621679982133"><span id="local-6989586621679982135"><span class="annot"><span class="annottext">Int -&gt; TriggerHardFork -&gt; ShowS
+</span><span id="line-12"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><span class="hs-identifier">Cardano.Slotting.Slot</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">EpochNo</span></span><span class="hs-special">)</span><span>
+</span><span id="line-13"></span><span>
+</span><span id="line-14"></span><span class="hs-comment">-- | The trigger condition that will cause the hard fork transition.</span><span>
+</span><span id="line-15"></span><span id="local-6989586621679981046"><span id="local-6989586621679981047"></span></span><span class="hs-keyword">data</span><span> </span><span id="TriggerHardFork"><span class="annot"><a href="Ouroboros.Consensus.HardFork.Simple.html#TriggerHardFork"><span class="hs-identifier hs-var">TriggerHardFork</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-16"></span><span>    </span><span class="hs-comment">-- | Trigger the transition when the on-chain protocol major version (from</span><span>
+</span><span id="line-17"></span><span>    </span><span class="hs-comment">-- the ledger state) reaches this number.</span><span>
+</span><span id="line-18"></span><span>    </span><span id="TriggerHardForkAtVersion"><span class="annot"><a href="Ouroboros.Consensus.HardFork.Simple.html#TriggerHardForkAtVersion"><span class="hs-identifier hs-var">TriggerHardForkAtVersion</span></a></span></span><span> </span><span class="hs-glyph">!</span><span class="annot"><span class="hs-identifier hs-type">Word16</span></span><span>
+</span><span id="line-19"></span><span>    </span><span class="hs-comment">-- | For testing only, trigger the transition at a specific hard-coded</span><span>
+</span><span id="line-20"></span><span>    </span><span class="hs-comment">-- epoch, irrespective of the ledger state.</span><span>
+</span><span id="line-21"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span id="TriggerHardForkAtEpoch"><span class="annot"><a href="Ouroboros.Consensus.HardFork.Simple.html#TriggerHardForkAtEpoch"><span class="hs-identifier hs-var">TriggerHardForkAtEpoch</span></a></span></span><span> </span><span class="hs-glyph">!</span><span class="annot"><span class="hs-identifier hs-type">EpochNo</span></span><span>
+</span><span id="line-22"></span><span>    </span><span class="hs-comment">-- | Never trigger a hard fork</span><span>
+</span><span id="line-23"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span id="TriggerHardForkNever"><span class="annot"><a href="Ouroboros.Consensus.HardFork.Simple.html#TriggerHardForkNever"><span class="hs-identifier hs-var">TriggerHardForkNever</span></a></span></span><span>
+</span><span id="line-24"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679981037"><span id="local-6989586621679981039"><span id="local-6989586621679981041"><span class="annot"><span class="annottext">Int -&gt; TriggerHardFork -&gt; ShowS
 [TriggerHardFork] -&gt; ShowS
 TriggerHardFork -&gt; String
 (Int -&gt; TriggerHardFork -&gt; ShowS)
@@ -43,7 +45,7 @@ forall a.
 (forall x. a -&gt; Rep a x) -&gt; (forall x. Rep a x -&gt; a) -&gt; Generic a
 $cto :: forall x. Rep TriggerHardFork x -&gt; TriggerHardFork
 $cfrom :: forall x. TriggerHardFork -&gt; Rep TriggerHardFork x
-</span><span class="hs-identifier hs-var hs-var hs-var hs-var">Generic</span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679982121"><span id="local-6989586621679982123"><span id="local-6989586621679982125"><span class="annot"><span class="annottext">Context -&gt; TriggerHardFork -&gt; IO (Maybe ThunkInfo)
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">Generic</span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679981027"><span id="local-6989586621679981029"><span id="local-6989586621679981031"><span class="annot"><span class="annottext">Context -&gt; TriggerHardFork -&gt; IO (Maybe ThunkInfo)
 Proxy TriggerHardFork -&gt; String
 (Context -&gt; TriggerHardFork -&gt; IO (Maybe ThunkInfo))
 -&gt; (Context -&gt; TriggerHardFork -&gt; IO (Maybe ThunkInfo))
@@ -61,4 +63,4 @@ $cwNoThunks :: Context -&gt; TriggerHardFork -&gt; IO (Maybe ThunkInfo)
 noThunks :: Context -&gt; TriggerHardFork -&gt; IO (Maybe ThunkInfo)
 $cnoThunks :: Context -&gt; TriggerHardFork -&gt; IO (Maybe ThunkInfo)
 </span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">NoThunks</span></span></span></span></span><span class="hs-special">)</span><span>
-</span><span id="line-23"></span></pre></body></html>
+</span><span id="line-25"></span></pre></body></html>
