@@ -58,7 +58,7 @@ forkJob :: forall m a.
            (MonadAsync m, MonadMask m)
         => JobPool m a
         -> Job     m a
-        -> m ()
+        -> m (Async m ())
 forkJob JobPool{jobsVar, completionQueue} (Job action handler label) =
     mask $ \restore -> do
       jobAsync <- async $ do
@@ -72,6 +72,7 @@ forkJob JobPool{jobsVar, completionQueue} (Job action handler label) =
 
       let !tid = asyncThreadId (Proxy :: Proxy m) jobAsync
       atomically $ modifyTVar' jobsVar (Map.insert tid jobAsync)
+      return jobAsync
   where
     notAsyncExceptions :: SomeException -> Maybe SomeException
     notAsyncExceptions e
