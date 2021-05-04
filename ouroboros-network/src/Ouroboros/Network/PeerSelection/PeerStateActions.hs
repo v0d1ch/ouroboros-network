@@ -525,6 +525,7 @@ withPeerStateActions
     :: forall (muxMode :: MuxMode) socket peerAddr versionNumber m a b x.
        ( MonadAsync         m
        , MonadCatch         m
+       , MonadThrow    (STM m)
        , MonadMask          m
        , HasInitiator muxMode ~ True
        , Typeable versionNumber
@@ -639,7 +640,7 @@ withPeerStateActions timeout
 
 
 
-    establishPeerConnection :: JobPool m (Maybe SomeException)
+    establishPeerConnection :: JobPool () m (Maybe SomeException)
                             -> peerAddr
                             -> m (PeerConnectionHandle muxMode peerAddr ByteString m a b)
     establishPeerConnection jobPool remotePeerAddr =
@@ -673,7 +674,7 @@ withPeerStateActions timeout
                                             awaitVarBundle
                       }
 
-              JobPool.forkJob jobPool
+              _ <- JobPool.forkJob jobPool
                               (Job (handleJust
                                      (\e -> case fromException e of
                                         Just SomeAsyncException {} -> Nothing
@@ -682,7 +683,8 @@ withPeerStateActions timeout
                                         traceWith spsTracer (PeerMonitoringError connectionId e)
                                         throwIO e)
                                      (peerMonitoringLoop connHandle $> Nothing))
-                                   Just
+                                   (return . Just)
+                                   ()
                                    ("peerMonitoringLoop " ++ show remoteAddress))
               startProtocols TokWarm connHandle
               startProtocols TokEstablished connHandle
@@ -916,6 +918,7 @@ mkApplicationHandleBundle muxBundle controlMessageBundle awaitVarsBundle =
 startProtocols :: forall (muxMode :: MuxMode) (pt :: ProtocolTemperature) peerAddr m a b.
                   ( MonadAsync m
                   , MonadCatch m
+                  , MonadThrow (STM m)
                   , HasInitiator muxMode ~ True
                   )
                => TokProtocolTemperature pt

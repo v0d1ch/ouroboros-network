@@ -80,6 +80,7 @@ import qualified Ouroboros.Network.InboundGovernor.ControlChannel as ControlChan
 inboundGovernor :: forall (muxMode :: MuxMode) socket peerAddr versionNumber m a b.
                    ( MonadAsync m
                    , MonadCatch m
+                   , MonadThrow (STM m)
                    , MonadTime  m
                    , MonadTimer m
                    , Ord peerAddr
@@ -351,6 +352,7 @@ runResponder :: forall (mode :: MuxMode) m a b.
                  ( HasResponder mode ~ True
                  , MonadAsync m
                  , MonadCatch m
+                 , MonadThrow (STM m)
                  )
               => Mux.Mux mode m
               -> MiniProtocol mode ByteString m a b
