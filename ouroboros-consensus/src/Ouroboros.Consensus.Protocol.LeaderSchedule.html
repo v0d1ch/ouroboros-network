@@ -6,25 +6,21 @@
 </span><span id="line-6"></span><span class="hs-pragma">{-# LANGUAGE TypeFamilies       #-}</span><span>
 </span><span id="line-7"></span><span>
 </span><span id="line-8"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Ouroboros.Consensus.Protocol.LeaderSchedule</span><span> </span><span class="hs-special">(</span><span>
-</span><span id="line-9"></span><span>    </span><span class="annot"><a href="Ouroboros.Consensus.Protocol.Abstract.html#ConsensusConfig"><span class="hs-identifier">ConsensusConfig</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
-</span><span id="line-10"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Protocol.LeaderSchedule.html#LeaderSchedule"><span class="hs-identifier">LeaderSchedule</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
-</span><span id="line-11"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Protocol.LeaderSchedule.html#WithLeaderSchedule"><span class="hs-identifier">WithLeaderSchedule</span></a></span><span>
-</span><span id="line-12"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Protocol.LeaderSchedule.html#leaderScheduleFor"><span class="hs-identifier">leaderScheduleFor</span></a></span><span>
-</span><span id="line-13"></span><span>  </span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-14"></span><span>
-</span><span id="line-15"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><span class="hs-identifier">Data.Map.Strict</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Map</span></span><span class="hs-special">)</span><span>
-</span><span id="line-16"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Data.Map.Strict</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Map</span></span><span>
-</span><span id="line-17"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><span class="hs-identifier">Data.Set</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Set</span></span><span class="hs-special">)</span><span>
-</span><span id="line-18"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><span class="hs-identifier">GHC.Generics</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Generic</span></span><span class="hs-special">)</span><span>
-</span><span id="line-19"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><span class="hs-identifier">NoThunks.Class</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">NoThunks</span></span><span class="hs-special">)</span><span>
-</span><span id="line-20"></span><span>
-</span><span id="line-21"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="Ouroboros.Consensus.Block.html"><span class="hs-identifier">Ouroboros.Consensus.Block</span></a></span><span>
-</span><span id="line-22"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="Ouroboros.Consensus.NodeId.html"><span class="hs-identifier">Ouroboros.Consensus.NodeId</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Consensus.NodeId.html#CoreNodeId"><span class="hs-identifier">CoreNodeId</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.NodeId.html#fromCoreNodeId"><span class="hs-identifier">fromCoreNodeId</span></a></span><span class="hs-special">)</span><span>
-</span><span id="line-23"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="Ouroboros.Consensus.Protocol.Abstract.html"><span class="hs-identifier">Ouroboros.Consensus.Protocol.Abstract</span></a></span><span>
-</span><span id="line-24"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="Ouroboros.Consensus.Ticked.html"><span class="hs-identifier">Ouroboros.Consensus.Ticked</span></a></span><span>
-</span><span id="line-25"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="Ouroboros.Consensus.Util.Condense.html"><span class="hs-identifier">Ouroboros.Consensus.Util.Condense</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Consensus.Util.Condense.html#Condense"><span class="hs-identifier">Condense</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
-</span><span id="line-26"></span><span>
-</span><span id="line-27"></span><span class="hs-comment">{-------------------------------------------------------------------------------
+</span><span id="line-9"></span><span>    </span><span class="annot"><a href="Ouroboros.Consensus.Protocol.LeaderSchedule.html#LeaderSchedule"><span class="hs-identifier">LeaderSchedule</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
+</span><span id="line-10"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Protocol.LeaderSchedule.html#leaderScheduleFor"><span class="hs-identifier">leaderScheduleFor</span></a></span><span>
+</span><span id="line-11"></span><span>  </span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-12"></span><span>
+</span><span id="line-13"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><span class="hs-identifier">Data.Map.Strict</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Map</span></span><span class="hs-special">)</span><span>
+</span><span id="line-14"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Data.Map.Strict</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Map</span></span><span>
+</span><span id="line-15"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><span class="hs-identifier">Data.Set</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Set</span></span><span class="hs-special">)</span><span>
+</span><span id="line-16"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><span class="hs-identifier">GHC.Generics</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Generic</span></span><span class="hs-special">)</span><span>
+</span><span id="line-17"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><span class="hs-identifier">NoThunks.Class</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">NoThunks</span></span><span class="hs-special">)</span><span>
+</span><span id="line-18"></span><span>
+</span><span id="line-19"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="Ouroboros.Consensus.Block.html"><span class="hs-identifier">Ouroboros.Consensus.Block</span></a></span><span>
+</span><span id="line-20"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="Ouroboros.Consensus.NodeId.html"><span class="hs-identifier">Ouroboros.Consensus.NodeId</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Consensus.NodeId.html#CoreNodeId"><span class="hs-identifier">CoreNodeId</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.NodeId.html#fromCoreNodeId"><span class="hs-identifier">fromCoreNodeId</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-21"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="Ouroboros.Consensus.Util.Condense.html"><span class="hs-identifier">Ouroboros.Consensus.Util.Condense</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Consensus.Util.Condense.html#Condense"><span class="hs-identifier">Condense</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-22"></span><span>
+</span><span id="line-23"></span><span class="hs-comment">{-------------------------------------------------------------------------------
   Leader schedule
 
   The leader schedule allows us to define, in tests, precisely when each node
@@ -32,12 +28,12 @@
   random seed, this gives us the ability to construct test cases in an
   inspectable and shrinkable manner.
 -------------------------------------------------------------------------------}</span><span>
-</span><span id="line-35"></span><span>
-</span><span id="line-36"></span><span id="local-6989586621679989252"><span id="local-6989586621679989253"></span></span><span class="hs-keyword">newtype</span><span> </span><span id="LeaderSchedule"><span class="annot"><a href="Ouroboros.Consensus.Protocol.LeaderSchedule.html#LeaderSchedule"><span class="hs-identifier hs-var">LeaderSchedule</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="LeaderSchedule"><span class="annot"><a href="Ouroboros.Consensus.Protocol.LeaderSchedule.html#LeaderSchedule"><span class="hs-identifier hs-var">LeaderSchedule</span></a></span></span><span> </span><span class="hs-special">{</span><span>
-</span><span id="line-37"></span><span>        </span><span id="getLeaderSchedule"><span class="annot"><span class="annottext">LeaderSchedule -&gt; Map SlotNo [CoreNodeId]
+</span><span id="line-31"></span><span>
+</span><span id="line-32"></span><span id="local-6989586621679999419"><span id="local-6989586621679999420"></span></span><span class="hs-keyword">newtype</span><span> </span><span id="LeaderSchedule"><span class="annot"><a href="Ouroboros.Consensus.Protocol.LeaderSchedule.html#LeaderSchedule"><span class="hs-identifier hs-var">LeaderSchedule</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="LeaderSchedule"><span class="annot"><a href="Ouroboros.Consensus.Protocol.LeaderSchedule.html#LeaderSchedule"><span class="hs-identifier hs-var">LeaderSchedule</span></a></span></span><span> </span><span class="hs-special">{</span><span>
+</span><span id="line-33"></span><span>        </span><span id="getLeaderSchedule"><span class="annot"><span class="annottext">LeaderSchedule -&gt; Map SlotNo [CoreNodeId]
 </span><a href="Ouroboros.Consensus.Protocol.LeaderSchedule.html#getLeaderSchedule"><span class="hs-identifier hs-var hs-var">getLeaderSchedule</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Map</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">SlotNo</span></span><span> </span><span class="hs-special">[</span><span class="annot"><a href="Ouroboros.Consensus.NodeId.html#CoreNodeId"><span class="hs-identifier hs-type">CoreNodeId</span></a></span><span class="hs-special">]</span><span>
-</span><span id="line-38"></span><span>      </span><span class="hs-special">}</span><span>
-</span><span id="line-39"></span><span>    </span><span class="hs-keyword">deriving</span><span> </span><span class="annot"><span class="hs-keyword">stock</span></span><span>    </span><span class="hs-special">(</span><span id="local-6989586621679989244"><span id="local-6989586621679989246"><span id="local-6989586621679989248"><span class="annot"><span class="annottext">Int -&gt; LeaderSchedule -&gt; ShowS
+</span><span id="line-34"></span><span>      </span><span class="hs-special">}</span><span>
+</span><span id="line-35"></span><span>    </span><span class="hs-keyword">deriving</span><span> </span><span class="annot"><span class="hs-keyword">stock</span></span><span>    </span><span class="hs-special">(</span><span id="local-6989586621679999411"><span id="local-6989586621679999413"><span id="local-6989586621679999415"><span class="annot"><span class="annottext">Int -&gt; LeaderSchedule -&gt; ShowS
 [LeaderSchedule] -&gt; ShowS
 LeaderSchedule -&gt; String
 (Int -&gt; LeaderSchedule -&gt; ShowS)
@@ -52,7 +48,7 @@ show :: LeaderSchedule -&gt; String
 $cshow :: LeaderSchedule -&gt; String
 showsPrec :: Int -&gt; LeaderSchedule -&gt; ShowS
 $cshowsPrec :: Int -&gt; LeaderSchedule -&gt; ShowS
-</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679989239"><span id="local-6989586621679989241"><span class="annot"><span class="annottext">LeaderSchedule -&gt; LeaderSchedule -&gt; Bool
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679999406"><span id="local-6989586621679999408"><span class="annot"><span class="annottext">LeaderSchedule -&gt; LeaderSchedule -&gt; Bool
 (LeaderSchedule -&gt; LeaderSchedule -&gt; Bool)
 -&gt; (LeaderSchedule -&gt; LeaderSchedule -&gt; Bool) -&gt; Eq LeaderSchedule
 forall a. (a -&gt; a -&gt; Bool) -&gt; (a -&gt; a -&gt; Bool) -&gt; Eq a
@@ -60,7 +56,7 @@ forall a. (a -&gt; a -&gt; Bool) -&gt; (a -&gt; a -&gt; Bool) -&gt; Eq a
 $c/= :: LeaderSchedule -&gt; LeaderSchedule -&gt; Bool
 == :: LeaderSchedule -&gt; LeaderSchedule -&gt; Bool
 $c== :: LeaderSchedule -&gt; LeaderSchedule -&gt; Bool
-</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679989223"><span id="local-6989586621679989225"><span id="local-6989586621679989227"><span id="local-6989586621679989229"><span id="local-6989586621679989231"><span id="local-6989586621679989233"><span id="local-6989586621679989235"><span class="annot"><span class="annottext">Eq LeaderSchedule
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679999390"><span id="local-6989586621679999392"><span id="local-6989586621679999394"><span id="local-6989586621679999396"><span id="local-6989586621679999398"><span id="local-6989586621679999400"><span id="local-6989586621679999402"><span class="annot"><span class="annottext">Eq LeaderSchedule
 Eq LeaderSchedule
 -&gt; (LeaderSchedule -&gt; LeaderSchedule -&gt; Ordering)
 -&gt; (LeaderSchedule -&gt; LeaderSchedule -&gt; Bool)
@@ -108,7 +104,7 @@ forall a.
 $cto :: forall x. Rep LeaderSchedule x -&gt; LeaderSchedule
 $cfrom :: forall x. LeaderSchedule -&gt; Rep LeaderSchedule x
 </span><span class="hs-identifier hs-var hs-var hs-var hs-var">Generic</span></span><span class="hs-special">)</span><span>
-</span><span id="line-40"></span><span>    </span><span class="hs-keyword">deriving</span><span> </span><span class="annot"><span class="hs-keyword">anyclass</span></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679989213"><span id="local-6989586621679989215"><span id="local-6989586621679989217"><span class="annot"><span class="annottext">Context -&gt; LeaderSchedule -&gt; IO (Maybe ThunkInfo)
+</span><span id="line-36"></span><span>    </span><span class="hs-keyword">deriving</span><span> </span><span class="annot"><span class="hs-keyword">anyclass</span></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679999380"><span id="local-6989586621679999382"><span id="local-6989586621679999384"><span class="annot"><span class="annottext">Context -&gt; LeaderSchedule -&gt; IO (Maybe ThunkInfo)
 Proxy LeaderSchedule -&gt; String
 (Context -&gt; LeaderSchedule -&gt; IO (Maybe ThunkInfo))
 -&gt; (Context -&gt; LeaderSchedule -&gt; IO (Maybe ThunkInfo))
@@ -126,16 +122,16 @@ $cwNoThunks :: Context -&gt; LeaderSchedule -&gt; IO (Maybe ThunkInfo)
 noThunks :: Context -&gt; LeaderSchedule -&gt; IO (Maybe ThunkInfo)
 $cnoThunks :: Context -&gt; LeaderSchedule -&gt; IO (Maybe ThunkInfo)
 </span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">NoThunks</span></span></span></span></span><span class="hs-special">)</span><span>
-</span><span id="line-41"></span><span>
-</span><span id="line-42"></span><span class="hs-comment">-- | The 'Slots' a given node is supposed to lead in</span><span>
-</span><span id="line-43"></span><span class="annot"><a href="Ouroboros.Consensus.Protocol.LeaderSchedule.html#leaderScheduleFor"><span class="hs-identifier hs-type">leaderScheduleFor</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.NodeId.html#CoreNodeId"><span class="hs-identifier hs-type">CoreNodeId</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Protocol.LeaderSchedule.html#LeaderSchedule"><span class="hs-identifier hs-type">LeaderSchedule</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Set</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">SlotNo</span></span><span>
-</span><span id="line-44"></span><span id="leaderScheduleFor"><span class="annot"><span class="annottext">leaderScheduleFor :: CoreNodeId -&gt; LeaderSchedule -&gt; Set SlotNo
-</span><a href="Ouroboros.Consensus.Protocol.LeaderSchedule.html#leaderScheduleFor"><span class="hs-identifier hs-var hs-var">leaderScheduleFor</span></a></span></span><span> </span><span id="local-6989586621679989211"><span class="annot"><span class="annottext">CoreNodeId
-</span><a href="#local-6989586621679989211"><span class="hs-identifier hs-var">nid</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
-</span><span id="line-45"></span><span>      </span><span class="annot"><span class="annottext">Map SlotNo [CoreNodeId] -&gt; Set SlotNo
+</span><span id="line-37"></span><span>
+</span><span id="line-38"></span><span class="hs-comment">-- | The 'Slots' a given node is supposed to lead in</span><span>
+</span><span id="line-39"></span><span class="annot"><a href="Ouroboros.Consensus.Protocol.LeaderSchedule.html#leaderScheduleFor"><span class="hs-identifier hs-type">leaderScheduleFor</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.NodeId.html#CoreNodeId"><span class="hs-identifier hs-type">CoreNodeId</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Protocol.LeaderSchedule.html#LeaderSchedule"><span class="hs-identifier hs-type">LeaderSchedule</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Set</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">SlotNo</span></span><span>
+</span><span id="line-40"></span><span id="leaderScheduleFor"><span class="annot"><span class="annottext">leaderScheduleFor :: CoreNodeId -&gt; LeaderSchedule -&gt; Set SlotNo
+</span><a href="Ouroboros.Consensus.Protocol.LeaderSchedule.html#leaderScheduleFor"><span class="hs-identifier hs-var hs-var">leaderScheduleFor</span></a></span></span><span> </span><span id="local-6989586621679999378"><span class="annot"><span class="annottext">CoreNodeId
+</span><a href="#local-6989586621679999378"><span class="hs-identifier hs-var">nid</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-41"></span><span>      </span><span class="annot"><span class="annottext">Map SlotNo [CoreNodeId] -&gt; Set SlotNo
 forall k a. Map k a -&gt; Set k
 </span><span class="hs-identifier hs-var">Map.keysSet</span></span><span>
-</span><span id="line-46"></span><span>    </span><span class="annot"><span class="annottext">(Map SlotNo [CoreNodeId] -&gt; Set SlotNo)
+</span><span id="line-42"></span><span>    </span><span class="annot"><span class="annottext">(Map SlotNo [CoreNodeId] -&gt; Set SlotNo)
 -&gt; (LeaderSchedule -&gt; Map SlotNo [CoreNodeId])
 -&gt; LeaderSchedule
 -&gt; Set SlotNo
@@ -146,224 +142,74 @@ forall a k. (a -&gt; Bool) -&gt; Map k a -&gt; Map k a
 </span><span class="hs-identifier hs-var">Map.filter</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">CoreNodeId -&gt; [CoreNodeId] -&gt; Bool
 forall (t :: * -&gt; *) a. (Foldable t, Eq a) =&gt; a -&gt; t a -&gt; Bool
 </span><span class="hs-identifier hs-var">elem</span></span><span> </span><span class="annot"><span class="annottext">CoreNodeId
-</span><a href="#local-6989586621679989211"><span class="hs-identifier hs-var">nid</span></a></span><span class="hs-special">)</span><span>
-</span><span id="line-47"></span><span>    </span><span class="annot"><span class="annottext">(Map SlotNo [CoreNodeId] -&gt; Map SlotNo [CoreNodeId])
+</span><a href="#local-6989586621679999378"><span class="hs-identifier hs-var">nid</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-43"></span><span>    </span><span class="annot"><span class="annottext">(Map SlotNo [CoreNodeId] -&gt; Map SlotNo [CoreNodeId])
 -&gt; (LeaderSchedule -&gt; Map SlotNo [CoreNodeId])
 -&gt; LeaderSchedule
 -&gt; Map SlotNo [CoreNodeId]
 forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
 </span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">LeaderSchedule -&gt; Map SlotNo [CoreNodeId]
 </span><a href="Ouroboros.Consensus.Protocol.LeaderSchedule.html#getLeaderSchedule"><span class="hs-identifier hs-var hs-var">getLeaderSchedule</span></a></span><span>
-</span><span id="line-48"></span><span>
-</span><span id="line-49"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679989202"><span id="local-6989586621679989204"><span class="annot"><span class="hs-identifier hs-type">Semigroup</span></span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Protocol.LeaderSchedule.html#LeaderSchedule"><span class="hs-identifier hs-type">LeaderSchedule</span></a></span></span></span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-50"></span><span>    </span><span class="annot"><a href="Ouroboros.Consensus.Protocol.LeaderSchedule.html#LeaderSchedule"><span class="hs-identifier hs-type">LeaderSchedule</span></a></span><span> </span><span id="local-6989586621679989200"><span class="annot"><span class="annottext">Map SlotNo [CoreNodeId]
-</span><a href="#local-6989586621679989200"><span class="hs-identifier hs-var">l</span></a></span></span><span> </span><span id="local-6989586621679989199"><span class="annot"><span class="annottext">&lt;&gt; :: LeaderSchedule -&gt; LeaderSchedule -&gt; LeaderSchedule
-</span><span class="hs-operator hs-var hs-var hs-var hs-var">&lt;&gt;</span></span></span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Protocol.LeaderSchedule.html#LeaderSchedule"><span class="hs-identifier hs-type">LeaderSchedule</span></a></span><span> </span><span id="local-6989586621679989198"><span class="annot"><span class="annottext">Map SlotNo [CoreNodeId]
-</span><a href="#local-6989586621679989198"><span class="hs-identifier hs-var">r</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
-</span><span id="line-51"></span><span>        </span><span class="annot"><span class="annottext">Map SlotNo [CoreNodeId] -&gt; LeaderSchedule
+</span><span id="line-44"></span><span>
+</span><span id="line-45"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679999369"><span id="local-6989586621679999371"><span class="annot"><span class="hs-identifier hs-type">Semigroup</span></span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Protocol.LeaderSchedule.html#LeaderSchedule"><span class="hs-identifier hs-type">LeaderSchedule</span></a></span></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-46"></span><span>    </span><span class="annot"><a href="Ouroboros.Consensus.Protocol.LeaderSchedule.html#LeaderSchedule"><span class="hs-identifier hs-type">LeaderSchedule</span></a></span><span> </span><span id="local-6989586621679999367"><span class="annot"><span class="annottext">Map SlotNo [CoreNodeId]
+</span><a href="#local-6989586621679999367"><span class="hs-identifier hs-var">l</span></a></span></span><span> </span><span id="local-6989586621679999366"><span class="annot"><span class="annottext">&lt;&gt; :: LeaderSchedule -&gt; LeaderSchedule -&gt; LeaderSchedule
+</span><span class="hs-operator hs-var hs-var hs-var hs-var">&lt;&gt;</span></span></span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Protocol.LeaderSchedule.html#LeaderSchedule"><span class="hs-identifier hs-type">LeaderSchedule</span></a></span><span> </span><span id="local-6989586621679999365"><span class="annot"><span class="annottext">Map SlotNo [CoreNodeId]
+</span><a href="#local-6989586621679999365"><span class="hs-identifier hs-var">r</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-47"></span><span>        </span><span class="annot"><span class="annottext">Map SlotNo [CoreNodeId] -&gt; LeaderSchedule
 </span><a href="Ouroboros.Consensus.Protocol.LeaderSchedule.html#LeaderSchedule"><span class="hs-identifier hs-var">LeaderSchedule</span></a></span><span> </span><span class="annot"><span class="annottext">(Map SlotNo [CoreNodeId] -&gt; LeaderSchedule)
 -&gt; Map SlotNo [CoreNodeId] -&gt; LeaderSchedule
 forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span>
-</span><span id="line-52"></span><span>        </span><span class="annot"><span class="annottext">([CoreNodeId] -&gt; [CoreNodeId] -&gt; [CoreNodeId])
+</span><span id="line-48"></span><span>        </span><span class="annot"><span class="annottext">([CoreNodeId] -&gt; [CoreNodeId] -&gt; [CoreNodeId])
 -&gt; Map SlotNo [CoreNodeId]
 -&gt; Map SlotNo [CoreNodeId]
 -&gt; Map SlotNo [CoreNodeId]
 forall k a. Ord k =&gt; (a -&gt; a -&gt; a) -&gt; Map k a -&gt; Map k a -&gt; Map k a
 </span><span class="hs-identifier hs-var">Map.unionWith</span></span><span> </span><span class="annot"><span class="annottext">[CoreNodeId] -&gt; [CoreNodeId] -&gt; [CoreNodeId]
 forall a. Eq a =&gt; [a] -&gt; [a] -&gt; [a]
-</span><a href="#local-6989586621679989196"><span class="hs-identifier hs-var">comb</span></a></span><span> </span><span class="annot"><span class="annottext">Map SlotNo [CoreNodeId]
-</span><a href="#local-6989586621679989200"><span class="hs-identifier hs-var">l</span></a></span><span> </span><span class="annot"><span class="annottext">Map SlotNo [CoreNodeId]
-</span><a href="#local-6989586621679989198"><span class="hs-identifier hs-var">r</span></a></span><span>
-</span><span id="line-53"></span><span>      </span><span class="hs-keyword">where</span><span>
-</span><span id="line-54"></span><span>        </span><span id="local-6989586621679989196"><span class="annot"><span class="annottext">comb :: [a] -&gt; [a] -&gt; [a]
-</span><a href="#local-6989586621679989196"><span class="hs-identifier hs-var hs-var">comb</span></a></span></span><span> </span><span id="local-6989586621679989195"><span class="annot"><span class="annottext">[a]
-</span><a href="#local-6989586621679989195"><span class="hs-identifier hs-var">ls</span></a></span></span><span> </span><span id="local-6989586621679989194"><span class="annot"><span class="annottext">[a]
-</span><a href="#local-6989586621679989194"><span class="hs-identifier hs-var">rs</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[a]
-</span><a href="#local-6989586621679989195"><span class="hs-identifier hs-var">ls</span></a></span><span> </span><span class="annot"><span class="annottext">[a] -&gt; [a] -&gt; [a]
+</span><a href="#local-6989586621679999363"><span class="hs-identifier hs-var">comb</span></a></span><span> </span><span class="annot"><span class="annottext">Map SlotNo [CoreNodeId]
+</span><a href="#local-6989586621679999367"><span class="hs-identifier hs-var">l</span></a></span><span> </span><span class="annot"><span class="annottext">Map SlotNo [CoreNodeId]
+</span><a href="#local-6989586621679999365"><span class="hs-identifier hs-var">r</span></a></span><span>
+</span><span id="line-49"></span><span>      </span><span class="hs-keyword">where</span><span>
+</span><span id="line-50"></span><span>        </span><span id="local-6989586621679999363"><span class="annot"><span class="annottext">comb :: [a] -&gt; [a] -&gt; [a]
+</span><a href="#local-6989586621679999363"><span class="hs-identifier hs-var hs-var">comb</span></a></span></span><span> </span><span id="local-6989586621679999362"><span class="annot"><span class="annottext">[a]
+</span><a href="#local-6989586621679999362"><span class="hs-identifier hs-var">ls</span></a></span></span><span> </span><span id="local-6989586621679999361"><span class="annot"><span class="annottext">[a]
+</span><a href="#local-6989586621679999361"><span class="hs-identifier hs-var">rs</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[a]
+</span><a href="#local-6989586621679999362"><span class="hs-identifier hs-var">ls</span></a></span><span> </span><span class="annot"><span class="annottext">[a] -&gt; [a] -&gt; [a]
 forall a. [a] -&gt; [a] -&gt; [a]
 </span><span class="hs-operator hs-var">++</span></span><span> </span><span class="annot"><span class="annottext">(a -&gt; Bool) -&gt; [a] -&gt; [a]
 forall a. (a -&gt; Bool) -&gt; [a] -&gt; [a]
 </span><span class="hs-identifier hs-var">filter</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">a -&gt; [a] -&gt; Bool
 forall (t :: * -&gt; *) a. (Foldable t, Eq a) =&gt; a -&gt; t a -&gt; Bool
 </span><span class="hs-operator hs-var">`notElem`</span></span><span> </span><span class="annot"><span class="annottext">[a]
-</span><a href="#local-6989586621679989195"><span class="hs-identifier hs-var">ls</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">[a]
-</span><a href="#local-6989586621679989194"><span class="hs-identifier hs-var">rs</span></a></span><span>
-</span><span id="line-55"></span><span>
-</span><span id="line-56"></span><span class="hs-keyword">instance</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Util.Condense.html#Condense"><span class="hs-identifier hs-type">Condense</span></a></span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Protocol.LeaderSchedule.html#LeaderSchedule"><span class="hs-identifier hs-type">LeaderSchedule</span></a></span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-57"></span><span>    </span><span id="local-6989586621679989190"><span class="annot"><span class="annottext">condense :: LeaderSchedule -&gt; String
-</span><a href="Ouroboros.Consensus.Util.Condense.html#condense"><span class="hs-identifier hs-var hs-var hs-var hs-var">condense</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Consensus.Protocol.LeaderSchedule.html#LeaderSchedule"><span class="hs-identifier hs-type">LeaderSchedule</span></a></span><span> </span><span id="local-6989586621679989188"><span class="annot"><span class="annottext">Map SlotNo [CoreNodeId]
-</span><a href="#local-6989586621679989188"><span class="hs-identifier hs-var">m</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[(SlotNo, [NodeId])] -&gt; String
+</span><a href="#local-6989586621679999362"><span class="hs-identifier hs-var">ls</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">[a]
+</span><a href="#local-6989586621679999361"><span class="hs-identifier hs-var">rs</span></a></span><span>
+</span><span id="line-51"></span><span>
+</span><span id="line-52"></span><span class="hs-keyword">instance</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Util.Condense.html#Condense"><span class="hs-identifier hs-type">Condense</span></a></span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Protocol.LeaderSchedule.html#LeaderSchedule"><span class="hs-identifier hs-type">LeaderSchedule</span></a></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-53"></span><span>    </span><span id="local-6989586621679999357"><span class="annot"><span class="annottext">condense :: LeaderSchedule -&gt; String
+</span><a href="Ouroboros.Consensus.Util.Condense.html#condense"><span class="hs-identifier hs-var hs-var hs-var hs-var">condense</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Consensus.Protocol.LeaderSchedule.html#LeaderSchedule"><span class="hs-identifier hs-type">LeaderSchedule</span></a></span><span> </span><span id="local-6989586621679999355"><span class="annot"><span class="annottext">Map SlotNo [CoreNodeId]
+</span><a href="#local-6989586621679999355"><span class="hs-identifier hs-var">m</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[(SlotNo, [NodeId])] -&gt; String
 forall a. Condense a =&gt; a -&gt; String
 </span><a href="Ouroboros.Consensus.Util.Condense.html#condense"><span class="hs-identifier hs-var">condense</span></a></span><span>
-</span><span id="line-58"></span><span>                                </span><span class="annot"><span class="annottext">([(SlotNo, [NodeId])] -&gt; String) -&gt; [(SlotNo, [NodeId])] -&gt; String
+</span><span id="line-54"></span><span>                                </span><span class="annot"><span class="annottext">([(SlotNo, [NodeId])] -&gt; String) -&gt; [(SlotNo, [NodeId])] -&gt; String
 forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">((SlotNo, [CoreNodeId]) -&gt; (SlotNo, [NodeId]))
 -&gt; [(SlotNo, [CoreNodeId])] -&gt; [(SlotNo, [NodeId])]
 forall a b. (a -&gt; b) -&gt; [a] -&gt; [b]
-</span><span class="hs-identifier hs-var">map</span></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">\</span><span class="hs-special">(</span><span id="local-6989586621679989187"><span class="annot"><span class="annottext">SlotNo
-</span><a href="#local-6989586621679989187"><span class="hs-identifier hs-var">s</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679989186"><span class="annot"><span class="annottext">[CoreNodeId]
-</span><a href="#local-6989586621679989186"><span class="hs-identifier hs-var">ls</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">SlotNo
-</span><a href="#local-6989586621679989187"><span class="hs-identifier hs-var">s</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">(CoreNodeId -&gt; NodeId) -&gt; [CoreNodeId] -&gt; [NodeId]
+</span><span class="hs-identifier hs-var">map</span></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">\</span><span class="hs-special">(</span><span id="local-6989586621679999354"><span class="annot"><span class="annottext">SlotNo
+</span><a href="#local-6989586621679999354"><span class="hs-identifier hs-var">s</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679999353"><span class="annot"><span class="annottext">[CoreNodeId]
+</span><a href="#local-6989586621679999353"><span class="hs-identifier hs-var">ls</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">SlotNo
+</span><a href="#local-6989586621679999354"><span class="hs-identifier hs-var">s</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">(CoreNodeId -&gt; NodeId) -&gt; [CoreNodeId] -&gt; [NodeId]
 forall a b. (a -&gt; b) -&gt; [a] -&gt; [b]
 </span><span class="hs-identifier hs-var">map</span></span><span> </span><span class="annot"><span class="annottext">CoreNodeId -&gt; NodeId
 </span><a href="Ouroboros.Consensus.NodeId.html#fromCoreNodeId"><span class="hs-identifier hs-var">fromCoreNodeId</span></a></span><span> </span><span class="annot"><span class="annottext">[CoreNodeId]
-</span><a href="#local-6989586621679989186"><span class="hs-identifier hs-var">ls</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
-</span><span id="line-59"></span><span>                                </span><span class="annot"><span class="annottext">([(SlotNo, [CoreNodeId])] -&gt; [(SlotNo, [NodeId])])
+</span><a href="#local-6989586621679999353"><span class="hs-identifier hs-var">ls</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-55"></span><span>                                </span><span class="annot"><span class="annottext">([(SlotNo, [CoreNodeId])] -&gt; [(SlotNo, [NodeId])])
 -&gt; [(SlotNo, [CoreNodeId])] -&gt; [(SlotNo, [NodeId])]
 forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Map SlotNo [CoreNodeId] -&gt; [(SlotNo, [CoreNodeId])]
 forall k a. Map k a -&gt; [(k, a)]
 </span><span class="hs-identifier hs-var">Map.toList</span></span><span> </span><span class="annot"><span class="annottext">Map SlotNo [CoreNodeId]
-</span><a href="#local-6989586621679989188"><span class="hs-identifier hs-var">m</span></a></span><span>
-</span><span id="line-60"></span><span>
-</span><span id="line-61"></span><span class="hs-comment">{-------------------------------------------------------------------------------
-  ConsensusProtocol instance
--------------------------------------------------------------------------------}</span><span>
-</span><span id="line-64"></span><span>
-</span><span id="line-65"></span><span class="hs-comment">-- | Extension of protocol @p@ by a static leader schedule.</span><span>
-</span><span id="line-66"></span><span class="hs-keyword">data</span><span> </span><span id="WithLeaderSchedule"><span class="annot"><a href="Ouroboros.Consensus.Protocol.LeaderSchedule.html#WithLeaderSchedule"><span class="hs-identifier hs-var">WithLeaderSchedule</span></a></span></span><span> </span><span id="local-6989586621679989184"><span class="annot"><a href="#local-6989586621679989184"><span class="hs-identifier hs-type">p</span></a></span></span><span>
-</span><span id="line-67"></span><span>
-</span><span id="line-68"></span><span class="hs-keyword">data</span><span> </span><span class="hs-keyword">instance</span><span> </span><span id="ConsensusConfig"><span class="annot"><a href="Ouroboros.Consensus.Protocol.Abstract.html#ConsensusConfig"><span class="hs-identifier hs-var">ConsensusConfig</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Consensus.Protocol.LeaderSchedule.html#WithLeaderSchedule"><span class="hs-identifier hs-type">WithLeaderSchedule</span></a></span><span> </span><span id="local-6989586621679989266"><span class="annot"><a href="#local-6989586621679989266"><span class="hs-identifier hs-type hs-type">p</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span id="WLSConfig"><span class="annot"><a href="Ouroboros.Consensus.Protocol.LeaderSchedule.html#WLSConfig"><span class="hs-identifier hs-var">WLSConfig</span></a></span></span><span> </span><span class="hs-special">{</span><span>
-</span><span id="line-69"></span><span>      </span><span id="wlsConfigSchedule"><span class="annot"><span class="annottext">ConsensusConfig (WithLeaderSchedule p) -&gt; LeaderSchedule
-</span><a href="Ouroboros.Consensus.Protocol.LeaderSchedule.html#wlsConfigSchedule"><span class="hs-identifier hs-var hs-var">wlsConfigSchedule</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-glyph">!</span><span class="annot"><a href="Ouroboros.Consensus.Protocol.LeaderSchedule.html#LeaderSchedule"><span class="hs-identifier hs-type">LeaderSchedule</span></a></span><span>
-</span><span id="line-70"></span><span>    </span><span class="hs-special">,</span><span> </span><span id="wlsConfigP"><span class="annot"><span class="annottext">ConsensusConfig (WithLeaderSchedule p) -&gt; ConsensusConfig p
-</span><a href="Ouroboros.Consensus.Protocol.LeaderSchedule.html#wlsConfigP"><span class="hs-identifier hs-var hs-var">wlsConfigP</span></a></span></span><span>        </span><span class="hs-glyph">::</span><span> </span><span class="hs-glyph">!</span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Consensus.Protocol.Abstract.html#ConsensusConfig"><span class="hs-identifier hs-type">ConsensusConfig</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679989266"><span class="hs-identifier hs-type">p</span></a></span><span class="hs-special">)</span><span>
-</span><span id="line-71"></span><span>    </span><span class="hs-special">,</span><span> </span><span id="wlsConfigNodeId"><span class="annot"><span class="annottext">ConsensusConfig (WithLeaderSchedule p) -&gt; CoreNodeId
-</span><a href="Ouroboros.Consensus.Protocol.LeaderSchedule.html#wlsConfigNodeId"><span class="hs-identifier hs-var hs-var">wlsConfigNodeId</span></a></span></span><span>   </span><span class="hs-glyph">::</span><span> </span><span class="hs-glyph">!</span><span class="annot"><a href="Ouroboros.Consensus.NodeId.html#CoreNodeId"><span class="hs-identifier hs-type">CoreNodeId</span></a></span><span>
-</span><span id="line-72"></span><span>    </span><span class="hs-special">}</span><span>
-</span><span id="line-73"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">(forall x.
- ConsensusConfig (WithLeaderSchedule p)
- -&gt; Rep (ConsensusConfig (WithLeaderSchedule p)) x)
--&gt; (forall x.
-    Rep (ConsensusConfig (WithLeaderSchedule p)) x
-    -&gt; ConsensusConfig (WithLeaderSchedule p))
--&gt; Generic (ConsensusConfig (WithLeaderSchedule p))
-forall x.
-Rep (ConsensusConfig (WithLeaderSchedule p)) x
--&gt; ConsensusConfig (WithLeaderSchedule p)
-forall x.
-ConsensusConfig (WithLeaderSchedule p)
--&gt; Rep (ConsensusConfig (WithLeaderSchedule p)) x
-forall a.
-(forall x. a -&gt; Rep a x) -&gt; (forall x. Rep a x -&gt; a) -&gt; Generic a
-forall p x.
-Rep (ConsensusConfig (WithLeaderSchedule p)) x
--&gt; ConsensusConfig (WithLeaderSchedule p)
-forall p x.
-ConsensusConfig (WithLeaderSchedule p)
--&gt; Rep (ConsensusConfig (WithLeaderSchedule p)) x
-$cto :: forall p x.
-Rep (ConsensusConfig (WithLeaderSchedule p)) x
--&gt; ConsensusConfig (WithLeaderSchedule p)
-$cfrom :: forall p x.
-ConsensusConfig (WithLeaderSchedule p)
--&gt; Rep (ConsensusConfig (WithLeaderSchedule p)) x
-</span><span class="hs-identifier hs-var hs-var hs-var hs-var">Generic</span></span><span class="hs-special">)</span><span>
-</span><span id="line-74"></span><span>
-</span><span id="line-75"></span><span id="local-6989586621679989175"><span class="hs-keyword">instance</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Protocol.Abstract.html#ConsensusProtocol"><span class="hs-identifier hs-type">ConsensusProtocol</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679989175"><span class="hs-identifier hs-type">p</span></a></span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Protocol.Abstract.html#ConsensusProtocol"><span class="hs-identifier hs-type">ConsensusProtocol</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Consensus.Protocol.LeaderSchedule.html#WithLeaderSchedule"><span class="hs-identifier hs-type">WithLeaderSchedule</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679989175"><span class="hs-identifier hs-type">p</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-76"></span><span>  </span><span class="hs-keyword">type</span><span> </span><span id="SelectView"><span class="annot"><a href="Ouroboros.Consensus.Protocol.Abstract.html#SelectView"><span class="hs-identifier hs-var">SelectView</span></a></span></span><span>    </span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Consensus.Protocol.LeaderSchedule.html#WithLeaderSchedule"><span class="hs-identifier hs-type">WithLeaderSchedule</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679989175"><span class="hs-identifier hs-type">p</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Protocol.Abstract.html#SelectView"><span class="hs-identifier hs-type">SelectView</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679989175"><span class="hs-identifier hs-type">p</span></a></span><span>
-</span><span id="line-77"></span><span>
-</span><span id="line-78"></span><span>  </span><span class="hs-keyword">type</span><span> </span><span id="ChainDepState"><span class="annot"><a href="Ouroboros.Consensus.Protocol.Abstract.html#ChainDepState"><span class="hs-identifier hs-var">ChainDepState</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Consensus.Protocol.LeaderSchedule.html#WithLeaderSchedule"><span class="hs-identifier hs-type">WithLeaderSchedule</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679989175"><span class="hs-identifier hs-type">p</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
-</span><span id="line-79"></span><span>  </span><span class="hs-keyword">type</span><span> </span><span id="LedgerView"><span class="annot"><a href="Ouroboros.Consensus.Protocol.Abstract.html#LedgerView"><span class="hs-identifier hs-var">LedgerView</span></a></span></span><span>    </span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Consensus.Protocol.LeaderSchedule.html#WithLeaderSchedule"><span class="hs-identifier hs-type">WithLeaderSchedule</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679989175"><span class="hs-identifier hs-type">p</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
-</span><span id="line-80"></span><span>  </span><span class="hs-keyword">type</span><span> </span><span id="ValidationErr"><span class="annot"><a href="Ouroboros.Consensus.Protocol.Abstract.html#ValidationErr"><span class="hs-identifier hs-var">ValidationErr</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Consensus.Protocol.LeaderSchedule.html#WithLeaderSchedule"><span class="hs-identifier hs-type">WithLeaderSchedule</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679989175"><span class="hs-identifier hs-type">p</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
-</span><span id="line-81"></span><span>  </span><span class="hs-keyword">type</span><span> </span><span id="IsLeader"><span class="annot"><a href="Ouroboros.Consensus.Protocol.Abstract.html#IsLeader"><span class="hs-identifier hs-var">IsLeader</span></a></span></span><span>      </span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Consensus.Protocol.LeaderSchedule.html#WithLeaderSchedule"><span class="hs-identifier hs-type">WithLeaderSchedule</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679989175"><span class="hs-identifier hs-type">p</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
-</span><span id="line-82"></span><span>  </span><span class="hs-keyword">type</span><span> </span><span id="ValidateView"><span class="annot"><a href="Ouroboros.Consensus.Protocol.Abstract.html#ValidateView"><span class="hs-identifier hs-var">ValidateView</span></a></span></span><span>  </span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Consensus.Protocol.LeaderSchedule.html#WithLeaderSchedule"><span class="hs-identifier hs-type">WithLeaderSchedule</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679989175"><span class="hs-identifier hs-type">p</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
-</span><span id="line-83"></span><span>  </span><span class="hs-keyword">type</span><span> </span><span id="CanBeLeader"><span class="annot"><a href="Ouroboros.Consensus.Protocol.Abstract.html#CanBeLeader"><span class="hs-identifier hs-var">CanBeLeader</span></a></span></span><span>   </span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Consensus.Protocol.LeaderSchedule.html#WithLeaderSchedule"><span class="hs-identifier hs-type">WithLeaderSchedule</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679989175"><span class="hs-identifier hs-type">p</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
-</span><span id="line-84"></span><span>
-</span><span id="line-85"></span><span>  </span><span id="local-6989586621679989157"><span class="annot"><span class="annottext">protocolSecurityParam :: ConsensusConfig (WithLeaderSchedule p) -&gt; SecurityParam
-</span><a href="Ouroboros.Consensus.Protocol.Abstract.html#protocolSecurityParam"><span class="hs-identifier hs-var hs-var hs-var hs-var">protocolSecurityParam</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">ConsensusConfig p -&gt; SecurityParam
-forall p. ConsensusProtocol p =&gt; ConsensusConfig p -&gt; SecurityParam
-</span><a href="Ouroboros.Consensus.Protocol.Abstract.html#protocolSecurityParam"><span class="hs-identifier hs-var">protocolSecurityParam</span></a></span><span> </span><span class="annot"><span class="annottext">(ConsensusConfig p -&gt; SecurityParam)
--&gt; (ConsensusConfig (WithLeaderSchedule p) -&gt; ConsensusConfig p)
--&gt; ConsensusConfig (WithLeaderSchedule p)
--&gt; SecurityParam
-forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
-</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">ConsensusConfig (WithLeaderSchedule p) -&gt; ConsensusConfig p
-forall p.
-ConsensusConfig (WithLeaderSchedule p) -&gt; ConsensusConfig p
-</span><a href="Ouroboros.Consensus.Protocol.LeaderSchedule.html#wlsConfigP"><span class="hs-identifier hs-var hs-var">wlsConfigP</span></a></span><span>
-</span><span id="line-86"></span><span>
-</span><span id="line-87"></span><span>  </span><span id="local-6989586621679989155"><span class="annot"><span class="annottext">checkIsLeader :: ConsensusConfig (WithLeaderSchedule p)
--&gt; CanBeLeader (WithLeaderSchedule p)
--&gt; SlotNo
--&gt; Ticked (ChainDepState (WithLeaderSchedule p))
--&gt; Maybe (IsLeader (WithLeaderSchedule p))
-</span><a href="Ouroboros.Consensus.Protocol.Abstract.html#checkIsLeader"><span class="hs-identifier hs-var hs-var hs-var hs-var">checkIsLeader</span></a></span></span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Protocol.LeaderSchedule.html#WLSConfig"><span class="hs-identifier hs-type">WLSConfig</span></a></span><span class="hs-special">{</span><span id="local-6989586621679989151"><span id="local-6989586621679989152"><span id="local-6989586621679989153"><span class="annot"><a href="#local-6989586621679989151"><span class="hs-glyph hs-var hs-var hs-var hs-var hs-var hs-var">..</span></a></span></span></span></span><span class="hs-special">}</span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span> </span><span id="local-6989586621679989150"><span class="annot"><span class="annottext">SlotNo
-</span><a href="#local-6989586621679989150"><span class="hs-identifier hs-var">slot</span></a></span></span><span> </span><span class="annot"><span class="annottext">Ticked (ChainDepState (WithLeaderSchedule p))
-</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-glyph">=</span><span>
-</span><span id="line-88"></span><span>    </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">SlotNo -&gt; Map SlotNo [CoreNodeId] -&gt; Maybe [CoreNodeId]
-forall k a. Ord k =&gt; k -&gt; Map k a -&gt; Maybe a
-</span><span class="hs-identifier hs-var">Map.lookup</span></span><span> </span><span class="annot"><span class="annottext">SlotNo
-</span><a href="#local-6989586621679989150"><span class="hs-identifier hs-var">slot</span></a></span><span> </span><span class="annot"><span class="annottext">(Map SlotNo [CoreNodeId] -&gt; Maybe [CoreNodeId])
--&gt; Map SlotNo [CoreNodeId] -&gt; Maybe [CoreNodeId]
-forall a b. (a -&gt; b) -&gt; a -&gt; b
-</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">LeaderSchedule -&gt; Map SlotNo [CoreNodeId]
-</span><a href="Ouroboros.Consensus.Protocol.LeaderSchedule.html#getLeaderSchedule"><span class="hs-identifier hs-var hs-var">getLeaderSchedule</span></a></span><span> </span><span class="annot"><span class="annottext">LeaderSchedule
-</span><a href="#local-6989586621679989153"><span class="hs-identifier hs-var">wlsConfigSchedule</span></a></span><span> </span><span class="hs-keyword">of</span><span>
-</span><span id="line-89"></span><span>        </span><span class="annot"><span class="annottext">Maybe [CoreNodeId]
-</span><span class="hs-identifier hs-var">Nothing</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">String -&gt; Maybe ()
-forall a. HasCallStack =&gt; String -&gt; a
-</span><span class="hs-identifier hs-var">error</span></span><span> </span><span class="annot"><span class="annottext">(String -&gt; Maybe ()) -&gt; String -&gt; Maybe ()
-forall a b. (a -&gt; b) -&gt; a -&gt; b
-</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">String
-</span><span class="hs-string">&quot;WithLeaderSchedule: missing slot &quot;</span></span><span> </span><span class="annot"><span class="annottext">String -&gt; ShowS
-forall a. [a] -&gt; [a] -&gt; [a]
-</span><span class="hs-operator hs-var">++</span></span><span> </span><span class="annot"><span class="annottext">SlotNo -&gt; String
-forall a. Show a =&gt; a -&gt; String
-</span><span class="hs-identifier hs-var">show</span></span><span> </span><span class="annot"><span class="annottext">SlotNo
-</span><a href="#local-6989586621679989150"><span class="hs-identifier hs-var">slot</span></a></span><span>
-</span><span id="line-90"></span><span>        </span><span class="annot"><span class="hs-identifier hs-type">Just</span></span><span> </span><span id="local-6989586621679989146"><span class="annot"><span class="annottext">[CoreNodeId]
-</span><a href="#local-6989586621679989146"><span class="hs-identifier hs-var">nids</span></a></span></span><span>
-</span><span id="line-91"></span><span>            </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">CoreNodeId
-</span><a href="#local-6989586621679989151"><span class="hs-identifier hs-var">wlsConfigNodeId</span></a></span><span> </span><span class="annot"><span class="annottext">CoreNodeId -&gt; [CoreNodeId] -&gt; Bool
-forall (t :: * -&gt; *) a. (Foldable t, Eq a) =&gt; a -&gt; t a -&gt; Bool
-</span><span class="hs-operator hs-var">`elem`</span></span><span> </span><span class="annot"><span class="annottext">[CoreNodeId]
-</span><a href="#local-6989586621679989146"><span class="hs-identifier hs-var">nids</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">() -&gt; Maybe ()
-forall a. a -&gt; Maybe a
-</span><span class="hs-identifier hs-var">Just</span></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
-</span><span id="line-92"></span><span>            </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Bool
-</span><span class="hs-identifier hs-var">otherwise</span></span><span>                   </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Maybe (IsLeader (WithLeaderSchedule p))
-forall a. Maybe a
-</span><span class="hs-identifier hs-var">Nothing</span></span><span>
-</span><span id="line-93"></span><span>
-</span><span id="line-94"></span><span>  </span><span id="local-6989586621679989145"><span class="annot"><span class="annottext">tickChainDepState :: ConsensusConfig (WithLeaderSchedule p)
--&gt; Ticked (LedgerView (WithLeaderSchedule p))
--&gt; SlotNo
--&gt; ChainDepState (WithLeaderSchedule p)
--&gt; Ticked (ChainDepState (WithLeaderSchedule p))
-</span><a href="Ouroboros.Consensus.Protocol.Abstract.html#tickChainDepState"><span class="hs-identifier hs-var hs-var hs-var hs-var">tickChainDepState</span></a></span></span><span>     </span><span class="annot"><span class="annottext">ConsensusConfig (WithLeaderSchedule p)
-</span><span class="hs-identifier">_</span></span><span> </span><span class="annot"><span class="annottext">Ticked (LedgerView (WithLeaderSchedule p))
-</span><span class="hs-identifier">_</span></span><span> </span><span class="annot"><span class="annottext">SlotNo
-</span><span class="hs-identifier">_</span></span><span> </span><span class="annot"><span class="annottext">ChainDepState (WithLeaderSchedule p)
-</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Ticked ()
-Ticked (ChainDepState (WithLeaderSchedule p))
-</span><a href="Ouroboros.Consensus.Ticked.html#TickedTrivial"><span class="hs-identifier hs-var">TickedTrivial</span></a></span><span>
-</span><span id="line-95"></span><span>  </span><span id="local-6989586621679989142"><span class="annot"><span class="annottext">updateChainDepState :: ConsensusConfig (WithLeaderSchedule p)
--&gt; ValidateView (WithLeaderSchedule p)
--&gt; SlotNo
--&gt; Ticked (ChainDepState (WithLeaderSchedule p))
--&gt; Except
-     (ValidationErr (WithLeaderSchedule p))
-     (ChainDepState (WithLeaderSchedule p))
-</span><a href="Ouroboros.Consensus.Protocol.Abstract.html#updateChainDepState"><span class="hs-identifier hs-var hs-var hs-var hs-var">updateChainDepState</span></a></span></span><span>   </span><span class="annot"><span class="annottext">ConsensusConfig (WithLeaderSchedule p)
-</span><span class="hs-identifier">_</span></span><span> </span><span class="annot"><span class="annottext">ValidateView (WithLeaderSchedule p)
-</span><span class="hs-identifier">_</span></span><span> </span><span class="annot"><span class="annottext">SlotNo
-</span><span class="hs-identifier">_</span></span><span> </span><span class="annot"><span class="annottext">Ticked (ChainDepState (WithLeaderSchedule p))
-</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">() -&gt; ExceptT () Identity ()
-forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
-</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
-</span><span id="line-96"></span><span>  </span><span id="local-6989586621679989140"><span class="annot"><span class="annottext">reupdateChainDepState :: ConsensusConfig (WithLeaderSchedule p)
--&gt; ValidateView (WithLeaderSchedule p)
--&gt; SlotNo
--&gt; Ticked (ChainDepState (WithLeaderSchedule p))
--&gt; ChainDepState (WithLeaderSchedule p)
-</span><a href="Ouroboros.Consensus.Protocol.Abstract.html#reupdateChainDepState"><span class="hs-identifier hs-var hs-var hs-var hs-var">reupdateChainDepState</span></a></span></span><span> </span><span class="annot"><span class="annottext">ConsensusConfig (WithLeaderSchedule p)
-</span><span class="hs-identifier">_</span></span><span> </span><span class="annot"><span class="annottext">ValidateView (WithLeaderSchedule p)
-</span><span class="hs-identifier">_</span></span><span> </span><span class="annot"><span class="annottext">SlotNo
-</span><span class="hs-identifier">_</span></span><span> </span><span class="annot"><span class="annottext">Ticked (ChainDepState (WithLeaderSchedule p))
-</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span></span><span>
-</span><span id="line-97"></span><span>
-</span><span id="line-98"></span><span id="local-6989586621679989138"><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679989132"><span id="local-6989586621679989134"><span id="local-6989586621679989136"><span class="annot"><a href="Ouroboros.Consensus.Protocol.Abstract.html#ConsensusProtocol"><span class="hs-identifier hs-type">ConsensusProtocol</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679989138"><span class="hs-identifier hs-type">p</span></a></span><span>
-</span><span id="line-99"></span><span>      </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">NoThunks</span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Consensus.Protocol.Abstract.html#ConsensusConfig"><span class="hs-identifier hs-type">ConsensusConfig</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Consensus.Protocol.LeaderSchedule.html#WithLeaderSchedule"><span class="hs-identifier hs-type">WithLeaderSchedule</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679989138"><span class="hs-identifier hs-type">p</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span></span></span></span></span><span>
-</span><span id="line-100"></span></pre></body></html>
+</span><a href="#local-6989586621679999355"><span class="hs-identifier hs-var">m</span></a></span><span>
+</span><span id="line-56"></span></pre></body></html>
