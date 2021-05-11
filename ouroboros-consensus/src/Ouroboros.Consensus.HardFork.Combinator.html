@@ -1,9 +1,9 @@
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-comment">-- | The hard fork combinator</span><span>
-</span><span id="line-2"></span><span class="hs-comment">--</span><span>
-</span><span id="line-3"></span><span class="hs-comment">-- Intended for unqualified import</span><span>
-</span><span id="line-4"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Ouroboros.Consensus.HardFork.Combinator</span><span> </span><span class="hs-special">(</span><span>
-</span><span id="line-5"></span><span>    </span><span class="hs-keyword">module</span><span> </span><span class="annot"><span class="hs-identifier">X</span></span><span>
-</span><span id="line-6"></span><span>  </span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-pragma">{-# LANGUAGE PatternSynonyms #-}</span><span>
+</span><span id="line-2"></span><span>
+</span><span id="line-3"></span><span class="hs-comment">-- | The hard fork combinator</span><span>
+</span><span id="line-4"></span><span class="hs-comment">--</span><span>
+</span><span id="line-5"></span><span class="hs-comment">-- Intended for unqualified import</span><span>
+</span><span id="line-6"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Ouroboros.Consensus.HardFork.Combinator</span><span> </span><span class="hs-special">(</span><span class="hs-keyword">module</span><span> </span><span class="annot"><span class="hs-identifier">X</span></span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
 </span><span id="line-7"></span><span>
 </span><span id="line-8"></span><span class="hs-comment">-- Defines 'SingleEraInfo' and 'LedgerEraInfo'</span><span>
 </span><span id="line-9"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="Ouroboros.Consensus.HardFork.Combinator.Info.html"><span class="hs-identifier">Ouroboros.Consensus.HardFork.Combinator.Info</span></a></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">X</span></span><span>
@@ -92,51 +92,55 @@
 </span><span id="line-92"></span><span>
 </span><span id="line-93"></span><span class="hs-comment">-- Definition of 'InjectTx' (required to define tx injections)</span><span>
 </span><span id="line-94"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="Ouroboros.Consensus.HardFork.Combinator.InjectTxs.html"><span class="hs-identifier">Ouroboros.Consensus.HardFork.Combinator.InjectTxs</span></a></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">X</span></span><span>
-</span><span id="line-95"></span><span>                     </span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Consensus.HardFork.Combinator.InjectTxs.html#InjectTx"><span class="hs-identifier">InjectTx</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.HardFork.Combinator.InjectTxs.html#cannotInjectTx"><span class="hs-identifier">cannotInjectTx</span></a></span><span class="hs-special">)</span><span>
-</span><span id="line-96"></span><span>
-</span><span id="line-97"></span><span class="hs-comment">-- Omitted from this export:</span><span>
-</span><span id="line-98"></span><span class="hs-comment">--</span><span>
-</span><span id="line-99"></span><span class="hs-comment">-- * &quot;Ouroboros.Consensus.HardFork.Combinator.State&quot;</span><span>
-</span><span id="line-100"></span><span class="hs-comment">--   This defines 'HardForkState', a wrapper around a 'Telescope'. We use this</span><span>
-</span><span id="line-101"></span><span class="hs-comment">--   to define 'HardForkLedgerState', 'HardForkLedgerView' as well as</span><span>
-</span><span id="line-102"></span><span class="hs-comment">--   'HardForkChainDepState', but the type itself should mostly be internal to</span><span>
-</span><span id="line-103"></span><span class="hs-comment">--   the hard fork combinator. We do export the constructor for it, as this may</span><span>
-</span><span id="line-104"></span><span class="hs-comment">--   be required for serialisation code.</span><span>
-</span><span id="line-105"></span><span class="hs-comment">--</span><span>
-</span><span id="line-106"></span><span class="hs-comment">-- * &quot;module Ouroboros.Consensus.HardFork.Combinator.State.Infra&quot;</span><span>
-</span><span id="line-107"></span><span class="hs-comment">--   This module is only separate from @.State@ to avoid some cyclic module</span><span>
-</span><span id="line-108"></span><span class="hs-comment">--   dependencies. Most modules internally to the HFC should import from</span><span>
-</span><span id="line-109"></span><span class="hs-comment">--   @.State@ directly, and outside of the HFC not even @.State@ should be</span><span>
-</span><span id="line-110"></span><span class="hs-comment">--   needed (see above).</span><span>
-</span><span id="line-111"></span><span class="hs-comment">--</span><span>
-</span><span id="line-112"></span><span class="hs-comment">-- * &quot;Ouroboros.Consensus.HardFork.Combinator.Protocol.LedgerView&quot;</span><span>
-</span><span id="line-113"></span><span class="hs-comment">--   This is internal to &quot;Ouroboros.Consensus.HardFork.Combinator.Protocol&quot;</span><span>
-</span><span id="line-114"></span><span class="hs-comment">--</span><span>
-</span><span id="line-115"></span><span class="hs-comment">-- * &quot;Ouroboros.Consensus.HardFork.Combinator.Protocol.State&quot;</span><span>
-</span><span id="line-116"></span><span class="hs-comment">--   This is internal to &quot;Ouroboros.Consensus.HardFork.Combinator.Protocol&quot;</span><span>
-</span><span id="line-117"></span><span class="hs-comment">--</span><span>
-</span><span id="line-118"></span><span class="hs-comment">-- * &quot;Ouroboros.Consensus.HardFork.Combinator.Degenerate&quot;</span><span>
-</span><span id="line-119"></span><span class="hs-comment">--   This defines 'DegenFork', which is useful as a test case that the hard</span><span>
-</span><span id="line-120"></span><span class="hs-comment">--   fork combinator when applied to a single block results in a system</span><span>
-</span><span id="line-121"></span><span class="hs-comment">--   that is equivalent to just using that single block directly.</span><span>
-</span><span id="line-122"></span><span class="hs-comment">--</span><span>
-</span><span id="line-123"></span><span class="hs-comment">-- * &quot;Ouroboros.Consensus.HardFork.Combinator.Embed.Unary&quot;</span><span>
-</span><span id="line-124"></span><span class="hs-comment">--   Mostly used in combination with 'DegenFork'.</span><span>
-</span><span id="line-125"></span><span class="hs-comment">--</span><span>
-</span><span id="line-126"></span><span class="hs-comment">-- * &quot;Ouroboros.Consensus.HardFork.Combinator.Embed.Nary&quot;</span><span>
-</span><span id="line-127"></span><span class="hs-comment">--   Used for injection into n-ary sums. Alternative to @Unary@.</span><span>
-</span><span id="line-128"></span><span class="hs-comment">--</span><span>
-</span><span id="line-129"></span><span class="hs-comment">-- * Most of @Ouroboros.Consensus.HardFork.Combinator.SingleEra.*@</span><span>
-</span><span id="line-130"></span><span class="hs-comment">--   These types are primarily used internally to define the HFC types.</span><span>
-</span><span id="line-131"></span><span class="hs-comment">--   In a few cases some of the HFC types /are/ types from the SingleEra</span><span>
-</span><span id="line-132"></span><span class="hs-comment">--   module hierarchy directly; in such cases, we should export them from</span><span>
-</span><span id="line-133"></span><span class="hs-comment">--   this module.</span><span>
-</span><span id="line-134"></span><span class="hs-comment">--   TODO: Currently we only do this for @SingleEra.Info@, but we might also</span><span>
-</span><span id="line-135"></span><span class="hs-comment">--   need to do it for other types.</span><span>
-</span><span id="line-136"></span><span class="hs-comment">--</span><span>
-</span><span id="line-137"></span><span class="hs-comment">-- * Ouroboros.Consensus.HardFork.Combinator.Util.*</span><span>
-</span><span id="line-138"></span><span class="hs-comment">--   We omit most utility functions and types, which are for internal use. Some</span><span>
-</span><span id="line-139"></span><span class="hs-comment">--   exceptions the defintion of InPairs, which will be required to define</span><span>
-</span><span id="line-140"></span><span class="hs-comment">--   translations, and the definition of a Telescope, which might be needed to</span><span>
-</span><span id="line-141"></span><span class="hs-comment">--   define serialisation code.</span><span>
-</span><span id="line-142"></span></pre></body></html>
+</span><span id="line-95"></span><span>                     </span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Consensus.HardFork.Combinator.InjectTxs.html#InjectTx"><span class="hs-identifier">InjectTx</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.HardFork.Combinator.InjectTxs.html#InjectValidatedTx"><span class="hs-identifier">InjectValidatedTx</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.HardFork.Combinator.InjectTxs.html#cannotInjectTx"><span class="hs-identifier">cannotInjectTx</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-96"></span><span>                     </span><span class="annot"><a href="Ouroboros.Consensus.HardFork.Combinator.InjectTxs.html#cannotInjectValidatedTx"><span class="hs-identifier">cannotInjectValidatedTx</span></a></span><span class="hs-special">,</span><span> </span><span class="hs-keyword">pattern</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.HardFork.Combinator.InjectTxs.html#InjectTx"><span class="hs-identifier">InjectTx</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-97"></span><span>                     </span><span class="hs-keyword">pattern</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.HardFork.Combinator.InjectTxs.html#InjectValidatedTx"><span class="hs-identifier">InjectValidatedTx</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-98"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="Ouroboros.Consensus.HardFork.Combinator.Util.Functors.html"><span class="hs-identifier">Ouroboros.Consensus.HardFork.Combinator.Util.Functors</span></a></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">X</span></span><span>
+</span><span id="line-99"></span><span>                     </span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Consensus.HardFork.Combinator.Util.Functors.html#Product2"><span class="hs-identifier">Product2</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-100"></span><span>
+</span><span id="line-101"></span><span class="hs-comment">-- Omitted from this export:</span><span>
+</span><span id="line-102"></span><span class="hs-comment">--</span><span>
+</span><span id="line-103"></span><span class="hs-comment">-- * &quot;Ouroboros.Consensus.HardFork.Combinator.State&quot;</span><span>
+</span><span id="line-104"></span><span class="hs-comment">--   This defines 'HardForkState', a wrapper around a 'Telescope'. We use this</span><span>
+</span><span id="line-105"></span><span class="hs-comment">--   to define 'HardForkLedgerState', 'HardForkLedgerView' as well as</span><span>
+</span><span id="line-106"></span><span class="hs-comment">--   'HardForkChainDepState', but the type itself should mostly be internal to</span><span>
+</span><span id="line-107"></span><span class="hs-comment">--   the hard fork combinator. We do export the constructor for it, as this may</span><span>
+</span><span id="line-108"></span><span class="hs-comment">--   be required for serialisation code.</span><span>
+</span><span id="line-109"></span><span class="hs-comment">--</span><span>
+</span><span id="line-110"></span><span class="hs-comment">-- * &quot;module Ouroboros.Consensus.HardFork.Combinator.State.Infra&quot;</span><span>
+</span><span id="line-111"></span><span class="hs-comment">--   This module is only separate from @.State@ to avoid some cyclic module</span><span>
+</span><span id="line-112"></span><span class="hs-comment">--   dependencies. Most modules internally to the HFC should import from</span><span>
+</span><span id="line-113"></span><span class="hs-comment">--   @.State@ directly, and outside of the HFC not even @.State@ should be</span><span>
+</span><span id="line-114"></span><span class="hs-comment">--   needed (see above).</span><span>
+</span><span id="line-115"></span><span class="hs-comment">--</span><span>
+</span><span id="line-116"></span><span class="hs-comment">-- * &quot;Ouroboros.Consensus.HardFork.Combinator.Protocol.LedgerView&quot;</span><span>
+</span><span id="line-117"></span><span class="hs-comment">--   This is internal to &quot;Ouroboros.Consensus.HardFork.Combinator.Protocol&quot;</span><span>
+</span><span id="line-118"></span><span class="hs-comment">--</span><span>
+</span><span id="line-119"></span><span class="hs-comment">-- * &quot;Ouroboros.Consensus.HardFork.Combinator.Protocol.State&quot;</span><span>
+</span><span id="line-120"></span><span class="hs-comment">--   This is internal to &quot;Ouroboros.Consensus.HardFork.Combinator.Protocol&quot;</span><span>
+</span><span id="line-121"></span><span class="hs-comment">--</span><span>
+</span><span id="line-122"></span><span class="hs-comment">-- * &quot;Ouroboros.Consensus.HardFork.Combinator.Degenerate&quot;</span><span>
+</span><span id="line-123"></span><span class="hs-comment">--   This defines 'DegenFork', which is useful as a test case that the hard</span><span>
+</span><span id="line-124"></span><span class="hs-comment">--   fork combinator when applied to a single block results in a system</span><span>
+</span><span id="line-125"></span><span class="hs-comment">--   that is equivalent to just using that single block directly.</span><span>
+</span><span id="line-126"></span><span class="hs-comment">--</span><span>
+</span><span id="line-127"></span><span class="hs-comment">-- * &quot;Ouroboros.Consensus.HardFork.Combinator.Embed.Unary&quot;</span><span>
+</span><span id="line-128"></span><span class="hs-comment">--   Mostly used in combination with 'DegenFork'.</span><span>
+</span><span id="line-129"></span><span class="hs-comment">--</span><span>
+</span><span id="line-130"></span><span class="hs-comment">-- * &quot;Ouroboros.Consensus.HardFork.Combinator.Embed.Nary&quot;</span><span>
+</span><span id="line-131"></span><span class="hs-comment">--   Used for injection into n-ary sums. Alternative to @Unary@.</span><span>
+</span><span id="line-132"></span><span class="hs-comment">--</span><span>
+</span><span id="line-133"></span><span class="hs-comment">-- * Most of @Ouroboros.Consensus.HardFork.Combinator.SingleEra.*@</span><span>
+</span><span id="line-134"></span><span class="hs-comment">--   These types are primarily used internally to define the HFC types.</span><span>
+</span><span id="line-135"></span><span class="hs-comment">--   In a few cases some of the HFC types /are/ types from the SingleEra</span><span>
+</span><span id="line-136"></span><span class="hs-comment">--   module hierarchy directly; in such cases, we should export them from</span><span>
+</span><span id="line-137"></span><span class="hs-comment">--   this module.</span><span>
+</span><span id="line-138"></span><span class="hs-comment">--   TODO: Currently we only do this for @SingleEra.Info@, but we might also</span><span>
+</span><span id="line-139"></span><span class="hs-comment">--   need to do it for other types.</span><span>
+</span><span id="line-140"></span><span class="hs-comment">--</span><span>
+</span><span id="line-141"></span><span class="hs-comment">-- * Ouroboros.Consensus.HardFork.Combinator.Util.*</span><span>
+</span><span id="line-142"></span><span class="hs-comment">--   We omit most utility functions and types, which are for internal use. Some</span><span>
+</span><span id="line-143"></span><span class="hs-comment">--   exceptions the defintion of InPairs, which will be required to define</span><span>
+</span><span id="line-144"></span><span class="hs-comment">--   translations, and the definition of a Telescope, which might be needed to</span><span>
+</span><span id="line-145"></span><span class="hs-comment">--   define serialisation code.</span><span>
+</span><span id="line-146"></span></pre></body></html>
