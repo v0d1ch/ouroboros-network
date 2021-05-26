@@ -712,20 +712,8 @@ InternalState blk
 </span><a href="#local-6989586621680000432"><span class="hs-identifier hs-var">lstate</span></a></span><span> </span><span class="annot"><span class="annottext">LedgerConfig blk
 </span><a href="#local-6989586621680000431"><span class="hs-identifier hs-var">lcfg</span></a></span><span> </span><span class="annot"><span class="annottext">MempoolCapacityBytesOverride
 </span><a href="#local-6989586621680000430"><span class="hs-identifier hs-var">capacityOverride</span></a></span><span>
-</span><span id="line-264"></span><span>        </span><span id="local-6989586621680000427"><span class="annot"><span class="annottext">mempoolSize :: MempoolSize
-</span><a href="#local-6989586621680000427"><span class="hs-identifier hs-var hs-var">mempoolSize</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">InternalState blk -&gt; MempoolSize
-forall blk. InternalState blk -&gt; MempoolSize
-</span><a href="Ouroboros.Consensus.Mempool.Impl.Types.html#isMempoolSize"><span class="hs-identifier hs-var">isMempoolSize</span></a></span><span> </span><span class="annot"><span class="annottext">InternalState blk
-</span><a href="#local-6989586621680000433"><span class="hs-identifier hs-var">istate</span></a></span><span>
-</span><span id="line-265"></span><span>        </span><span id="local-6989586621680000426"><span class="annot"><span class="annottext">snapshot :: MempoolSnapshot blk TicketNo
-</span><a href="#local-6989586621680000426"><span class="hs-identifier hs-var hs-var">snapshot</span></a></span></span><span>    </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">InternalState blk -&gt; MempoolSnapshot blk TicketNo
-forall blk.
-HasTxId (GenTx blk) =&gt;
-InternalState blk -&gt; MempoolSnapshot blk TicketNo
-</span><a href="Ouroboros.Consensus.Mempool.Impl.Pure.html#implSnapshotFromIS"><span class="hs-identifier hs-var">implSnapshotFromIS</span></a></span><span> </span><span class="annot"><span class="annottext">InternalState blk
-</span><a href="#local-6989586621680000433"><span class="hs-identifier hs-var">istate</span></a></span><span>
-</span><span id="line-266"></span><span>        </span><span id="local-6989586621680000425"><span class="annot"><span class="annottext">removed :: [Validated (GenTx blk)]
-</span><a href="#local-6989586621680000425"><span class="hs-identifier hs-var hs-var">removed</span></a></span></span><span>     </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">((Validated (GenTx blk), ApplyTxErr blk) -&gt; Validated (GenTx blk))
+</span><span id="line-264"></span><span>        </span><span id="local-6989586621680000427"><span class="annot"><span class="annottext">removed :: [Validated (GenTx blk)]
+</span><a href="#local-6989586621680000427"><span class="hs-identifier hs-var hs-var">removed</span></a></span></span><span>     </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">((Validated (GenTx blk), ApplyTxErr blk) -&gt; Validated (GenTx blk))
 -&gt; [(Validated (GenTx blk), ApplyTxErr blk)]
 -&gt; [Validated (GenTx blk)]
 forall a b. (a -&gt; b) -&gt; [a] -&gt; [b]
@@ -737,17 +725,23 @@ forall invalidTx blk.
 ValidationResult invalidTx blk -&gt; [(invalidTx, ApplyTxErr blk)]
 </span><a href="Ouroboros.Consensus.Mempool.Impl.Types.html#vrInvalid"><span class="hs-identifier hs-var hs-var">vrInvalid</span></a></span><span> </span><span class="annot"><span class="annottext">ValidationResult (Validated (GenTx blk)) blk
 </span><a href="#local-6989586621680000429"><span class="hs-identifier hs-var">vr</span></a></span><span class="hs-special">)</span><span>
-</span><span id="line-267"></span><span>        </span><span id="local-6989586621680000424"><span class="annot"><span class="annottext">mTrace :: Maybe (TraceEventMempool blk)
-</span><a href="#local-6989586621680000424"><span class="hs-identifier hs-var hs-var">mTrace</span></a></span></span><span>      </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">if</span><span> </span><span class="annot"><span class="annottext">[Validated (GenTx blk)] -&gt; Bool
+</span><span id="line-265"></span><span>        </span><span id="local-6989586621680000426"><span class="annot"><span class="annottext">istate' :: InternalState blk
+</span><a href="#local-6989586621680000426"><span class="hs-identifier hs-var hs-var">istate'</span></a></span></span><span>     </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">ValidationResult (Validated (GenTx blk)) blk -&gt; InternalState blk
+forall invalidTx blk.
+ValidationResult invalidTx blk -&gt; InternalState blk
+</span><a href="Ouroboros.Consensus.Mempool.Impl.Types.html#internalStateFromVR"><span class="hs-identifier hs-var">internalStateFromVR</span></a></span><span> </span><span class="annot"><span class="annottext">ValidationResult (Validated (GenTx blk)) blk
+</span><a href="#local-6989586621680000429"><span class="hs-identifier hs-var">vr</span></a></span><span>
+</span><span id="line-266"></span><span>        </span><span id="local-6989586621680000425"><span class="annot"><span class="annottext">mTrace :: Maybe (TraceEventMempool blk)
+</span><a href="#local-6989586621680000425"><span class="hs-identifier hs-var hs-var">mTrace</span></a></span></span><span>      </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">if</span><span> </span><span class="annot"><span class="annottext">[Validated (GenTx blk)] -&gt; Bool
 forall (t :: * -&gt; *) a. Foldable t =&gt; t a -&gt; Bool
 </span><span class="hs-identifier hs-var">null</span></span><span> </span><span class="annot"><span class="annottext">[Validated (GenTx blk)]
-</span><a href="#local-6989586621680000425"><span class="hs-identifier hs-var">removed</span></a></span><span>
-</span><span id="line-268"></span><span>                      </span><span class="hs-keyword">then</span><span>
-</span><span id="line-269"></span><span>                        </span><span class="annot"><span class="annottext">Maybe (TraceEventMempool blk)
+</span><a href="#local-6989586621680000427"><span class="hs-identifier hs-var">removed</span></a></span><span>
+</span><span id="line-267"></span><span>                      </span><span class="hs-keyword">then</span><span>
+</span><span id="line-268"></span><span>                        </span><span class="annot"><span class="annottext">Maybe (TraceEventMempool blk)
 forall a. Maybe a
 </span><span class="hs-identifier hs-var">Nothing</span></span><span>
-</span><span id="line-270"></span><span>                      </span><span class="hs-keyword">else</span><span>
-</span><span id="line-271"></span><span>                        </span><span class="annot"><span class="annottext">TraceEventMempool blk -&gt; Maybe (TraceEventMempool blk)
+</span><span id="line-269"></span><span>                      </span><span class="hs-keyword">else</span><span>
+</span><span id="line-270"></span><span>                        </span><span class="annot"><span class="annottext">TraceEventMempool blk -&gt; Maybe (TraceEventMempool blk)
 forall a. a -&gt; Maybe a
 </span><span class="hs-identifier hs-var">Just</span></span><span> </span><span class="annot"><span class="annottext">(TraceEventMempool blk -&gt; Maybe (TraceEventMempool blk))
 -&gt; TraceEventMempool blk -&gt; Maybe (TraceEventMempool blk)
@@ -756,8 +750,17 @@ forall a b. (a -&gt; b) -&gt; a -&gt; b
 forall blk.
 [Validated (GenTx blk)] -&gt; MempoolSize -&gt; TraceEventMempool blk
 </span><a href="Ouroboros.Consensus.Mempool.API.html#TraceMempoolRemoveTxs"><span class="hs-identifier hs-var">TraceMempoolRemoveTxs</span></a></span><span> </span><span class="annot"><span class="annottext">[Validated (GenTx blk)]
-</span><a href="#local-6989586621680000425"><span class="hs-identifier hs-var">removed</span></a></span><span> </span><span class="annot"><span class="annottext">MempoolSize
-</span><a href="#local-6989586621680000427"><span class="hs-identifier hs-var">mempoolSize</span></a></span><span>
+</span><a href="#local-6989586621680000427"><span class="hs-identifier hs-var">removed</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">InternalState blk -&gt; MempoolSize
+forall blk. InternalState blk -&gt; MempoolSize
+</span><a href="Ouroboros.Consensus.Mempool.Impl.Types.html#isMempoolSize"><span class="hs-identifier hs-var">isMempoolSize</span></a></span><span> </span><span class="annot"><span class="annottext">InternalState blk
+</span><a href="#local-6989586621680000426"><span class="hs-identifier hs-var">istate'</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-271"></span><span>        </span><span id="local-6989586621680000423"><span class="annot"><span class="annottext">snapshot :: MempoolSnapshot blk TicketNo
+</span><a href="#local-6989586621680000423"><span class="hs-identifier hs-var hs-var">snapshot</span></a></span></span><span>    </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">InternalState blk -&gt; MempoolSnapshot blk TicketNo
+forall blk.
+HasTxId (GenTx blk) =&gt;
+InternalState blk -&gt; MempoolSnapshot blk TicketNo
+</span><a href="Ouroboros.Consensus.Mempool.Impl.Pure.html#implSnapshotFromIS"><span class="hs-identifier hs-var">implSnapshotFromIS</span></a></span><span> </span><span class="annot"><span class="annottext">InternalState blk
+</span><a href="#local-6989586621680000426"><span class="hs-identifier hs-var">istate'</span></a></span><span>
 </span><span id="line-272"></span><span>    </span><span class="hs-keyword">in</span><span>
 </span><span id="line-273"></span><span>      </span><span class="annot"><span class="annottext">InternalState blk
 -&gt; MempoolSnapshot blk TicketNo
@@ -768,13 +771,10 @@ InternalState blk
 -&gt; MempoolSnapshot blk TicketNo
 -&gt; Maybe (TraceEventMempool blk)
 -&gt; SyncWithLedger blk
-</span><a href="Ouroboros.Consensus.Mempool.Impl.Pure.html#NewSyncedState"><span class="hs-identifier hs-var">NewSyncedState</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">ValidationResult (Validated (GenTx blk)) blk -&gt; InternalState blk
-forall invalidTx blk.
-ValidationResult invalidTx blk -&gt; InternalState blk
-</span><a href="Ouroboros.Consensus.Mempool.Impl.Types.html#internalStateFromVR"><span class="hs-identifier hs-var">internalStateFromVR</span></a></span><span> </span><span class="annot"><span class="annottext">ValidationResult (Validated (GenTx blk)) blk
-</span><a href="#local-6989586621680000429"><span class="hs-identifier hs-var">vr</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">MempoolSnapshot blk TicketNo
-</span><a href="#local-6989586621680000426"><span class="hs-identifier hs-var">snapshot</span></a></span><span> </span><span class="annot"><span class="annottext">Maybe (TraceEventMempool blk)
-</span><a href="#local-6989586621680000424"><span class="hs-identifier hs-var">mTrace</span></a></span><span>
+</span><a href="Ouroboros.Consensus.Mempool.Impl.Pure.html#NewSyncedState"><span class="hs-identifier hs-var">NewSyncedState</span></a></span><span> </span><span class="annot"><span class="annottext">InternalState blk
+</span><a href="#local-6989586621680000426"><span class="hs-identifier hs-var">istate'</span></a></span><span> </span><span class="annot"><span class="annottext">MempoolSnapshot blk TicketNo
+</span><a href="#local-6989586621680000423"><span class="hs-identifier hs-var">snapshot</span></a></span><span> </span><span class="annot"><span class="annottext">Maybe (TraceEventMempool blk)
+</span><a href="#local-6989586621680000425"><span class="hs-identifier hs-var">mTrace</span></a></span><span>
 </span><span id="line-274"></span><span>
 </span><span id="line-275"></span><span class="hs-comment">-- | Get a snapshot of the mempool state that is valid with respect to</span><span>
 </span><span id="line-276"></span><span class="hs-comment">-- the given ledger state</span><span>
