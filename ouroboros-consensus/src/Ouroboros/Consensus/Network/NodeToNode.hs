@@ -28,6 +28,9 @@ module Ouroboros.Consensus.Network.NodeToNode (
     -- ** Projections
   , initiator
   , initiatorAndResponder
+    -- *** TODO: Only for enabling P2P switch
+  , initiatorNonP2P
+  , responderNonP2P
     -- * Re-exports
   , ChainSyncTimeout (..)
   ) where
@@ -687,6 +690,69 @@ initiator miniProtocolParameters version Apps {..} =
               else InitiatorProtocolOnly (MuxPeerRaw (aTxSubmissionClient  version controlMessageSTM them)),
           keepAliveProtocol =
             (InitiatorProtocolOnly (MuxPeerRaw (aKeepAliveClient version controlMessageSTM them)))
+        })
+      version
+
+-- | A projection from 'NetworkApplication' to a client-side
+-- 'OuroborosApplication' for the node-to-node protocols.
+--
+-- Implementation note: network currently doesn't enable protocols conditional
+-- on the protocol version, but it eventually may; this is why @_version@ is
+-- currently unused.
+--
+-- TODO: Needed only for enabling P2P switch
+initiatorNonP2P
+  :: MiniProtocolParameters
+  -> NodeToNodeVersion
+  -> Apps m (ConnectionId peer) b b b b b a
+  -> OuroborosApplication 'InitiatorMode peer b m a Void
+initiatorNonP2P miniProtocolParameters version Apps {..} =
+    nodeToNodeProtocolsNonP2P
+      miniProtocolParameters
+      -- TODO: currently consensus is using 'ConnectionId' for its 'peer' type.
+      -- This is currently ok, as we might accept multiple connections from the
+      -- same ip address, however this will change when we will switch to
+      -- p2p-governor & connection-manager.  Then consenus can use peer's ip
+      -- address & port number, rather than 'ConnectionId' (which is
+      -- a quadruple uniquely determinaing a connection).
+      (\them controlMessageSTM -> NodeToNodeProtocols {
+          chainSyncProtocol =
+            (InitiatorProtocolOnly (MuxPeerRaw (aChainSyncClient version controlMessageSTM them))),
+          blockFetchProtocol =
+            (InitiatorProtocolOnly (MuxPeerRaw (aBlockFetchClient version controlMessageSTM them))),
+          txSubmissionProtocol =
+            if version >= NodeToNodeV_6
+              then InitiatorProtocolOnly (MuxPeerRaw (aTxSubmission2Client version controlMessageSTM them))
+              else InitiatorProtocolOnly (MuxPeerRaw (aTxSubmissionClient  version controlMessageSTM them)),
+          keepAliveProtocol =
+            (InitiatorProtocolOnly (MuxPeerRaw (aKeepAliveClient version controlMessageSTM them)))
+        })
+      version
+
+-- | A projection from 'NetworkApplication' to a server-side
+-- 'OuroborosApplication' for the node-to-node protocols.
+--
+-- See 'initiatorNetworkApplication' for rationale for the @_version@ arg.
+-- TODO: Only needed for enabling P2P Switch
+responderNonP2P
+  :: MiniProtocolParameters
+  -> NodeToNodeVersion
+  -> Apps m (ConnectionId peer) b b b b b a
+  -> OuroborosApplication 'ResponderMode peer b m Void a
+responderNonP2P miniProtocolParameters version Apps {..} =
+    nodeToNodeProtocolsNonP2P
+      miniProtocolParameters
+      (\them _controlMessageSTM -> NodeToNodeProtocols {
+          chainSyncProtocol =
+            (ResponderProtocolOnly (MuxPeerRaw (aChainSyncServer version them))),
+          blockFetchProtocol =
+            (ResponderProtocolOnly (MuxPeerRaw (aBlockFetchServer version them))),
+          txSubmissionProtocol =
+            if version >= NodeToNodeV_6
+              then ResponderProtocolOnly (MuxPeerRaw (aTxSubmission2Server version them))
+              else ResponderProtocolOnly (MuxPeerRaw (aTxSubmissionServer  version them)),
+          keepAliveProtocol =
+            (ResponderProtocolOnly (MuxPeerRaw (aKeepAliveServer version them)))
         })
       version
 
