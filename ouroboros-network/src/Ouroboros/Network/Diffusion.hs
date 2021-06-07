@@ -24,6 +24,7 @@ import           Data.ByteString.Lazy (ByteString)
 import           Data.Void (Void)
 import           Data.Map.Strict (Map)
 import           Data.Time (DiffTime)
+import           Data.Functor (void)
 import           Control.Exception (IOException)
 import           Control.Tracer (Tracer)
 
@@ -300,14 +301,14 @@ runDataDiffusion
          RemoteAddress LocalAddress
          NodeToNodeVersionData NodeToClientVersionData
          IO
-    -> IO (Either () Void)
+    -> IO ()
 runDataDiffusion (DiffusionTracers tr@Common.DiffusionTracers { Common.dtP2P })
                  (DiffusionArguments diffusionArguments)
                  (DiffusionApplications diffusionApplications) =
   case (dtP2P, diffusionArguments, diffusionApplications) of
     (Left t, Left da, Left dapp)    ->
-      Left <$> NonP2P.runDataDiffusion (tr { Common.dtP2P = t}) da dapp
+      NonP2P.runDataDiffusion (tr { Common.dtP2P = t}) da dapp
     (Right t, Right da, Right dapp) ->
-      Right <$> P2P.runDataDiffusion (tr { Common.dtP2P = t}) da dapp
+      void $ P2P.runDataDiffusion (tr { Common.dtP2P = t}) da dapp
     _                               ->
       error "Non-matching arguments, every argument should be on the same side!"

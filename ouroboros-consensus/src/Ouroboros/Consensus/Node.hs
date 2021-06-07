@@ -56,7 +56,6 @@ import           Data.Hashable (Hashable)
 import           Data.Map.Strict (Map)
 import qualified Data.Map.Strict as Map
 import           Data.Typeable (Typeable)
-import           Data.Void (Void)
 import           System.FilePath ((</>))
 import           System.Random (StdGen, newStdGen, randomIO, randomRIO)
 
@@ -205,7 +204,7 @@ data LowLevelRunNodeArgs m addrNTN addrNTC versionDataNTN versionDataNTC blk = L
              addrNTN        addrNTC
              versionDataNTN versionDataNTC
              m
-        -> m (Either () Void)
+        -> m ()
 
     , llrnVersionDataNTC :: versionDataNTC
 
@@ -233,7 +232,7 @@ run :: forall blk.
   => NetworkP2PMode
   -> RunNodeArgs IO RemoteAddress LocalAddress blk
   -> StdRunNodeArgs IO blk
-  -> IO (Either () Void)
+  -> IO ()
 run enableP2P args stdArgs =
     stdLowLevelRunNodeArgsIO args stdArgs >>= runWith enableP2P args
 
@@ -251,7 +250,7 @@ runWith :: forall m addrNTN addrNTC versionDataNTN versionDataNTC blk.
   => NetworkP2PMode
   -> RunNodeArgs m addrNTN addrNTC blk
   -> LowLevelRunNodeArgs m addrNTN addrNTC versionDataNTN versionDataNTC blk
-  -> m (Either () Void)
+  -> m ()
 runWith enableP2P RunNodeArgs{..} LowLevelRunNodeArgs{..} =
 
     llrnWithCheckedDB $ \(LastShutDownWasClean lastShutDownWasClean) ->
@@ -693,7 +692,7 @@ stdRunDataDiffusion ::
        RemoteAddress LocalAddress
        NodeToNodeVersionData NodeToClientVersionData
        IO
-  -> IO (Either () Void)
+  -> IO ()
 stdRunDataDiffusion = runDataDiffusion
 
 -- | Higher-level arguments that can determine the 'LowLevelRunNodeArgs' under
