@@ -18,7 +18,7 @@ module Ouroboros.Network.Diffusion.NonP2P
   , IPSubscriptionTarget (..)
   , DnsSubscriptionTarget (..)
   , ConnectionId (..)
-  , DiffusionInitializationTracer (..)
+  , Common.DiffusionInitializationTracer (..)
   , LedgerPeersConsensusInterface (..)
   )
   where
@@ -32,7 +32,6 @@ import           Data.Foldable (asum)
 import           Data.Void (Void)
 import           Data.ByteString.Lazy (ByteString)
 
-import           Network.Mux (MuxTrace (..), WithMuxBearer (..))
 import           Network.Socket (AddrInfo, SockAddr)
 import qualified Network.Socket as Socket
 
@@ -61,7 +60,7 @@ import           Ouroboros.Network.NodeToNode ( NodeToNodeVersion (..)
                                               )
 import qualified Ouroboros.Network.NodeToNode   as NodeToNode
 import           Ouroboros.Network.PeerSelection.LedgerPeers ( LedgerPeersConsensusInterface (..)
-                                                             , TraceLedgerPeers)
+                                                             )
 import           Ouroboros.Network.Socket ( ConnectionId (..)
                                           , NetworkMutableState
                                           , newNetworkMutableState
@@ -72,47 +71,39 @@ import           Ouroboros.Network.Subscription.Ip
 import           Ouroboros.Network.Subscription.Dns
 import           Ouroboros.Network.Subscription.Worker (LocalAddresses (..))
 import           Ouroboros.Network.Tracers
-import           Ouroboros.Network.Diffusion.Common (DiffusionInitializationTracer (..))
+import qualified Ouroboros.Network.Diffusion.Common as Common
+import           Ouroboros.Network.Diffusion.Common hiding (DiffusionTracers, nullTracers)
 
 data DiffusionTracers = DiffusionTracers {
+      -- | IP subscription tracer
       dtIpSubscriptionTracer   :: Tracer IO (WithIPList (SubscriptionTrace SockAddr))
-      -- ^ IP subscription tracer
+
+      -- | DNS subscription tracer
     , dtDnsSubscriptionTracer  :: Tracer IO (WithDomainName (SubscriptionTrace SockAddr))
-      -- ^ DNS subscription tracer
+
+      -- | DNS resolver tracer
     , dtDnsResolverTracer      :: Tracer IO (WithDomainName DnsTrace)
-      -- ^ DNS resolver tracer
-    , dtMuxTracer              :: Tracer IO (WithMuxBearer (ConnectionId SockAddr) MuxTrace)
-      -- ^ Mux tracer
-    , dtMuxLocalTracer         :: Tracer IO (WithMuxBearer (ConnectionId LocalAddress) MuxTrace)
-      -- ^ Mux tracer for local clients
-    , dtHandshakeTracer        :: Tracer IO NodeToNode.HandshakeTr
-      -- ^ Handshake protocol tracer
-    , dtHandshakeLocalTracer   :: Tracer IO NodeToClient.HandshakeTr
-      -- ^ Handshake protocol tracer for local clients
+
     , dtErrorPolicyTracer      :: Tracer IO (WithAddr SockAddr     ErrorPolicyTrace)
+
     , dtLocalErrorPolicyTracer :: Tracer IO (WithAddr LocalAddress ErrorPolicyTrace)
+
+      -- | Trace rate limiting of accepted connections
     , dtAcceptPolicyTracer     :: Tracer IO AcceptConnectionsPolicyTrace
-      -- ^ Trace rate limiting of accepted connections
-    , dtDiffusionInitializationTracer :: Tracer IO DiffusionInitializationTracer
-    , dtLedgerPeersTracer      :: Tracer IO TraceLedgerPeers
     }
 
-nullTracers :: DiffusionTracers
-nullTracers = DiffusionTracers {
-    dtIpSubscriptionTracer          = nullTracer
-  , dtDnsSubscriptionTracer         = nullTracer
-  , dtDnsResolverTracer             = nullTracer
-  , dtMuxTracer                     = nullTracer
-  , dtMuxLocalTracer                = nullTracer
-  , dtHandshakeTracer               = nullTracer
-  , dtHandshakeLocalTracer          = nullTracer
-  , dtErrorPolicyTracer             = nullTracer
-  , dtLocalErrorPolicyTracer        = nullTracer
-  , dtAcceptPolicyTracer            = nullTracer
-  , dtDiffusionInitializationTracer = nullTracer
-  , dtLedgerPeersTracer             = nullTracer
-  }
-
+nullTracers :: Common.DiffusionTracers DiffusionTracers
+nullTracers = Common.nullTracers nonP2PNullTracers
+  where
+    nonP2PNullTracers =
+      DiffusionTracers {
+        dtIpSubscriptionTracer          = nullTracer
+      , dtDnsSubscriptionTracer         = nullTracer
+      , dtDnsResolverTracer             = nullTracer
+      , dtErrorPolicyTracer             = nullTracer
+      , dtLocalErrorPolicyTracer        = nullTracer
+      , dtAcceptPolicyTracer            = nullTracer
+      }
 
 -- | Network Node argumets
 --
@@ -166,14 +157,8 @@ data DiffusionApplications ntnAddr ntcAddr ntnVersionData ntcVersionData m = Dif
       -- ^ Interface used to get peers from the current ledger.
     }
 
-data DiffusionFailure = UnsupportedLocalSocketType
-                      | UnsupportedReadySocket -- Windows only
-  deriving (Eq, Show)
-
-instance Exception DiffusionFailure
-
 runDataDiffusion
-    :: DiffusionTracers
+    :: Common.DiffusionTracers DiffusionTracers
     -> DiffusionArguments
     -> DiffusionApplications
          RemoteAddress LocalAddress
@@ -240,18 +225,21 @@ runDataDiffusion tracers
       traceWith dtDiffusionInitializationTracer (DiffusionErrored e)
       throwIO e
 
-    DiffusionTracers { dtIpSubscriptionTracer
-                     , dtDnsSubscriptionTracer
-                     , dtDnsResolverTracer
-                     , dtMuxTracer
-                     , dtMuxLocalTracer
-                     , dtHandshakeTracer
-                     , dtHandshakeLocalTracer
-                     , dtErrorPolicyTracer
-                     , dtLocalErrorPolicyTracer
-                     , dtAcceptPolicyTracer
-                     , dtDiffusionInitializationTracer
-                     } = tracers
+    Common.DiffusionTracers {
+      Common.dtMuxTracer
+      , Common.dtLocalMuxTracer
+      , Common.dtHandshakeTracer
+      , Common.dtLocalHandshakeTracer
+      , Common.dtDiffusionInitializationTracer
+      , Common.dtP2P = DiffusionTracers {
+          dtIpSubscriptionTracer
+          , dtDnsSubscriptionTracer
+          , dtDnsResolverTracer
+          , dtErrorPolicyTracer
+          , dtLocalErrorPolicyTracer
+          , dtAcceptPolicyTracer
+        }
+      } = tracers
 
     --
     -- We can't share portnumber with our server since we run separate
@@ -388,8 +376,8 @@ runDataDiffusion tracers
           void $ NodeToClient.withServer
             sn
             (NetworkServerTracers
-              dtMuxLocalTracer
-              dtHandshakeLocalTracer
+              dtLocalMuxTracer
+              dtLocalHandshakeTracer
               dtLocalErrorPolicyTracer
               dtAcceptPolicyTracer)
             networkLocalState

@@ -29,7 +29,7 @@ module Ouroboros.Network.Diffusion.P2P
   , ConnectionId (..)
     -- ** Tracers
   , nullTracers
-  , DiffusionInitializationTracer(..)
+  , Common.DiffusionInitializationTracer(..)
   , TraceLocalRootPeers (..)
   , TracePublicRootPeers (..)
   , TracePeerSelection (..)
@@ -70,8 +70,8 @@ import qualified System.Posix.Signals as Signals
 import           Network.Mux ( MiniProtocolBundle (..)
                              , MiniProtocolInfo (..)
                              , MiniProtocolDirection (..)
-                             , MuxTrace (..)
-                             , WithMuxBearer (..)
+
+
                              )
 import           Network.Mux.Timeout (withTimeoutSerial)
 import qualified Network.DNS as DNS
@@ -121,7 +121,7 @@ import           Ouroboros.Network.PeerSelection.Governor.Types
                   )
 import           Ouroboros.Network.PeerSelection.LedgerPeers
                   ( LedgerPeersConsensusInterface (..)
-                  , TraceLedgerPeers
+
                   , NumberOfPeers
                   , UseLedgerAfter (..)
                   , runLedgerPeers
@@ -156,20 +156,11 @@ import           Ouroboros.Network.NodeToNode ( ConnectionId (..)
                                               , nodeToNodeHandshakeCodec
                                               )
 import qualified Ouroboros.Network.NodeToNode   as NodeToNode
-import           Ouroboros.Network.Diffusion.Common
-                  ( DiffusionInitializationTracer(..)
-                  , DiffusionFailure(..)
-                  )
+import qualified Ouroboros.Network.Diffusion.Common as Common
+import           Ouroboros.Network.Diffusion.Common hiding (DiffusionTracers, nullTracers)
 
 data DiffusionTracers = DiffusionTracers {
-      dtMuxTracer
-        :: Tracer IO (WithMuxBearer (ConnectionId SockAddr) MuxTrace)
-
-      -- | Handshake protocol tracer
-    , dtHandshakeTracer
-        :: Tracer IO NodeToNode.HandshakeTr
-
-    , dtTraceLocalRootPeersTracer
+    dtTraceLocalRootPeersTracer
         :: Tracer IO (TraceLocalRootPeers IOException)
 
     , dtTracePublicRootPeersTracer
@@ -209,14 +200,6 @@ data DiffusionTracers = DiffusionTracers {
       -- NodeToClient tracers
       --
 
-      -- | Mux tracer for local clients
-    , dtLocalMuxTracer
-        :: Tracer IO (WithMuxBearer (ConnectionId LocalAddress) MuxTrace)
-
-      -- | Handshake protocol tracer for local clients
-    , dtLocalHandshakeTracer
-        :: Tracer IO NodeToClient.HandshakeTr
-
       -- | Connection manager tracer for local clients
     , dtLocalConnectionManagerTracer
         :: Tracer IO (ConnectionManagerTrace
@@ -230,37 +213,27 @@ data DiffusionTracers = DiffusionTracers {
       -- | Inbound protocol governor tracer for local clients
     , dtLocalInboundGovernorTracer
         :: Tracer IO (InboundGovernorTrace LocalAddress)
-
-      -- | Diffusion initialisation tracer
-    , dtDiffusionInitializationTracer
-        :: Tracer IO DiffusionInitializationTracer
-
-      -- | Ledger Peers tracer
-    , dtLedgerPeersTracer      :: Tracer IO TraceLedgerPeers
     }
 
-nullTracers :: DiffusionTracers
-nullTracers = DiffusionTracers {
-    dtMuxTracer                                  = nullTracer
-  , dtHandshakeTracer                            = nullTracer
-  , dtTraceLocalRootPeersTracer                  = nullTracer
-  , dtTracePublicRootPeersTracer                 = nullTracer
-  , dtTracePeerSelectionTracer                   = nullTracer
-  , dtDebugPeerSelectionInitiatorTracer          = nullTracer
-  , dtDebugPeerSelectionInitiatorResponderTracer = nullTracer
-  , dtTracePeerSelectionCounters                 = nullTracer
-  , dtPeerSelectionActionsTracer                 = nullTracer
-  , dtConnectionManagerTracer                    = nullTracer
-  , dtServerTracer                               = nullTracer
-  , dtInboundGovernorTracer                      = nullTracer
-  , dtLocalMuxTracer                             = nullTracer
-  , dtLocalHandshakeTracer                       = nullTracer
-  , dtLocalConnectionManagerTracer               = nullTracer
-  , dtLocalServerTracer                          = nullTracer
-  , dtLocalInboundGovernorTracer                 = nullTracer
-  , dtDiffusionInitializationTracer              = nullTracer
-  , dtLedgerPeersTracer                          = nullTracer
-  }
+nullTracers :: Common.DiffusionTracers DiffusionTracers
+nullTracers = Common.nullTracers p2pNullTracers
+  where
+  p2pNullTracers =
+    DiffusionTracers {
+      dtTraceLocalRootPeersTracer                    = nullTracer
+      , dtTracePublicRootPeersTracer                 = nullTracer
+      , dtTracePeerSelectionTracer                   = nullTracer
+      , dtDebugPeerSelectionInitiatorTracer          = nullTracer
+      , dtDebugPeerSelectionInitiatorResponderTracer = nullTracer
+      , dtTracePeerSelectionCounters                 = nullTracer
+      , dtPeerSelectionActionsTracer                 = nullTracer
+      , dtConnectionManagerTracer                    = nullTracer
+      , dtServerTracer                               = nullTracer
+      , dtInboundGovernorTracer                      = nullTracer
+      , dtLocalConnectionManagerTracer               = nullTracer
+      , dtLocalServerTracer                          = nullTracer
+      , dtLocalInboundGovernorTracer                 = nullTracer
+    }
 
 -- | Network Node argumets
 --
@@ -551,7 +524,7 @@ type NodeToNodePeerSelectionActions (mode :: MuxMode) a =
 --   a wallet and a like local services.
 --
 runDataDiffusion
-    :: DiffusionTracers
+    :: Common.DiffusionTracers DiffusionTracers
     -> DiffusionArguments IO
     -> DiffusionApplications
          RemoteAddress LocalAddress
@@ -1046,27 +1019,30 @@ runDataDiffusion tracers
           )
 
   where
-    DiffusionTracers { dtMuxTracer
-                     , dtHandshakeTracer
-                     , dtTracePeerSelectionTracer
-                     , dtDebugPeerSelectionInitiatorTracer
-                     , dtDebugPeerSelectionInitiatorResponderTracer
-                     , dtTracePeerSelectionCounters
-                     , dtPeerSelectionActionsTracer
-                     , dtTraceLocalRootPeersTracer
-                     , dtTracePublicRootPeersTracer
-                     , dtConnectionManagerTracer
-                     , dtServerTracer
-                     , dtInboundGovernorTracer
-                     , dtLocalMuxTracer
-                     , dtLocalHandshakeTracer
-                     , dtLocalConnectionManagerTracer
-                     , dtLocalServerTracer
-                     , dtLocalInboundGovernorTracer
-                     , dtLedgerPeersTracer
-                     -- the tracer
-                     , dtDiffusionInitializationTracer = tracer
-                     } = tracers
+    Common.DiffusionTracers {
+      Common.dtMuxTracer
+      , Common.dtLocalMuxTracer
+      , Common.dtHandshakeTracer
+      , Common.dtLocalHandshakeTracer
+      , Common.dtLedgerPeersTracer
+      -- the tracer
+      , Common.dtDiffusionInitializationTracer = tracer
+      , Common.dtP2P = DiffusionTracers {
+          dtTracePeerSelectionTracer
+          , dtDebugPeerSelectionInitiatorTracer
+          , dtDebugPeerSelectionInitiatorResponderTracer
+          , dtTracePeerSelectionCounters
+          , dtPeerSelectionActionsTracer
+          , dtTraceLocalRootPeersTracer
+          , dtTracePublicRootPeersTracer
+          , dtConnectionManagerTracer
+          , dtServerTracer
+          , dtInboundGovernorTracer
+          , dtLocalConnectionManagerTracer
+          , dtLocalServerTracer
+          , dtLocalInboundGovernorTracer
+        }
+      } = tracers
 
 
     miniProtocolBundleInitiatorResponderMode :: MiniProtocolBundle InitiatorResponderMode
@@ -1193,7 +1169,7 @@ localDataFlow _ _ = Unidirectional
 -- Socket utility functions
 --
 
-withSockets :: Tracer IO DiffusionInitializationTracer
+withSockets :: Tracer IO Common.DiffusionInitializationTracer
             -> SocketSnocket
             -> [Either Socket.Socket (Socket.Family, SockAddr)]
             -> (NonEmpty Socket.Socket -> NonEmpty Socket.SockAddr -> IO a)
@@ -1231,7 +1207,7 @@ withSockets tracer sn addresses k = go [] addresses
 
 
 withLocalSocket :: IOManager
-                -> Tracer IO DiffusionInitializationTracer
+                -> Tracer IO Common.DiffusionInitializationTracer
                 -> Either Socket.Socket FilePath
                 -> (LocalSnocket -> LocalSocket -> IO a)
                 -> IO a

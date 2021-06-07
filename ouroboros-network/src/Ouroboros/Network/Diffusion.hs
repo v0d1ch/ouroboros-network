@@ -1,8 +1,8 @@
 {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE NamedFieldPuns #-}
 module Ouroboros.Network.Diffusion
   ( DiffusionTracers(..)
-  , nullTracersP2P
-  , nullTracersNonP2P
+  , nullTracers
   , mkDiffusionTracersNonP2P
   , mkDiffusionTracersP2P
   , DiffusionArguments(..)
@@ -64,6 +64,7 @@ import           Ouroboros.Network.PeerSelection.LedgerPeers
                  )
 import           Ouroboros.Network.PeerSelection.PeerMetric (PeerMetrics)
 
+import qualified Ouroboros.Network.Diffusion.Common as Common
 import           Ouroboros.Network.Diffusion.Common
                  ( DiffusionInitializationTracer
                  , DiffusionFailure
@@ -71,16 +72,14 @@ import           Ouroboros.Network.Diffusion.Common
 import qualified Ouroboros.Network.Diffusion.P2P as P2P
 import qualified Ouroboros.Network.Diffusion.NonP2P as NonP2P
 
--- | DiffusionTracers for either P2P or Non-P2P node
---
 newtype DiffusionTracers =
-  DiffusionTracers (Either NonP2P.DiffusionTracers P2P.DiffusionTracers)
+    DiffusionTracers
+      (Common.DiffusionTracers
+        (Either NonP2P.DiffusionTracers P2P.DiffusionTracers))
 
-nullTracersP2P :: DiffusionTracers
-nullTracersP2P = DiffusionTracers (Right P2P.nullTracers)
-
-nullTracersNonP2P :: DiffusionTracers
-nullTracersNonP2P = DiffusionTracers (Left NonP2P.nullTracers)
+nullTracers :: Either NonP2P.DiffusionTracers P2P.DiffusionTracers
+            -> DiffusionTracers
+nullTracers p2pNullTracers = DiffusionTracers (Common.nullTracers p2pNullTracers)
 
 -- | DiffusionArguments for either P2P or Non-P2P node
 --
@@ -210,27 +209,27 @@ mkDiffusionApplicationsP2P
 -- function in order to avoid exporting the P2P and NonP2P internal modules.
 --
 mkDiffusionTracersNonP2P
-  :: Tracer IO (NTN.WithIPList (NTC.SubscriptionTrace SockAddr))
+  :: Tracer IO (WithMuxBearer (ConnectionId SockAddr) MuxTrace)
+  -> Tracer IO NTN.HandshakeTr
+  -> Tracer IO (WithMuxBearer (ConnectionId LocalAddress) MuxTrace)
+  -> Tracer IO NTC.HandshakeTr
+  -> Tracer IO DiffusionInitializationTracer
+  -> Tracer IO TraceLedgerPeers
+  -> Tracer IO (NTN.WithIPList (NTC.SubscriptionTrace SockAddr))
   -> Tracer IO (NTN.WithDomainName (NTC.SubscriptionTrace SockAddr))
   -> Tracer IO (NTN.WithDomainName NTN.DnsTrace)
-  -> Tracer IO (WithMuxBearer (ConnectionId SockAddr) MuxTrace)
-  -> Tracer IO (WithMuxBearer (ConnectionId LocalAddress) MuxTrace)
-  -> Tracer IO NTN.HandshakeTr
-  -> Tracer IO NTC.HandshakeTr
   -> Tracer IO (NTC.WithAddr SockAddr NTC.ErrorPolicyTrace)
   -> Tracer IO (NTC.WithAddr LocalAddress NTC.ErrorPolicyTrace)
   -> Tracer IO NTN.AcceptConnectionsPolicyTrace
-  -> Tracer IO NonP2P.DiffusionInitializationTracer
-  -> Tracer IO TraceLedgerPeers
   -> DiffusionTracers
 mkDiffusionTracersNonP2P
   a1 a2 a3 a4 a5 a6 a7 a8 a9
-  a10 a11 =
+  a10 a11 a12 =
     DiffusionTracers
-    . Left
-    . NonP2P.DiffusionTracers
-        a1 a2 a3 a4 a5 a6 a7 a8 a9
-        a10 a11
+     (Common.DiffusionTracers
+     a1 a2 a3 a4 a5 a6
+     (Left $ NonP2P.DiffusionTracers
+        a7 a8 a9 a10 a11 a12))
 
 -- | Construct a value of P2P DiffusionTracers data type.
 -- ouroboros-consensus needs access to this constructor so we export this
@@ -239,6 +238,10 @@ mkDiffusionTracersNonP2P
 mkDiffusionTracersP2P
   :: Tracer IO (WithMuxBearer (ConnectionId SockAddr) MuxTrace)
   -> Tracer IO NTN.HandshakeTr
+  -> Tracer IO (WithMuxBearer (ConnectionId LocalAddress) MuxTrace)
+  -> Tracer IO NTC.HandshakeTr
+  -> Tracer IO DiffusionInitializationTracer
+  -> Tracer IO TraceLedgerPeers
   -> Tracer IO (P2P.TraceLocalRootPeers IOException)
   -> Tracer IO P2P.TracePublicRootPeers
   -> Tracer IO (P2P.TracePeerSelection SockAddr)
@@ -261,8 +264,6 @@ mkDiffusionTracersP2P
              NodeToNodeVersion NodeToNodeVersionData))
   -> Tracer IO (P2P.ServerTrace SockAddr)
   -> Tracer IO (P2P.InboundGovernorTrace SockAddr)
-  -> Tracer IO (WithMuxBearer (ConnectionId LocalAddress) MuxTrace)
-  -> Tracer IO NTC.HandshakeTr
   -> Tracer
        IO
        (P2P.ConnectionManagerTrace
@@ -271,19 +272,18 @@ mkDiffusionTracersP2P
              NodeToClientVersion NodeToClientVersionData))
   -> Tracer IO (P2P.ServerTrace LocalAddress)
   -> Tracer IO (P2P.InboundGovernorTrace LocalAddress)
-  -> Tracer IO DiffusionInitializationTracer
-  -> Tracer IO TraceLedgerPeers
   -> DiffusionTracers
 mkDiffusionTracersP2P
   a1 a2 a3 a4 a5 a6 a7 a8 a9
   a10 a11 a12 a13 a14 a15 a16
-  a17 a18 =
+  a17 a18 a19 =
     DiffusionTracers
-    . Right
-    . P2P.DiffusionTracers
-        a1 a2 a3 a4 a5 a6 a7 a8 a9
-        a10 a11 a12 a13 a14 a15 a16
-        a17 a18
+      (Common.DiffusionTracers
+        a1 a2 a3 a4 a5 a6
+        (Right $ P2P.DiffusionTracers
+          a7 a8 a9 a10 a11 a12
+          a13 a14 a15 a16 a17
+          a18 a19))
 
 -- | Field accessor for either P2P or NonP2P DiffusionArguments
 -- DiffusionMode value
@@ -301,11 +301,13 @@ runDataDiffusion
          NodeToNodeVersionData NodeToClientVersionData
          IO
     -> IO (Either () Void)
-runDataDiffusion (DiffusionTracers tracers)
+runDataDiffusion (DiffusionTracers tr@Common.DiffusionTracers { Common.dtP2P })
                  (DiffusionArguments diffusionArguments)
                  (DiffusionApplications diffusionApplications) =
-  case (tracers, diffusionArguments, diffusionApplications) of
-    (Left t, Left da, Left dapp)    -> Left <$> NonP2P.runDataDiffusion t da dapp
-    (Right t, Right da, Right dapp) -> Right <$> P2P.runDataDiffusion t da dapp
+  case (dtP2P, diffusionArguments, diffusionApplications) of
+    (Left t, Left da, Left dapp)    ->
+      Left <$> NonP2P.runDataDiffusion (tr { Common.dtP2P = t}) da dapp
+    (Right t, Right da, Right dapp) ->
+      Right <$> P2P.runDataDiffusion (tr { Common.dtP2P = t}) da dapp
     _                               ->
       error "Non-matching arguments, every argument should be on the same side!"
