@@ -1,24 +1,30 @@
 -- Common things between P2P and NonP2P Diffusion modules
 
+{-# LANGUAGE DataKinds #-}
 module Ouroboros.Network.Diffusion.Common
   ( DiffusionInitializationTracer(..)
   , DiffusionFailure(..)
   , DiffusionTracers(..)
   , nullTracers
+  , DiffusionArguments(..)
+  , DiffusionApplications(..)
   ) where
 
 import           Data.List.NonEmpty (NonEmpty)
+import           Data.ByteString.Lazy (ByteString)
+import           Data.Void (Void)
 
-import           Network.Socket (SockAddr)
-import           Network.Mux (WithMuxBearer, MuxTrace)
+import           Network.Socket (SockAddr, AddrInfo, Socket)
+import           Network.Mux (WithMuxBearer, MuxTrace, MuxMode(..))
 
 import           Control.Exception (SomeException, Exception)
 import           Control.Tracer (Tracer, nullTracer)
 
-import           Ouroboros.Network.NodeToClient (LocalAddress)
+import           Ouroboros.Network.Mux (OuroborosBundle, OuroborosApplication)
+import           Ouroboros.Network.NodeToClient (LocalAddress, Versions, NodeToClientVersion)
 import           Ouroboros.Network.Snocket (FileDescriptor)
-import           Ouroboros.Network.PeerSelection.LedgerPeers (TraceLedgerPeers)
-import           Ouroboros.Network.NodeToNode (ConnectionId)
+import           Ouroboros.Network.PeerSelection.LedgerPeers (TraceLedgerPeers, LedgerPeersConsensusInterface)
+import           Ouroboros.Network.NodeToNode (ConnectionId, NodeToNodeVersion, AcceptedConnectionsLimit, DiffusionMode)
 import qualified Ouroboros.Network.NodeToNode as NodeToNode
 import qualified Ouroboros.Network.NodeToClient as NodeToClient
 
@@ -101,4 +107,59 @@ nullTracers p2pNullTracers = DiffusionTracers {
   , dtDiffusionInitializationTracer = nullTracer
   , dtLedgerPeersTracer             = nullTracer
   , dtP2P                           = p2pNullTracers
+  }
+
+-- | Common DiffusionArguments interface between P2P and NonP2P
+--
+data DiffusionArguments p2p = DiffusionArguments {
+      daIPv4Address  :: Maybe (Either Socket AddrInfo)
+      -- ^ an @IPv4@ socket ready to accept connections or an @IPv4@ addresses
+    , daIPv6Address  :: Maybe (Either Socket AddrInfo)
+      -- ^ an @IPV4@ socket ready to accept connections or an @IPv6@ addresses
+    , daLocalAddress :: Maybe (Either Socket FilePath)
+      -- ^ an @AF_UNIX@ socket ready to accept connections or an @AF_UNIX@
+      -- socket path
+    , daAcceptedConnectionsLimit :: AcceptedConnectionsLimit
+      -- ^ parameters for limiting number of accepted connections
+    , daDiffusionMode :: DiffusionMode
+      -- ^ run in initiator only mode
+    , daP2P :: p2p
+  }
+
+-- | Common DiffusionArguments interface between P2P and NonP2P
+--
+data DiffusionApplications p2p ntnAddr ntcAddr ntnVersionData ntcVersionData m = DiffusionApplications {
+      -- | NodeToNode initiator applications for initiator only mode.
+      --
+      -- TODO: we should accept one or the other, but not both:
+      -- 'daApplicationInitiatorMode', 'daApplicationInitiatorResponderMode'.
+      --
+      daApplicationInitiatorMode
+        :: Versions NodeToNodeVersion
+                    ntnVersionData
+                    (OuroborosBundle
+                      InitiatorMode ntnAddr
+                      ByteString m () Void)
+
+      -- | NodeToNode initiator & responder applications for bidirectional mode.
+      --
+    , daApplicationInitiatorResponderMode
+        :: Versions NodeToNodeVersion
+                    ntnVersionData
+                    (OuroborosBundle
+                      InitiatorResponderMode ntnAddr
+                      ByteString m () ())
+
+
+    -- | NodeToClient responder application (server role)
+    --
+    , daLocalResponderApplication
+        :: Versions NodeToClientVersion
+                    ntcVersionData
+                    (OuroborosApplication
+                      ResponderMode ntcAddr
+                      ByteString m Void ())
+    , daLedgerPeersCtx :: LedgerPeersConsensusInterface m
+      -- ^ Interface used to get peers from the current ledger.
+    , dapP2P :: p2p
   }

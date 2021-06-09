@@ -6,6 +6,7 @@ module Ouroboros.Network.Diffusion
   , mkDiffusionTracersNonP2P
   , mkDiffusionTracersP2P
   , DiffusionArguments(..)
+  , Common.daDiffusionMode
   , mkDiffusionArgumentsNonP2P
   , mkDiffusionArgumentsP2P
   , DiffusionApplications(..)
@@ -13,7 +14,6 @@ module Ouroboros.Network.Diffusion
   , mkDiffusionApplicationsNonP2P
   , runDataDiffusion
   , LedgerPeersConsensusInterface (..)
-  , daDiffusionMode
   , DiffusionInitializationTracer(..)
   , DiffusionFailure
   )
@@ -85,13 +85,23 @@ nullTracers p2pNullTracers = DiffusionTracers (Common.nullTracers p2pNullTracers
 -- | DiffusionArguments for either P2P or Non-P2P node
 --
 newtype DiffusionArguments m =
-  DiffusionArguments (Either NonP2P.DiffusionArguments (P2P.DiffusionArguments m))
+  DiffusionArguments
+    { getDiffusionArguments
+        :: Common.DiffusionArguments
+            (Either NonP2P.DiffusionArguments (P2P.DiffusionArguments m))
+    }
 
 newtype DiffusionApplications ntnAddr ntcAddr ntnVersionData ntcVersionData m =
   DiffusionApplications
-   (Either
-    (NonP2P.DiffusionApplications ntnAddr ntcAddr ntnVersionData ntcVersionData m)
-    (P2P.DiffusionApplications ntnAddr ntcAddr ntnVersionData ntcVersionData m)
+   (Common.DiffusionApplications
+     (Either
+        NonP2P.DiffusionApplications
+        (P2P.DiffusionApplications ntnAddr m))
+     ntnAddr
+     ntcAddr
+     ntnVersionData
+     ntcVersionData
+     m
    )
 
 -- | Construct a value of NonP2P DiffusionArguments data type.
@@ -102,17 +112,20 @@ mkDiffusionArgumentsNonP2P
   :: Maybe (Either Socket AddrInfo)
   -> Maybe (Either Socket AddrInfo)
   -> Maybe (Either Socket FilePath)
-  -> NonP2P.IPSubscriptionTarget
-  -> [NonP2P.DnsSubscriptionTarget]
   -> NonP2P.AcceptedConnectionsLimit
   -> DiffusionMode
+  -> NonP2P.IPSubscriptionTarget
+  -> [NonP2P.DnsSubscriptionTarget]
   -> DiffusionArguments m
 mkDiffusionArgumentsNonP2P
-  a1 a2 a3 a4 a5 a6 =
+  a1 a2 a3 a4 a5 a6
+  a7 =
     DiffusionArguments
-    . Left
-    . NonP2P.DiffusionArguments
-        a1 a2 a3 a4 a5 a6
+    $ Common.DiffusionArguments
+      a1 a2 a3 a4 a5
+    $ Left
+    $ NonP2P.DiffusionArguments
+      a6 a7
 
 -- | Construct a value of P2P DiffusionArguments data type.
 -- ouroboros-consensus needs access to this constructor so we export this
@@ -122,63 +135,34 @@ mkDiffusionArgumentsP2P
   :: Maybe (Either Socket AddrInfo)
   -> Maybe (Either Socket AddrInfo)
   -> Maybe (Either Socket FilePath)
+  -> NonP2P.AcceptedConnectionsLimit
+  -> DiffusionMode
   -> NTN.PeerSelectionTargets
   -> STM m [(Int, Map RelayAddress NTN.PeerAdvertise)]
   -> STM m [RelayAddress]
   -> STM m UseLedgerAfter
-  -> NonP2P.AcceptedConnectionsLimit
-  -> DiffusionMode
   -> DiffTime
   -> DiffTime
   -> DiffusionArguments m
 mkDiffusionArgumentsP2P
-  a1 a2 a3 a4 a5 a6 a7 a8 a9
-  a10 =
+  a1 a2 a3 a4 a5 a6
+  a7 a8 a9 a10 a11
+  =
     DiffusionArguments
-    . Right
-    . P2P.DiffusionArguments
-        a1 a2 a3 a4 a5 a6 a7 a8 a9
-        a10
+    $ Common.DiffusionArguments
+      a1 a2 a3 a4 a5
+    $ Right
+    $ P2P.DiffusionArguments
+      a6 a7 a8 a9 a10 a11
 
 mkDiffusionApplicationsNonP2P
-  :: Versions NodeToNodeVersion
-             ntnVersionData
-             (OuroborosApplication
-                'ResponderMode
-                ntnAddr
-                ByteString
-                m
-                Void
-                ())
-  -> Versions
-       NodeToNodeVersion
-       ntnVersionData
-       (OuroborosApplication 'InitiatorMode ntnAddr ByteString m () Void)
-  -> Versions
-       NodeToClientVersion
-       ntcVersionData
-       (OuroborosApplication 'ResponderMode ntcAddr ByteString m Void ())
-  -> NTC.ErrorPolicies
-  -> LedgerPeersConsensusInterface m
-  -> DiffusionApplications
-       ntnAddr ntcAddr ntnVersionData ntcVersionData m
-mkDiffusionApplicationsNonP2P a1 a2 a3 a4 =
-    DiffusionApplications
-    . Left
-    . NonP2P.DiffusionApplications
-      a1 a2 a3 a4
-
--- | Construct a value of P2P DiffusionApplications data type.
--- ouroboros-consensus needs access to this constructor so we export this
--- function in order to avoid exporting the P2P and NonP2P internal modules.
---
-mkDiffusionApplicationsP2P :: Versions
-  NodeToNodeVersion
-  ntnVersionData
-  (Bundle
-     (ConnectionId ntnAddr
-      -> STM m ControlMessage
-      -> [MiniProtocol 'InitiatorMode ByteString m () Void]))
+  :: Versions
+      NodeToNodeVersion
+      ntnVersionData
+      (Bundle
+         (ConnectionId ntnAddr
+          -> STM m ControlMessage
+          -> [MiniProtocol 'InitiatorMode ByteString m () Void]))
   -> Versions
        NodeToNodeVersion
        ntnVersionData
@@ -190,20 +174,68 @@ mkDiffusionApplicationsP2P :: Versions
        NodeToClientVersion
        ntcVersionData
        (OuroborosApplication 'ResponderMode ntcAddr ByteString m Void ())
+  -> LedgerPeersConsensusInterface m
+  -> NTC.ErrorPolicies
+  -> DiffusionApplications
+       ntnAddr
+       ntcAddr
+       ntnVersionData
+       ntcVersionData
+       m
+mkDiffusionApplicationsNonP2P
+  a1 a2 a3 a4 a5 =
+    DiffusionApplications
+    $ Common.DiffusionApplications
+      a1 a2 a3 a4
+    $ Left
+    $ NonP2P.DiffusionApplications
+      a5
+
+
+-- | Construct a value of P2P DiffusionApplications data type.
+-- ouroboros-consensus needs access to this constructor so we export this
+-- function in order to avoid exporting the P2P and NonP2P internal modules.
+--
+mkDiffusionApplicationsP2P
+  :: Versions
+      NodeToNodeVersion
+      ntnVersionData
+      (Bundle
+         (ConnectionId ntnAddr
+          -> STM m ControlMessage
+          -> [MiniProtocol 'InitiatorMode ByteString m () Void]))
+  -> Versions
+       NodeToNodeVersion
+       ntnVersionData
+       (Bundle
+          (ConnectionId ntnAddr
+           -> STM m ControlMessage
+           -> [MiniProtocol 'InitiatorResponderMode ByteString m () ()]))
+  -> Versions
+       NodeToClientVersion
+       ntcVersionData
+       (OuroborosApplication 'ResponderMode ntcAddr ByteString m Void ())
+  -> LedgerPeersConsensusInterface m
   -> MiniProtocolParameters
   -> RethrowPolicy
   -> RethrowPolicy
-  -> LedgerPeersConsensusInterface m
   -> PeerMetrics m ntnAddr
   -> STM m FetchMode
   -> DiffusionApplications
-       ntnAddr ntcAddr ntnVersionData ntcVersionData m
+       ntnAddr
+       ntcAddr
+       ntnVersionData
+       ntcVersionData
+       m
 mkDiffusionApplicationsP2P
-  a1 a2 a3 a4 a5 a6 a7 a8 =
+  a1 a2 a3 a4 a5 a6
+  a7 a8 a9 =
     DiffusionApplications
-    . Right
-    . P2P.DiffusionApplications
-          a1 a2 a3 a4 a5 a6 a7 a8
+    $ Common.DiffusionApplications
+      a1 a2 a3 a4
+    $ Right
+    $ P2P.DiffusionApplications
+      a5 a6 a7 a8 a9
 
 -- | Construct a value of NonP2P DiffusionTracers data type.
 -- ouroboros-consensus needs access to this constructor so we export this
@@ -227,10 +259,10 @@ mkDiffusionTracersNonP2P
   a1 a2 a3 a4 a5 a6 a7 a8 a9
   a10 a11 a12 =
     DiffusionTracers
-     (Common.DiffusionTracers
-     a1 a2 a3 a4 a5 a6
-     (Left $ NonP2P.DiffusionTracers
-        a7 a8 a9 a10 a11 a12))
+    $ Common.DiffusionTracers
+      a1 a2 a3 a4 a5 a6
+    $ Left $ NonP2P.DiffusionTracers
+      a7 a8 a9 a10 a11 a12
 
 -- | Construct a value of P2P DiffusionTracers data type.
 -- ouroboros-consensus needs access to this constructor so we export this
@@ -279,36 +311,47 @@ mkDiffusionTracersP2P
   a10 a11 a12 a13 a14 a15 a16
   a17 a18 a19 =
     DiffusionTracers
-      (Common.DiffusionTracers
-        a1 a2 a3 a4 a5 a6
-        (Right $ P2P.DiffusionTracers
-          a7 a8 a9 a10 a11 a12
-          a13 a14 a15 a16 a17
-          a18 a19))
-
--- | Field accessor for either P2P or NonP2P DiffusionArguments
--- DiffusionMode value
---
-daDiffusionMode :: DiffusionArguments m -> DiffusionMode
-daDiffusionMode (DiffusionArguments dargs) = either NonP2P.daDiffusionMode P2P.daDiffusionMode dargs
+    $ Common.DiffusionTracers
+      a1 a2 a3 a4 a5 a6
+    $ Right
+    $ P2P.DiffusionTracers
+      a7 a8 a9 a10 a11 a12
+      a13 a14 a15 a16 a17
+      a18 a19
 
 -- | runDataDiffusion for either P2P or Non-P2P node
 --
 runDataDiffusion
-    :: DiffusionTracers
-    -> DiffusionArguments IO
-    -> DiffusionApplications
-         RemoteAddress LocalAddress
-         NodeToNodeVersionData NodeToClientVersionData
-         IO
-    -> IO ()
-runDataDiffusion (DiffusionTracers tr@Common.DiffusionTracers { Common.dtP2P })
-                 (DiffusionArguments diffusionArguments)
-                 (DiffusionApplications diffusionApplications) =
-  case (dtP2P, diffusionArguments, diffusionApplications) of
+  :: DiffusionTracers
+  -> DiffusionArguments IO
+  -> DiffusionApplications
+       RemoteAddress
+       LocalAddress
+       NodeToNodeVersionData
+       NodeToClientVersionData
+       IO
+  -> IO ()
+runDataDiffusion
+  (DiffusionTracers
+    tr@Common.DiffusionTracers
+       { Common.dtP2P })
+  (DiffusionArguments
+    dargs@Common.DiffusionArguments
+       { Common.daP2P })
+  (DiffusionApplications
+    dapps@Common.DiffusionApplications
+       { Common.dapP2P }) =
+  case (dtP2P, daP2P, dapP2P) of
     (Left t, Left da, Left dapp)    ->
-      NonP2P.runDataDiffusion (tr { Common.dtP2P = t}) da dapp
+      NonP2P.runDataDiffusion
+        (tr { Common.dtP2P = t})
+        (dargs { Common.daP2P = da })
+        (dapps { Common.dapP2P = dapp })
     (Right t, Right da, Right dapp) ->
-      void $ P2P.runDataDiffusion (tr { Common.dtP2P = t}) da dapp
+      void
+        $ P2P.runDataDiffusion
+            (tr { Common.dtP2P = t})
+            (dargs { Common.daP2P = da })
+            (dapps { Common.dapP2P = dapp })
     _                               ->
       error "Non-matching arguments, every argument should be on the same side!"

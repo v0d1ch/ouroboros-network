@@ -95,11 +95,12 @@ import           Ouroboros.Network.Diffusion
                     ( DiffusionApplications(..)
                     , DiffusionTracers
                     , DiffusionArguments
+                    , daDiffusionMode
                     , LedgerPeersConsensusInterface(..)
                     , runDataDiffusion
-                    , daDiffusionMode
                     , mkDiffusionApplicationsP2P
                     , mkDiffusionApplicationsNonP2P
+                    , getDiffusionArguments
                     )
 import qualified Ouroboros.Consensus.Network.NodeToClient as NTC
 import qualified Ouroboros.Consensus.Network.NodeToNode as NTN
@@ -201,8 +202,10 @@ data LowLevelRunNodeArgs m addrNTN addrNTC versionDataNTN versionDataNTC blk = L
     , llrnRunDataDiffusion ::
            ResourceRegistry m
         -> DiffusionApplications
-             addrNTN        addrNTC
-             versionDataNTN versionDataNTC
+             addrNTN
+             addrNTC
+             versionDataNTN
+             versionDataNTC
              m
         -> m ()
 
@@ -381,26 +384,28 @@ runWith enableP2P RunNodeArgs{..} LowLevelRunNodeArgs{..} =
     mkDiffusionApplications
       :: NetworkP2PMode
       -> MiniProtocolParameters
-      -> ( BlockNodeToNodeVersion blk
-          -> NTN.Apps m
-              (ConnectionId addrNTN)
-              ByteString
-              ByteString
-              ByteString
-              ByteString
-              ByteString
-              ()
-         )
-      -> ( BlockNodeToClientVersion blk
+      -> (BlockNodeToNodeVersion blk
+          -> NTN.Apps
+               m
+               (ConnectionId ntnAddr)
+               ByteString
+               ByteString
+               ByteString
+               ByteString
+               ByteString
+               ())
+      -> (BlockNodeToClientVersion blk
           -> NodeToClientVersion
-          -> NTC.Apps m (ConnectionId addrNTC) ByteString ByteString ByteString ()
-         )
-      -> NodeKernel m (ConnectionId addrNTN) (ConnectionId addrNTC) blk
-      -> PeerMetrics m addrNTN
+          -> NTC.Apps
+               m (ConnectionId ntcAddr) ByteString ByteString ByteString ())
+      -> NodeKernel m remotePeer localPeer blk
+      -> PeerMetrics m ntnAddr
       -> BlockchainTime m
       -> DiffusionApplications
-           addrNTN addrNTC
-           versionDataNTN versionDataNTC
+           ntnAddr
+           ntcAddr
+           versionDataNTN
+           versionDataNTC
            m
     mkDiffusionApplications
       enP2P
@@ -413,60 +418,50 @@ runWith enableP2P RunNodeArgs{..} LowLevelRunNodeArgs{..} =
       case enP2P of
         EnabledP2PMode ->
           mkDiffusionApplicationsP2P
-           (combineVersions
-            [ simpleSingletonVersions
-                version
-                llrnVersionDataNTN
-                (NTN.initiator miniProtocolParams version $ ntnApps blockVersion)
-            | (version, blockVersion) <- Map.toList llrnNodeToNodeVersions
-            ])
-           (combineVersions
-            [ simpleSingletonVersions
-                version
-                llrnVersionDataNTN
-                (NTN.initiatorAndResponder miniProtocolParams version
-                  $ ntnApps blockVersion)
-            | (version, blockVersion) <- Map.toList llrnNodeToNodeVersions
-            ])
-           (combineVersions
-            [ simpleSingletonVersions
-               version
-               llrnVersionDataNTC
-               (NTC.responder version $ ntcApps blockVersion version)
-            | (version, blockVersion) <- Map.toList llrnNodeToClientVersions
-            ])
+           initiator
+           initiatorAndResponder
+           responder
+           ledgerPeersConsensusInterface
            miniProtocolParams
            (consensusRethrowPolicy (Proxy @blk))
            mempty
-           (LedgerPeersConsensusInterface (getPeersFromCurrentLedgerAfterSlot kernel))
            peerMetrics
            (getFetchMode (getChainDB kernel) btime)
         DisabledP2PMode ->
           mkDiffusionApplicationsNonP2P
-            (combineVersions
-             [ simpleSingletonVersions
-                version
-                llrnVersionDataNTN
-                (NTN.responderNonP2P miniProtocolParams version $ ntnApps blockVersion)
-             | (version, blockVersion) <- Map.toList llrnNodeToNodeVersions
-             ])
-            (combineVersions
-             [ simpleSingletonVersions
-                version
-                llrnVersionDataNTN
-                (NTN.initiatorNonP2P miniProtocolParams version $ ntnApps blockVersion)
-             | (version, blockVersion) <- Map.toList llrnNodeToNodeVersions
-             ])
-            (combineVersions
-             [
-               simpleSingletonVersions
-                 version
-                 llrnVersionDataNTC
-                 (NTC.responder version $ ntcApps blockVersion version)
-             | (version, blockVersion) <- Map.toList llrnNodeToClientVersions
-             ])
-            (consensusErrorPolicy (Proxy @blk))
-            (LedgerPeersConsensusInterface (getPeersFromCurrentLedgerAfterSlot kernel))
+           initiator
+           initiatorAndResponder
+           responder
+           ledgerPeersConsensusInterface
+           (consensusErrorPolicy (Proxy @blk))
+      where
+        initiator =
+          combineVersions
+           [ simpleSingletonVersions
+               version
+               llrnVersionDataNTN
+               (NTN.initiator miniProtocolParams version $ ntnApps blockVersion)
+           | (version, blockVersion) <- Map.toList llrnNodeToNodeVersions
+           ]
+        initiatorAndResponder =
+          combineVersions
+           [ simpleSingletonVersions
+               version
+               llrnVersionDataNTN
+               (NTN.initiatorAndResponder miniProtocolParams version
+                 $ ntnApps blockVersion)
+           | (version, blockVersion) <- Map.toList llrnNodeToNodeVersions
+           ]
+        responder =
+          combineVersions
+           [ simpleSingletonVersions
+              version
+              llrnVersionDataNTC
+              (NTC.responder version $ ntcApps blockVersion version)
+           | (version, blockVersion) <- Map.toList llrnNodeToClientVersions
+           ]
+        ledgerPeersConsensusInterface =
+           LedgerPeersConsensusInterface (getPeersFromCurrentLedgerAfterSlot kernel)
 
 
 -- | Did the ChainDB already have existing clean-shutdown marker on disk?
@@ -689,8 +684,10 @@ stdRunDataDiffusion ::
      DiffusionTracers
   -> DiffusionArguments IO
   -> DiffusionApplications
-       RemoteAddress LocalAddress
-       NodeToNodeVersionData NodeToClientVersionData
+       RemoteAddress
+       LocalAddress
+       NodeToNodeVersionData
+       NodeToClientVersionData
        IO
   -> IO ()
 stdRunDataDiffusion = runDataDiffusion
@@ -750,7 +747,7 @@ stdLowLevelRunNodeArgsIO RunNodeArgs{ rnProtocolInfo } StdRunNodeArgs{..} = do
       , llrnVersionDataNTN =
           stdVersionDataNTN
             networkMagic
-            (daDiffusionMode srnDiffusionArguments)
+            (daDiffusionMode (getDiffusionArguments srnDiffusionArguments))
       , llrnNodeToNodeVersions =
           limitToLatestReleasedVersion
             fst

@@ -157,7 +157,12 @@ import           Ouroboros.Network.NodeToNode ( ConnectionId (..)
                                               )
 import qualified Ouroboros.Network.NodeToNode   as NodeToNode
 import qualified Ouroboros.Network.Diffusion.Common as Common
-import           Ouroboros.Network.Diffusion.Common hiding (DiffusionTracers, nullTracers)
+import           Ouroboros.Network.Diffusion.Common hiding
+                  ( DiffusionTracers
+                  , nullTracers
+                  , DiffusionArguments
+                  , DiffusionApplications
+                  )
 
 data DiffusionTracers = DiffusionTracers {
     dtTraceLocalRootPeersTracer
@@ -238,24 +243,12 @@ nullTracers = Common.nullTracers p2pNullTracers
 -- | Network Node argumets
 --
 data DiffusionArguments m = DiffusionArguments {
-      daIPv4Address  :: Maybe (Either Socket.Socket AddrInfo)
-      -- ^ an @IPv4@ socket ready to accept connections or an @IPv4@ addresses
-    , daIPv6Address  :: Maybe (Either Socket.Socket AddrInfo)
-      -- ^ an @IPV4@ socket ready to accept connections or an @IPv6@ addresses
-    , daLocalAddress :: Maybe (Either Socket.Socket FilePath)
-      -- ^ an @AF_UNIX@ socket ready to accept connections or an @AF_UNIX@
-      -- socket path
-    , daPeerSelectionTargets :: PeerSelectionTargets
+    daPeerSelectionTargets :: PeerSelectionTargets
       -- ^ selection targets for the peer governor
 
     , daReadLocalRootPeers  :: STM m [(Int, Map RelayAddress PeerAdvertise)]
     , daReadPublicRootPeers :: STM m [RelayAddress]
     , daReadUseLedgerAfter  :: STM m UseLedgerAfter
-
-    , daAcceptedConnectionsLimit :: AcceptedConnectionsLimit
-      -- ^ parameters for limiting number of accepted connections
-    , daDiffusionMode :: DiffusionMode
-      -- ^ run in initiator only mode
 
     , daProtocolIdleTimeout :: DiffTime
       -- ^ Timeout which starts once all responder protocols are idle. If the
@@ -319,43 +312,12 @@ combineMiniProtocolBundles (MiniProtocolBundle initiators)
 -- TODO: we need initiator only mode for Deadalus, there's no reason why it
 -- should run a node-to-node server side.
 --
-data DiffusionApplications ntnAddr ntcAddr ntnVersionData ntcVersionData m =
+data DiffusionApplications ntnAddr m =
     DiffusionApplications {
-
-      -- | NodeToNode initiator applications for initiator only mode.
-      --
-      -- TODO: we should accept one or the other, but not both:
-      -- 'daApplicationInitiatorMode', 'daApplicationInitiatorResponderMode'.
-      --
-      daApplicationInitiatorMode
-        :: Versions NodeToNodeVersion
-                    ntnVersionData
-                    (OuroborosBundle
-                      InitiatorMode ntnAddr
-                      ByteString m () Void)
-
-      -- | NodeToNode initiator & responder applications for bidirectional mode.
-      --
-    , daApplicationInitiatorResponderMode
-        :: Versions NodeToNodeVersion
-                    ntnVersionData
-                    (OuroborosBundle
-                      InitiatorResponderMode ntnAddr
-                      ByteString m () ())
-
-
-    -- | NodeToClient responder application (server role)
-    --
-    , daLocalResponderApplication
-        :: Versions NodeToClientVersion
-                    ntcVersionData
-                    (OuroborosApplication
-                      ResponderMode ntcAddr
-                      ByteString m Void ())
     -- | configuration of mini-protocol parameters; they impact size limits of
     -- mux ingress queues.
     --
-    , daMiniProtocolParameters :: MiniProtocolParameters
+    daMiniProtocolParameters :: MiniProtocolParameters
 
     -- | /node-to-node/ rethrow policy
     --
@@ -365,8 +327,6 @@ data DiffusionApplications ntnAddr ntcAddr ntnVersionData ntcVersionData m =
     --
     , daLocalRethrowPolicy :: RethrowPolicy
 
-    , daLedgerPeersCtx :: LedgerPeersConsensusInterface m
-      -- ^ Interface used to get peers from the current ledger.
     , daPeerMetrics    :: PeerMetrics m ntnAddr
     , daBlockFetchMode :: STM m FetchMode
       -- ^ Used by churn-governor
@@ -525,35 +485,44 @@ type NodeToNodePeerSelectionActions (mode :: MuxMode) a =
 --
 runDataDiffusion
     :: Common.DiffusionTracers DiffusionTracers
-    -> DiffusionArguments IO
-    -> DiffusionApplications
-         RemoteAddress LocalAddress
-         NodeToNodeVersionData NodeToClientVersionData
+    -> Common.DiffusionArguments (DiffusionArguments IO)
+    -> Common.DiffusionApplications
+         (DiffusionApplications RemoteAddress IO)
+         RemoteAddress
+         LocalAddress
+         NodeToNodeVersionData
+         NodeToClientVersionData
          IO
     -> IO Void
 runDataDiffusion tracers
-                 DiffusionArguments { daIPv4Address
-                                    , daIPv6Address
-                                    , daLocalAddress
-                                    , daPeerSelectionTargets
-                                    , daReadLocalRootPeers
-                                    , daReadPublicRootPeers
-                                    , daReadUseLedgerAfter
-                                    , daAcceptedConnectionsLimit
-                                    , daDiffusionMode
-                                    , daProtocolIdleTimeout
-                                    , daTimeWaitTimeout
-                                    }
-                 DiffusionApplications { daApplicationInitiatorMode
-                                       , daApplicationInitiatorResponderMode
-                                       , daLocalResponderApplication
-                                       , daRethrowPolicy
-                                       , daMiniProtocolParameters
-                                       , daLocalRethrowPolicy
-                                       , daLedgerPeersCtx
-                                       , daPeerMetrics
-                                       , daBlockFetchMode
-                                       } =
+                 Common.DiffusionArguments
+                 { daIPv4Address
+                 , daIPv6Address
+                 , daLocalAddress
+                 , daAcceptedConnectionsLimit
+                 , daDiffusionMode
+                 , daP2P = DiffusionArguments
+                   { daPeerSelectionTargets
+                   , daReadLocalRootPeers
+                   , daReadPublicRootPeers
+                   , daReadUseLedgerAfter
+                   , daProtocolIdleTimeout
+                   , daTimeWaitTimeout
+                   }
+                 }
+                 Common.DiffusionApplications
+                 { daApplicationInitiatorMode
+                 , daApplicationInitiatorResponderMode
+                 , daLocalResponderApplication
+                 , daLedgerPeersCtx
+                 , dapP2P = DiffusionApplications
+                   { daMiniProtocolParameters
+                   , daRethrowPolicy
+                   , daLocalRethrowPolicy
+                   , daPeerMetrics
+                   , daBlockFetchMode
+                   }
+                 } =
     -- We run two services: for /node-to-node/ and /node-to-client/.  The
     -- naming convention is that we use /local/ prefix for /node-to-client/
     -- related terms, as this is a local only service running over a unix
