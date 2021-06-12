@@ -8,6 +8,8 @@
 
 module Network.TypedProtocol.ReqResp.Codec where
 
+import           Data.Singletons
+
 import           Network.TypedProtocol.Codec
 import           Network.TypedProtocol.ReqResp.Type
 import           Network.TypedProtocol.PingPong.Codec (decodeTerminatedFrame)
@@ -22,36 +24,29 @@ codecReqResp =
     Codec{encode, decode}
   where
     encode :: forall req' resp'
-                     (pr  :: PeerRole)
                      (st  :: ReqResp req' resp')
                      (st' :: ReqResp req' resp')
-           . (Show (Message (ReqResp req' resp') st st'))
-           => PeerHasAgency pr st
-           -> Message (ReqResp req' resp') st st'
+           .  ( Show (Message (ReqResp req' resp') st st') )
+           => Message (ReqResp req' resp') st st'
            -> String
-    encode (ClientAgency TokIdle) msg = show msg ++ "\n"
-    encode (ServerAgency TokBusy) msg = show msg ++ "\n"
+    encode msg = show msg ++ "\n"
 
     decode :: forall req' resp' m'
-                     (pr :: PeerRole)
                      (st :: ReqResp req' resp')
-           .  (Monad m', Read req', Read resp')
-           => PeerHasAgency pr st
-           -> m' (DecodeStep String CodecFailure m' (SomeMessage st))
-    decode stok =
+           .  (Monad m', SingI st, Read req', Read resp')
+           => m' (DecodeStep String CodecFailure m' (SomeMessage st))
+    decode =
       decodeTerminatedFrame '\n' $ \str trailing ->
-        case (stok, break (==' ') str) of
-          (ClientAgency TokIdle, ("MsgReq", str'))
+        case (sing :: Sing st, break (==' ') str) of
+          (SingIdle, ("MsgReq", str'))
              | Just resp <- readMaybe str'
             -> DecodeDone (SomeMessage (MsgReq resp)) trailing
-          (ClientAgency TokIdle, ("MsgDone", ""))
+          (SingIdle, ("MsgDone", ""))
             -> DecodeDone (SomeMessage MsgDone) trailing
-          (ServerAgency TokBusy, ("MsgResp", str'))
+          (SingBusy, ("MsgResp", str'))
              | Just resp <- readMaybe str'
             -> DecodeDone (SomeMessage (MsgResp resp)) trailing
 
-          (ServerAgency _      , _     ) -> DecodeFail failure
+          (_       , _     ) -> DecodeFail failure
             where failure = CodecFailure ("unexpected server message: " ++ str)
-          (ClientAgency _      , _     ) -> DecodeFail failure
-            where failure = CodecFailure ("unexpected client message: " ++ str)
 

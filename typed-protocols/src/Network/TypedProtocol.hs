@@ -19,14 +19,9 @@ module Network.TypedProtocol (
   -- $running
   module Network.TypedProtocol.Driver,
 
-  -- * Pipelining protocols
-  -- $pipelining
-  module Network.TypedProtocol.Pipelined,
-
   ) where
 
 import Network.TypedProtocol.Core
-import Network.TypedProtocol.Pipelined
 import Network.TypedProtocol.Proofs
 import Network.TypedProtocol.Driver
 
