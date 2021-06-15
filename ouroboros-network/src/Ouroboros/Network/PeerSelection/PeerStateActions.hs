@@ -540,6 +540,7 @@ withPeerStateActions
        ( MonadAsync         m
        , MonadCatch         m
        , MonadMask          m
+       , MonadThrow    (STM m)
        , HasInitiator muxMode ~ True
        , Typeable versionNumber
        , Show     versionNumber
@@ -664,7 +665,7 @@ withPeerStateActions timeout
 
 
 
-    establishPeerConnection :: JobPool m (Maybe SomeException)
+    establishPeerConnection :: JobPool () m (Maybe SomeException)
                             -> peerAddr
                             -> m (PeerConnectionHandle muxMode peerAddr ByteString m a b)
     establishPeerConnection jobPool remotePeerAddr =
@@ -715,7 +716,8 @@ withPeerStateActions timeout
                                         traceWith spsTracer (PeerMonitoringError connectionId e)
                                         throwIO e)
                                      (peerMonitoringLoop connHandle $> Nothing))
-                                   Just
+                                   (return . Just)
+                                   ()
                                    ("peerMonitoringLoop " ++ show remoteAddress))
               pure connHandle
 
@@ -975,6 +977,7 @@ mkApplicationHandleBundle muxBundle controlMessageBundle awaitVarsBundle =
 startProtocols :: forall (muxMode :: MuxMode) (pt :: ProtocolTemperature) peerAddr m a b.
                   ( MonadAsync m
                   , MonadCatch m
+                  , MonadThrow (STM m)
                   , HasInitiator muxMode ~ True
                   )
                => TokProtocolTemperature pt
