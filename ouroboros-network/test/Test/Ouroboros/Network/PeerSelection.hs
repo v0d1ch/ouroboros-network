@@ -1666,6 +1666,8 @@ prop_governor_target_established_local env =
                        | otherwise         -> Just failures
                        where
                          failures = Map.keysSet (Map.filter (==PeerCold) status)
+                     TracePromoteWarmFailed _ _ peer _ ->
+                       Just (Set.singleton peer)
                      _ -> Nothing
               )
           . selectGovEvents
