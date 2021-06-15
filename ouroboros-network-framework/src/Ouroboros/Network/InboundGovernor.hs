@@ -83,6 +83,7 @@ inboundGovernor :: forall (muxMode :: MuxMode) socket peerAddr versionNumber m a
                    , MonadCatch m
                    , MonadTime  m
                    , MonadTimer m
+                   , MonadThrow (STM m)
                    , Ord peerAddr
                    , HasResponder muxMode ~ True
                    )
@@ -393,6 +394,7 @@ runResponder :: forall (mode :: MuxMode) m a b.
                  ( HasResponder mode ~ True
                  , MonadAsync m
                  , MonadCatch m
+                 , MonadThrow (STM m)
                  )
               => Mux.Mux mode m
               -> MiniProtocol mode ByteString m a b
