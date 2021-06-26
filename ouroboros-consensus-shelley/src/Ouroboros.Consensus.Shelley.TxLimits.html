@@ -1,0 +1,383 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-pragma">{-# LANGUAGE AllowAmbiguousTypes  #-}</span><span>
+</span><span id="line-2"></span><span class="hs-pragma">{-# LANGUAGE DataKinds            #-}</span><span>
+</span><span id="line-3"></span><span class="hs-pragma">{-# LANGUAGE DerivingStrategies   #-}</span><span>
+</span><span id="line-4"></span><span class="hs-pragma">{-# LANGUAGE FlexibleContexts     #-}</span><span>
+</span><span id="line-5"></span><span class="hs-pragma">{-# LANGUAGE FlexibleInstances    #-}</span><span>
+</span><span id="line-6"></span><span class="hs-pragma">{-# LANGUAGE TypeApplications     #-}</span><span>
+</span><span id="line-7"></span><span class="hs-pragma">{-# LANGUAGE TypeFamilies         #-}</span><span>
+</span><span id="line-8"></span><span class="hs-pragma">{-# LANGUAGE TypeSynonymInstances #-}</span><span>
+</span><span id="line-9"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Ouroboros.Consensus.Shelley.TxLimits</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Consensus.Shelley.TxLimits.html#TxLimits"><span class="hs-identifier">TxLimits</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-10"></span><span>
+</span><span id="line-11"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><span class="hs-identifier">Data.Word</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Word32</span></span><span class="hs-special">)</span><span>
+</span><span id="line-12"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><span class="hs-identifier">GHC.Records</span></span><span>
+</span><span id="line-13"></span><span>
+</span><span id="line-14"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><span class="hs-identifier">Cardano.Ledger.Alonzo.PParams</span></span><span>
+</span><span id="line-15"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><span class="hs-identifier">Cardano.Ledger.Alonzo.Scripts</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">ExUnits</span></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">pointWiseExUnits</span></span><span class="hs-special">)</span><span>
+</span><span id="line-16"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="Ouroboros.Consensus.Shelley.Ledger.Ledger.html"><span class="hs-identifier">Ouroboros.Consensus.Shelley.Ledger.Ledger</span></a></span><span>
+</span><span id="line-17"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Shelley.Spec.Ledger.API</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">SL</span></span><span>
+</span><span id="line-18"></span><span>
+</span><span id="line-19"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier">Ouroboros.Consensus.Ledger.SupportsMempool</span></a></span><span>
+</span><span id="line-20"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="Ouroboros.Consensus.Shelley.Eras.html"><span class="hs-identifier">Ouroboros.Consensus.Shelley.Eras</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">AllegraEra</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">AlonzoEra</span></span><span class="hs-special">,</span><span>
+</span><span id="line-21"></span><span>                     </span><span class="annot"><span class="hs-identifier">MaryEra</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">ShelleyEra</span></span><span class="hs-special">)</span><span>
+</span><span id="line-22"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="Ouroboros.Consensus.Shelley.Ledger.Block.html"><span class="hs-identifier">Ouroboros.Consensus.Shelley.Ledger.Block</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Consensus.Shelley.Ledger.Block.html#ShelleyBlock"><span class="hs-identifier">ShelleyBlock</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-23"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="Ouroboros.Consensus.Shelley.Ledger.Mempool.html"><span class="hs-identifier">Ouroboros.Consensus.Shelley.Ledger.Mempool</span></a></span><span>
+</span><span id="line-24"></span><span>
+</span><span id="line-25"></span><span class="hs-keyword">class</span><span> </span><span class="hs-special">(</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Monoid</span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Consensus.Shelley.TxLimits.html#Measure"><span class="hs-identifier hs-type">Measure</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679640142"><span class="hs-identifier hs-type">era</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-26"></span><span>      </span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span id="TxLimits"><span class="annot"><a href="Ouroboros.Consensus.Shelley.TxLimits.html#TxLimits"><span class="hs-identifier hs-var">TxLimits</span></a></span></span><span> </span><span id="local-6989586621679640142"><span class="annot"><a href="#local-6989586621679640142"><span class="hs-identifier hs-type">era</span></a></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-27"></span><span>  </span><span class="hs-keyword">type</span><span> </span><span id="Measure"><span class="annot"><a href="Ouroboros.Consensus.Shelley.TxLimits.html#Measure"><span class="hs-identifier hs-var">Measure</span></a></span></span><span> </span><span id="local-6989586621679640142"><span class="annot"><a href="#local-6989586621679640142"><span class="hs-identifier hs-type">era</span></a></span></span><span>
+</span><span id="line-28"></span><span>  </span><span id="lessEq"><span class="annot"><a href="Ouroboros.Consensus.Shelley.TxLimits.html#lessEq"><span class="hs-identifier hs-type">lessEq</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Shelley.TxLimits.html#Measure"><span class="hs-identifier hs-type">Measure</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679640142"><span class="hs-identifier hs-type">era</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Shelley.TxLimits.html#Measure"><span class="hs-identifier hs-type">Measure</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679640142"><span class="hs-identifier hs-type">era</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span><span>
+</span><span id="line-29"></span><span>  </span><span id="txMeasure"><span class="annot"><a href="Ouroboros.Consensus.Shelley.TxLimits.html#txMeasure"><span class="hs-identifier hs-type">txMeasure</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier hs-type">Validated</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier hs-type">GenTx</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Consensus.Shelley.Ledger.Block.html#ShelleyBlock"><span class="hs-identifier hs-type">ShelleyBlock</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679640142"><span class="hs-identifier hs-type">era</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Shelley.TxLimits.html#Measure"><span class="hs-identifier hs-type">Measure</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679640142"><span class="hs-identifier hs-type">era</span></a></span><span>
+</span><span id="line-30"></span><span>  </span><span id="maxCapacity"><span class="annot"><a href="Ouroboros.Consensus.Shelley.TxLimits.html#maxCapacity"><span class="hs-identifier hs-type">maxCapacity</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier hs-type">Ticked</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier hs-type">LedgerState</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Consensus.Shelley.Ledger.Block.html#ShelleyBlock"><span class="hs-identifier hs-type">ShelleyBlock</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679640142"><span class="hs-identifier hs-type">era</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Shelley.TxLimits.html#Measure"><span class="hs-identifier hs-type">Measure</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679640142"><span class="hs-identifier hs-type">era</span></a></span><span>
+</span><span id="line-31"></span><span>
+</span><span id="line-32"></span><span class="hs-keyword">newtype</span><span> </span><span id="ByteSize"><span class="annot"><a href="Ouroboros.Consensus.Shelley.TxLimits.html#ByteSize"><span class="hs-identifier hs-var">ByteSize</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="ByteSize"><span class="annot"><a href="Ouroboros.Consensus.Shelley.TxLimits.html#ByteSize"><span class="hs-identifier hs-var">ByteSize</span></a></span></span><span> </span><span class="hs-special">{</span><span> </span><span id="unByteSize"><span class="annot"><span class="annottext">ByteSize -&gt; Word32
+</span><a href="Ouroboros.Consensus.Shelley.TxLimits.html#unByteSize"><span class="hs-identifier hs-var hs-var">unByteSize</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Word32</span></span><span> </span><span class="hs-special">}</span><span>
+</span><span id="line-33"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="annot"><span class="hs-keyword">stock</span></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679640103"><span id="local-6989586621679640105"><span id="local-6989586621679640107"><span class="annot"><span class="annottext">Int -&gt; ByteSize -&gt; ShowS
+[ByteSize] -&gt; ShowS
+ByteSize -&gt; String
+(Int -&gt; ByteSize -&gt; ShowS)
+-&gt; (ByteSize -&gt; String) -&gt; ([ByteSize] -&gt; ShowS) -&gt; Show ByteSize
+forall a.
+(Int -&gt; a -&gt; ShowS) -&gt; (a -&gt; String) -&gt; ([a] -&gt; ShowS) -&gt; Show a
+showList :: [ByteSize] -&gt; ShowS
+$cshowList :: [ByteSize] -&gt; ShowS
+show :: ByteSize -&gt; String
+$cshow :: ByteSize -&gt; String
+showsPrec :: Int -&gt; ByteSize -&gt; ShowS
+$cshowsPrec :: Int -&gt; ByteSize -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679640098"><span id="local-6989586621679640100"><span class="annot"><span class="annottext">ByteSize -&gt; ByteSize -&gt; Bool
+(ByteSize -&gt; ByteSize -&gt; Bool)
+-&gt; (ByteSize -&gt; ByteSize -&gt; Bool) -&gt; Eq ByteSize
+forall a. (a -&gt; a -&gt; Bool) -&gt; (a -&gt; a -&gt; Bool) -&gt; Eq a
+/= :: ByteSize -&gt; ByteSize -&gt; Bool
+$c/= :: ByteSize -&gt; ByteSize -&gt; Bool
+== :: ByteSize -&gt; ByteSize -&gt; Bool
+$c== :: ByteSize -&gt; ByteSize -&gt; Bool
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679640082"><span id="local-6989586621679640084"><span id="local-6989586621679640086"><span id="local-6989586621679640088"><span id="local-6989586621679640090"><span id="local-6989586621679640092"><span id="local-6989586621679640094"><span class="annot"><span class="annottext">Eq ByteSize
+Eq ByteSize
+-&gt; (ByteSize -&gt; ByteSize -&gt; Ordering)
+-&gt; (ByteSize -&gt; ByteSize -&gt; Bool)
+-&gt; (ByteSize -&gt; ByteSize -&gt; Bool)
+-&gt; (ByteSize -&gt; ByteSize -&gt; Bool)
+-&gt; (ByteSize -&gt; ByteSize -&gt; Bool)
+-&gt; (ByteSize -&gt; ByteSize -&gt; ByteSize)
+-&gt; (ByteSize -&gt; ByteSize -&gt; ByteSize)
+-&gt; Ord ByteSize
+ByteSize -&gt; ByteSize -&gt; Bool
+ByteSize -&gt; ByteSize -&gt; Ordering
+ByteSize -&gt; ByteSize -&gt; ByteSize
+forall a.
+Eq a
+-&gt; (a -&gt; a -&gt; Ordering)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; a)
+-&gt; (a -&gt; a -&gt; a)
+-&gt; Ord a
+min :: ByteSize -&gt; ByteSize -&gt; ByteSize
+$cmin :: ByteSize -&gt; ByteSize -&gt; ByteSize
+max :: ByteSize -&gt; ByteSize -&gt; ByteSize
+$cmax :: ByteSize -&gt; ByteSize -&gt; ByteSize
+&gt;= :: ByteSize -&gt; ByteSize -&gt; Bool
+$c&gt;= :: ByteSize -&gt; ByteSize -&gt; Bool
+&gt; :: ByteSize -&gt; ByteSize -&gt; Bool
+$c&gt; :: ByteSize -&gt; ByteSize -&gt; Bool
+&lt;= :: ByteSize -&gt; ByteSize -&gt; Bool
+$c&lt;= :: ByteSize -&gt; ByteSize -&gt; Bool
+&lt; :: ByteSize -&gt; ByteSize -&gt; Bool
+$c&lt; :: ByteSize -&gt; ByteSize -&gt; Bool
+compare :: ByteSize -&gt; ByteSize -&gt; Ordering
+$ccompare :: ByteSize -&gt; ByteSize -&gt; Ordering
+$cp1Ord :: Eq ByteSize
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Ord</span></span></span></span></span></span></span></span></span><span class="hs-special">)</span><span>
+</span><span id="line-34"></span><span>
+</span><span id="line-35"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679640076"><span id="local-6989586621679640078"><span class="annot"><span class="hs-identifier hs-type">Semigroup</span></span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Shelley.TxLimits.html#ByteSize"><span class="hs-identifier hs-type">ByteSize</span></a></span></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-36"></span><span>  </span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Consensus.Shelley.TxLimits.html#ByteSize"><span class="hs-identifier hs-type">ByteSize</span></a></span><span> </span><span id="local-6989586621679640074"><span class="annot"><span class="annottext">Word32
+</span><a href="#local-6989586621679640074"><span class="hs-identifier hs-var">bs1</span></a></span></span><span class="hs-special">)</span><span> </span><span id="local-6989586621679640073"><span class="annot"><span class="annottext">&lt;&gt; :: ByteSize -&gt; ByteSize -&gt; ByteSize
+</span><span class="hs-operator hs-var hs-var hs-var hs-var">&lt;&gt;</span></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Consensus.Shelley.TxLimits.html#ByteSize"><span class="hs-identifier hs-type">ByteSize</span></a></span><span> </span><span id="local-6989586621679640072"><span class="annot"><span class="annottext">Word32
+</span><a href="#local-6989586621679640072"><span class="hs-identifier hs-var">bs2</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Word32 -&gt; ByteSize
+</span><a href="Ouroboros.Consensus.Shelley.TxLimits.html#ByteSize"><span class="hs-identifier hs-var">ByteSize</span></a></span><span> </span><span class="annot"><span class="annottext">(Word32 -&gt; ByteSize) -&gt; Word32 -&gt; ByteSize
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Word32
+</span><a href="#local-6989586621679640074"><span class="hs-identifier hs-var">bs1</span></a></span><span> </span><span class="annot"><span class="annottext">Word32 -&gt; Word32 -&gt; Word32
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="annottext">Word32
+</span><a href="#local-6989586621679640072"><span class="hs-identifier hs-var">bs2</span></a></span><span>
+</span><span id="line-37"></span><span>
+</span><span id="line-38"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679640065"><span id="local-6989586621679640067"><span class="annot"><span class="hs-identifier hs-type">Monoid</span></span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Shelley.TxLimits.html#ByteSize"><span class="hs-identifier hs-type">ByteSize</span></a></span></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-39"></span><span>  </span><span id="local-6989586621679640063"><span class="annot"><span class="annottext">mempty :: ByteSize
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">mempty</span></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Word32 -&gt; ByteSize
+</span><a href="Ouroboros.Consensus.Shelley.TxLimits.html#ByteSize"><span class="hs-identifier hs-var">ByteSize</span></a></span><span> </span><span class="annot"><span class="annottext">Word32
+</span><span class="hs-number">0</span></span><span>
+</span><span id="line-40"></span><span>
+</span><span id="line-41"></span><span id="local-6989586621679640062"><span class="hs-keyword">instance</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">SL.PraosCrypto</span></span><span> </span><span class="annot"><a href="#local-6989586621679640062"><span class="hs-identifier hs-type">c</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Shelley.TxLimits.html#TxLimits"><span class="hs-identifier hs-type">TxLimits</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">ShelleyEra</span></span><span> </span><span class="annot"><a href="#local-6989586621679640062"><span class="hs-identifier hs-type">c</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-42"></span><span>  </span><span class="hs-keyword">type</span><span> </span><span id="Measure"><span class="annot"><a href="Ouroboros.Consensus.Shelley.TxLimits.html#Measure"><span class="hs-identifier hs-var">Measure</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">ShelleyEra</span></span><span> </span><span class="annot"><a href="#local-6989586621679640062"><span class="hs-identifier hs-type">c</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Shelley.TxLimits.html#ByteSize"><span class="hs-identifier hs-type">ByteSize</span></a></span><span>
+</span><span id="line-43"></span><span>  </span><span id="local-6989586621679640056"><span class="annot"><span class="annottext">lessEq :: Measure (ShelleyEra c) -&gt; Measure (ShelleyEra c) -&gt; Bool
+</span><a href="#local-6989586621679640056"><span class="hs-identifier hs-var hs-var hs-var hs-var">lessEq</span></a></span></span><span>      </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Measure (ShelleyEra c) -&gt; Measure (ShelleyEra c) -&gt; Bool
+forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">(&lt;=)</span></span><span>
+</span><span id="line-44"></span><span>  </span><span id="local-6989586621679640054"><span class="annot"><span class="annottext">txMeasure :: Validated (GenTx (ShelleyBlock (ShelleyEra c)))
+-&gt; Measure (ShelleyEra c)
+</span><a href="#local-6989586621679640054"><span class="hs-identifier hs-var hs-var hs-var hs-var">txMeasure</span></a></span></span><span>   </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Word32 -&gt; ByteSize
+</span><a href="Ouroboros.Consensus.Shelley.TxLimits.html#ByteSize"><span class="hs-identifier hs-var">ByteSize</span></a></span><span> </span><span class="annot"><span class="annottext">(Word32 -&gt; ByteSize)
+-&gt; (Validated (GenTx (ShelleyBlock (ShelleyEra c))) -&gt; Word32)
+-&gt; Validated (GenTx (ShelleyBlock (ShelleyEra c)))
+-&gt; ByteSize
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">GenTx (ShelleyBlock (ShelleyEra c)) -&gt; Word32
+forall blk. LedgerSupportsMempool blk =&gt; GenTx blk -&gt; Word32
+</span><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier hs-var">txInBlockSize</span></a></span><span> </span><span class="annot"><span class="annottext">(GenTx (ShelleyBlock (ShelleyEra c)) -&gt; Word32)
+-&gt; (Validated (GenTx (ShelleyBlock (ShelleyEra c)))
+    -&gt; GenTx (ShelleyBlock (ShelleyEra c)))
+-&gt; Validated (GenTx (ShelleyBlock (ShelleyEra c)))
+-&gt; Word32
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Validated (GenTx (ShelleyBlock (ShelleyEra c)))
+-&gt; GenTx (ShelleyBlock (ShelleyEra c))
+forall blk.
+LedgerSupportsMempool blk =&gt;
+Validated (GenTx blk) -&gt; GenTx blk
+</span><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier hs-var">txForgetValidated</span></a></span><span>
+</span><span id="line-45"></span><span>  </span><span id="local-6989586621679640050"><span class="annot"><span class="annottext">maxCapacity :: Ticked (LedgerState (ShelleyBlock (ShelleyEra c)))
+-&gt; Measure (ShelleyEra c)
+</span><a href="#local-6989586621679640050"><span class="hs-identifier hs-var hs-var hs-var hs-var">maxCapacity</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Word32 -&gt; ByteSize
+</span><a href="Ouroboros.Consensus.Shelley.TxLimits.html#ByteSize"><span class="hs-identifier hs-var">ByteSize</span></a></span><span> </span><span class="annot"><span class="annottext">(Word32 -&gt; ByteSize)
+-&gt; (Ticked (LedgerState (ShelleyBlock (ShelleyEra c))) -&gt; Word32)
+-&gt; Ticked (LedgerState (ShelleyBlock (ShelleyEra c)))
+-&gt; ByteSize
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Ticked (LedgerState (ShelleyBlock (ShelleyEra c))) -&gt; Word32
+forall blk.
+LedgerSupportsMempool blk =&gt;
+TickedLedgerState blk -&gt; Word32
+</span><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier hs-var">maxTxCapacity</span></a></span></span><span>
+</span><span id="line-46"></span><span>
+</span><span id="line-47"></span><span id="local-6989586621679640048"><span class="hs-keyword">instance</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">SL.PraosCrypto</span></span><span> </span><span class="annot"><a href="#local-6989586621679640048"><span class="hs-identifier hs-type">c</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Shelley.TxLimits.html#TxLimits"><span class="hs-identifier hs-type">TxLimits</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">AllegraEra</span></span><span> </span><span class="annot"><a href="#local-6989586621679640048"><span class="hs-identifier hs-type">c</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-48"></span><span>  </span><span class="hs-keyword">type</span><span> </span><span id="Measure"><span class="annot"><a href="Ouroboros.Consensus.Shelley.TxLimits.html#Measure"><span class="hs-identifier hs-var">Measure</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">AllegraEra</span></span><span> </span><span class="annot"><a href="#local-6989586621679640048"><span class="hs-identifier hs-type">c</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Shelley.TxLimits.html#ByteSize"><span class="hs-identifier hs-type">ByteSize</span></a></span><span>
+</span><span id="line-49"></span><span>  </span><span id="local-6989586621679640043"><span class="annot"><span class="annottext">lessEq :: Measure (AllegraEra c) -&gt; Measure (AllegraEra c) -&gt; Bool
+</span><a href="#local-6989586621679640043"><span class="hs-identifier hs-var hs-var hs-var hs-var">lessEq</span></a></span></span><span>      </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Measure (AllegraEra c) -&gt; Measure (AllegraEra c) -&gt; Bool
+forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">(&lt;=)</span></span><span>
+</span><span id="line-50"></span><span>  </span><span id="local-6989586621679640042"><span class="annot"><span class="annottext">txMeasure :: Validated (GenTx (ShelleyBlock (AllegraEra c)))
+-&gt; Measure (AllegraEra c)
+</span><a href="#local-6989586621679640042"><span class="hs-identifier hs-var hs-var hs-var hs-var">txMeasure</span></a></span></span><span>   </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Word32 -&gt; ByteSize
+</span><a href="Ouroboros.Consensus.Shelley.TxLimits.html#ByteSize"><span class="hs-identifier hs-var">ByteSize</span></a></span><span> </span><span class="annot"><span class="annottext">(Word32 -&gt; ByteSize)
+-&gt; (Validated (GenTx (ShelleyBlock (AllegraEra c))) -&gt; Word32)
+-&gt; Validated (GenTx (ShelleyBlock (AllegraEra c)))
+-&gt; ByteSize
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">GenTx (ShelleyBlock (AllegraEra c)) -&gt; Word32
+forall blk. LedgerSupportsMempool blk =&gt; GenTx blk -&gt; Word32
+</span><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier hs-var">txInBlockSize</span></a></span><span> </span><span class="annot"><span class="annottext">(GenTx (ShelleyBlock (AllegraEra c)) -&gt; Word32)
+-&gt; (Validated (GenTx (ShelleyBlock (AllegraEra c)))
+    -&gt; GenTx (ShelleyBlock (AllegraEra c)))
+-&gt; Validated (GenTx (ShelleyBlock (AllegraEra c)))
+-&gt; Word32
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Validated (GenTx (ShelleyBlock (AllegraEra c)))
+-&gt; GenTx (ShelleyBlock (AllegraEra c))
+forall blk.
+LedgerSupportsMempool blk =&gt;
+Validated (GenTx blk) -&gt; GenTx blk
+</span><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier hs-var">txForgetValidated</span></a></span><span>
+</span><span id="line-51"></span><span>  </span><span id="local-6989586621679640041"><span class="annot"><span class="annottext">maxCapacity :: Ticked (LedgerState (ShelleyBlock (AllegraEra c)))
+-&gt; Measure (AllegraEra c)
+</span><a href="#local-6989586621679640041"><span class="hs-identifier hs-var hs-var hs-var hs-var">maxCapacity</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Word32 -&gt; ByteSize
+</span><a href="Ouroboros.Consensus.Shelley.TxLimits.html#ByteSize"><span class="hs-identifier hs-var">ByteSize</span></a></span><span> </span><span class="annot"><span class="annottext">(Word32 -&gt; ByteSize)
+-&gt; (Ticked (LedgerState (ShelleyBlock (AllegraEra c))) -&gt; Word32)
+-&gt; Ticked (LedgerState (ShelleyBlock (AllegraEra c)))
+-&gt; ByteSize
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Ticked (LedgerState (ShelleyBlock (AllegraEra c))) -&gt; Word32
+forall blk.
+LedgerSupportsMempool blk =&gt;
+TickedLedgerState blk -&gt; Word32
+</span><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier hs-var">maxTxCapacity</span></a></span></span><span>
+</span><span id="line-52"></span><span>
+</span><span id="line-53"></span><span id="local-6989586621679640040"><span class="hs-keyword">instance</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">SL.PraosCrypto</span></span><span> </span><span class="annot"><a href="#local-6989586621679640040"><span class="hs-identifier hs-type">c</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Shelley.TxLimits.html#TxLimits"><span class="hs-identifier hs-type">TxLimits</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">MaryEra</span></span><span> </span><span class="annot"><a href="#local-6989586621679640040"><span class="hs-identifier hs-type">c</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-54"></span><span>  </span><span class="hs-keyword">type</span><span> </span><span id="Measure"><span class="annot"><a href="Ouroboros.Consensus.Shelley.TxLimits.html#Measure"><span class="hs-identifier hs-var">Measure</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">MaryEra</span></span><span> </span><span class="annot"><a href="#local-6989586621679640040"><span class="hs-identifier hs-type">c</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Shelley.TxLimits.html#ByteSize"><span class="hs-identifier hs-type">ByteSize</span></a></span><span>
+</span><span id="line-55"></span><span>  </span><span id="local-6989586621679640035"><span class="annot"><span class="annottext">lessEq :: Measure (MaryEra c) -&gt; Measure (MaryEra c) -&gt; Bool
+</span><a href="#local-6989586621679640035"><span class="hs-identifier hs-var hs-var hs-var hs-var">lessEq</span></a></span></span><span>      </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Measure (MaryEra c) -&gt; Measure (MaryEra c) -&gt; Bool
+forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">(&lt;=)</span></span><span>
+</span><span id="line-56"></span><span>  </span><span id="local-6989586621679640034"><span class="annot"><span class="annottext">txMeasure :: Validated (GenTx (ShelleyBlock (MaryEra c))) -&gt; Measure (MaryEra c)
+</span><a href="#local-6989586621679640034"><span class="hs-identifier hs-var hs-var hs-var hs-var">txMeasure</span></a></span></span><span>   </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Word32 -&gt; ByteSize
+</span><a href="Ouroboros.Consensus.Shelley.TxLimits.html#ByteSize"><span class="hs-identifier hs-var">ByteSize</span></a></span><span> </span><span class="annot"><span class="annottext">(Word32 -&gt; ByteSize)
+-&gt; (Validated (GenTx (ShelleyBlock (MaryEra c))) -&gt; Word32)
+-&gt; Validated (GenTx (ShelleyBlock (MaryEra c)))
+-&gt; ByteSize
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">GenTx (ShelleyBlock (MaryEra c)) -&gt; Word32
+forall blk. LedgerSupportsMempool blk =&gt; GenTx blk -&gt; Word32
+</span><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier hs-var">txInBlockSize</span></a></span><span> </span><span class="annot"><span class="annottext">(GenTx (ShelleyBlock (MaryEra c)) -&gt; Word32)
+-&gt; (Validated (GenTx (ShelleyBlock (MaryEra c)))
+    -&gt; GenTx (ShelleyBlock (MaryEra c)))
+-&gt; Validated (GenTx (ShelleyBlock (MaryEra c)))
+-&gt; Word32
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Validated (GenTx (ShelleyBlock (MaryEra c)))
+-&gt; GenTx (ShelleyBlock (MaryEra c))
+forall blk.
+LedgerSupportsMempool blk =&gt;
+Validated (GenTx blk) -&gt; GenTx blk
+</span><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier hs-var">txForgetValidated</span></a></span><span>
+</span><span id="line-57"></span><span>  </span><span id="local-6989586621679640033"><span class="annot"><span class="annottext">maxCapacity :: Ticked (LedgerState (ShelleyBlock (MaryEra c)))
+-&gt; Measure (MaryEra c)
+</span><a href="#local-6989586621679640033"><span class="hs-identifier hs-var hs-var hs-var hs-var">maxCapacity</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Word32 -&gt; ByteSize
+</span><a href="Ouroboros.Consensus.Shelley.TxLimits.html#ByteSize"><span class="hs-identifier hs-var">ByteSize</span></a></span><span> </span><span class="annot"><span class="annottext">(Word32 -&gt; ByteSize)
+-&gt; (Ticked (LedgerState (ShelleyBlock (MaryEra c))) -&gt; Word32)
+-&gt; Ticked (LedgerState (ShelleyBlock (MaryEra c)))
+-&gt; ByteSize
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Ticked (LedgerState (ShelleyBlock (MaryEra c))) -&gt; Word32
+forall blk.
+LedgerSupportsMempool blk =&gt;
+TickedLedgerState blk -&gt; Word32
+</span><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier hs-var">maxTxCapacity</span></a></span></span><span>
+</span><span id="line-58"></span><span>
+</span><span id="line-59"></span><span class="hs-keyword">data</span><span> </span><span id="AlonzoMeasure"><span class="annot"><a href="Ouroboros.Consensus.Shelley.TxLimits.html#AlonzoMeasure"><span class="hs-identifier hs-var">AlonzoMeasure</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="AlonzoMeasure"><span class="annot"><a href="Ouroboros.Consensus.Shelley.TxLimits.html#AlonzoMeasure"><span class="hs-identifier hs-var">AlonzoMeasure</span></a></span></span><span> </span><span class="hs-special">{</span><span>
+</span><span id="line-60"></span><span>    </span><span id="byteSize"><span class="annot"><span class="annottext">AlonzoMeasure -&gt; ByteSize
+</span><a href="Ouroboros.Consensus.Shelley.TxLimits.html#byteSize"><span class="hs-identifier hs-var hs-var">byteSize</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Shelley.TxLimits.html#ByteSize"><span class="hs-identifier hs-type">ByteSize</span></a></span><span>
+</span><span id="line-61"></span><span>  </span><span class="hs-special">,</span><span> </span><span id="exUnits"><span class="annot"><span class="annottext">AlonzoMeasure -&gt; ExUnits
+</span><a href="Ouroboros.Consensus.Shelley.TxLimits.html#exUnits"><span class="hs-identifier hs-var hs-var">exUnits</span></a></span></span><span>  </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">ExUnits</span></span><span>
+</span><span id="line-62"></span><span>  </span><span class="hs-special">}</span><span> </span><span class="hs-keyword">deriving</span><span> </span><span class="annot"><span class="hs-keyword">stock</span></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679640024"><span id="local-6989586621679640026"><span id="local-6989586621679640028"><span class="annot"><span class="annottext">Int -&gt; AlonzoMeasure -&gt; ShowS
+[AlonzoMeasure] -&gt; ShowS
+AlonzoMeasure -&gt; String
+(Int -&gt; AlonzoMeasure -&gt; ShowS)
+-&gt; (AlonzoMeasure -&gt; String)
+-&gt; ([AlonzoMeasure] -&gt; ShowS)
+-&gt; Show AlonzoMeasure
+forall a.
+(Int -&gt; a -&gt; ShowS) -&gt; (a -&gt; String) -&gt; ([a] -&gt; ShowS) -&gt; Show a
+showList :: [AlonzoMeasure] -&gt; ShowS
+$cshowList :: [AlonzoMeasure] -&gt; ShowS
+show :: AlonzoMeasure -&gt; String
+$cshow :: AlonzoMeasure -&gt; String
+showsPrec :: Int -&gt; AlonzoMeasure -&gt; ShowS
+$cshowsPrec :: Int -&gt; AlonzoMeasure -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679640020"><span id="local-6989586621679640022"><span class="annot"><span class="annottext">AlonzoMeasure -&gt; AlonzoMeasure -&gt; Bool
+(AlonzoMeasure -&gt; AlonzoMeasure -&gt; Bool)
+-&gt; (AlonzoMeasure -&gt; AlonzoMeasure -&gt; Bool) -&gt; Eq AlonzoMeasure
+forall a. (a -&gt; a -&gt; Bool) -&gt; (a -&gt; a -&gt; Bool) -&gt; Eq a
+/= :: AlonzoMeasure -&gt; AlonzoMeasure -&gt; Bool
+$c/= :: AlonzoMeasure -&gt; AlonzoMeasure -&gt; Bool
+== :: AlonzoMeasure -&gt; AlonzoMeasure -&gt; Bool
+$c== :: AlonzoMeasure -&gt; AlonzoMeasure -&gt; Bool
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">)</span><span>
+</span><span id="line-63"></span><span>
+</span><span id="line-64"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679640015"><span id="local-6989586621679640017"><span class="annot"><span class="hs-identifier hs-type">Semigroup</span></span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Shelley.TxLimits.html#AlonzoMeasure"><span class="hs-identifier hs-type">AlonzoMeasure</span></a></span></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-65"></span><span>  </span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Consensus.Shelley.TxLimits.html#AlonzoMeasure"><span class="hs-identifier hs-type">AlonzoMeasure</span></a></span><span> </span><span id="local-6989586621679640014"><span class="annot"><span class="annottext">ByteSize
+</span><a href="#local-6989586621679640014"><span class="hs-identifier hs-var">bs1</span></a></span></span><span> </span><span id="local-6989586621679640013"><span class="annot"><span class="annottext">ExUnits
+</span><a href="#local-6989586621679640013"><span class="hs-identifier hs-var">exu1</span></a></span></span><span class="hs-special">)</span><span> </span><span id="local-6989586621679640012"><span class="annot"><span class="annottext">&lt;&gt; :: AlonzoMeasure -&gt; AlonzoMeasure -&gt; AlonzoMeasure
+</span><span class="hs-operator hs-var hs-var hs-var hs-var">&lt;&gt;</span></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Consensus.Shelley.TxLimits.html#AlonzoMeasure"><span class="hs-identifier hs-type">AlonzoMeasure</span></a></span><span> </span><span id="local-6989586621679640011"><span class="annot"><span class="annottext">ByteSize
+</span><a href="#local-6989586621679640011"><span class="hs-identifier hs-var">bs2</span></a></span></span><span> </span><span id="local-6989586621679640010"><span class="annot"><span class="annottext">ExUnits
+</span><a href="#local-6989586621679640010"><span class="hs-identifier hs-var">exu2</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-66"></span><span>    </span><span class="annot"><span class="annottext">ByteSize -&gt; ExUnits -&gt; AlonzoMeasure
+</span><a href="Ouroboros.Consensus.Shelley.TxLimits.html#AlonzoMeasure"><span class="hs-identifier hs-var">AlonzoMeasure</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">ByteSize
+</span><a href="#local-6989586621679640014"><span class="hs-identifier hs-var">bs1</span></a></span><span> </span><span class="annot"><span class="annottext">ByteSize -&gt; ByteSize -&gt; ByteSize
+forall a. Semigroup a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">&lt;&gt;</span></span><span> </span><span class="annot"><span class="annottext">ByteSize
+</span><a href="#local-6989586621679640011"><span class="hs-identifier hs-var">bs2</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">ExUnits
+</span><a href="#local-6989586621679640013"><span class="hs-identifier hs-var">exu1</span></a></span><span> </span><span class="annot"><span class="annottext">ExUnits -&gt; ExUnits -&gt; ExUnits
+forall a. Semigroup a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">&lt;&gt;</span></span><span> </span><span class="annot"><span class="annottext">ExUnits
+</span><a href="#local-6989586621679640010"><span class="hs-identifier hs-var">exu2</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-67"></span><span>
+</span><span id="line-68"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679640004"><span id="local-6989586621679640006"><span class="annot"><span class="hs-identifier hs-type">Monoid</span></span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Shelley.TxLimits.html#AlonzoMeasure"><span class="hs-identifier hs-type">AlonzoMeasure</span></a></span></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-69"></span><span>  </span><span id="local-6989586621679640003"><span class="annot"><span class="annottext">mempty :: AlonzoMeasure
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">mempty</span></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">ByteSize -&gt; ExUnits -&gt; AlonzoMeasure
+</span><a href="Ouroboros.Consensus.Shelley.TxLimits.html#AlonzoMeasure"><span class="hs-identifier hs-var">AlonzoMeasure</span></a></span><span> </span><span class="annot"><span class="annottext">ByteSize
+forall a. Monoid a =&gt; a
+</span><span class="hs-identifier hs-var">mempty</span></span><span> </span><span class="annot"><span class="annottext">ExUnits
+forall a. Monoid a =&gt; a
+</span><span class="hs-identifier hs-var">mempty</span></span><span>
+</span><span id="line-70"></span><span>
+</span><span id="line-71"></span><span id="local-6989586621679640002"><span class="hs-keyword">instance</span><span> </span><span class="hs-special">(</span><span> </span><span class="annot"><span class="hs-identifier hs-type">SL.PraosCrypto</span></span><span> </span><span class="annot"><a href="#local-6989586621679640002"><span class="hs-identifier hs-type">c</span></a></span><span>
+</span><span id="line-72"></span><span>         </span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Shelley.TxLimits.html#TxLimits"><span class="hs-identifier hs-type">TxLimits</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">AlonzoEra</span></span><span> </span><span class="annot"><a href="#local-6989586621679640002"><span class="hs-identifier hs-type">c</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-73"></span><span>
+</span><span id="line-74"></span><span>  </span><span class="hs-keyword">type</span><span> </span><span id="Measure"><span class="annot"><a href="Ouroboros.Consensus.Shelley.TxLimits.html#Measure"><span class="hs-identifier hs-var">Measure</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">AlonzoEra</span></span><span> </span><span class="annot"><a href="#local-6989586621679640002"><span class="hs-identifier hs-type">c</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Shelley.TxLimits.html#AlonzoMeasure"><span class="hs-identifier hs-type">AlonzoMeasure</span></a></span><span>
+</span><span id="line-75"></span><span>
+</span><span id="line-76"></span><span>  </span><span id="local-6989586621679639997"><span class="annot"><span class="annottext">lessEq :: Measure (AlonzoEra c) -&gt; Measure (AlonzoEra c) -&gt; Bool
+</span><a href="#local-6989586621679639997"><span class="hs-identifier hs-var hs-var hs-var hs-var">lessEq</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Consensus.Shelley.TxLimits.html#AlonzoMeasure"><span class="hs-identifier hs-type">AlonzoMeasure</span></a></span><span> </span><span id="local-6989586621679639996"><span class="annot"><a href="#local-6989586621679639996"><span class="hs-identifier hs-var">bs1</span></a></span></span><span> </span><span id="local-6989586621679639995"><span class="annot"><a href="#local-6989586621679639995"><span class="hs-identifier hs-var">exu1</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Consensus.Shelley.TxLimits.html#AlonzoMeasure"><span class="hs-identifier hs-type">AlonzoMeasure</span></a></span><span> </span><span id="local-6989586621679639994"><span class="annot"><a href="#local-6989586621679639994"><span class="hs-identifier hs-var">bs2</span></a></span></span><span> </span><span id="local-6989586621679639993"><span class="annot"><a href="#local-6989586621679639993"><span class="hs-identifier hs-var">exu2</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-77"></span><span>    </span><span class="annot"><span class="annottext">ByteSize
+</span><a href="#local-6989586621679639996"><span class="hs-identifier hs-var">bs1</span></a></span><span> </span><span class="annot"><span class="annottext">ByteSize -&gt; ByteSize -&gt; Bool
+forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">&lt;=</span></span><span> </span><span class="annot"><span class="annottext">ByteSize
+</span><a href="#local-6989586621679639994"><span class="hs-identifier hs-var">bs2</span></a></span><span> </span><span class="annot"><span class="annottext">Bool -&gt; Bool -&gt; Bool
+</span><span class="hs-operator hs-var">&amp;&amp;</span></span><span> </span><span class="annot"><span class="annottext">(Word64 -&gt; Word64 -&gt; Bool) -&gt; ExUnits -&gt; ExUnits -&gt; Bool
+</span><span class="hs-identifier hs-var">pointWiseExUnits</span></span><span> </span><span class="annot"><span class="annottext">Word64 -&gt; Word64 -&gt; Bool
+forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">(&lt;=)</span></span><span> </span><span class="annot"><span class="annottext">ExUnits
+</span><a href="#local-6989586621679639995"><span class="hs-identifier hs-var">exu1</span></a></span><span> </span><span class="annot"><span class="annottext">ExUnits
+</span><a href="#local-6989586621679639993"><span class="hs-identifier hs-var">exu2</span></a></span><span>
+</span><span id="line-78"></span><span>
+</span><span id="line-79"></span><span>  </span><span id="local-6989586621679639991"><span class="annot"><span class="annottext">txMeasure :: Validated (GenTx (ShelleyBlock (AlonzoEra c)))
+-&gt; Measure (AlonzoEra c)
+</span><a href="#local-6989586621679639991"><span class="hs-identifier hs-var hs-var hs-var hs-var">txMeasure</span></a></span></span><span> </span><span id="local-6989586621679639990"><span class="annot"><span class="annottext">validatedGenTx :: Validated (GenTx (ShelleyBlock (AlonzoEra c)))
+</span><a href="#local-6989586621679639990"><span class="hs-identifier hs-var">validatedGenTx</span></a></span></span><span class="hs-glyph">@</span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Consensus.Shelley.Ledger.Mempool.html#ShelleyValidatedTx"><span class="hs-identifier hs-type">ShelleyValidatedTx</span></a></span><span> </span><span class="annot"><span class="hs-identifier">_</span></span><span> </span><span id="local-6989586621679639988"><span class="annot"><a href="#local-6989586621679639988"><span class="hs-identifier hs-var">tx</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-80"></span><span>    </span><span class="annot"><span class="annottext">AlonzoMeasure :: ByteSize -&gt; ExUnits -&gt; AlonzoMeasure
+</span><a href="Ouroboros.Consensus.Shelley.TxLimits.html#AlonzoMeasure"><span class="hs-identifier hs-type">AlonzoMeasure</span></a></span><span> </span><span class="hs-special">{</span><span>
+</span><span id="line-81"></span><span>        </span><span class="annot"><span class="annottext">byteSize :: ByteSize
+</span><a href="Ouroboros.Consensus.Shelley.TxLimits.html#byteSize"><span class="hs-identifier hs-var">byteSize</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Word32 -&gt; ByteSize
+</span><a href="Ouroboros.Consensus.Shelley.TxLimits.html#ByteSize"><span class="hs-identifier hs-var">ByteSize</span></a></span><span> </span><span class="annot"><span class="annottext">(Word32 -&gt; ByteSize)
+-&gt; (GenTx (ShelleyBlock (AlonzoEra c)) -&gt; Word32)
+-&gt; GenTx (ShelleyBlock (AlonzoEra c))
+-&gt; ByteSize
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">GenTx (ShelleyBlock (AlonzoEra c)) -&gt; Word32
+forall blk. LedgerSupportsMempool blk =&gt; GenTx blk -&gt; Word32
+</span><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier hs-var">txInBlockSize</span></a></span><span> </span><span class="annot"><span class="annottext">(GenTx (ShelleyBlock (AlonzoEra c)) -&gt; ByteSize)
+-&gt; GenTx (ShelleyBlock (AlonzoEra c)) -&gt; ByteSize
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Validated (GenTx (ShelleyBlock (AlonzoEra c)))
+-&gt; GenTx (ShelleyBlock (AlonzoEra c))
+forall blk.
+LedgerSupportsMempool blk =&gt;
+Validated (GenTx blk) -&gt; GenTx blk
+</span><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier hs-var">txForgetValidated</span></a></span><span> </span><span class="annot"><span class="annottext">Validated (GenTx (ShelleyBlock (AlonzoEra c)))
+</span><a href="#local-6989586621679639990"><span class="hs-identifier hs-var">validatedGenTx</span></a></span><span>
+</span><span id="line-82"></span><span>      </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">exUnits :: ExUnits
+</span><a href="Ouroboros.Consensus.Shelley.TxLimits.html#exUnits"><span class="hs-identifier hs-var">exUnits</span></a></span><span>  </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">ValidatedTx (AlonzoEra c) -&gt; ExUnits
+forall k (x :: k) r a. HasField x r a =&gt; r -&gt; a
+</span><span class="hs-identifier hs-var">getField</span></span><span> </span><span class="hs-glyph">@</span><span class="annot"><span class="hs-string">&quot;totExunits&quot;</span></span><span> </span><span class="annot"><span class="annottext">TxInBlock (AlonzoEra c)
+ValidatedTx (AlonzoEra c)
+</span><a href="#local-6989586621679639988"><span class="hs-identifier hs-var">tx</span></a></span><span>
+</span><span id="line-83"></span><span>      </span><span class="hs-special">}</span><span>
+</span><span id="line-84"></span><span>
+</span><span id="line-85"></span><span>  </span><span id="local-6989586621679639986"><span class="annot"><span class="annottext">maxCapacity :: Ticked (LedgerState (ShelleyBlock (AlonzoEra c)))
+-&gt; Measure (AlonzoEra c)
+</span><a href="#local-6989586621679639986"><span class="hs-identifier hs-var hs-var hs-var hs-var">maxCapacity</span></a></span></span><span> </span><span id="local-6989586621679639985"><span class="annot"><span class="annottext">Ticked (LedgerState (ShelleyBlock (AlonzoEra c)))
+</span><a href="#local-6989586621679639985"><span class="hs-identifier hs-var">ledgerState</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-86"></span><span>    </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679639984"><span class="annot"><span class="annottext">pparams :: PParams (AlonzoEra c)
+</span><a href="#local-6989586621679639984"><span class="hs-identifier hs-var hs-var">pparams</span></a></span></span><span>  </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">NewEpochState (AlonzoEra c) -&gt; PParams (AlonzoEra c)
+forall era. NewEpochState era -&gt; PParams era
+</span><a href="Ouroboros.Consensus.Shelley.Ledger.Ledger.html#getPParams"><span class="hs-identifier hs-var">getPParams</span></a></span><span> </span><span class="annot"><span class="annottext">(NewEpochState (AlonzoEra c) -&gt; PParams (AlonzoEra c))
+-&gt; NewEpochState (AlonzoEra c) -&gt; PParams (AlonzoEra c)
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Ticked (LedgerState (ShelleyBlock (AlonzoEra c)))
+-&gt; NewEpochState (AlonzoEra c)
+forall era.
+Ticked (LedgerState (ShelleyBlock era)) -&gt; NewEpochState era
+</span><a href="Ouroboros.Consensus.Shelley.Ledger.Ledger.html#tickedShelleyLedgerState"><span class="hs-identifier hs-var hs-var">tickedShelleyLedgerState</span></a></span><span> </span><span class="annot"><span class="annottext">Ticked (LedgerState (ShelleyBlock (AlonzoEra c)))
+</span><a href="#local-6989586621679639985"><span class="hs-identifier hs-var">ledgerState</span></a></span><span>
+</span><span id="line-87"></span><span>    </span><span class="hs-keyword">in</span><span> </span><span class="annot"><span class="annottext">AlonzoMeasure :: ByteSize -&gt; ExUnits -&gt; AlonzoMeasure
+</span><a href="Ouroboros.Consensus.Shelley.TxLimits.html#AlonzoMeasure"><span class="hs-identifier hs-type">AlonzoMeasure</span></a></span><span> </span><span class="hs-special">{</span><span>
+</span><span id="line-88"></span><span>        </span><span class="annot"><span class="annottext">byteSize :: ByteSize
+</span><a href="Ouroboros.Consensus.Shelley.TxLimits.html#byteSize"><span class="hs-identifier hs-var">byteSize</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Word32 -&gt; ByteSize
+</span><a href="Ouroboros.Consensus.Shelley.TxLimits.html#ByteSize"><span class="hs-identifier hs-var">ByteSize</span></a></span><span> </span><span class="annot"><span class="annottext">(Word32 -&gt; ByteSize) -&gt; Word32 -&gt; ByteSize
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Ticked (LedgerState (ShelleyBlock (AlonzoEra c))) -&gt; Word32
+forall blk.
+LedgerSupportsMempool blk =&gt;
+TickedLedgerState blk -&gt; Word32
+</span><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier hs-var">maxTxCapacity</span></a></span><span> </span><span class="annot"><span class="annottext">Ticked (LedgerState (ShelleyBlock (AlonzoEra c)))
+</span><a href="#local-6989586621679639985"><span class="hs-identifier hs-var">ledgerState</span></a></span><span>
+</span><span id="line-89"></span><span>      </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">exUnits :: ExUnits
+</span><a href="Ouroboros.Consensus.Shelley.TxLimits.html#exUnits"><span class="hs-identifier hs-var">exUnits</span></a></span><span>  </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">PParams (AlonzoEra c) -&gt; ExUnits
+forall k (x :: k) r a. HasField x r a =&gt; r -&gt; a
+</span><span class="hs-identifier hs-var">getField</span></span><span> </span><span class="hs-glyph">@</span><span class="annot"><span class="hs-string">&quot;_maxTxExUnits&quot;</span></span><span> </span><span class="annot"><span class="annottext">PParams (AlonzoEra c)
+PParams (AlonzoEra c)
+</span><a href="#local-6989586621679639984"><span class="hs-identifier hs-var">pparams</span></a></span><span>
+</span><span id="line-90"></span><span>      </span><span class="hs-special">}</span></span><span>
+</span><span id="line-91"></span></pre></body></html>
