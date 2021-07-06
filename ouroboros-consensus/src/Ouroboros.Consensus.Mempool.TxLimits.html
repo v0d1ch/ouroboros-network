@@ -1,0 +1,124 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-pragma">{-# LANGUAGE AllowAmbiguousTypes  #-}</span><span>
+</span><span id="line-2"></span><span class="hs-pragma">{-# LANGUAGE DataKinds            #-}</span><span>
+</span><span id="line-3"></span><span class="hs-pragma">{-# LANGUAGE DerivingStrategies   #-}</span><span>
+</span><span id="line-4"></span><span class="hs-pragma">{-# LANGUAGE FlexibleContexts     #-}</span><span>
+</span><span id="line-5"></span><span class="hs-pragma">{-# LANGUAGE FlexibleInstances    #-}</span><span>
+</span><span id="line-6"></span><span class="hs-pragma">{-# LANGUAGE TypeApplications     #-}</span><span>
+</span><span id="line-7"></span><span class="hs-pragma">{-# LANGUAGE TypeFamilies         #-}</span><span>
+</span><span id="line-8"></span><span class="hs-pragma">{-# LANGUAGE TypeSynonymInstances #-}</span><span>
+</span><span id="line-9"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Ouroboros.Consensus.Mempool.TxLimits</span><span> </span><span class="hs-special">(</span><span>
+</span><span id="line-10"></span><span>    </span><span class="annot"><a href="Ouroboros.Consensus.Mempool.TxLimits.html#ByteSize"><span class="hs-identifier">ByteSize</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
+</span><span id="line-11"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Mempool.TxLimits.html#TxLimits"><span class="hs-identifier">TxLimits</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
+</span><span id="line-12"></span><span>  </span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-13"></span><span>
+</span><span id="line-14"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><span class="hs-identifier">Data.Word</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Word32</span></span><span class="hs-special">)</span><span>
+</span><span id="line-15"></span><span>
+</span><span id="line-16"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="Ouroboros.Consensus.Ledger.Abstract.html"><span class="hs-identifier">Ouroboros.Consensus.Ledger.Abstract</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Consensus.Ledger.Abstract.html#Validated"><span class="hs-identifier">Validated</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-17"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="Ouroboros.Consensus.Ledger.Basics.html"><span class="hs-identifier">Ouroboros.Consensus.Ledger.Basics</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Consensus.Ledger.Basics.html#LedgerState"><span class="hs-identifier">LedgerState</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-18"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="Ouroboros.Consensus.Ledger.SupportsMempool.html"><span class="hs-identifier">Ouroboros.Consensus.Ledger.SupportsMempool</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Consensus.Ledger.SupportsMempool.html#GenTx"><span class="hs-identifier">GenTx</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-19"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="Ouroboros.Consensus.Ticked.html"><span class="hs-identifier">Ouroboros.Consensus.Ticked</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Consensus.Ticked.html#Ticked"><span class="hs-identifier">Ticked</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-20"></span><span>
+</span><span id="line-21"></span><span class="hs-comment">-- | Each block has its limits of how many transactions it can hold.</span><span>
+</span><span id="line-22"></span><span class="hs-comment">-- That limit is compared against the sum of measurements</span><span>
+</span><span id="line-23"></span><span class="hs-comment">-- taken of each of the transactions in that block.</span><span>
+</span><span id="line-24"></span><span class="hs-comment">--</span><span>
+</span><span id="line-25"></span><span class="hs-comment">-- How we measure the transaction depends of the era that this</span><span>
+</span><span id="line-26"></span><span class="hs-comment">-- transaction belongs to (more specifically it depends on the block</span><span>
+</span><span id="line-27"></span><span class="hs-comment">-- type to which this transaction will be added). For initial eras</span><span>
+</span><span id="line-28"></span><span class="hs-comment">-- (like Byron and initial generations of Shelley based eras) this</span><span>
+</span><span id="line-29"></span><span class="hs-comment">-- measure was simply a ByteSize (block could not be bigger then</span><span>
+</span><span id="line-30"></span><span class="hs-comment">-- given size - in bytes - specified by the ledger state). In future</span><span>
+</span><span id="line-31"></span><span class="hs-comment">-- eras (starting with Alonzo) this measure was a bit more complex</span><span>
+</span><span id="line-32"></span><span class="hs-comment">-- as it had to take other factors into account (like execution units).</span><span>
+</span><span id="line-33"></span><span class="hs-comment">-- For details please see the individual instances for the TxLimits.</span><span>
+</span><span id="line-34"></span><span class="hs-keyword">class</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Monoid</span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Consensus.Mempool.TxLimits.html#Measure"><span class="hs-identifier hs-type">Measure</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679997769"><span class="hs-identifier hs-type">blk</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span id="TxLimits"><span class="annot"><a href="Ouroboros.Consensus.Mempool.TxLimits.html#TxLimits"><span class="hs-identifier hs-var">TxLimits</span></a></span></span><span> </span><span id="local-6989586621679997769"><span class="annot"><a href="#local-6989586621679997769"><span class="hs-identifier hs-type">blk</span></a></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-35"></span><span>
+</span><span id="line-36"></span><span>  </span><span class="hs-keyword">type</span><span> </span><span id="Measure"><span class="annot"><a href="Ouroboros.Consensus.Mempool.TxLimits.html#Measure"><span class="hs-identifier hs-var">Measure</span></a></span></span><span> </span><span id="local-6989586621679997769"><span class="annot"><a href="#local-6989586621679997769"><span class="hs-identifier hs-type">blk</span></a></span></span><span>
+</span><span id="line-37"></span><span>
+</span><span id="line-38"></span><span>  </span><span id="lessEq"><span class="annot"><a href="Ouroboros.Consensus.Mempool.TxLimits.html#lessEq"><span class="hs-identifier hs-type">lessEq</span></a></span></span><span>       </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Mempool.TxLimits.html#Measure"><span class="hs-identifier hs-type">Measure</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679997769"><span class="hs-identifier hs-type">blk</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Mempool.TxLimits.html#Measure"><span class="hs-identifier hs-type">Measure</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679997769"><span class="hs-identifier hs-type">blk</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span><span>
+</span><span id="line-39"></span><span>  </span><span id="txMeasure"><span class="annot"><a href="Ouroboros.Consensus.Mempool.TxLimits.html#txMeasure"><span class="hs-identifier hs-type">txMeasure</span></a></span></span><span>    </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Ledger.Abstract.html#Validated"><span class="hs-identifier hs-type">Validated</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Consensus.Ledger.SupportsMempool.html#GenTx"><span class="hs-identifier hs-type">GenTx</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679997769"><span class="hs-identifier hs-type">blk</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Mempool.TxLimits.html#Measure"><span class="hs-identifier hs-type">Measure</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679997769"><span class="hs-identifier hs-type">blk</span></a></span><span>
+</span><span id="line-40"></span><span>  </span><span id="maxCapacity"><span class="annot"><a href="Ouroboros.Consensus.Mempool.TxLimits.html#maxCapacity"><span class="hs-identifier hs-type">maxCapacity</span></a></span></span><span>  </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Ticked.html#Ticked"><span class="hs-identifier hs-type">Ticked</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Consensus.Ledger.Basics.html#LedgerState"><span class="hs-identifier hs-type">LedgerState</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679997769"><span class="hs-identifier hs-type">blk</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Mempool.TxLimits.html#Measure"><span class="hs-identifier hs-type">Measure</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679997769"><span class="hs-identifier hs-type">blk</span></a></span><span>
+</span><span id="line-41"></span><span>  </span><span id="pointwiseMin"><span class="annot"><a href="Ouroboros.Consensus.Mempool.TxLimits.html#pointwiseMin"><span class="hs-identifier hs-type">pointwiseMin</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Mempool.TxLimits.html#Measure"><span class="hs-identifier hs-type">Measure</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679997769"><span class="hs-identifier hs-type">blk</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Mempool.TxLimits.html#Measure"><span class="hs-identifier hs-type">Measure</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679997769"><span class="hs-identifier hs-type">blk</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Mempool.TxLimits.html#Measure"><span class="hs-identifier hs-type">Measure</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679997769"><span class="hs-identifier hs-type">blk</span></a></span><span>
+</span><span id="line-42"></span><span>
+</span><span id="line-43"></span><span class="hs-keyword">newtype</span><span> </span><span id="ByteSize"><span class="annot"><a href="Ouroboros.Consensus.Mempool.TxLimits.html#ByteSize"><span class="hs-identifier hs-var">ByteSize</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="ByteSize"><span class="annot"><a href="Ouroboros.Consensus.Mempool.TxLimits.html#ByteSize"><span class="hs-identifier hs-var">ByteSize</span></a></span></span><span> </span><span class="hs-special">{</span><span> </span><span id="unByteSize"><span class="annot"><span class="annottext">ByteSize -&gt; Word32
+</span><a href="Ouroboros.Consensus.Mempool.TxLimits.html#unByteSize"><span class="hs-identifier hs-var hs-var">unByteSize</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Word32</span></span><span> </span><span class="hs-special">}</span><span>
+</span><span id="line-44"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="annot"><span class="hs-keyword">stock</span></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679997757"><span id="local-6989586621679997759"><span id="local-6989586621679997761"><span class="annot"><span class="annottext">Int -&gt; ByteSize -&gt; ShowS
+[ByteSize] -&gt; ShowS
+ByteSize -&gt; String
+(Int -&gt; ByteSize -&gt; ShowS)
+-&gt; (ByteSize -&gt; String) -&gt; ([ByteSize] -&gt; ShowS) -&gt; Show ByteSize
+forall a.
+(Int -&gt; a -&gt; ShowS) -&gt; (a -&gt; String) -&gt; ([a] -&gt; ShowS) -&gt; Show a
+showList :: [ByteSize] -&gt; ShowS
+$cshowList :: [ByteSize] -&gt; ShowS
+show :: ByteSize -&gt; String
+$cshow :: ByteSize -&gt; String
+showsPrec :: Int -&gt; ByteSize -&gt; ShowS
+$cshowsPrec :: Int -&gt; ByteSize -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679997752"><span id="local-6989586621679997754"><span class="annot"><span class="annottext">ByteSize -&gt; ByteSize -&gt; Bool
+(ByteSize -&gt; ByteSize -&gt; Bool)
+-&gt; (ByteSize -&gt; ByteSize -&gt; Bool) -&gt; Eq ByteSize
+forall a. (a -&gt; a -&gt; Bool) -&gt; (a -&gt; a -&gt; Bool) -&gt; Eq a
+/= :: ByteSize -&gt; ByteSize -&gt; Bool
+$c/= :: ByteSize -&gt; ByteSize -&gt; Bool
+== :: ByteSize -&gt; ByteSize -&gt; Bool
+$c== :: ByteSize -&gt; ByteSize -&gt; Bool
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679997736"><span id="local-6989586621679997738"><span id="local-6989586621679997740"><span id="local-6989586621679997742"><span id="local-6989586621679997744"><span id="local-6989586621679997746"><span id="local-6989586621679997748"><span class="annot"><span class="annottext">Eq ByteSize
+Eq ByteSize
+-&gt; (ByteSize -&gt; ByteSize -&gt; Ordering)
+-&gt; (ByteSize -&gt; ByteSize -&gt; Bool)
+-&gt; (ByteSize -&gt; ByteSize -&gt; Bool)
+-&gt; (ByteSize -&gt; ByteSize -&gt; Bool)
+-&gt; (ByteSize -&gt; ByteSize -&gt; Bool)
+-&gt; (ByteSize -&gt; ByteSize -&gt; ByteSize)
+-&gt; (ByteSize -&gt; ByteSize -&gt; ByteSize)
+-&gt; Ord ByteSize
+ByteSize -&gt; ByteSize -&gt; Bool
+ByteSize -&gt; ByteSize -&gt; Ordering
+ByteSize -&gt; ByteSize -&gt; ByteSize
+forall a.
+Eq a
+-&gt; (a -&gt; a -&gt; Ordering)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; a)
+-&gt; (a -&gt; a -&gt; a)
+-&gt; Ord a
+min :: ByteSize -&gt; ByteSize -&gt; ByteSize
+$cmin :: ByteSize -&gt; ByteSize -&gt; ByteSize
+max :: ByteSize -&gt; ByteSize -&gt; ByteSize
+$cmax :: ByteSize -&gt; ByteSize -&gt; ByteSize
+&gt;= :: ByteSize -&gt; ByteSize -&gt; Bool
+$c&gt;= :: ByteSize -&gt; ByteSize -&gt; Bool
+&gt; :: ByteSize -&gt; ByteSize -&gt; Bool
+$c&gt; :: ByteSize -&gt; ByteSize -&gt; Bool
+&lt;= :: ByteSize -&gt; ByteSize -&gt; Bool
+$c&lt;= :: ByteSize -&gt; ByteSize -&gt; Bool
+&lt; :: ByteSize -&gt; ByteSize -&gt; Bool
+$c&lt; :: ByteSize -&gt; ByteSize -&gt; Bool
+compare :: ByteSize -&gt; ByteSize -&gt; Ordering
+$ccompare :: ByteSize -&gt; ByteSize -&gt; Ordering
+$cp1Ord :: Eq ByteSize
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Ord</span></span></span></span></span></span></span></span></span><span class="hs-special">)</span><span>
+</span><span id="line-45"></span><span>
+</span><span id="line-46"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679997730"><span id="local-6989586621679997732"><span class="annot"><span class="hs-identifier hs-type">Semigroup</span></span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Mempool.TxLimits.html#ByteSize"><span class="hs-identifier hs-type">ByteSize</span></a></span></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-47"></span><span>  </span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Consensus.Mempool.TxLimits.html#ByteSize"><span class="hs-identifier hs-type">ByteSize</span></a></span><span> </span><span id="local-6989586621679997728"><span class="annot"><span class="annottext">Word32
+</span><a href="#local-6989586621679997728"><span class="hs-identifier hs-var">bs1</span></a></span></span><span class="hs-special">)</span><span> </span><span id="local-6989586621679997727"><span class="annot"><span class="annottext">&lt;&gt; :: ByteSize -&gt; ByteSize -&gt; ByteSize
+</span><span class="hs-operator hs-var hs-var hs-var hs-var">&lt;&gt;</span></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Consensus.Mempool.TxLimits.html#ByteSize"><span class="hs-identifier hs-type">ByteSize</span></a></span><span> </span><span id="local-6989586621679997726"><span class="annot"><span class="annottext">Word32
+</span><a href="#local-6989586621679997726"><span class="hs-identifier hs-var">bs2</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Word32 -&gt; ByteSize
+</span><a href="Ouroboros.Consensus.Mempool.TxLimits.html#ByteSize"><span class="hs-identifier hs-var">ByteSize</span></a></span><span> </span><span class="annot"><span class="annottext">(Word32 -&gt; ByteSize) -&gt; Word32 -&gt; ByteSize
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Word32
+</span><a href="#local-6989586621679997728"><span class="hs-identifier hs-var">bs1</span></a></span><span> </span><span class="annot"><span class="annottext">Word32 -&gt; Word32 -&gt; Word32
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="annottext">Word32
+</span><a href="#local-6989586621679997726"><span class="hs-identifier hs-var">bs2</span></a></span><span>
+</span><span id="line-48"></span><span>
+</span><span id="line-49"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679997719"><span id="local-6989586621679997721"><span class="annot"><span class="hs-identifier hs-type">Monoid</span></span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Mempool.TxLimits.html#ByteSize"><span class="hs-identifier hs-type">ByteSize</span></a></span></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-50"></span><span>  </span><span id="local-6989586621679997717"><span class="annot"><span class="annottext">mempty :: ByteSize
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">mempty</span></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Word32 -&gt; ByteSize
+</span><a href="Ouroboros.Consensus.Mempool.TxLimits.html#ByteSize"><span class="hs-identifier hs-var">ByteSize</span></a></span><span> </span><span class="annot"><span class="annottext">Word32
+</span><span class="hs-number">0</span></span><span>
+</span><span id="line-51"></span></pre></body></html>
