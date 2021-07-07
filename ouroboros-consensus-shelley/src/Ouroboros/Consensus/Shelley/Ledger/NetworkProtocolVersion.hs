@@ -36,6 +36,7 @@ instance SupportedNetworkProtocolVersion (ShelleyBlock era) where
         (NodeToNodeV_1, ShelleyNodeToNodeVersion1)
         -- V_2 enables block size hints for Byron headers and the hard fork
         -- combinator, unused by Shelley-only
+        , (NodeToNodeV_7, ShelleyNodeToNodeVersion1)
       ]
   supportedNodeToClientVersions _ = Map.fromList [
         (NodeToClientV_1, ShelleyNodeToClientVersion1)
