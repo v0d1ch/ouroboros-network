@@ -387,7 +387,8 @@ data DemoteToColdLocal peerAddr handlerTrace handle handleError version m
     -- or the case where the connection is already in 'TerminatingState' or
     -- 'TerminatedState'.
     --
-    | DemoteToColdLocalNoop  !(Transition (ConnectionState peerAddr handle handleError version m))
+    | DemoteToColdLocalNoop !(Maybe (Transition (ConnectionState peerAddr handle handleError version m)))
+                            !AbstractState
 
     -- | Duplex connection was demoted, prune connections.
     --
@@ -1403,7 +1404,7 @@ withConnectionManager ConnectionManagerArguments {
         case Map.lookup peerAddr state of
           -- if the connection errored, it will remove itself from the state.
           -- Calling 'unregisterOutboundConnection' is a no-op in this case.
-          Nothing -> pure (DemoteToColdLocalNoop (Transition Unknown Unknown))
+          Nothing -> pure (DemoteToColdLocalNoop Nothing UnknownConnectionSt)
 
           Just connVar -> do
             connState <- readTVar connVar
@@ -1458,14 +1459,17 @@ withConnectionManager ConnectionManagerArguments {
                 -- @
                 let connState' = InboundIdleState connId connThread handle Duplex
                 writeTVar connVar connState'
-                return (DemoteToColdLocalNoop (mkTransition connState connState'))
+                return (DemoteToColdLocalNoop (Just $ mkTransition connState connState')
+                                              (abstractState $ Known connState'))
 
               OutboundIdleState _connId _connThread _handleError _dataFlow ->
-                return (DemoteToColdLocalNoop (mkTransition connState connState))
+                return (DemoteToColdLocalNoop Nothing
+                                              (abstractState $ Known connState))
 
               InboundIdleState _connId _connThread _handle dataFlow ->
                 assert (dataFlow == Duplex) $
-                return (DemoteToColdLocalNoop (mkTransition connState connState))
+                return (DemoteToColdLocalNoop Nothing
+                                              (abstractState $ Known connState))
               InboundState _peerAddr _connThread _handle dataFlow ->
                 assert (dataFlow == Duplex) $ do
                 let st = InboundSt dataFlow
@@ -1518,12 +1522,12 @@ withConnectionManager ConnectionManagerArguments {
                   -- @
                   -- does not require to perform any additional io action (we
                   -- already updated 'connVar').
-                  return (DemoteToColdLocalNoop tr)
+                  return (DemoteToColdLocalNoop (Just tr) (abstractState $ Known connState'))
 
               TerminatingState _connId _connThread _handleError ->
-                return (DemoteToColdLocalNoop (mkTransition connState connState))
+                return (DemoteToColdLocalNoop Nothing (abstractState $ Known connState))
               TerminatedState _handleError ->
-                return (DemoteToColdLocalNoop (mkTransition connState connState))
+                return (DemoteToColdLocalNoop Nothing (abstractState $ Known connState))
 
       traceCounters stateVar
       case transition of
@@ -1556,9 +1560,9 @@ withConnectionManager ConnectionManagerArguments {
               return (OperationSuccess (abstractState $ Known connState'))
 
             Left connState  | connectionTerminated connState
-                           ->
+                           -> do
               return (OperationSuccess (abstractState $ Known connState))
-            Left connState ->
+            Left connState -> do
               return (UnsupportedState (abstractState $ Known connState))
 
         PruneConnections _connId pruneMap tr -> do
@@ -1572,9 +1576,9 @@ withConnectionManager ConnectionManagerArguments {
           traceWith tracer trace
           return (UnsupportedState st)
 
-        DemoteToColdLocalNoop tr -> do
-          traceWith trTracer (TransitionTrace peerAddr tr)
-          return (OperationSuccess (abstractState (fromState tr)))
+        DemoteToColdLocalNoop tr a -> do
+          traverse_ (traceWith trTracer) (TransitionTrace peerAddr <$> tr)
+          return (OperationSuccess a)
 
 
     promotedToWarmRemoteImpl
