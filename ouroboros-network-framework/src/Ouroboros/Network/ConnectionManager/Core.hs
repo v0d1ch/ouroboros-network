@@ -38,7 +38,6 @@ import           Data.Functor (($>))
 import           Data.Maybe (maybeToList)
 import           Data.Proxy (Proxy (..))
 import           Data.Typeable (Typeable)
-import           Data.Tuple (swap)
 import           GHC.Stack (CallStack, HasCallStack, callStack)
 
 import           Data.Map (Map)
@@ -616,60 +615,70 @@ withConnectionManager ConnectionManagerArguments {
                   Nothing      -> return Nowhere
                   Just connVar -> do
                       connState <- readTVar connVar
+                      let connState' = TerminatedState Nothing
+                          transition = TransitionTrace peerAddr (mkTransition connState connState')
                       case connState of
                         ReservedOutboundState -> do
-                          writeTVar connVar (TerminatedState Nothing)
-                          return $ There connState
+                          writeTVar connVar connState'
+                          return $ There (Just transition)
                         UnnegotiatedState {} -> do
-                          writeTVar connVar (TerminatedState Nothing)
-                          return $ There connState
+                          writeTVar connVar connState'
+                          return $ There (Just transition)
                         OutboundUniState {} -> do
-                          writeTVar connVar (TerminatedState Nothing)
-                          return $ There connState
+                          writeTVar connVar connState'
+                          return $ There (Just transition)
                         OutboundDupState {} -> do
-                          writeTVar connVar (TerminatedState Nothing)
-                          return $ There connState
+                          writeTVar connVar connState'
+                          return $ There (Just transition)
                         OutboundIdleState {} -> do
-                          writeTVar connVar (TerminatedState Nothing)
-                          return $ There connState
+                          writeTVar connVar connState'
+                          return $ There (Just transition)
                         InboundIdleState {} -> do
-                          writeTVar connVar (TerminatedState Nothing)
-                          return $ There connState
+                          writeTVar connVar connState'
+                          return $ There (Just transition)
                         InboundState {} -> do
-                          writeTVar connVar (TerminatedState Nothing)
-                          return $ There connState
+                          writeTVar connVar connState'
+                          return $ There (Just transition)
                         DuplexState {} -> do
-                          writeTVar connVar (TerminatedState Nothing)
-                          return $ There connState
+                          writeTVar connVar connState'
+                          return $ There (Just transition)
                         TerminatingState {} -> do
-                          return $ Here connVar
+                          writeTVar connVar connState'
+                          return $ Here (connVar, transition)
                         TerminatedState {} ->
-                          return $ There connState
+                          return $ There Nothing
+
               case wConnVar of
                 Nowhere -> do
                   close cmSnocket socket
                   return ( state
                          , Left Unknown
                          )
-                There connState -> do
+                There mbTransition -> do
+                  traverse_ (traceWith trTracer) mbTransition
                   close cmSnocket socket
                   return ( Map.delete peerAddr state
-                         , Left (Known connState)
+                         , Left (Known (TerminatedState Nothing))
                          )
-                Here connVar -> do
+                Here (connVar, transition) -> do
+                  traceWith trTracer transition
                   close cmSnocket socket
                   return ( state
                          , Right connVar
                          )
 
             case mConnVar of
-              Left !connState -> do
+              Left Unknown -> do
+                traceWith tracer (TrUnexpectedlyMissingConnectionState connId)
+
+              Left connState@Known {} -> do
                 traceCounters stateVar
                 traceWith trTracer (TransitionTrace peerAddr
                                       Transition
                                          { fromState = connState
                                          , toState   = Unknown
                                          })
+              Left _ -> error "Impossible happened"
               Right connVar ->
                 do traceWith tracer (TrConnectionTimeWait connId)
                    when (cmTimeWaitTimeout > 0) $
@@ -681,42 +690,38 @@ withConnectionManager ConnectionManagerArguments {
                   -- - `Terminate: TerminatingState → TerminatedState` transition.
                   traceWith tracer (TrConnectionTimeWaitDone connId)
                   trs <- atomically $ do
-                    mConnState <- readTMVar stateVar
-                              >>= traverse readTVar . Map.lookup peerAddr
-                    -- We can always write to `connVar`, since a new
-                    -- connection will use a new 'TVar', but we have to be
-                    -- careful when deleting it from 'ConnectionManagerState'.
-                    let connState'  = TerminatedState Nothing
-                    writeTVar connVar connState'
+                    --  We have to be careful when deleting it from
+                    --  'ConnectionManagerState'.
                     updated <-
                       modifyTMVarPure
                         stateVar
-                        ( swap
-                        . Map.updateLookupWithKey
-                            (\_ v ->
-                              -- only delete if it wasn't replaced
+                        ( \state ->
+                          case Map.lookup peerAddr state of
+                            Nothing -> (state                   , Nothing)
+                            Just v  ->
                               if eqTVar (Proxy :: Proxy m) connVar v
-                                then Nothing
-                                else Just v
-                            )
-                            peerAddr
+                                then (Map.delete peerAddr state , Just Nothing)
+                                else (state                     , Just (Just v))
                         )
-                    let connState   = maybe Unknown Known mConnState
-                        kConnState' = Known connState'
 
                     case updated of
+                      -- | Key was not present in the dictionary (stateVar),
+                      -- so we do not trace anything as it was already traced upon
+                      -- deletion.
                       Nothing ->
-                        return [ Transition { fromState = connState
-                                            , toState   = kConnState'
-                                            }
-                               , Transition { fromState = kConnState'
+                        return []
+                      -- | Key was present in the dictionary (stateVar) and
+                      -- removed so we trace the removal.
+                      Just Nothing ->
+                        return [ Transition { fromState = Known (TerminatedState Nothing)
                                             , toState   = Unknown
                                             }
                                ]
-                      Just _ ->
-                        return [ Transition { fromState = connState
-                                            , toState   = kConnState'
-                                            }
+                      -- | Key was not present in the dictionary (stateVar),
+                      -- so we do not trace anything as it was already traced upon
+                      -- deletion.
+                      Just _       ->
+                        return [
                                ]
 
                   traverse_ (traceWith trTracer . TransitionTrace peerAddr) trs
@@ -1157,8 +1162,8 @@ withConnectionManager ConnectionManagerArguments {
               -- Both the 'bracketOnError''s resource finaliser and the
               -- connection handler cleanup function are responsible for:
               --
-              -- * closing the socket
-              -- * freeing the slot in connection manager state map
+              --    * closing the socket
+              --    * freeing the slot in connection manager state map
               --
               mask $ \unmask -> do
 
