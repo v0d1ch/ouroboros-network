@@ -1,273 +1,69 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-pragma">{-# LANGUAGE DataKinds                  #-}</span><span>
-</span><span id="line-2"></span><span class="hs-pragma">{-# LANGUAGE DeriveGeneric              #-}</span><span>
-</span><span id="line-3"></span><span class="hs-pragma">{-# LANGUAGE DerivingVia                #-}</span><span>
-</span><span id="line-4"></span><span class="hs-pragma">{-# LANGUAGE GeneralizedNewtypeDeriving #-}</span><span>
-</span><span id="line-5"></span><span>
-</span><span id="line-6"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Ouroboros.Consensus.BlockchainTime.WallClock.Types</span><span> </span><span class="hs-special">(</span><span>
-</span><span id="line-7"></span><span>    </span><span class="annot"><span class="hs-comment">-- * System time</span></span><span>
-</span><span id="line-8"></span><span>    </span><span class="annot"><a href="Ouroboros.Consensus.BlockchainTime.WallClock.Types.html#SystemStart"><span class="hs-identifier">SystemStart</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
-</span><span id="line-9"></span><span>    </span><span class="annot"><span class="hs-comment">-- * Relative time</span></span><span>
-</span><span id="line-10"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.BlockchainTime.WallClock.Types.html#RelativeTime"><span class="hs-identifier">RelativeTime</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
-</span><span id="line-11"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.BlockchainTime.WallClock.Types.html#addRelTime"><span class="hs-identifier">addRelTime</span></a></span><span>
-</span><span id="line-12"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.BlockchainTime.WallClock.Types.html#diffRelTime"><span class="hs-identifier">diffRelTime</span></a></span><span>
-</span><span id="line-13"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.BlockchainTime.WallClock.Types.html#fromRelativeTime"><span class="hs-identifier">fromRelativeTime</span></a></span><span>
-</span><span id="line-14"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.BlockchainTime.WallClock.Types.html#toRelativeTime"><span class="hs-identifier">toRelativeTime</span></a></span><span>
-</span><span id="line-15"></span><span>    </span><span class="annot"><span class="hs-comment">-- * Get current time (as 'RelativeTime')</span></span><span>
-</span><span id="line-16"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.BlockchainTime.WallClock.Types.html#SystemTime"><span class="hs-identifier">SystemTime</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
-</span><span id="line-17"></span><span>    </span><span class="annot"><span class="hs-comment">-- * Slot length</span></span><span>
-</span><span id="line-18"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.BlockchainTime.WallClock.Types.html#getSlotLength"><span class="hs-identifier">getSlotLength</span></a></span><span>
-</span><span id="line-19"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.BlockchainTime.WallClock.Types.html#mkSlotLength"><span class="hs-identifier">mkSlotLength</span></a></span><span>
-</span><span id="line-20"></span><span>    </span><span class="annot"><span class="hs-comment">-- ** Conversions</span></span><span>
-</span><span id="line-21"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.BlockchainTime.WallClock.Types.html#slotLengthFromMillisec"><span class="hs-identifier">slotLengthFromMillisec</span></a></span><span>
-</span><span id="line-22"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.BlockchainTime.WallClock.Types.html#slotLengthFromSec"><span class="hs-identifier">slotLengthFromSec</span></a></span><span>
-</span><span id="line-23"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.BlockchainTime.WallClock.Types.html#slotLengthToMillisec"><span class="hs-identifier">slotLengthToMillisec</span></a></span><span>
-</span><span id="line-24"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.BlockchainTime.WallClock.Types.html#slotLengthToSec"><span class="hs-identifier">slotLengthToSec</span></a></span><span>
-</span><span id="line-25"></span><span>    </span><span class="annot"><span class="hs-comment">-- ** opaque</span></span><span>
-</span><span id="line-26"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.BlockchainTime.WallClock.Types.html#SlotLength"><span class="hs-identifier">SlotLength</span></a></span><span>
-</span><span id="line-27"></span><span>  </span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-28"></span><span>
-</span><span id="line-29"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><span class="hs-identifier">Codec.Serialise</span></span><span>
-</span><span id="line-30"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><span class="hs-identifier">Control.Exception</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">assert</span></span><span class="hs-special">)</span><span>
-</span><span id="line-31"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><span class="hs-identifier">Data.Fixed</span></span><span>
-</span><span id="line-32"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><span class="hs-identifier">Data.Time</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">NominalDiffTime</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">UTCTime</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">addUTCTime</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">diffUTCTime</span></span><span class="hs-special">)</span><span>
-</span><span id="line-33"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><span class="hs-identifier">GHC.Generics</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Generic</span></span><span class="hs-special">)</span><span>
-</span><span id="line-34"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><span class="hs-identifier">NoThunks.Class</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">InspectHeap</span></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">NoThunks</span></span><span class="hs-special">,</span><span>
-</span><span id="line-35"></span><span>                     </span><span class="annot"><span class="hs-identifier">OnlyCheckWhnfNamed</span></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
-</span><span id="line-36"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><span class="hs-identifier">Quiet</span></span><span>
-</span><span id="line-37"></span><span>
-</span><span id="line-38"></span><span class="hs-comment">{-------------------------------------------------------------------------------
-  System start
--------------------------------------------------------------------------------}</span><span>
-</span><span id="line-41"></span><span>
-</span><span id="line-42"></span><span class="hs-comment">-- | System start</span><span>
-</span><span id="line-43"></span><span class="hs-comment">--</span><span>
-</span><span id="line-44"></span><span class="hs-comment">-- Slots are counted from the system start.</span><span>
-</span><span id="line-45"></span><span id="local-6989586621679980395"><span id="local-6989586621679980396"></span></span><span class="hs-keyword">newtype</span><span> </span><span id="SystemStart"><span class="annot"><a href="Ouroboros.Consensus.BlockchainTime.WallClock.Types.html#SystemStart"><span class="hs-identifier hs-var">SystemStart</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="SystemStart"><span class="annot"><a href="Ouroboros.Consensus.BlockchainTime.WallClock.Types.html#SystemStart"><span class="hs-identifier hs-var">SystemStart</span></a></span></span><span> </span><span class="hs-special">{</span><span> </span><span id="getSystemStart"><span class="annot"><span class="annottext">SystemStart -&gt; UTCTime
-</span><a href="Ouroboros.Consensus.BlockchainTime.WallClock.Types.html#getSystemStart"><span class="hs-identifier hs-var hs-var">getSystemStart</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">UTCTime</span></span><span> </span><span class="hs-special">}</span><span>
-</span><span id="line-46"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679980389"><span id="local-6989586621679980391"><span class="annot"><span class="annottext">SystemStart -&gt; SystemStart -&gt; Bool
-(SystemStart -&gt; SystemStart -&gt; Bool)
--&gt; (SystemStart -&gt; SystemStart -&gt; Bool) -&gt; Eq SystemStart
-forall a. (a -&gt; a -&gt; Bool) -&gt; (a -&gt; a -&gt; Bool) -&gt; Eq a
-/= :: SystemStart -&gt; SystemStart -&gt; Bool
-$c/= :: SystemStart -&gt; SystemStart -&gt; Bool
-== :: SystemStart -&gt; SystemStart -&gt; Bool
-$c== :: SystemStart -&gt; SystemStart -&gt; Bool
-</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">(forall x. SystemStart -&gt; Rep SystemStart x)
--&gt; (forall x. Rep SystemStart x -&gt; SystemStart)
--&gt; Generic SystemStart
-forall x. Rep SystemStart x -&gt; SystemStart
-forall x. SystemStart -&gt; Rep SystemStart x
-forall a.
-(forall x. a -&gt; Rep a x) -&gt; (forall x. Rep a x -&gt; a) -&gt; Generic a
-$cto :: forall x. Rep SystemStart x -&gt; SystemStart
-$cfrom :: forall x. SystemStart -&gt; Rep SystemStart x
-</span><span class="hs-identifier hs-var hs-var hs-var hs-var">Generic</span></span><span class="hs-special">)</span><span>
-</span><span id="line-47"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span id="local-6989586621679980379"><span id="local-6989586621679980381"><span id="local-6989586621679980383"><span class="annot"><span class="annottext">Context -&gt; SystemStart -&gt; IO (Maybe ThunkInfo)
-Proxy SystemStart -&gt; String
-(Context -&gt; SystemStart -&gt; IO (Maybe ThunkInfo))
--&gt; (Context -&gt; SystemStart -&gt; IO (Maybe ThunkInfo))
--&gt; (Proxy SystemStart -&gt; String)
--&gt; NoThunks SystemStart
-forall a.
-(Context -&gt; a -&gt; IO (Maybe ThunkInfo))
--&gt; (Context -&gt; a -&gt; IO (Maybe ThunkInfo))
--&gt; (Proxy a -&gt; String)
--&gt; NoThunks a
-showTypeOf :: Proxy SystemStart -&gt; String
-$cshowTypeOf :: Proxy SystemStart -&gt; String
-wNoThunks :: Context -&gt; SystemStart -&gt; IO (Maybe ThunkInfo)
-$cwNoThunks :: Context -&gt; SystemStart -&gt; IO (Maybe ThunkInfo)
-noThunks :: Context -&gt; SystemStart -&gt; IO (Maybe ThunkInfo)
-$cnoThunks :: Context -&gt; SystemStart -&gt; IO (Maybe ThunkInfo)
-</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">NoThunks</span></span></span></span></span><span> </span><span class="hs-keyword">via</span><span> </span><span class="annot"><span class="hs-identifier hs-type">InspectHeap</span></span><span> </span><span class="annot"><a href="Ouroboros.Consensus.BlockchainTime.WallClock.Types.html#SystemStart"><span class="hs-identifier hs-type">SystemStart</span></a></span><span>
-</span><span id="line-48"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span id="local-6989586621679980372"><span id="local-6989586621679980374"><span id="local-6989586621679980376"><span class="annot"><span class="annottext">Int -&gt; SystemStart -&gt; ShowS
-[SystemStart] -&gt; ShowS
-SystemStart -&gt; String
-(Int -&gt; SystemStart -&gt; ShowS)
--&gt; (SystemStart -&gt; String)
--&gt; ([SystemStart] -&gt; ShowS)
--&gt; Show SystemStart
-forall a.
-(Int -&gt; a -&gt; ShowS) -&gt; (a -&gt; String) -&gt; ([a] -&gt; ShowS) -&gt; Show a
-showList :: [SystemStart] -&gt; ShowS
-$cshowList :: [SystemStart] -&gt; ShowS
-show :: SystemStart -&gt; String
-$cshow :: SystemStart -&gt; String
-showsPrec :: Int -&gt; SystemStart -&gt; ShowS
-$cshowsPrec :: Int -&gt; SystemStart -&gt; ShowS
-</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span> </span><span class="hs-keyword">via</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Quiet</span></span><span> </span><span class="annot"><a href="Ouroboros.Consensus.BlockchainTime.WallClock.Types.html#SystemStart"><span class="hs-identifier hs-type">SystemStart</span></a></span><span>
-</span><span id="line-49"></span><span>
-</span><span id="line-50"></span><span class="hs-comment">{-------------------------------------------------------------------------------
-  Relative time
--------------------------------------------------------------------------------}</span><span>
-</span><span id="line-53"></span><span>
-</span><span id="line-54"></span><span class="hs-comment">-- | 'RelativeTime' is time relative to the 'SystemStart'</span><span>
-</span><span id="line-55"></span><span id="local-6989586621679980368"><span id="local-6989586621679980369"></span></span><span class="hs-keyword">newtype</span><span> </span><span id="RelativeTime"><span class="annot"><a href="Ouroboros.Consensus.BlockchainTime.WallClock.Types.html#RelativeTime"><span class="hs-identifier hs-var">RelativeTime</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="RelativeTime"><span class="annot"><a href="Ouroboros.Consensus.BlockchainTime.WallClock.Types.html#RelativeTime"><span class="hs-identifier hs-var">RelativeTime</span></a></span></span><span> </span><span class="hs-special">{</span><span> </span><span id="getRelativeTime"><span class="annot"><span class="annottext">RelativeTime -&gt; NominalDiffTime
-</span><a href="Ouroboros.Consensus.BlockchainTime.WallClock.Types.html#getRelativeTime"><span class="hs-identifier hs-var hs-var">getRelativeTime</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">NominalDiffTime</span></span><span> </span><span class="hs-special">}</span><span>
-</span><span id="line-56"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="annot"><span class="hs-keyword">stock</span></span><span>   </span><span class="hs-special">(</span><span id="local-6989586621679980362"><span id="local-6989586621679980364"><span class="annot"><span class="annottext">RelativeTime -&gt; RelativeTime -&gt; Bool
-(RelativeTime -&gt; RelativeTime -&gt; Bool)
--&gt; (RelativeTime -&gt; RelativeTime -&gt; Bool) -&gt; Eq RelativeTime
-forall a. (a -&gt; a -&gt; Bool) -&gt; (a -&gt; a -&gt; Bool) -&gt; Eq a
-/= :: RelativeTime -&gt; RelativeTime -&gt; Bool
-$c/= :: RelativeTime -&gt; RelativeTime -&gt; Bool
-== :: RelativeTime -&gt; RelativeTime -&gt; Bool
-$c== :: RelativeTime -&gt; RelativeTime -&gt; Bool
-</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679980347"><span id="local-6989586621679980349"><span id="local-6989586621679980351"><span id="local-6989586621679980353"><span id="local-6989586621679980355"><span id="local-6989586621679980357"><span id="local-6989586621679980359"><span class="annot"><span class="annottext">Eq RelativeTime
-Eq RelativeTime
--&gt; (RelativeTime -&gt; RelativeTime -&gt; Ordering)
--&gt; (RelativeTime -&gt; RelativeTime -&gt; Bool)
--&gt; (RelativeTime -&gt; RelativeTime -&gt; Bool)
--&gt; (RelativeTime -&gt; RelativeTime -&gt; Bool)
--&gt; (RelativeTime -&gt; RelativeTime -&gt; Bool)
--&gt; (RelativeTime -&gt; RelativeTime -&gt; RelativeTime)
--&gt; (RelativeTime -&gt; RelativeTime -&gt; RelativeTime)
--&gt; Ord RelativeTime
-RelativeTime -&gt; RelativeTime -&gt; Bool
-RelativeTime -&gt; RelativeTime -&gt; Ordering
-RelativeTime -&gt; RelativeTime -&gt; RelativeTime
-forall a.
-Eq a
--&gt; (a -&gt; a -&gt; Ordering)
--&gt; (a -&gt; a -&gt; Bool)
--&gt; (a -&gt; a -&gt; Bool)
--&gt; (a -&gt; a -&gt; Bool)
--&gt; (a -&gt; a -&gt; Bool)
--&gt; (a -&gt; a -&gt; a)
--&gt; (a -&gt; a -&gt; a)
--&gt; Ord a
-min :: RelativeTime -&gt; RelativeTime -&gt; RelativeTime
-$cmin :: RelativeTime -&gt; RelativeTime -&gt; RelativeTime
-max :: RelativeTime -&gt; RelativeTime -&gt; RelativeTime
-$cmax :: RelativeTime -&gt; RelativeTime -&gt; RelativeTime
-&gt;= :: RelativeTime -&gt; RelativeTime -&gt; Bool
-$c&gt;= :: RelativeTime -&gt; RelativeTime -&gt; Bool
-&gt; :: RelativeTime -&gt; RelativeTime -&gt; Bool
-$c&gt; :: RelativeTime -&gt; RelativeTime -&gt; Bool
-&lt;= :: RelativeTime -&gt; RelativeTime -&gt; Bool
-$c&lt;= :: RelativeTime -&gt; RelativeTime -&gt; Bool
-&lt; :: RelativeTime -&gt; RelativeTime -&gt; Bool
-$c&lt; :: RelativeTime -&gt; RelativeTime -&gt; Bool
-compare :: RelativeTime -&gt; RelativeTime -&gt; Ordering
-$ccompare :: RelativeTime -&gt; RelativeTime -&gt; Ordering
-$cp1Ord :: Eq RelativeTime
-</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Ord</span></span></span></span></span></span></span></span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">(forall x. RelativeTime -&gt; Rep RelativeTime x)
--&gt; (forall x. Rep RelativeTime x -&gt; RelativeTime)
--&gt; Generic RelativeTime
-forall x. Rep RelativeTime x -&gt; RelativeTime
-forall x. RelativeTime -&gt; Rep RelativeTime x
-forall a.
-(forall x. a -&gt; Rep a x) -&gt; (forall x. Rep a x -&gt; a) -&gt; Generic a
-$cto :: forall x. Rep RelativeTime x -&gt; RelativeTime
-$cfrom :: forall x. RelativeTime -&gt; Rep RelativeTime x
-</span><span class="hs-identifier hs-var hs-var hs-var hs-var">Generic</span></span><span class="hs-special">)</span><span>
-</span><span id="line-57"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="annot"><span class="hs-keyword">newtype</span></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679980338"><span id="local-6989586621679980340"><span id="local-6989586621679980342"><span class="annot"><span class="annottext">Context -&gt; RelativeTime -&gt; IO (Maybe ThunkInfo)
-Proxy RelativeTime -&gt; String
-(Context -&gt; RelativeTime -&gt; IO (Maybe ThunkInfo))
--&gt; (Context -&gt; RelativeTime -&gt; IO (Maybe ThunkInfo))
--&gt; (Proxy RelativeTime -&gt; String)
--&gt; NoThunks RelativeTime
-forall a.
-(Context -&gt; a -&gt; IO (Maybe ThunkInfo))
--&gt; (Context -&gt; a -&gt; IO (Maybe ThunkInfo))
--&gt; (Proxy a -&gt; String)
--&gt; NoThunks a
-showTypeOf :: Proxy RelativeTime -&gt; String
-$cshowTypeOf :: Proxy RelativeTime -&gt; String
-wNoThunks :: Context -&gt; RelativeTime -&gt; IO (Maybe ThunkInfo)
-$cwNoThunks :: Context -&gt; RelativeTime -&gt; IO (Maybe ThunkInfo)
-noThunks :: Context -&gt; RelativeTime -&gt; IO (Maybe ThunkInfo)
-$cnoThunks :: Context -&gt; RelativeTime -&gt; IO (Maybe ThunkInfo)
-</span><a href="#local-6989586621679980338"><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">NoThunks</span></a></span></span></span></span><span class="hs-special">)</span><span>
-</span><span id="line-58"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span id="local-6989586621679980332"><span id="local-6989586621679980334"><span id="local-6989586621679980336"><span class="annot"><span class="annottext">Int -&gt; RelativeTime -&gt; ShowS
-[RelativeTime] -&gt; ShowS
-RelativeTime -&gt; String
-(Int -&gt; RelativeTime -&gt; ShowS)
--&gt; (RelativeTime -&gt; String)
--&gt; ([RelativeTime] -&gt; ShowS)
--&gt; Show RelativeTime
-forall a.
-(Int -&gt; a -&gt; ShowS) -&gt; (a -&gt; String) -&gt; ([a] -&gt; ShowS) -&gt; Show a
-showList :: [RelativeTime] -&gt; ShowS
-$cshowList :: [RelativeTime] -&gt; ShowS
-show :: RelativeTime -&gt; String
-$cshow :: RelativeTime -&gt; String
-showsPrec :: Int -&gt; RelativeTime -&gt; ShowS
-$cshowsPrec :: Int -&gt; RelativeTime -&gt; ShowS
-</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span> </span><span class="hs-keyword">via</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Quiet</span></span><span> </span><span class="annot"><a href="Ouroboros.Consensus.BlockchainTime.WallClock.Types.html#RelativeTime"><span class="hs-identifier hs-type">RelativeTime</span></a></span><span>
-</span><span id="line-59"></span><span>
-</span><span id="line-60"></span><span class="annot"><a href="Ouroboros.Consensus.BlockchainTime.WallClock.Types.html#addRelTime"><span class="hs-identifier hs-type">addRelTime</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">NominalDiffTime</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.BlockchainTime.WallClock.Types.html#RelativeTime"><span class="hs-identifier hs-type">RelativeTime</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.BlockchainTime.WallClock.Types.html#RelativeTime"><span class="hs-identifier hs-type">RelativeTime</span></a></span><span>
-</span><span id="line-61"></span><span id="addRelTime"><span class="annot"><span class="annottext">addRelTime :: NominalDiffTime -&gt; RelativeTime -&gt; RelativeTime
-</span><a href="Ouroboros.Consensus.BlockchainTime.WallClock.Types.html#addRelTime"><span class="hs-identifier hs-var hs-var">addRelTime</span></a></span></span><span> </span><span id="local-6989586621679980331"><span class="annot"><span class="annottext">NominalDiffTime
-</span><a href="#local-6989586621679980331"><span class="hs-identifier hs-var">delta</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Consensus.BlockchainTime.WallClock.Types.html#RelativeTime"><span class="hs-identifier hs-type">RelativeTime</span></a></span><span> </span><span id="local-6989586621679980330"><span class="annot"><span class="annottext">NominalDiffTime
-</span><a href="#local-6989586621679980330"><span class="hs-identifier hs-var">t</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">NominalDiffTime -&gt; RelativeTime
-</span><a href="Ouroboros.Consensus.BlockchainTime.WallClock.Types.html#RelativeTime"><span class="hs-identifier hs-var">RelativeTime</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">NominalDiffTime
-</span><a href="#local-6989586621679980330"><span class="hs-identifier hs-var">t</span></a></span><span> </span><span class="annot"><span class="annottext">NominalDiffTime -&gt; NominalDiffTime -&gt; NominalDiffTime
-forall a. Num a =&gt; a -&gt; a -&gt; a
-</span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="annottext">NominalDiffTime
-</span><a href="#local-6989586621679980331"><span class="hs-identifier hs-var">delta</span></a></span><span class="hs-special">)</span><span>
-</span><span id="line-62"></span><span>
-</span><span id="line-63"></span><span class="annot"><a href="Ouroboros.Consensus.BlockchainTime.WallClock.Types.html#diffRelTime"><span class="hs-identifier hs-type">diffRelTime</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.BlockchainTime.WallClock.Types.html#RelativeTime"><span class="hs-identifier hs-type">RelativeTime</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.BlockchainTime.WallClock.Types.html#RelativeTime"><span class="hs-identifier hs-type">RelativeTime</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">NominalDiffTime</span></span><span>
-</span><span id="line-64"></span><span id="diffRelTime"><span class="annot"><span class="annottext">diffRelTime :: RelativeTime -&gt; RelativeTime -&gt; NominalDiffTime
-</span><a href="Ouroboros.Consensus.BlockchainTime.WallClock.Types.html#diffRelTime"><span class="hs-identifier hs-var hs-var">diffRelTime</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Consensus.BlockchainTime.WallClock.Types.html#RelativeTime"><span class="hs-identifier hs-type">RelativeTime</span></a></span><span> </span><span id="local-6989586621679980328"><span class="annot"><span class="annottext">NominalDiffTime
-</span><a href="#local-6989586621679980328"><span class="hs-identifier hs-var">t</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Consensus.BlockchainTime.WallClock.Types.html#RelativeTime"><span class="hs-identifier hs-type">RelativeTime</span></a></span><span> </span><span id="local-6989586621679980327"><span class="annot"><span class="annottext">NominalDiffTime
-</span><a href="#local-6989586621679980327"><span class="hs-identifier hs-var">t'</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">NominalDiffTime
-</span><a href="#local-6989586621679980328"><span class="hs-identifier hs-var">t</span></a></span><span> </span><span class="annot"><span class="annottext">NominalDiffTime -&gt; NominalDiffTime -&gt; NominalDiffTime
-forall a. Num a =&gt; a -&gt; a -&gt; a
-</span><span class="hs-glyph hs-var">-</span></span><span> </span><span class="annot"><span class="annottext">NominalDiffTime
-</span><a href="#local-6989586621679980327"><span class="hs-identifier hs-var">t'</span></a></span><span>
-</span><span id="line-65"></span><span>
-</span><span id="line-66"></span><span class="annot"><a href="Ouroboros.Consensus.BlockchainTime.WallClock.Types.html#toRelativeTime"><span class="hs-identifier hs-type">toRelativeTime</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.BlockchainTime.WallClock.Types.html#SystemStart"><span class="hs-identifier hs-type">SystemStart</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">UTCTime</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.BlockchainTime.WallClock.Types.html#RelativeTime"><span class="hs-identifier hs-type">RelativeTime</span></a></span><span>
-</span><span id="line-67"></span><span id="toRelativeTime"><span class="annot"><span class="annottext">toRelativeTime :: SystemStart -&gt; UTCTime -&gt; RelativeTime
-</span><a href="Ouroboros.Consensus.BlockchainTime.WallClock.Types.html#toRelativeTime"><span class="hs-identifier hs-var hs-var">toRelativeTime</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Consensus.BlockchainTime.WallClock.Types.html#SystemStart"><span class="hs-identifier hs-type">SystemStart</span></a></span><span> </span><span id="local-6989586621679980326"><span class="annot"><span class="annottext">UTCTime
-</span><a href="#local-6989586621679980326"><span class="hs-identifier hs-var">t</span></a></span></span><span class="hs-special">)</span><span> </span><span id="local-6989586621679980325"><span class="annot"><span class="annottext">UTCTime
-</span><a href="#local-6989586621679980325"><span class="hs-identifier hs-var">t'</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Bool -&gt; RelativeTime -&gt; RelativeTime
-forall a. (?callStack::CallStack) =&gt; Bool -&gt; a -&gt; a
-</span><span class="hs-identifier hs-var hs-var">assert</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">UTCTime
-</span><a href="#local-6989586621679980325"><span class="hs-identifier hs-var">t'</span></a></span><span> </span><span class="annot"><span class="annottext">UTCTime -&gt; UTCTime -&gt; Bool
-forall a. Ord a =&gt; a -&gt; a -&gt; Bool
-</span><span class="hs-operator hs-var">&gt;=</span></span><span> </span><span class="annot"><span class="annottext">UTCTime
-</span><a href="#local-6989586621679980326"><span class="hs-identifier hs-var">t</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(RelativeTime -&gt; RelativeTime) -&gt; RelativeTime -&gt; RelativeTime
-forall a b. (a -&gt; b) -&gt; a -&gt; b
-</span><span class="hs-operator hs-var">$</span></span><span>
-</span><span id="line-68"></span><span>                                      </span><span class="annot"><span class="annottext">NominalDiffTime -&gt; RelativeTime
-</span><a href="Ouroboros.Consensus.BlockchainTime.WallClock.Types.html#RelativeTime"><span class="hs-identifier hs-var">RelativeTime</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">UTCTime -&gt; UTCTime -&gt; NominalDiffTime
-</span><span class="hs-identifier hs-var">diffUTCTime</span></span><span> </span><span class="annot"><span class="annottext">UTCTime
-</span><a href="#local-6989586621679980325"><span class="hs-identifier hs-var">t'</span></a></span><span> </span><span class="annot"><span class="annottext">UTCTime
-</span><a href="#local-6989586621679980326"><span class="hs-identifier hs-var">t</span></a></span><span class="hs-special">)</span><span>
-</span><span id="line-69"></span><span>
-</span><span id="line-70"></span><span class="annot"><a href="Ouroboros.Consensus.BlockchainTime.WallClock.Types.html#fromRelativeTime"><span class="hs-identifier hs-type">fromRelativeTime</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.BlockchainTime.WallClock.Types.html#SystemStart"><span class="hs-identifier hs-type">SystemStart</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.BlockchainTime.WallClock.Types.html#RelativeTime"><span class="hs-identifier hs-type">RelativeTime</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">UTCTime</span></span><span>
-</span><span id="line-71"></span><span id="fromRelativeTime"><span class="annot"><span class="annottext">fromRelativeTime :: SystemStart -&gt; RelativeTime -&gt; UTCTime
-</span><a href="Ouroboros.Consensus.BlockchainTime.WallClock.Types.html#fromRelativeTime"><span class="hs-identifier hs-var hs-var">fromRelativeTime</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Consensus.BlockchainTime.WallClock.Types.html#SystemStart"><span class="hs-identifier hs-type">SystemStart</span></a></span><span> </span><span id="local-6989586621679980324"><span class="annot"><span class="annottext">UTCTime
-</span><a href="#local-6989586621679980324"><span class="hs-identifier hs-var">t</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Consensus.BlockchainTime.WallClock.Types.html#RelativeTime"><span class="hs-identifier hs-type">RelativeTime</span></a></span><span> </span><span id="local-6989586621679980323"><span class="annot"><span class="annottext">NominalDiffTime
-</span><a href="#local-6989586621679980323"><span class="hs-identifier hs-var">t'</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">NominalDiffTime -&gt; UTCTime -&gt; UTCTime
-</span><span class="hs-identifier hs-var">addUTCTime</span></span><span> </span><span class="annot"><span class="annottext">NominalDiffTime
-</span><a href="#local-6989586621679980323"><span class="hs-identifier hs-var">t'</span></a></span><span> </span><span class="annot"><span class="annottext">UTCTime
-</span><a href="#local-6989586621679980324"><span class="hs-identifier hs-var">t</span></a></span><span>
-</span><span id="line-72"></span><span>
-</span><span id="line-73"></span><span class="hs-comment">{-------------------------------------------------------------------------------
+</span><span id="line-2"></span><span class="hs-pragma">{-# LANGUAGE DerivingVia                #-}</span><span>
+</span><span id="line-3"></span><span class="hs-pragma">{-# LANGUAGE GeneralizedNewtypeDeriving #-}</span><span>
+</span><span id="line-4"></span><span>
+</span><span id="line-5"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Ouroboros.Consensus.BlockchainTime.WallClock.Types</span><span> </span><span class="hs-special">(</span><span>
+</span><span id="line-6"></span><span>    </span><span class="annot"><span class="hs-comment">-- * System time</span></span><span>
+</span><span id="line-7"></span><span>    </span><span class="annot"><span class="hs-identifier">SystemStart</span></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
+</span><span id="line-8"></span><span>    </span><span class="annot"><span class="hs-comment">-- * Relative time</span></span><span>
+</span><span id="line-9"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">RelativeTime</span></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
+</span><span id="line-10"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.BlockchainTime.WallClock.Types.html#addRelTime"><span class="hs-identifier">addRelTime</span></a></span><span>
+</span><span id="line-11"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.BlockchainTime.WallClock.Types.html#diffRelTime"><span class="hs-identifier">diffRelTime</span></a></span><span>
+</span><span id="line-12"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">fromRelativeTime</span></span><span>
+</span><span id="line-13"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">toRelativeTime</span></span><span>
+</span><span id="line-14"></span><span>    </span><span class="annot"><span class="hs-comment">-- * Get current time (as 'RelativeTime')</span></span><span>
+</span><span id="line-15"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.BlockchainTime.WallClock.Types.html#SystemTime"><span class="hs-identifier">SystemTime</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
+</span><span id="line-16"></span><span>    </span><span class="annot"><span class="hs-comment">-- * Slot length</span></span><span>
+</span><span id="line-17"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">getSlotLength</span></span><span>
+</span><span id="line-18"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">mkSlotLength</span></span><span>
+</span><span id="line-19"></span><span>    </span><span class="annot"><span class="hs-comment">-- ** Conversions</span></span><span>
+</span><span id="line-20"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">slotLengthFromMillisec</span></span><span>
+</span><span id="line-21"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">slotLengthFromSec</span></span><span>
+</span><span id="line-22"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">slotLengthToMillisec</span></span><span>
+</span><span id="line-23"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">slotLengthToSec</span></span><span>
+</span><span id="line-24"></span><span>    </span><span class="annot"><span class="hs-comment">-- ** opaque</span></span><span>
+</span><span id="line-25"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">SlotLength</span></span><span>
+</span><span id="line-26"></span><span>  </span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-27"></span><span>
+</span><span id="line-28"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><span class="hs-identifier">Data.Time.Clock</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">NominalDiffTime</span></span><span class="hs-special">)</span><span>
+</span><span id="line-29"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><span class="hs-identifier">NoThunks.Class</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">NoThunks</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">OnlyCheckWhnfNamed</span></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-30"></span><span>
+</span><span id="line-31"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><span class="hs-identifier">Cardano.Slotting.Time</span></span><span>
+</span><span id="line-32"></span><span>
+</span><span id="line-33"></span><span class="annot"><a href="Ouroboros.Consensus.BlockchainTime.WallClock.Types.html#addRelTime"><span class="hs-identifier hs-type">addRelTime</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">NominalDiffTime</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">RelativeTime</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">RelativeTime</span></span><span>
+</span><span id="line-34"></span><span id="addRelTime"><span class="annot"><span class="annottext">addRelTime :: NominalDiffTime -&gt; RelativeTime -&gt; RelativeTime
+</span><a href="Ouroboros.Consensus.BlockchainTime.WallClock.Types.html#addRelTime"><span class="hs-identifier hs-var hs-var">addRelTime</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">NominalDiffTime -&gt; RelativeTime -&gt; RelativeTime
+</span><span class="hs-identifier hs-var">addRelativeTime</span></span><span>
+</span><span id="line-35"></span><span>
+</span><span id="line-36"></span><span class="annot"><a href="Ouroboros.Consensus.BlockchainTime.WallClock.Types.html#diffRelTime"><span class="hs-identifier hs-type">diffRelTime</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">RelativeTime</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">RelativeTime</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">NominalDiffTime</span></span><span>
+</span><span id="line-37"></span><span id="diffRelTime"><span class="annot"><span class="annottext">diffRelTime :: RelativeTime -&gt; RelativeTime -&gt; NominalDiffTime
+</span><a href="Ouroboros.Consensus.BlockchainTime.WallClock.Types.html#diffRelTime"><span class="hs-identifier hs-var hs-var">diffRelTime</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">RelativeTime -&gt; RelativeTime -&gt; NominalDiffTime
+</span><span class="hs-identifier hs-var">diffRelativeTime</span></span><span>
+</span><span id="line-38"></span><span>
+</span><span id="line-39"></span><span class="hs-comment">{-------------------------------------------------------------------------------
   Get current time (as RelativeTime)
 -------------------------------------------------------------------------------}</span><span>
-</span><span id="line-76"></span><span>
-</span><span id="line-77"></span><span class="hs-comment">-- | System time</span><span>
-</span><span id="line-78"></span><span class="hs-comment">--</span><span>
-</span><span id="line-79"></span><span class="hs-comment">-- Slots are counted from the system start.</span><span>
-</span><span id="line-80"></span><span class="hs-keyword">data</span><span> </span><span id="SystemTime"><span class="annot"><a href="Ouroboros.Consensus.BlockchainTime.WallClock.Types.html#SystemTime"><span class="hs-identifier hs-var">SystemTime</span></a></span></span><span> </span><span id="local-6989586621679980322"><span class="annot"><a href="#local-6989586621679980322"><span class="hs-identifier hs-type">m</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="SystemTime"><span class="annot"><a href="Ouroboros.Consensus.BlockchainTime.WallClock.Types.html#SystemTime"><span class="hs-identifier hs-var">SystemTime</span></a></span></span><span> </span><span class="hs-special">{</span><span>
-</span><span id="line-81"></span><span>      </span><span class="hs-comment">-- | Get current time (as a 'RelativeTime')</span><span>
-</span><span id="line-82"></span><span>      </span><span class="hs-comment">--</span><span>
-</span><span id="line-83"></span><span>      </span><span class="hs-comment">-- For real deployment, this will take the current 'UTCTime' and then</span><span>
-</span><span id="line-84"></span><span>      </span><span class="hs-comment">-- subtract the 'SystemStart' (see 'defaultSystemTime'). Tests don't</span><span>
-</span><span id="line-85"></span><span>      </span><span class="hs-comment">-- bother with a 'UTCTime' and just work entirely in 'RelativeTime'.</span><span>
-</span><span id="line-86"></span><span>      </span><span id="systemTimeCurrent"><span class="annot"><span class="annottext">SystemTime m -&gt; m RelativeTime
-</span><a href="Ouroboros.Consensus.BlockchainTime.WallClock.Types.html#systemTimeCurrent"><span class="hs-identifier hs-var hs-var">systemTimeCurrent</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="#local-6989586621679980322"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><a href="Ouroboros.Consensus.BlockchainTime.WallClock.Types.html#RelativeTime"><span class="hs-identifier hs-type">RelativeTime</span></a></span><span>
-</span><span id="line-87"></span><span>
-</span><span id="line-88"></span><span>      </span><span class="hs-comment">-- | Wait for 'SystemStart'</span><span>
-</span><span id="line-89"></span><span>      </span><span class="hs-comment">--</span><span>
-</span><span id="line-90"></span><span>      </span><span class="hs-comment">-- For the real deployment, this waits for the current 'UTCTime'</span><span>
-</span><span id="line-91"></span><span>      </span><span class="hs-comment">-- to reach 'SystemStart'. In tests this does nothing.</span><span>
-</span><span id="line-92"></span><span>    </span><span class="hs-special">,</span><span> </span><span id="systemTimeWait"><span class="annot"><span class="annottext">SystemTime m -&gt; m ()
-</span><a href="Ouroboros.Consensus.BlockchainTime.WallClock.Types.html#systemTimeWait"><span class="hs-identifier hs-var hs-var">systemTimeWait</span></a></span></span><span>    </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="#local-6989586621679980322"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
-</span><span id="line-93"></span><span>    </span><span class="hs-special">}</span><span>
-</span><span id="line-94"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span id="local-6989586621679980313"><span id="local-6989586621679980315"><span id="local-6989586621679980317"><span class="annot"><span class="annottext">Context -&gt; SystemTime m -&gt; IO (Maybe ThunkInfo)
+</span><span id="line-42"></span><span>
+</span><span id="line-43"></span><span class="hs-comment">-- | System time</span><span>
+</span><span id="line-44"></span><span class="hs-comment">--</span><span>
+</span><span id="line-45"></span><span class="hs-comment">-- Slots are counted from the system start.</span><span>
+</span><span id="line-46"></span><span class="hs-keyword">data</span><span> </span><span id="SystemTime"><span class="annot"><a href="Ouroboros.Consensus.BlockchainTime.WallClock.Types.html#SystemTime"><span class="hs-identifier hs-var">SystemTime</span></a></span></span><span> </span><span id="local-6989586621679990922"><span class="annot"><a href="#local-6989586621679990922"><span class="hs-identifier hs-type">m</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="SystemTime"><span class="annot"><a href="Ouroboros.Consensus.BlockchainTime.WallClock.Types.html#SystemTime"><span class="hs-identifier hs-var">SystemTime</span></a></span></span><span> </span><span class="hs-special">{</span><span>
+</span><span id="line-47"></span><span>      </span><span class="hs-comment">-- | Get current time (as a 'RelativeTime')</span><span>
+</span><span id="line-48"></span><span>      </span><span class="hs-comment">--</span><span>
+</span><span id="line-49"></span><span>      </span><span class="hs-comment">-- For real deployment, this will take the current 'UTCTime' and then</span><span>
+</span><span id="line-50"></span><span>      </span><span class="hs-comment">-- subtract the 'SystemStart' (see 'defaultSystemTime'). Tests don't</span><span>
+</span><span id="line-51"></span><span>      </span><span class="hs-comment">-- bother with a 'UTCTime' and just work entirely in 'RelativeTime'.</span><span>
+</span><span id="line-52"></span><span>      </span><span id="systemTimeCurrent"><span class="annot"><span class="annottext">SystemTime m -&gt; m RelativeTime
+</span><a href="Ouroboros.Consensus.BlockchainTime.WallClock.Types.html#systemTimeCurrent"><span class="hs-identifier hs-var hs-var">systemTimeCurrent</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="#local-6989586621679990922"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">RelativeTime</span></span><span>
+</span><span id="line-53"></span><span>
+</span><span id="line-54"></span><span>      </span><span class="hs-comment">-- | Wait for 'SystemStart'</span><span>
+</span><span id="line-55"></span><span>      </span><span class="hs-comment">--</span><span>
+</span><span id="line-56"></span><span>      </span><span class="hs-comment">-- For the real deployment, this waits for the current 'UTCTime'</span><span>
+</span><span id="line-57"></span><span>      </span><span class="hs-comment">-- to reach 'SystemStart'. In tests this does nothing.</span><span>
+</span><span id="line-58"></span><span>    </span><span class="hs-special">,</span><span> </span><span id="systemTimeWait"><span class="annot"><span class="annottext">SystemTime m -&gt; m ()
+</span><a href="Ouroboros.Consensus.BlockchainTime.WallClock.Types.html#systemTimeWait"><span class="hs-identifier hs-var hs-var">systemTimeWait</span></a></span></span><span>    </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="#local-6989586621679990922"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
+</span><span id="line-59"></span><span>    </span><span class="hs-special">}</span><span>
+</span><span id="line-60"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span id="local-6989586621679990913"><span id="local-6989586621679990915"><span id="local-6989586621679990917"><span class="annot"><span class="annottext">Context -&gt; SystemTime m -&gt; IO (Maybe ThunkInfo)
 Proxy (SystemTime m) -&gt; String
 (Context -&gt; SystemTime m -&gt; IO (Maybe ThunkInfo))
 -&gt; (Context -&gt; SystemTime m -&gt; IO (Maybe ThunkInfo))
@@ -289,210 +85,5 @@ Context -&gt; SystemTime m -&gt; IO (Maybe ThunkInfo)
 noThunks :: Context -&gt; SystemTime m -&gt; IO (Maybe ThunkInfo)
 $cnoThunks :: forall (m :: * -&gt; *).
 Context -&gt; SystemTime m -&gt; IO (Maybe ThunkInfo)
-</span><a href="#local-6989586621679980313"><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">NoThunks</span></a></span></span></span></span><span> </span><span class="hs-keyword">via</span><span> </span><span class="annot"><span class="hs-identifier hs-type">OnlyCheckWhnfNamed</span></span><span> </span><span class="annot"><span class="hs-string">&quot;SystemTime&quot;</span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Consensus.BlockchainTime.WallClock.Types.html#SystemTime"><span class="hs-identifier hs-type">SystemTime</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679980322"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span>
-</span><span id="line-95"></span><span>
-</span><span id="line-96"></span><span class="hs-comment">{-------------------------------------------------------------------------------
-  SlotLength
--------------------------------------------------------------------------------}</span><span>
-</span><span id="line-99"></span><span>
-</span><span id="line-100"></span><span class="hs-comment">-- | Slot length</span><span>
-</span><span id="line-101"></span><span id="local-6989586621679980311"><span id="local-6989586621679980312"></span></span><span class="hs-keyword">newtype</span><span> </span><span id="SlotLength"><span class="annot"><a href="Ouroboros.Consensus.BlockchainTime.WallClock.Types.html#SlotLength"><span class="hs-identifier hs-var">SlotLength</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="SlotLength"><span class="annot"><a href="Ouroboros.Consensus.BlockchainTime.WallClock.Types.html#SlotLength"><span class="hs-identifier hs-var">SlotLength</span></a></span></span><span> </span><span class="hs-special">{</span><span> </span><span id="getSlotLength"><span class="annot"><span class="annottext">SlotLength -&gt; NominalDiffTime
-</span><a href="Ouroboros.Consensus.BlockchainTime.WallClock.Types.html#getSlotLength"><span class="hs-identifier hs-var hs-var">getSlotLength</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">NominalDiffTime</span></span><span> </span><span class="hs-special">}</span><span>
-</span><span id="line-102"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679980306"><span id="local-6989586621679980308"><span class="annot"><span class="annottext">SlotLength -&gt; SlotLength -&gt; Bool
-(SlotLength -&gt; SlotLength -&gt; Bool)
--&gt; (SlotLength -&gt; SlotLength -&gt; Bool) -&gt; Eq SlotLength
-forall a. (a -&gt; a -&gt; Bool) -&gt; (a -&gt; a -&gt; Bool) -&gt; Eq a
-/= :: SlotLength -&gt; SlotLength -&gt; Bool
-$c/= :: SlotLength -&gt; SlotLength -&gt; Bool
-== :: SlotLength -&gt; SlotLength -&gt; Bool
-$c== :: SlotLength -&gt; SlotLength -&gt; Bool
-</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">(forall x. SlotLength -&gt; Rep SlotLength x)
--&gt; (forall x. Rep SlotLength x -&gt; SlotLength) -&gt; Generic SlotLength
-forall x. Rep SlotLength x -&gt; SlotLength
-forall x. SlotLength -&gt; Rep SlotLength x
-forall a.
-(forall x. a -&gt; Rep a x) -&gt; (forall x. Rep a x -&gt; a) -&gt; Generic a
-$cto :: forall x. Rep SlotLength x -&gt; SlotLength
-$cfrom :: forall x. SlotLength -&gt; Rep SlotLength x
-</span><span class="hs-identifier hs-var hs-var hs-var hs-var">Generic</span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679980298"><span id="local-6989586621679980300"><span id="local-6989586621679980302"><span class="annot"><span class="annottext">Context -&gt; SlotLength -&gt; IO (Maybe ThunkInfo)
-Proxy SlotLength -&gt; String
-(Context -&gt; SlotLength -&gt; IO (Maybe ThunkInfo))
--&gt; (Context -&gt; SlotLength -&gt; IO (Maybe ThunkInfo))
--&gt; (Proxy SlotLength -&gt; String)
--&gt; NoThunks SlotLength
-forall a.
-(Context -&gt; a -&gt; IO (Maybe ThunkInfo))
--&gt; (Context -&gt; a -&gt; IO (Maybe ThunkInfo))
--&gt; (Proxy a -&gt; String)
--&gt; NoThunks a
-showTypeOf :: Proxy SlotLength -&gt; String
-$cshowTypeOf :: Proxy SlotLength -&gt; String
-wNoThunks :: Context -&gt; SlotLength -&gt; IO (Maybe ThunkInfo)
-$cwNoThunks :: Context -&gt; SlotLength -&gt; IO (Maybe ThunkInfo)
-noThunks :: Context -&gt; SlotLength -&gt; IO (Maybe ThunkInfo)
-$cnoThunks :: Context -&gt; SlotLength -&gt; IO (Maybe ThunkInfo)
-</span><a href="#local-6989586621679980298"><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">NoThunks</span></a></span></span></span></span><span class="hs-special">)</span><span>
-</span><span id="line-103"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span id="local-6989586621679980292"><span id="local-6989586621679980294"><span id="local-6989586621679980296"><span class="annot"><span class="annottext">Int -&gt; SlotLength -&gt; ShowS
-[SlotLength] -&gt; ShowS
-SlotLength -&gt; String
-(Int -&gt; SlotLength -&gt; ShowS)
--&gt; (SlotLength -&gt; String)
--&gt; ([SlotLength] -&gt; ShowS)
--&gt; Show SlotLength
-forall a.
-(Int -&gt; a -&gt; ShowS) -&gt; (a -&gt; String) -&gt; ([a] -&gt; ShowS) -&gt; Show a
-showList :: [SlotLength] -&gt; ShowS
-$cshowList :: [SlotLength] -&gt; ShowS
-show :: SlotLength -&gt; String
-$cshow :: SlotLength -&gt; String
-showsPrec :: Int -&gt; SlotLength -&gt; ShowS
-$cshowsPrec :: Int -&gt; SlotLength -&gt; ShowS
-</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span> </span><span class="hs-keyword">via</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Quiet</span></span><span> </span><span class="annot"><a href="Ouroboros.Consensus.BlockchainTime.WallClock.Types.html#SlotLength"><span class="hs-identifier hs-type">SlotLength</span></a></span><span>
-</span><span id="line-104"></span><span>
-</span><span id="line-105"></span><span class="hs-comment">-- | Constructor for 'SlotLength'</span><span>
-</span><span id="line-106"></span><span class="annot"><a href="Ouroboros.Consensus.BlockchainTime.WallClock.Types.html#mkSlotLength"><span class="hs-identifier hs-type">mkSlotLength</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">NominalDiffTime</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.BlockchainTime.WallClock.Types.html#SlotLength"><span class="hs-identifier hs-type">SlotLength</span></a></span><span>
-</span><span id="line-107"></span><span id="mkSlotLength"><span class="annot"><span class="annottext">mkSlotLength :: NominalDiffTime -&gt; SlotLength
-</span><a href="Ouroboros.Consensus.BlockchainTime.WallClock.Types.html#mkSlotLength"><span class="hs-identifier hs-var hs-var">mkSlotLength</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">NominalDiffTime -&gt; SlotLength
-</span><a href="Ouroboros.Consensus.BlockchainTime.WallClock.Types.html#SlotLength"><span class="hs-identifier hs-var">SlotLength</span></a></span><span>
-</span><span id="line-108"></span><span>
-</span><span id="line-109"></span><span class="annot"><a href="Ouroboros.Consensus.BlockchainTime.WallClock.Types.html#slotLengthFromSec"><span class="hs-identifier hs-type">slotLengthFromSec</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Integer</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.BlockchainTime.WallClock.Types.html#SlotLength"><span class="hs-identifier hs-type">SlotLength</span></a></span><span>
-</span><span id="line-110"></span><span id="slotLengthFromSec"><span class="annot"><span class="annottext">slotLengthFromSec :: Integer -&gt; SlotLength
-</span><a href="Ouroboros.Consensus.BlockchainTime.WallClock.Types.html#slotLengthFromSec"><span class="hs-identifier hs-var hs-var">slotLengthFromSec</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Integer -&gt; SlotLength
-</span><a href="Ouroboros.Consensus.BlockchainTime.WallClock.Types.html#slotLengthFromMillisec"><span class="hs-identifier hs-var">slotLengthFromMillisec</span></a></span><span> </span><span class="annot"><span class="annottext">(Integer -&gt; SlotLength)
--&gt; (Integer -&gt; Integer) -&gt; Integer -&gt; SlotLength
-forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
-</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Integer -&gt; Integer -&gt; Integer
-forall a. Num a =&gt; a -&gt; a -&gt; a
-</span><span class="hs-operator hs-var">*</span></span><span> </span><span class="annot"><span class="annottext">Integer
-</span><span class="hs-number">1000</span></span><span class="hs-special">)</span><span>
-</span><span id="line-111"></span><span>
-</span><span id="line-112"></span><span class="annot"><a href="Ouroboros.Consensus.BlockchainTime.WallClock.Types.html#slotLengthToSec"><span class="hs-identifier hs-type">slotLengthToSec</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.BlockchainTime.WallClock.Types.html#SlotLength"><span class="hs-identifier hs-type">SlotLength</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Integer</span></span><span>
-</span><span id="line-113"></span><span id="slotLengthToSec"><span class="annot"><span class="annottext">slotLengthToSec :: SlotLength -&gt; Integer
-</span><a href="Ouroboros.Consensus.BlockchainTime.WallClock.Types.html#slotLengthToSec"><span class="hs-identifier hs-var hs-var">slotLengthToSec</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Integer -&gt; Integer -&gt; Integer
-forall a. Integral a =&gt; a -&gt; a -&gt; a
-</span><span class="hs-operator hs-var">`div`</span></span><span> </span><span class="annot"><span class="annottext">Integer
-</span><span class="hs-number">1000</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(Integer -&gt; Integer)
--&gt; (SlotLength -&gt; Integer) -&gt; SlotLength -&gt; Integer
-forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
-</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">SlotLength -&gt; Integer
-</span><a href="Ouroboros.Consensus.BlockchainTime.WallClock.Types.html#slotLengthToMillisec"><span class="hs-identifier hs-var">slotLengthToMillisec</span></a></span><span>
-</span><span id="line-114"></span><span>
-</span><span id="line-115"></span><span class="annot"><a href="Ouroboros.Consensus.BlockchainTime.WallClock.Types.html#slotLengthFromMillisec"><span class="hs-identifier hs-type">slotLengthFromMillisec</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Integer</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.BlockchainTime.WallClock.Types.html#SlotLength"><span class="hs-identifier hs-type">SlotLength</span></a></span><span>
-</span><span id="line-116"></span><span id="slotLengthFromMillisec"><span class="annot"><span class="annottext">slotLengthFromMillisec :: Integer -&gt; SlotLength
-</span><a href="Ouroboros.Consensus.BlockchainTime.WallClock.Types.html#slotLengthFromMillisec"><span class="hs-identifier hs-var hs-var">slotLengthFromMillisec</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">NominalDiffTime -&gt; SlotLength
-</span><a href="Ouroboros.Consensus.BlockchainTime.WallClock.Types.html#mkSlotLength"><span class="hs-identifier hs-var">mkSlotLength</span></a></span><span> </span><span class="annot"><span class="annottext">(NominalDiffTime -&gt; SlotLength)
--&gt; (Integer -&gt; NominalDiffTime) -&gt; Integer -&gt; SlotLength
-forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
-</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; NominalDiffTime
-</span><a href="#local-6989586621679980288"><span class="hs-identifier hs-var">conv</span></a></span><span>
-</span><span id="line-117"></span><span>  </span><span class="hs-keyword">where</span><span>
-</span><span id="line-118"></span><span>    </span><span class="hs-comment">-- Explicit type annotation here means that /if/ we change the precision,</span><span>
-</span><span id="line-119"></span><span>    </span><span class="hs-comment">-- we are forced to reconsider this code.</span><span>
-</span><span id="line-120"></span><span>    </span><span class="annot"><a href="#local-6989586621679980288"><span class="hs-identifier hs-type">conv</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Integer</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">NominalDiffTime</span></span><span>
-</span><span id="line-121"></span><span>    </span><span id="local-6989586621679980288"><span class="annot"><span class="annottext">conv :: Integer -&gt; NominalDiffTime
-</span><a href="#local-6989586621679980288"><span class="hs-identifier hs-var hs-var">conv</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Pico -&gt; NominalDiffTime
-forall a b. (Real a, Fractional b) =&gt; a -&gt; b
-</span><span class="hs-identifier hs-var">realToFrac</span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Pico</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">NominalDiffTime</span></span><span class="hs-special">)</span><span>
-</span><span id="line-122"></span><span>         </span><span class="annot"><span class="annottext">(Pico -&gt; NominalDiffTime)
--&gt; (Integer -&gt; Pico) -&gt; Integer -&gt; NominalDiffTime
-forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
-</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Pico -&gt; Pico -&gt; Pico
-forall a. Fractional a =&gt; a -&gt; a -&gt; a
-</span><span class="hs-operator hs-var">/</span></span><span> </span><span class="annot"><span class="annottext">Pico
-</span><span class="hs-number">1000</span></span><span class="hs-special">)</span><span>
-</span><span id="line-123"></span><span>         </span><span class="annot"><span class="annottext">(Pico -&gt; Pico) -&gt; (Integer -&gt; Pico) -&gt; Integer -&gt; Pico
-forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
-</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Integer -&gt; Pico
-forall a. Num a =&gt; Integer -&gt; a
-</span><span class="hs-identifier hs-var">fromInteger</span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Integer</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Pico</span></span><span class="hs-special">)</span><span>
-</span><span id="line-124"></span><span>
-</span><span id="line-125"></span><span class="annot"><a href="Ouroboros.Consensus.BlockchainTime.WallClock.Types.html#slotLengthToMillisec"><span class="hs-identifier hs-type">slotLengthToMillisec</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.BlockchainTime.WallClock.Types.html#SlotLength"><span class="hs-identifier hs-type">SlotLength</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Integer</span></span><span>
-</span><span id="line-126"></span><span id="slotLengthToMillisec"><span class="annot"><span class="annottext">slotLengthToMillisec :: SlotLength -&gt; Integer
-</span><a href="Ouroboros.Consensus.BlockchainTime.WallClock.Types.html#slotLengthToMillisec"><span class="hs-identifier hs-var hs-var">slotLengthToMillisec</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">NominalDiffTime -&gt; Integer
-</span><a href="#local-6989586621679980286"><span class="hs-identifier hs-var">conv</span></a></span><span> </span><span class="annot"><span class="annottext">(NominalDiffTime -&gt; Integer)
--&gt; (SlotLength -&gt; NominalDiffTime) -&gt; SlotLength -&gt; Integer
-forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
-</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">SlotLength -&gt; NominalDiffTime
-</span><a href="Ouroboros.Consensus.BlockchainTime.WallClock.Types.html#getSlotLength"><span class="hs-identifier hs-var hs-var">getSlotLength</span></a></span><span>
-</span><span id="line-127"></span><span>  </span><span class="hs-keyword">where</span><span>
-</span><span id="line-128"></span><span>    </span><span class="hs-comment">-- Explicit type annotation here means that /if/ we change the precision,</span><span>
-</span><span id="line-129"></span><span>    </span><span class="hs-comment">-- we are forced to reconsider this code.</span><span>
-</span><span id="line-130"></span><span>    </span><span class="annot"><a href="#local-6989586621679980286"><span class="hs-identifier hs-type">conv</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">NominalDiffTime</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Integer</span></span><span>
-</span><span id="line-131"></span><span>    </span><span id="local-6989586621679980286"><span class="annot"><span class="annottext">conv :: NominalDiffTime -&gt; Integer
-</span><a href="#local-6989586621679980286"><span class="hs-identifier hs-var hs-var">conv</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Pico -&gt; Integer
-forall a b. (RealFrac a, Integral b) =&gt; a -&gt; b
-</span><span class="hs-identifier hs-var">truncate</span></span><span>
-</span><span id="line-132"></span><span>         </span><span class="annot"><span class="annottext">(Pico -&gt; Integer)
--&gt; (NominalDiffTime -&gt; Pico) -&gt; NominalDiffTime -&gt; Integer
-forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
-</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Pico -&gt; Pico -&gt; Pico
-forall a. Num a =&gt; a -&gt; a -&gt; a
-</span><span class="hs-operator hs-var">*</span></span><span> </span><span class="annot"><span class="annottext">Pico
-</span><span class="hs-number">1000</span></span><span class="hs-special">)</span><span>
-</span><span id="line-133"></span><span>         </span><span class="annot"><span class="annottext">(Pico -&gt; Pico)
--&gt; (NominalDiffTime -&gt; Pico) -&gt; NominalDiffTime -&gt; Pico
-forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
-</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">NominalDiffTime -&gt; Pico
-forall a b. (Real a, Fractional b) =&gt; a -&gt; b
-</span><span class="hs-identifier hs-var">realToFrac</span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">NominalDiffTime</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Pico</span></span><span class="hs-special">)</span><span>
-</span><span id="line-134"></span><span>
-</span><span id="line-135"></span><span class="hs-comment">{-------------------------------------------------------------------------------
-  Serialisation
--------------------------------------------------------------------------------}</span><span>
-</span><span id="line-138"></span><span>
-</span><span id="line-139"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679980279"><span id="local-6989586621679980281"><span class="annot"><span class="hs-identifier hs-type">Serialise</span></span><span> </span><span class="annot"><a href="Ouroboros.Consensus.BlockchainTime.WallClock.Types.html#RelativeTime"><span class="hs-identifier hs-type">RelativeTime</span></a></span></span></span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-140"></span><span>  </span><span id="local-6989586621679980277"><span class="annot"><span class="annottext">encode :: RelativeTime -&gt; Encoding
-</span><span class="hs-identifier hs-var hs-var hs-var hs-var">encode</span></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Pico -&gt; Encoding
-forall a. Serialise a =&gt; a -&gt; Encoding
-</span><span class="hs-identifier hs-var">encode</span></span><span> </span><span class="annot"><span class="annottext">(Pico -&gt; Encoding)
--&gt; (RelativeTime -&gt; Pico) -&gt; RelativeTime -&gt; Encoding
-forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
-</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">NominalDiffTime -&gt; Pico
-</span><a href="#local-6989586621679980275"><span class="hs-identifier hs-var">toPico</span></a></span><span> </span><span class="annot"><span class="annottext">(NominalDiffTime -&gt; Pico)
--&gt; (RelativeTime -&gt; NominalDiffTime) -&gt; RelativeTime -&gt; Pico
-forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
-</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">RelativeTime -&gt; NominalDiffTime
-</span><a href="Ouroboros.Consensus.BlockchainTime.WallClock.Types.html#getRelativeTime"><span class="hs-identifier hs-var hs-var">getRelativeTime</span></a></span><span>
-</span><span id="line-141"></span><span>    </span><span class="hs-keyword">where</span><span>
-</span><span id="line-142"></span><span>      </span><span class="annot"><a href="#local-6989586621679980275"><span class="hs-identifier hs-type">toPico</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">NominalDiffTime</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Pico</span></span><span>
-</span><span id="line-143"></span><span>      </span><span id="local-6989586621679980275"><span class="annot"><span class="annottext">toPico :: NominalDiffTime -&gt; Pico
-</span><a href="#local-6989586621679980275"><span class="hs-identifier hs-var hs-var">toPico</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">NominalDiffTime -&gt; Pico
-forall a b. (Real a, Fractional b) =&gt; a -&gt; b
-</span><span class="hs-identifier hs-var">realToFrac</span></span><span>
-</span><span id="line-144"></span><span>
-</span><span id="line-145"></span><span>  </span><span id="local-6989586621679980274"><span class="annot"><span class="annottext">decode :: Decoder s RelativeTime
-</span><span class="hs-identifier hs-var hs-var hs-var hs-var">decode</span></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">NominalDiffTime -&gt; RelativeTime
-</span><a href="Ouroboros.Consensus.BlockchainTime.WallClock.Types.html#RelativeTime"><span class="hs-identifier hs-var">RelativeTime</span></a></span><span> </span><span class="annot"><span class="annottext">(NominalDiffTime -&gt; RelativeTime)
--&gt; (Pico -&gt; NominalDiffTime) -&gt; Pico -&gt; RelativeTime
-forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
-</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Pico -&gt; NominalDiffTime
-</span><a href="#local-6989586621679980272"><span class="hs-identifier hs-var">fromPico</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(Pico -&gt; RelativeTime) -&gt; Decoder s Pico -&gt; Decoder s RelativeTime
-forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
-</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">Decoder s Pico
-forall a s. Serialise a =&gt; Decoder s a
-</span><span class="hs-identifier hs-var">decode</span></span><span>
-</span><span id="line-146"></span><span>    </span><span class="hs-keyword">where</span><span>
-</span><span id="line-147"></span><span>      </span><span class="annot"><a href="#local-6989586621679980272"><span class="hs-identifier hs-type">fromPico</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Pico</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">NominalDiffTime</span></span><span>
-</span><span id="line-148"></span><span>      </span><span id="local-6989586621679980272"><span class="annot"><span class="annottext">fromPico :: Pico -&gt; NominalDiffTime
-</span><a href="#local-6989586621679980272"><span class="hs-identifier hs-var hs-var">fromPico</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Pico -&gt; NominalDiffTime
-forall a b. (Real a, Fractional b) =&gt; a -&gt; b
-</span><span class="hs-identifier hs-var">realToFrac</span></span><span>
-</span><span id="line-149"></span><span>
-</span><span id="line-150"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679980265"><span id="local-6989586621679980267"><span class="annot"><span class="hs-identifier hs-type">Serialise</span></span><span> </span><span class="annot"><a href="Ouroboros.Consensus.BlockchainTime.WallClock.Types.html#SlotLength"><span class="hs-identifier hs-type">SlotLength</span></a></span></span></span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-151"></span><span>  </span><span id="local-6989586621679980264"><span class="annot"><span class="annottext">encode :: SlotLength -&gt; Encoding
-</span><a href="#local-6989586621679980264"><span class="hs-identifier hs-var hs-var hs-var hs-var">encode</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Encoding
-forall a. Serialise a =&gt; a -&gt; Encoding
-</span><span class="hs-identifier hs-var">encode</span></span><span> </span><span class="annot"><span class="annottext">(Integer -&gt; Encoding)
--&gt; (SlotLength -&gt; Integer) -&gt; SlotLength -&gt; Encoding
-forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
-</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">SlotLength -&gt; Integer
-</span><a href="Ouroboros.Consensus.BlockchainTime.WallClock.Types.html#slotLengthToMillisec"><span class="hs-identifier hs-var">slotLengthToMillisec</span></a></span><span>
-</span><span id="line-152"></span><span>  </span><span id="local-6989586621679980263"><span class="annot"><span class="annottext">decode :: Decoder s SlotLength
-</span><a href="#local-6989586621679980263"><span class="hs-identifier hs-var hs-var hs-var hs-var">decode</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Integer -&gt; SlotLength
-</span><a href="Ouroboros.Consensus.BlockchainTime.WallClock.Types.html#slotLengthFromMillisec"><span class="hs-identifier hs-var">slotLengthFromMillisec</span></a></span><span> </span><span class="annot"><span class="annottext">(Integer -&gt; SlotLength)
--&gt; Decoder s Integer -&gt; Decoder s SlotLength
-forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
-</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">Decoder s Integer
-forall a s. Serialise a =&gt; Decoder s a
-</span><span class="hs-identifier hs-var">decode</span></span><span>
-</span><span id="line-153"></span></pre></body></html>
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">NoThunks</span></span></span></span></span><span> </span><span class="hs-keyword">via</span><span> </span><span class="annot"><span class="hs-identifier hs-type">OnlyCheckWhnfNamed</span></span><span> </span><span class="annot"><span class="hs-string">&quot;SystemTime&quot;</span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Consensus.BlockchainTime.WallClock.Types.html#SystemTime"><span class="hs-identifier hs-type">SystemTime</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679990922"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-61"></span></pre></body></html>
