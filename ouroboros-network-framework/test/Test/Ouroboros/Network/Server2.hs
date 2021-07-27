@@ -39,7 +39,7 @@ import           Data.Bifoldable
 import           Data.Bifunctor
 import           Data.Bitraversable
 import           Data.ByteString.Lazy (ByteString)
-import           Data.Functor (void, ($>), (<&>))
+import           Data.Functor (($>), (<&>))
 import           Data.List (dropWhileEnd, find, mapAccumL, intercalate, (\\), delete)
 import           Data.List.NonEmpty (NonEmpty (..))
 import qualified Data.List.Octopus as Octopus
@@ -78,7 +78,7 @@ import           Ouroboros.Network.Mux
 import           Ouroboros.Network.MuxMode
 import           Ouroboros.Network.Protocol.Handshake
 import           Ouroboros.Network.Protocol.Handshake.Codec ( cborTermVersionDataCodec
-                                                            , noTimeLimitsHandshake)
+                                                            , timeLimitsHandshake)
 import           Ouroboros.Network.Protocol.Handshake.Unversioned
 import           Ouroboros.Network.Protocol.Handshake.Version (Acceptable (..))
 import           Ouroboros.Network.RethrowPolicy
@@ -227,7 +227,7 @@ oneshotNextRequests ClientAndServerData {
 data Timeouts = Timeouts {
     tProtocolIdleTimeout :: DiffTime,
     tOutboundIdleTimeout :: DiffTime,
-    tTimeWaitTimeout     :: DiffTime 
+    tTimeWaitTimeout     :: DiffTime
   }
 
 -- | Timeouts for 'IO' tests.
@@ -308,7 +308,7 @@ withInitiatorOnlyConnectionManager name timeouts trTracer snocket localAddr next
       ConnectionManagerArguments {
           -- ConnectionManagerTrace
           cmTracer    = WithName name
-                        `contramap` nullTracer,
+                        `contramap` (Tracer (say . show)),
           cmTrTracer  = (WithName name . fmap abstractState)
                         `contramap` trTracer,
          -- MuxTracer
@@ -338,7 +338,7 @@ withInitiatorOnlyConnectionManager name timeouts trTracer snocket localAddr next
             haVersionDataCodec = cborTermVersionDataCodec unversionedProtocolDataCodec,
             haVersions = unversionedProtocol clientApplication,
             haAcceptVersion = acceptableVersion,
-            haTimeLimits = noTimeLimitsHandshake
+            haTimeLimits = timeLimitsHandshake
           }
         (mainThreadId, debugMuxErrorRethrowPolicy
                     <> debugMuxRuntimeErrorRethrowPolicy
@@ -512,7 +512,7 @@ withBidirectionalConnectionManager name timeouts trTracer snocket socket localAd
               haVersionDataCodec = cborTermVersionDataCodec unversionedProtocolDataCodec,
               haVersions = unversionedProtocol serverApplication,
               haAcceptVersion = acceptableVersion,
-              haTimeLimits = noTimeLimitsHandshake
+              haTimeLimits = timeLimitsHandshake
             }
           (mainThreadId,   debugMuxErrorRethrowPolicy
                         <> debugMuxRuntimeErrorRethrowPolicy
@@ -540,7 +540,6 @@ withBidirectionalConnectionManager name timeouts trTracer snocket socket localAd
               (\serverAsync -> link serverAsync
                             >> k connectionManager serverAddr serverAsync)
           `catch` \(e :: SomeException) -> do
-            say (show e)
             throwIO e
   where
     -- for a bidirectional mux we need to define 'Mu.xMiniProtocolInfo' for each
@@ -1411,16 +1410,16 @@ multinodeExperiment trTracer snocket addrFamily serverAddr accInit
               sequence_ $ writeTQueue <$> qs <*> reqs
         case Map.lookup remoteAddr connMap of
           Nothing -> throwIO (NoActiveConnection localAddr remoteAddr)
-          Just (Handle mux muxBundle _)  ->
+          Just (Handle mux muxBundle _) -> do
             -- TODO:
             -- At times this throws 'ProtocolAlreadyRunning'.
-            void $ try @_ @SomeException
+            _ <- try @_ @SomeException
                  $ runInitiatorProtocols muxMode mux muxBundle
+            return ()
         connectionLoop muxMode localAddr cc cm connMap connVar
       where
         connId remoteAddr = ConnectionId { localAddress  = localAddr
                                          , remoteAddress = remoteAddr }
-
 
 -- | Test property together with classifiction.
 data TestProperty = TestProperty {
@@ -1432,7 +1431,7 @@ data TestProperty = TestProperty {
 
     tpNumberOfConnections :: !(Sum Int),
     -- ^ number of all connections
-   
+
     --
     -- classifcation of connections
     --
@@ -1552,7 +1551,7 @@ data EffectiveDataFlow
 -- | Property wrapping `multinodeExperiment`.
 prop_multinode_Sim :: Int -> ArbDataFlow -> AbsBearerInfo -> MultiNodeScript Int TestAddr -> Property
 prop_multinode_Sim serverAcc (ArbDataFlow dataFlow) absBi script =
-  let tr = runSimTrace sim
+  let trace = runSimTrace sim
         where
           sim :: IOSim s ()
           sim = do
@@ -1578,10 +1577,11 @@ prop_multinode_Sim serverAcc (ArbDataFlow dataFlow) absBi script =
           . octoSelectTraceEventsDynamic
               @()
               @(WithName (Name SimAddr) (AbstractTransitionTrace SimAddr))
-          $ tr
+          $ trace
 
-  in counterexample (show evs)
-   . counterexample (intercalate "\n" . map (show . ecTraceEvent) . Octopus.toList $ tr)
+  in counterexample (ppScript script)
+   . counterexample (show evs)
+   . counterexample (intercalate "\n" . map (show . ecTraceEvent) . Octopus.toList $ trace)
    . mkProperty
    . bifoldMap
       ( \ case
@@ -1690,7 +1690,7 @@ splitConns =
                 Just trs -> ( Map.delete ttPeerAddr s
                             , Just (reverse $ ttTransition : trs)
                             )
-            _ ->            ( Map.alter ( \ case 
+            _ ->            ( Map.alter ( \ case
                                               Nothing -> Just [ttTransition]
                                               Just as -> Just (ttTransition : as)
                                         ) ttPeerAddr s
