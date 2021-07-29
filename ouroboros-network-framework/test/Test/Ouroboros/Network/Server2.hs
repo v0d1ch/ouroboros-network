@@ -1430,13 +1430,15 @@ multinodeExperiment trTracer snocket addrFamily serverAddr accInit
                     TokWarm        -> "warm"
                     TokEstablished -> "cold"
               q <$ labelTQueue q ("protoVar." ++ temp ++ "@" ++ show localAddr)
-        qs <- atomically $ traverse id $ makeBundle mkQueue
-        atomically $ modifyTVar connVar $ Map.insert (connId remoteAddr) qs
-        connHandle <- requestOutboundConnection cm remoteAddr
+        connHandle <- try @_ @SomeException
+                      $ requestOutboundConnection cm remoteAddr
         case connHandle of
-          Connected _ _ h ->
+          Left _ -> connectionLoop muxMode localAddr cc cm connMap connVar
+          Right (Connected _ _ h) -> do
+            qs <- atomically $ traverse id $ makeBundle mkQueue
+            atomically $ modifyTVar connVar $ Map.insert (connId remoteAddr) qs
             connectionLoop muxMode localAddr cc cm (Map.insert remoteAddr h connMap) connVar
-          Disconnected {} -> return ()
+          Right Disconnected {} -> return ()
       Disconnect remoteAddr -> do
         atomically $ modifyTVar connVar $ Map.delete (connId remoteAddr)
         _ <- unregisterOutboundConnection cm remoteAddr
@@ -1446,10 +1448,14 @@ multinodeExperiment trTracer snocket addrFamily serverAddr accInit
           mqs <- (Map.lookup $ connId remoteAddr) <$> readTVar connVar
           case mqs of
             Nothing ->
+              -- We want to throw because the generator invariant should never put us in
+              -- this case
               throwIO (NoActiveConnection localAddr remoteAddr)
             Just qs -> do
               sequence_ $ writeTQueue <$> qs <*> reqs
         case Map.lookup remoteAddr connMap of
+          -- We want to throw because the generator invariant should never put us in
+          -- this case
           Nothing -> throwIO (NoActiveConnection localAddr remoteAddr)
           Just (Handle mux muxBundle _) -> do
             -- TODO:
