@@ -661,11 +661,10 @@ withConnectionManager ConnectionManagerArguments {
                   return ( Map.delete peerAddr state
                          , Left (Known (TerminatedState Nothing))
                          )
-                Here (connVar, transition) -> do
-                  traceWith trTracer transition
+                Here connVarAndTransition -> do
                   close cmSnocket socket
                   return ( state
-                         , Right connVar
+                         , Right connVarAndTransition
                          )
 
             case mConnVar of
@@ -680,7 +679,7 @@ withConnectionManager ConnectionManagerArguments {
                                          , toState   = Unknown
                                          })
               Left _ -> error "Impossible happened"
-              Right connVar ->
+              Right (connVar, transition) ->
                 do traceWith tracer (TrConnectionTimeWait connId)
                    when (cmTimeWaitTimeout > 0) $
                      unmask (threadDelay cmTimeWaitTimeout)
@@ -690,6 +689,8 @@ withConnectionManager ConnectionManagerArguments {
                   -- - handshake negotiation; or
                   -- - `Terminate: TerminatingState → TerminatedState` transition.
                   traceWith tracer (TrConnectionTimeWaitDone connId)
+                  traceWith trTracer transition
+                  -- ^ TerminatingState -> TerminatedState transition
                   trs <- atomically $ do
                     --  We have to be careful when deleting it from
                     --  'ConnectionManagerState'.
