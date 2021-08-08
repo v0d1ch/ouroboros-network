@@ -325,7 +325,7 @@ withInitiatorOnlyConnectionManager name timeouts trTracer snocket localAddr
           cmIPv6Address = Nothing,
           cmAddressType = \_ -> Just IPv4Address,
           cmSnocket = snocket,
-          connectionDataFlow = const Unidirectional,
+          connectionDataFlow = getProtocolDataFlow . snd,
           cmPrunePolicy = simplePrunePolicy,
           cmConnectionsLimits = AcceptedConnectionsLimit {
               acceptedConnectionsHardLimit = maxBound,
@@ -343,8 +343,8 @@ withInitiatorOnlyConnectionManager name timeouts trTracer snocket localAddr
             -- TraceSendRecv
             haHandshakeTracer = (name,) `contramap` nullTracer,
             haHandshakeCodec = unversionedHandshakeCodec,
-            haVersionDataCodec = cborTermVersionDataCodec unversionedProtocolDataCodec,
-            haVersions = unversionedProtocol clientApplication,
+            haVersionDataCodec = cborTermVersionDataCodec dataFlowProtocolDataCodec,
+            haVersions = dataFlowProtocol Unidirectional clientApplication,
             haAcceptVersion = acceptableVersion,
             haTimeLimits = handshakeTimeLimits
           }
@@ -504,7 +504,7 @@ withBidirectionalConnectionManager name timeouts trTracer snocket socket localAd
           cmSnocket      = snocket,
           cmTimeWaitTimeout = tTimeWaitTimeout timeouts,
           cmOutboundIdleTimeout = tOutboundIdleTimeout timeouts,
-          connectionDataFlow = const Duplex,
+          connectionDataFlow = getProtocolDataFlow . snd,
           cmPrunePolicy = simplePrunePolicy,
           cmConnectionsLimits = AcceptedConnectionsLimit {
               acceptedConnectionsHardLimit = maxBound,
@@ -520,8 +520,8 @@ withBidirectionalConnectionManager name timeouts trTracer snocket socket localAd
               -- TraceSendRecv
               haHandshakeTracer = WithName name `contramap` nullTracer,
               haHandshakeCodec = unversionedHandshakeCodec,
-              haVersionDataCodec = cborTermVersionDataCodec unversionedProtocolDataCodec,
-              haVersions = unversionedProtocol serverApplication,
+              haVersionDataCodec = cborTermVersionDataCodec dataFlowProtocolDataCodec,
+              haVersions = dataFlowProtocol Duplex serverApplication,
               haAcceptVersion = acceptableVersion,
               haTimeLimits = handshakeTimeLimits
             }
