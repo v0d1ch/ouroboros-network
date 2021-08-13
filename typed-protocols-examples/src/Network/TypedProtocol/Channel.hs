@@ -51,7 +51,13 @@ data Channel m a = Channel {
        -- It may raise exceptions (as appropriate for the monad and kind of
        -- channel).
        --
-       recv :: m (Maybe a)
+       recv :: m (Maybe a),
+
+       -- | Try read some input from the channel.  The outer @Nothing@
+       -- indicates that data is not available, the inner @Nothing@ indicates an
+       -- EOF.
+       --
+       tryRecv :: m (Maybe (Maybe a))
      }
 
 
@@ -64,9 +70,12 @@ isoKleisliChannel
   -> (b -> m a)
   -> Channel m a
   -> Channel m b
-isoKleisliChannel f finv Channel{send, recv} = Channel {
-    send = finv >=> send,
-    recv = recv >>= traverse f
+isoKleisliChannel f finv Channel{send, recv, tryRecv} = Channel {
+    send    = finv >=> send,
+    recv    = recv >>= traverse f,
+    tryRecv = tryRecv >>= \ma -> case ma of
+                          Nothing -> return Nothing
+                          Just mb -> Just <$> traverse f mb
   }
 
 
@@ -75,8 +84,9 @@ hoistChannel
   -> Channel m a
   -> Channel n a
 hoistChannel nat channel = Channel
-  { send = nat . send channel
-  , recv = nat (recv channel)
+  { send    = nat . send channel
+  , recv    = nat (recv channel)
+  , tryRecv = nat (tryRecv channel)
   }
 
 -- | A 'Channel' with a fixed input, and where all output is discarded.
@@ -91,7 +101,7 @@ hoistChannel nat channel = Channel
 fixedInputChannel :: MonadSTM m => [a] -> m (Channel m a)
 fixedInputChannel xs0 = do
     v <- atomically $ newTVar xs0
-    return Channel {send, recv = recv v}
+    return Channel {send, recv = recv v, tryRecv = Just <$> recv v}
   where
     recv v = atomically $ do
                xs <- readTVar v
@@ -110,10 +120,11 @@ mvarsAsChannel :: MonadSTM m
                -> TMVar m a
                -> Channel m a 
 mvarsAsChannel bufferRead bufferWrite =
-    Channel{send, recv}
+    Channel{send, recv, tryRecv}
   where
-    send x = atomically (putTMVar bufferWrite x)
-    recv   = atomically (Just <$> takeTMVar bufferRead)
+    send x  = atomically (putTMVar bufferWrite x)
+    recv    = atomically (     Just <$>    takeTMVar bufferRead)
+    tryRecv = atomically (fmap Just <$> tryTakeTMVar bufferRead)
 
 
 -- | Create a pair of channels that are connected via one-place buffers.
@@ -151,10 +162,11 @@ createConnectedBufferedChannels sz = do
             queuesAsChannel bufferA bufferB)
   where
     queuesAsChannel bufferRead bufferWrite =
-        Channel{send, recv}
+        Channel{send, recv, tryRecv}
       where
-        send x = atomically (writeTBQueue bufferWrite x)
-        recv   = atomically (Just <$> readTBQueue bufferRead)
+        send x  = atomically (writeTBQueue bufferWrite x)
+        recv    = atomically (     Just <$> readTBQueue bufferRead)
+        tryRecv = atomically (fmap Just <$> tryReadTBQueue bufferRead)
 
 
 -- | Create a pair of channels that are connected via N-place buffers.
@@ -178,13 +190,14 @@ createPipelineTestChannels sz = do
             queuesAsChannel bufferA bufferB)
   where
     queuesAsChannel bufferRead bufferWrite =
-        Channel{send, recv}
+        Channel{send, recv, tryRecv}
       where
-        send x = atomically $ do
-                   full <- isFullTBQueue bufferWrite
-                   if full then error failureMsg
-                           else writeTBQueue bufferWrite x
-        recv   = atomically (Just <$> readTBQueue bufferRead)
+        send x  = atomically $ do
+                    full <- isFullTBQueue bufferWrite
+                    if full then error failureMsg
+                            else writeTBQueue bufferWrite x
+        recv    = atomically (     Just <$> readTBQueue bufferRead)
+        tryRecv = atomically (fmap Just <$> tryReadTBQueue bufferRead)
 
     failureMsg = "createPipelineTestChannels: "
               ++ "maximum pipeline depth exceeded: " ++ show sz
@@ -203,7 +216,7 @@ handlesAsChannel :: IO.Handle -- ^ Read handle
                  -> IO.Handle -- ^ Write handle
                  -> Channel IO LBS.ByteString
 handlesAsChannel hndRead hndWrite =
-    Channel{send, recv}
+    Channel{send, recv, tryRecv}
   where
     send :: LBS.ByteString -> IO ()
     send chunk = do
@@ -217,6 +230,14 @@ handlesAsChannel hndRead hndWrite =
         then return Nothing
         else Just . LBS.fromStrict <$> BS.hGetSome hndRead smallChunkSize
 
+    tryRecv :: IO (Maybe (Maybe LBS.ByteString))
+    tryRecv = do
+      eof <- IO.hIsEOF hndRead
+      if eof
+        then return (Just Nothing)
+        else (\bs -> if LBS.null bs then Nothing else Just (Just bs))
+         <$> LBS.hGetNonBlocking hndRead smallChunkSize
+
 
 -- | Transform a channel to add an extra action before /every/ send and after
 -- /every/ receive.
@@ -227,7 +248,7 @@ channelEffect :: forall m a.
               -> (Maybe a -> m ())  -- ^ Action after 'recv'
               -> Channel m a
               -> Channel m a
-channelEffect beforeSend afterRecv Channel{send, recv} =
+channelEffect beforeSend afterRecv Channel{send, recv, tryRecv} =
     Channel{
       send = \x -> do
         beforeSend x
@@ -237,6 +258,13 @@ channelEffect beforeSend afterRecv Channel{send, recv} =
         mx <- recv
         afterRecv mx
         return mx
+
+    , tryRecv = do
+        mmx <- tryRecv
+        case mmx of
+          Nothing -> return mmx
+          Just mx -> afterRecv mx
+                  >> return mmx
     }
 
 -- | Delay a channel on the receiver end.
@@ -263,10 +291,11 @@ loggingChannel :: ( MonadSay m
                => id
                -> Channel m a
                -> Channel m a
-loggingChannel ident Channel{send,recv} =
+loggingChannel ident Channel{send,recv,tryRecv} =
   Channel {
-    send = loggingSend,
-    recv = loggingRecv
+    send    = loggingSend,
+    recv    = loggingRecv,
+    tryRecv = loggingTryRecv
   }
  where
   loggingSend a = do
@@ -278,4 +307,11 @@ loggingChannel ident Channel{send,recv} =
     case msg of
       Nothing -> return ()
       Just a  -> say (show ident ++ ":recv:" ++ show a)
+    return msg
+
+  loggingTryRecv = do
+    msg <- tryRecv
+    case msg of
+      Just (Just a) -> say (show ident ++ ":recv:" ++ show a)
+      _             -> return ()
     return msg
