@@ -1,4 +1,5 @@
 {-# LANGUAGE DataKinds                #-}
+{-# LANGUAGE FlexibleContexts         #-}
 {-# LANGUAGE GADTs                    #-}
 {-# LANGUAGE RankNTypes               #-}
 {-# LANGUAGE PatternSynonyms          #-}
@@ -52,7 +53,8 @@ pattern Effect mclient = TP.Effect mclient
 pattern Yield :: forall ps pl st m a.
                  ()
               => forall st'.
-                 ( SingI st
+                 ( SingI (PeerHasAgency st)
+                 , SingI (ProtocolState st')
                  , StateAgency st ~ ClientAgency
                  )
               => Message ps st st'
@@ -67,7 +69,7 @@ pattern Yield msg k = TP.Yield ReflClientAgency msg k
 --
 pattern Await :: forall ps pl st m a.
                  ()
-              => ( SingI st
+              => ( SingI (PeerHasAgency st)
                  , StateAgency st ~ ServerAgency
                  )
               => (forall st'. Message ps st st'
@@ -81,7 +83,7 @@ pattern Await k = TP.Await ReflServerAgency k
 --
 pattern Done :: forall ps pl st m a.
                 ()
-             => ( SingI st
+             => ( SingI (ProtocolState st)
                 , StateAgency st ~ NobodyAgency
                 )
              => a
@@ -95,8 +97,8 @@ pattern Done a = TP.Done ReflNobodyAgency a
 pattern YieldPipelined :: forall ps st q m a.
                           ()
                        => forall st' st''.
-                          ( SingI st
-                          , SingI st'
+                          ( SingI (PeerHasAgency st)
+                          , SingI (ProtocolState st')
                           , StateAgency st ~ ClientAgency
                           )
                        => Message ps st st'
@@ -111,7 +113,7 @@ pattern YieldPipelined msg k = TP.YieldPipelined ReflClientAgency msg k
 --
 pattern Collect :: forall ps st' st'' q st m a.
                    ()
-                => ( SingI st'
+                => ( SingI (PeerHasAgency st')
                    , StateAgency st' ~ ServerAgency
                    )
                 => Maybe (Client ps 'Pipelined (Tr st' st'' <| q) st m a)

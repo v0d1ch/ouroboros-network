@@ -1,11 +1,14 @@
 {-# LANGUAGE DataKinds                  #-}
 {-# LANGUAGE FlexibleContexts           #-}
+{-# LANGUAGE FlexibleInstances          #-}
 {-# LANGUAGE GADTs                      #-}
 {-# LANGUAGE NamedFieldPuns             #-}
 {-# LANGUAGE PolyKinds                  #-}
 {-# LANGUAGE QuantifiedConstraints      #-}
 {-# LANGUAGE RankNTypes                 #-}
 {-# LANGUAGE ScopedTypeVariables        #-}
+{-# LANGUAGE StandaloneDeriving         #-}
+{-# LANGUAGE StandaloneKindSignatures   #-}
 {-# LANGUAGE TypeApplications           #-}
 {-# LANGUAGE TypeFamilies               #-}
 {-# LANGUAGE TypeInType                 #-}
@@ -22,6 +25,10 @@ module Network.TypedProtocol.Codec (
     -- ** Related types
   , PeerRole(..)
   , SomeMessage(..)
+  , PeerHasAgency
+  , PeerHasAgency'(..)
+  , SingPeerHasAgency
+  , SingPeerHasAgency'(..)
   , CodecFailure(..)
     -- ** Incremental decoding
   , DecodeStep(..)
@@ -47,7 +54,6 @@ import           Data.Monoid (All (..))
 import           Data.Singletons
 
 import           Network.TypedProtocol.Core
-                   (Protocol(..), PeerRole(..))
 
 
 -- | When decoding a 'Message' we only know the expected \"from\" state. We
@@ -56,7 +62,10 @@ import           Network.TypedProtocol.Core
 -- type to hide the \"to"\ state.
 --
 data SomeMessage (st :: ps) where
-     SomeMessage :: Message ps st st' -> SomeMessage st
+     SomeMessage :: ( SingI (ProtocolState st)
+                    , SingI (ProtocolState st')
+                    )
+                 => Message ps st st' -> SomeMessage st
 
 
 -- | A codec for a 'Protocol' handles the encoding and decoding of typed
@@ -133,12 +142,12 @@ data SomeMessage (st :: ps) where
 --
 data Codec ps failure m bytes = Codec {
        encode :: forall (st :: ps) (st' :: ps).
-                 SingI st
+                 SingI (PeerHasAgency st)
               => Message ps st st'
               -> bytes,
 
        decode :: forall (st :: ps).
-                 SingI st
+                 SingI (PeerHasAgency st)
               => m (DecodeStep bytes failure m (SomeMessage st))
      }
 
@@ -295,7 +304,7 @@ runDecoderPure runM decoder bs = runM (runDecoder bs =<< decoder)
 --
 data AnyMessage ps where
   AnyMessage :: forall ps (st :: ps) (st' :: ps).
-                SingI st
+                SingI (PeerHasAgency st)
              => Message ps (st :: ps) (st' :: ps)
              -> AnyMessage ps
 
@@ -305,7 +314,12 @@ instance
     , forall (st :: ps). Show (sing st)
     , sing ~ Sing
     ) => Show (AnyMessage ps) where
-  show (AnyMessage (msg :: Message ps st st')) = show (sing :: Sing st, msg)
+  show (AnyMessage (msg :: Message ps st st')) =
+    case sing :: Sing (PeerHasAgency st) of
+      SingClientHasAgency tok ->
+        show (tok, msg)
+      SingServerHasAgency tok ->
+        show (tok, msg)
 
 -- | The 'Codec' round-trip property: decode after encode gives the same
 -- message. Every codec must satisfy this property.
@@ -389,7 +403,7 @@ prop_codec_splits splits runM codec msg =
 data SamePeerHasAgency (pr :: PeerRole) (ps :: Type) where
   SamePeerHasAgency
     :: forall (pr :: PeerRole) ps (st :: ps) proxy.
-       SingI st
+       SingI (PeerHasAgency st)
     => !(proxy st)
     -> SamePeerHasAgency pr ps
 
@@ -421,7 +435,10 @@ prop_codec_binary_compatM
     codecA codecB stokEq
     (AnyMessage (msgA :: Message psA stA stA')) =
   let stokA :: Sing stA
-      stokA = sing
+      stokA = case sing :: Sing (PeerHasAgency stA) of
+        SingClientHasAgency a -> a
+        SingServerHasAgency a -> a
+
   in case stokEq stokA of
     SamePeerHasAgency (_ :: proxy stB) -> do
       -- 1.

@@ -1,4 +1,5 @@
 {-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE RankNTypes #-}
@@ -23,7 +24,8 @@ module Network.TypedProtocol.Driver (
   -- * Running a peer 
   runPeerWithDriver,
 
-  DecodeStep (..),
+  -- * Re-exports
+  DecodeStep (..)
   ) where
 
 import Data.Singletons
@@ -68,7 +70,9 @@ data Driver ps (pr :: PeerRole) bytes failure dstate m =
           -- | Send a message.
           --
           sendMessage    :: forall (st :: ps) (st' :: ps).
-                            SingI st
+                            ( SingI (PeerHasAgency st)
+                            , SingI (ProtocolState st')
+                            )
                          => (ReflRelativeAgency (StateAgency st)
                                                  WeHaveAgency
                                                 (Relative pr (StateAgency st)))
@@ -81,7 +85,7 @@ data Driver ps (pr :: PeerRole) bytes failure dstate m =
           -- 'tryRecvMessage'.
           --
           recvMessage    :: forall (st :: ps).
-                            SingI st
+                            SingI (PeerHasAgency st)
                          => (ReflRelativeAgency (StateAgency st)
                                                  TheyHaveAgency
                                                 (Relative pr (StateAgency st)))
@@ -96,7 +100,7 @@ data Driver ps (pr :: PeerRole) bytes failure dstate m =
           -- 'tryRecvMessage' ought to be non-blocking.
           --
           tryRecvMessage :: forall (st :: ps).
-                            SingI st
+                            SingI (PeerHasAgency st)
                          => (ReflRelativeAgency (StateAgency st)
                                                  TheyHaveAgency
                                                 (Relative pr (StateAgency st)))

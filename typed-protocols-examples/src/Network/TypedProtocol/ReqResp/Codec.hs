@@ -10,6 +10,7 @@ module Network.TypedProtocol.ReqResp.Codec where
 
 import           Data.Singletons
 
+import           Network.TypedProtocol.Core
 import           Network.TypedProtocol.Codec
 import           Network.TypedProtocol.ReqResp.Type
 import           Network.TypedProtocol.PingPong.Codec (decodeTerminatedFrame)
@@ -33,17 +34,17 @@ codecReqResp =
 
     decode :: forall req' resp' m'
                      (st :: ReqResp req' resp')
-           .  (Monad m', SingI st, Read req', Read resp')
+           .  (Monad m', SingI (PeerHasAgency st), Read req', Read resp')
            => m' (DecodeStep String CodecFailure m' (SomeMessage st))
     decode =
       decodeTerminatedFrame '\n' $ \str trailing ->
-        case (sing :: Sing st, break (==' ') str) of
-          (SingIdle, ("MsgReq", str'))
+        case (sing :: Sing (PeerHasAgency st), break (==' ') str) of
+          (SingClientHasAgency SingIdle, ("MsgReq", str'))
              | Just resp <- readMaybe str'
             -> DecodeDone (SomeMessage (MsgReq resp)) trailing
-          (SingIdle, ("MsgDone", ""))
+          (SingClientHasAgency SingIdle, ("MsgDone", ""))
             -> DecodeDone (SomeMessage MsgDone) trailing
-          (SingBusy, ("MsgResp", str'))
+          (SingServerHasAgency SingBusy, ("MsgResp", str'))
              | Just resp <- readMaybe str'
             -> DecodeDone (SomeMessage (MsgResp resp)) trailing
 

@@ -94,7 +94,7 @@ driverSimple tracer Codec{encode, decode} channel@Channel{send} =
     Driver { sendMessage, recvMessage, tryRecvMessage, startDState = Nothing }
   where
     sendMessage :: forall (st :: ps) (st' :: ps).
-                   SingI st
+                   SingI (PeerHasAgency st)
                 => (ReflRelativeAgency (StateAgency st)
                                         WeHaveAgency
                                        (Relative pr (StateAgency st)))
@@ -105,7 +105,7 @@ driverSimple tracer Codec{encode, decode} channel@Channel{send} =
       traceWith tracer (TraceSendMsg (AnyMessage msg))
 
     recvMessage :: forall (st :: ps).
-                   SingI st
+                   SingI (PeerHasAgency st)
                 => (ReflRelativeAgency (StateAgency st)
                                         TheyHaveAgency
                                        (Relative pr (StateAgency st)))
@@ -126,7 +126,7 @@ driverSimple tracer Codec{encode, decode} channel@Channel{send} =
           throwIO failure
 
     tryRecvMessage :: forall (st :: ps).
-                      SingI st
+                      SingI (PeerHasAgency st)
                    => (ReflRelativeAgency (StateAgency st)
                                            TheyHaveAgency
                                           (Relative pr (StateAgency st)))

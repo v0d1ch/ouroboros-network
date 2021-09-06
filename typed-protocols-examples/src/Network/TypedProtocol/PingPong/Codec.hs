@@ -1,5 +1,6 @@
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE NamedFieldPuns #-}
@@ -8,6 +9,7 @@ module Network.TypedProtocol.PingPong.Codec where
 
 import           Data.Singletons
 
+import           Network.TypedProtocol.Core
 import           Network.TypedProtocol.Codec
 import           Network.TypedProtocol.PingPong.Type
 
@@ -26,14 +28,17 @@ codecPingPong =
     encode MsgPong = "pong\n"
 
     decode :: forall (st :: PingPong).
-              SingI st
+              SingI (PeerHasAgency st)
            => m (DecodeStep String CodecFailure m (SomeMessage st))
     decode =
       decodeTerminatedFrame '\n' $ \str trailing ->
-        case (sing :: Sing st, str) of
-          (SingBusy, "pong") -> DecodeDone (SomeMessage MsgPong) trailing
-          (SingIdle, "ping") -> DecodeDone (SomeMessage MsgPing) trailing
-          (SingIdle, "done") -> DecodeDone (SomeMessage MsgDone) trailing
+        case (sing :: Sing (PeerHasAgency st), str) of
+          (SingServerHasAgency SingBusy, "pong") ->
+            DecodeDone (SomeMessage MsgPong) trailing
+          (SingClientHasAgency SingIdle, "ping") ->
+            DecodeDone (SomeMessage MsgPing) trailing
+          (SingClientHasAgency SingIdle, "done") ->
+            DecodeDone (SomeMessage MsgDone) trailing
 
           (_       , _     ) -> DecodeFail failure
             where failure = CodecFailure ("unexpected server message: " ++ str)
