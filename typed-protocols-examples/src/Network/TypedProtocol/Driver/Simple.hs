@@ -163,9 +163,9 @@ runPeer
   -> Codec ps failure m bytes
   -> Channel m bytes
   -> Peer ps pr pl Empty st m a
-  -> m a
+  -> m (a, Maybe bytes)
 runPeer tracer codec channel peer =
-    fst <$> runPeerWithDriver driver peer (startDState driver)
+    runPeerWithDriver driver peer (startDState driver)
   where
     driver = driverSimple tracer codec channel
 
@@ -233,9 +233,9 @@ runConnectedPeers :: forall ps pr pr' pl pl' st failure bytes m a b.
 runConnectedPeers createChannels tracer codec client server =
     createChannels >>= \(clientChannel, serverChannel) ->
 
-    runPeer tracerClient codec clientChannel client
+    (fst <$> runPeer tracerClient codec clientChannel client)
       `concurrently`
-    runPeer tracerServer codec serverChannel server
+    (fst <$> runPeer tracerServer codec serverChannel server)
   where
     tracerClient = contramap ((,) AsClient) tracer
     tracerServer = contramap ((,) AsServer) tracer
