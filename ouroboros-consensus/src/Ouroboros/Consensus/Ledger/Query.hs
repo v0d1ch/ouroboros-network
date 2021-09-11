@@ -95,6 +95,7 @@ data QueryEncoderException blk =
 deriving instance Show (SomeSecond BlockQuery blk) => Show (QueryEncoderException blk)
 instance (Typeable blk, Show (SomeSecond BlockQuery blk)) => Exception (QueryEncoderException blk)
 
+
 queryEncodeNodeToClient ::
      forall blk.
      Typeable blk
@@ -118,16 +119,26 @@ queryEncodeNodeToClient codecConfig queryVersion blockVersion (SomeSecond query)
           throw $ QueryEncoderUnsupportedQuery (SomeSecond query) queryVersion
 
     -- From version 1 onwards, we use normal constructor tags
-    QueryVersion1 ->
+    _ ->
       case query of
         BlockQuery blockQuery ->
-            encodeListLen 2
-         <> encodeWord8 0
-         <> encodeBlockQuery blockQuery
+          requireVersion QueryVersion1 queryVersion $ mconcat
+            [ encodeListLen 2
+            , encodeWord8 0
+            , encodeBlockQuery blockQuery
+            ]
+
         GetSystemStart ->
             encodeListLen 1
          <> encodeWord8 1
+
   where
+    requireVersion :: QueryVersion -> QueryVersion -> a -> a
+    requireVersion expectedVersion actualVersion a =
+      if actualVersion >= expectedVersion
+        then a
+        else throw $ QueryEncoderUnsupportedQuery (SomeSecond query) actualVersion
+
     encodeBlockQuery blockQuery =
       encodeNodeToClient
         @blk
@@ -146,14 +157,25 @@ queryDecodeNodeToClient ::
 queryDecodeNodeToClient codecConfig queryVersion blockVersion
   = case queryVersion of
       TopLevelQueryDisabled -> decodeBlockQuery
-      QueryVersion1 -> do
+      QueryVersion1         -> handleTopLevelQuery
+      QueryVersion2         -> handleTopLevelQuery
+  where
+    handleTopLevelQuery :: Decoder s (SomeSecond Query blk)
+    handleTopLevelQuery = do
         size <- decodeListLen
         tag  <- decodeWord8
         case (size, tag) of
-          (2, 0) -> decodeBlockQuery
-          (1, 1) -> return (SomeSecond GetSystemStart)
+          (2, 0) -> requireVersion "BlockQuery"        QueryVersion1   decodeBlockQuery
+          (1, 1) -> requireVersion "GetSystemStart"    QueryVersion1 $ return (SomeSecond GetSystemStart)
           _      -> fail $ "Query: invalid size and tag" <> show (size, tag)
-  where
+
+    requireVersion :: String -> QueryVersion -> Decoder s (SomeSecond Query blk) -> Decoder s (SomeSecond Query blk)
+    requireVersion name expectedVersion f =
+      if queryVersion >= expectedVersion
+        then f
+        else fail $ "Query: " <> name <> " requires at least " <> show expectedVersion
+
+    decodeBlockQuery :: Decoder s (SomeSecond Query blk)
     decodeBlockQuery = do
       SomeSecond blockQuery <- decodeNodeToClient
         @blk

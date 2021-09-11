@@ -231,14 +231,23 @@ instance ( blockVersion ~ BlockNodeToClientVersion blk
       Query.TopLevelQueryDisabled ->
         arbitraryBlockQuery queryVersion
 
-      Query.QueryVersion1 ->
-        frequency
-          [ (15, arbitraryBlockQuery queryVersion)
-          , (1,  do blockV <- arbitrary
-                    return (WithVersion (queryVersion, blockV)
-                                        (SomeSecond GetSystemStart)))
-          ]
+      Query.QueryVersion1 -> genTopLevelQuery queryVersion
+      Query.QueryVersion2 -> genTopLevelQuery queryVersion
     where
+      genTopLevelQuery queryVersion =
+        frequency
+          [ queryFrequencyFor Query.TopLevelQueryDisabled 15 $
+              arbitraryBlockQuery queryVersion
+          , queryFrequencyFor Query.QueryVersion1 1 $ do
+              blockV <- arbitrary
+              return (WithVersion (queryVersion, blockV) (SomeSecond GetSystemStart))
+          ]
+        where
+          queryFrequencyFor expectedVersion n f =
+            if queryVersion >= expectedVersion
+              then (n, f)
+              else (0, f)
+
       arbitraryBlockQuery :: QueryVersion
                           -> Gen (WithVersion (QueryVersion, blockVersion)
                                               (SomeSecond Query blk))
