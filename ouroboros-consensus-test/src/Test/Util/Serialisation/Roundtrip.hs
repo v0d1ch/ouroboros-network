@@ -241,6 +241,12 @@ instance ( blockVersion ~ BlockNodeToClientVersion blk
           , queryFrequencyFor Query.QueryVersion1 1 $ do
               blockV <- arbitrary
               return (WithVersion (queryVersion, blockV) (SomeSecond GetSystemStart))
+          , queryFrequencyFor Query.QueryVersion2 1 $ do
+              blockV <- arbitrary
+              return (WithVersion (queryVersion, blockV) (SomeSecond GetChainBlockNo))
+          , queryFrequencyFor Query.QueryVersion2 1 $ do
+              blockV <- arbitrary
+              return (WithVersion (queryVersion, blockV) (SomeSecond GetChainPoint))
           ]
         where
           queryFrequencyFor expectedVersion n f =
