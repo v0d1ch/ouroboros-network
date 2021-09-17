@@ -22,15 +22,15 @@
 </span><span id="line-22"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Shelley.ShelleyHFC.html#translateLedgerViewAcrossShelley"><span class="hs-identifier">translateLedgerViewAcrossShelley</span></a></span><span>
 </span><span id="line-23"></span><span>  </span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
 </span><span id="line-24"></span><span>
-</span><span id="line-25"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><span class="hs-identifier">Control.Monad</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">guard</span></span><span class="hs-special">)</span><span>
-</span><span id="line-26"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><span class="hs-identifier">Control.Monad.Except</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">runExcept</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">throwError</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">withExceptT</span></span><span class="hs-special">)</span><span>
-</span><span id="line-27"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Data.Map.Strict</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Map</span></span><span>
-</span><span id="line-28"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><span class="hs-identifier">Data.Maybe</span></span><span>
+</span><span id="line-25"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-identifier">Control.Monad</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-identifier">guard</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-26"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/mtl-2.2.2/src"><span class="hs-identifier">Control.Monad.Except</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/transformers-0.5.6.2/src"><span class="hs-identifier">runExcept</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/mtl-2.2.2/src"><span class="hs-identifier">throwError</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/transformers-0.5.6.2/src"><span class="hs-identifier">withExceptT</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-27"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/containers-0.6.2.1/src"><span class="hs-identifier">Data.Map.Strict</span></a></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Map</span></span><span>
+</span><span id="line-28"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-identifier">Data.Maybe</span></a></span><span>
 </span><span id="line-29"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier">Data.SOP.Strict</span></a></span><span>
-</span><span id="line-30"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Data.Text</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">T</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">pack</span></span><span class="hs-special">)</span><span>
-</span><span id="line-31"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><span class="hs-identifier">Data.Void</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Void</span></span><span class="hs-special">)</span><span>
-</span><span id="line-32"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><span class="hs-identifier">Data.Word</span></span><span>
-</span><span id="line-33"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><span class="hs-identifier">GHC.Generics</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Generic</span></span><span class="hs-special">)</span><span>
+</span><span id="line-30"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/text-1.2.4.1/src"><span class="hs-identifier">Data.Text</span></a></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">T</span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/text-1.2.4.1/src"><span class="hs-identifier">pack</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-31"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-identifier">Data.Void</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-identifier">Void</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-32"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-identifier">Data.Word</span></a></span><span>
+</span><span id="line-33"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-identifier">GHC.Generics</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-identifier">Generic</span></a></span><span class="hs-special">)</span><span>
 </span><span id="line-34"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><span class="hs-identifier">NoThunks.Class</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">NoThunks</span></span><span class="hs-special">)</span><span>
 </span><span id="line-35"></span><span>
 </span><span id="line-36"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><span class="hs-identifier">Cardano.Slotting.EpochInfo</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">hoistEpochInfo</span></span><span class="hs-special">)</span><span>
@@ -80,7 +80,7 @@ forall era. ShelleyGenesis era -&gt; EraParams
 -&gt; TopLevelConfig (ShelleyBlock era)
 -&gt; EraParams
 forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
-</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">ShelleyLedgerConfig era -&gt; ShelleyGenesis era
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-operator hs-var">.</span></a></span><span> </span><span class="annot"><span class="annottext">ShelleyLedgerConfig era -&gt; ShelleyGenesis era
 forall era. ShelleyLedgerConfig era -&gt; ShelleyGenesis era
 </span><a href="Ouroboros.Consensus.Shelley.Ledger.Ledger.html#shelleyLedgerGenesis"><span class="hs-identifier hs-var">shelleyLedgerGenesis</span></a></span><span>
 </span><span id="line-76"></span><span>      </span><span class="annot"><span class="annottext">(ShelleyLedgerConfig era -&gt; ShelleyGenesis era)
@@ -88,7 +88,7 @@ forall era. ShelleyLedgerConfig era -&gt; ShelleyGenesis era
 -&gt; TopLevelConfig (ShelleyBlock era)
 -&gt; ShelleyGenesis era
 forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
-</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">TopLevelConfig (ShelleyBlock era) -&gt; ShelleyLedgerConfig era
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-operator hs-var">.</span></a></span><span> </span><span class="annot"><span class="annottext">TopLevelConfig (ShelleyBlock era) -&gt; ShelleyLedgerConfig era
 forall blk. TopLevelConfig blk -&gt; LedgerConfig blk
 </span><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier hs-var">configLedger</span></a></span><span>
 </span><span id="line-77"></span><span>  </span><span id="local-6989586621679665758"><span class="annot"><span class="annottext">toPartialConsensusConfig :: proxy (ShelleyBlock era)
@@ -137,7 +137,7 @@ ShelleyLedgerConfig era
 -&gt; Map
      NodeToNodeVersion (HardForkNodeToNodeVersion '[ShelleyBlock era])
 forall a b k. (a -&gt; b) -&gt; Map k a -&gt; Map k b
-</span><span class="hs-identifier hs-var">Map.map</span></span><span> </span><span class="annot"><span class="annottext">ShelleyNodeToNodeVersion
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/containers-0.6.2.1/src"><span class="hs-identifier hs-var">Map.map</span></a></span><span> </span><span class="annot"><span class="annottext">ShelleyNodeToNodeVersion
 -&gt; HardForkNodeToNodeVersion '[ShelleyBlock era]
 forall x (xs1 :: [*]).
 BlockNodeToNodeVersion x -&gt; HardForkNodeToNodeVersion (x : xs1)
@@ -148,7 +148,7 @@ BlockNodeToNodeVersion x -&gt; HardForkNodeToNodeVersion (x : xs1)
 -&gt; Map
      NodeToNodeVersion (HardForkNodeToNodeVersion '[ShelleyBlock era])
 forall a b. (a -&gt; b) -&gt; a -&gt; b
-</span><span class="hs-operator hs-var">$</span></span><span>
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-operator hs-var">$</span></a></span><span>
 </span><span id="line-94"></span><span>      </span><span class="annot"><span class="annottext">Proxy (ShelleyBlock era)
 -&gt; Map
      NodeToNodeVersion (BlockNodeToNodeVersion (ShelleyBlock era))
@@ -157,7 +157,7 @@ SupportedNetworkProtocolVersion blk =&gt;
 Proxy blk -&gt; Map NodeToNodeVersion (BlockNodeToNodeVersion blk)
 </span><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier hs-var">supportedNodeToNodeVersions</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Proxy (ShelleyBlock era)
 forall k (t :: k). Proxy t
-</span><span class="hs-identifier hs-var">Proxy</span></span><span> </span><span class="hs-glyph">@</span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Consensus.Shelley.Ledger.Block.html#ShelleyBlock"><span class="hs-identifier hs-type">ShelleyBlock</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679665748"><span class="hs-identifier hs-type">era</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-identifier hs-var">Proxy</span></a></span><span> </span><span class="hs-glyph">@</span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Consensus.Shelley.Ledger.Block.html#ShelleyBlock"><span class="hs-identifier hs-type">ShelleyBlock</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679665748"><span class="hs-identifier hs-type">era</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
 </span><span id="line-95"></span><span>
 </span><span id="line-96"></span><span>  </span><span id="local-6989586621679665737"><span class="annot"><span class="annottext">supportedNodeToClientVersions :: Proxy (ShelleyBlockHFC era)
 -&gt; Map
@@ -172,7 +172,7 @@ forall k (t :: k). Proxy t
      NodeToClientVersion
      (HardForkNodeToClientVersion '[ShelleyBlock era])
 forall a b k. (a -&gt; b) -&gt; Map k a -&gt; Map k b
-</span><span class="hs-identifier hs-var">Map.map</span></span><span> </span><span class="annot"><span class="annottext">ShelleyNodeToClientVersion
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/containers-0.6.2.1/src"><span class="hs-identifier hs-var">Map.map</span></a></span><span> </span><span class="annot"><span class="annottext">ShelleyNodeToClientVersion
 -&gt; HardForkNodeToClientVersion '[ShelleyBlock era]
 forall x (xs1 :: [*]).
 BlockNodeToClientVersion x -&gt; HardForkNodeToClientVersion (x : xs1)
@@ -185,7 +185,7 @@ BlockNodeToClientVersion x -&gt; HardForkNodeToClientVersion (x : xs1)
      NodeToClientVersion
      (HardForkNodeToClientVersion '[ShelleyBlock era])
 forall a b. (a -&gt; b) -&gt; a -&gt; b
-</span><span class="hs-operator hs-var">$</span></span><span>
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-operator hs-var">$</span></a></span><span>
 </span><span id="line-98"></span><span>      </span><span class="annot"><span class="annottext">Proxy (ShelleyBlock era)
 -&gt; Map
      NodeToClientVersion (BlockNodeToClientVersion (ShelleyBlock era))
@@ -194,7 +194,7 @@ SupportedNetworkProtocolVersion blk =&gt;
 Proxy blk -&gt; Map NodeToClientVersion (BlockNodeToClientVersion blk)
 </span><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier hs-var">supportedNodeToClientVersions</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Proxy (ShelleyBlock era)
 forall k (t :: k). Proxy t
-</span><span class="hs-identifier hs-var">Proxy</span></span><span> </span><span class="hs-glyph">@</span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Consensus.Shelley.Ledger.Block.html#ShelleyBlock"><span class="hs-identifier hs-type">ShelleyBlock</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679665748"><span class="hs-identifier hs-type">era</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-identifier hs-var">Proxy</span></a></span><span> </span><span class="hs-glyph">@</span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Consensus.Shelley.Ledger.Block.html#ShelleyBlock"><span class="hs-identifier hs-type">ShelleyBlock</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679665748"><span class="hs-identifier hs-type">era</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
 </span><span id="line-99"></span><span>
 </span><span id="line-100"></span><span>  </span><span id="local-6989586621679665734"><span class="annot"><span class="annottext">latestReleasedNodeVersion :: Proxy (ShelleyBlockHFC era)
 -&gt; (Maybe NodeToNodeVersion, Maybe NodeToClientVersion)
@@ -228,9 +228,9 @@ Proxy blk -&gt; (Maybe NodeToNodeVersion, Maybe NodeToClientVersion)
 </span><span id="line-122"></span><span class="annot"><a href="Ouroboros.Consensus.Shelley.ShelleyHFC.html#shelleyTransition"><span class="hs-identifier hs-type">shelleyTransition</span></a></span><span> </span><span class="hs-glyph">::</span><span>
 </span><span id="line-123"></span><span>     </span><span class="hs-keyword">forall</span><span> </span><span id="local-6989586621679665936"><span class="annot"><a href="#local-6989586621679665936"><span class="hs-identifier hs-type">era</span></a></span></span><span class="hs-operator">.</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Shelley.Eras.html#ShelleyBasedEra"><span class="hs-identifier hs-type">ShelleyBasedEra</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679665936"><span class="hs-identifier hs-type">era</span></a></span><span>
 </span><span id="line-124"></span><span>  </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier hs-type">PartialLedgerConfig</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Consensus.Shelley.Ledger.Block.html#ShelleyBlock"><span class="hs-identifier hs-type">ShelleyBlock</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679665936"><span class="hs-identifier hs-type">era</span></a></span><span class="hs-special">)</span><span>
-</span><span id="line-125"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Word16</span></span><span>   </span><span class="hs-comment">-- ^ Next era's major protocol version</span><span>
+</span><span id="line-125"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-identifier hs-type">Word16</span></a></span><span>   </span><span class="hs-comment">-- ^ Next era's major protocol version</span><span>
 </span><span id="line-126"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier hs-type">LedgerState</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Consensus.Shelley.Ledger.Block.html#ShelleyBlock"><span class="hs-identifier hs-type">ShelleyBlock</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679665936"><span class="hs-identifier hs-type">era</span></a></span><span class="hs-special">)</span><span>
-</span><span id="line-127"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">EpochNo</span></span><span>
+</span><span id="line-127"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-identifier hs-type">Maybe</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">EpochNo</span></span><span>
 </span><span id="line-128"></span><span id="shelleyTransition"><span class="annot"><span class="annottext">shelleyTransition :: PartialLedgerConfig (ShelleyBlock era)
 -&gt; Word16 -&gt; LedgerState (ShelleyBlock era) -&gt; Maybe EpochNo
 </span><a href="Ouroboros.Consensus.Shelley.ShelleyHFC.html#shelleyTransition"><span class="hs-identifier hs-var hs-var">shelleyTransition</span></a></span></span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Shelley.ShelleyHFC.html#ShelleyPartialLedgerConfig"><span class="hs-identifier hs-type">ShelleyPartialLedgerConfig</span></a></span><span class="hs-special">{</span><span id="local-6989586621679665697"><span id="local-6989586621679665698"><span class="annot"><a href="#local-6989586621679665697"><span class="hs-glyph hs-var hs-var hs-var hs-var">..</span></a></span></span></span><span class="hs-special">}</span><span>
@@ -246,17 +246,17 @@ forall a. [a] -&gt; Maybe a
 -&gt; LedgerState (ShelleyBlock era)
 -&gt; Maybe EpochNo
 forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
-</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">(ProtocolUpdate era -&gt; Maybe EpochNo)
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-operator hs-var">.</span></a></span><span> </span><span class="annot"><span class="annottext">(ProtocolUpdate era -&gt; Maybe EpochNo)
 -&gt; [ProtocolUpdate era] -&gt; [EpochNo]
 forall a b. (a -&gt; Maybe b) -&gt; [a] -&gt; [b]
-</span><span class="hs-identifier hs-var">mapMaybe</span></span><span> </span><span class="annot"><span class="annottext">ProtocolUpdate era -&gt; Maybe EpochNo
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-identifier hs-var">mapMaybe</span></a></span><span> </span><span class="annot"><span class="annottext">ProtocolUpdate era -&gt; Maybe EpochNo
 </span><a href="#local-6989586621679665692"><span class="hs-identifier hs-var">isTransition</span></a></span><span>
 </span><span id="line-133"></span><span>    </span><span class="annot"><span class="annottext">([ProtocolUpdate era] -&gt; [EpochNo])
 -&gt; (LedgerState (ShelleyBlock era) -&gt; [ProtocolUpdate era])
 -&gt; LedgerState (ShelleyBlock era)
 -&gt; [EpochNo]
 forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
-</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">ShelleyGenesis era
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-operator hs-var">.</span></a></span><span> </span><span class="annot"><span class="annottext">ShelleyGenesis era
 -&gt; LedgerState (ShelleyBlock era) -&gt; [ProtocolUpdate era]
 forall era.
 ShelleyBasedEra era =&gt;
@@ -267,7 +267,7 @@ ShelleyGenesis era
 </span><span id="line-134"></span><span>    </span><span class="annot"><span class="annottext">(LedgerState (ShelleyBlock era) -&gt; Maybe EpochNo)
 -&gt; LedgerState (ShelleyBlock era) -&gt; Maybe EpochNo
 forall a b. (a -&gt; b) -&gt; a -&gt; b
-</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">LedgerState (ShelleyBlock era)
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-operator hs-var">$</span></a></span><span> </span><span class="annot"><span class="annottext">LedgerState (ShelleyBlock era)
 </span><a href="#local-6989586621679665695"><span class="hs-identifier hs-var">state</span></a></span><span>
 </span><span id="line-135"></span><span>  </span><span class="hs-keyword">where</span><span>
 </span><span id="line-136"></span><span>    </span><span class="annot"><a href="Ouroboros.Consensus.Shelley.Ledger.Ledger.html#ShelleyTransitionInfo"><span class="hs-identifier hs-type">ShelleyTransitionInfo</span></a></span><span class="hs-special">{</span><span id="local-6989586621679665688"><span class="annot"><span class="annottext">SizeInBytes
@@ -287,14 +287,14 @@ forall era. ShelleyLedgerConfig era -&gt; ShelleyGenesis era
 </span><a href="Ouroboros.Consensus.Shelley.Ledger.Ledger.html#shelleyLedgerGenesis"><span class="hs-identifier hs-var">shelleyLedgerGenesis</span></a></span><span> </span><span class="annot"><span class="annottext">ShelleyLedgerConfig era
 </span><a href="#local-6989586621679665698"><span class="hs-identifier hs-var">shelleyLedgerConfig</span></a></span><span>
 </span><span id="line-142"></span><span>
-</span><span id="line-143"></span><span>    </span><span class="annot"><a href="#local-6989586621679665685"><span class="hs-identifier hs-type">k</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Word64</span></span><span>
+</span><span id="line-143"></span><span>    </span><span class="annot"><a href="#local-6989586621679665685"><span class="hs-identifier hs-type">k</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-identifier hs-type">Word64</span></a></span><span>
 </span><span id="line-144"></span><span>    </span><span id="local-6989586621679665685"><span class="annot"><span class="annottext">k :: Word64
 </span><a href="#local-6989586621679665685"><span class="hs-identifier hs-var hs-var">k</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">ShelleyGenesis era -&gt; Word64
 forall era. ShelleyGenesis era -&gt; Word64
 </span><span class="hs-identifier hs-var hs-var">SL.sgSecurityParam</span></span><span> </span><span class="annot"><span class="annottext">ShelleyGenesis era
 </span><a href="#local-6989586621679665690"><span class="hs-identifier hs-var">genesis</span></a></span><span>
 </span><span id="line-145"></span><span>
-</span><span id="line-146"></span><span>    </span><span class="annot"><a href="#local-6989586621679665692"><span class="hs-identifier hs-type">isTransition</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Shelley.Ledger.Inspect.html#ProtocolUpdate"><span class="hs-identifier hs-type">Shelley.Inspect.ProtocolUpdate</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679665936"><span class="hs-identifier hs-type">era</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">EpochNo</span></span><span>
+</span><span id="line-146"></span><span>    </span><span class="annot"><a href="#local-6989586621679665692"><span class="hs-identifier hs-type">isTransition</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Shelley.Ledger.Inspect.html#ProtocolUpdate"><span class="hs-identifier hs-type">Shelley.Inspect.ProtocolUpdate</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679665936"><span class="hs-identifier hs-type">era</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-identifier hs-type">Maybe</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">EpochNo</span></span><span>
 </span><span id="line-147"></span><span>    </span><span id="local-6989586621679665692"><span class="annot"><span class="annottext">isTransition :: ProtocolUpdate era -&gt; Maybe EpochNo
 </span><a href="#local-6989586621679665692"><span class="hs-identifier hs-var hs-var">isTransition</span></a></span></span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Shelley.Ledger.Inspect.html#ProtocolUpdate"><span class="hs-identifier hs-type">Shelley.Inspect.ProtocolUpdate</span></a></span><span class="hs-special">{</span><span id="local-6989586621679665681"><span id="local-6989586621679665682"><span class="annot"><span class="annottext">UpdateState (EraCrypto era)
 UpdateProposal era
@@ -309,35 +309,35 @@ protocolUpdateProposal :: UpdateProposal era
 </span><a href="#local-6989586621679665675"><span class="hs-identifier hs-var">proposalVersion</span></a></span><span>
 </span><span id="line-149"></span><span>         </span><span class="annot"><span class="annottext">Bool -&gt; Maybe ()
 forall (f :: * -&gt; *). Alternative f =&gt; Bool -&gt; f ()
-</span><span class="hs-identifier hs-var">guard</span></span><span> </span><span class="annot"><span class="annottext">(Bool -&gt; Maybe ()) -&gt; Bool -&gt; Maybe ()
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-identifier hs-var">guard</span></a></span><span> </span><span class="annot"><span class="annottext">(Bool -&gt; Maybe ()) -&gt; Bool -&gt; Maybe ()
 forall a b. (a -&gt; b) -&gt; a -&gt; b
-</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Natural -&gt; Word16
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-operator hs-var">$</span></a></span><span> </span><span class="annot"><span class="annottext">Natural -&gt; Word16
 forall a b. (Integral a, Num b) =&gt; a -&gt; b
-</span><span class="hs-identifier hs-var">fromIntegral</span></span><span> </span><span class="annot"><span class="annottext">Natural
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-identifier hs-var">fromIntegral</span></a></span><span> </span><span class="annot"><span class="annottext">Natural
 </span><a href="#local-6989586621679665677"><span class="hs-identifier hs-var">major</span></a></span><span> </span><span class="annot"><span class="annottext">Word16 -&gt; Word16 -&gt; Bool
 forall a. Eq a =&gt; a -&gt; a -&gt; Bool
-</span><span class="hs-operator hs-var">==</span></span><span> </span><span class="annot"><span class="annottext">Word16
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/ghc-prim-0.6.1/src"><span class="hs-operator hs-var">==</span></a></span><span> </span><span class="annot"><span class="annottext">Word16
 </span><a href="#local-6989586621679665696"><span class="hs-identifier hs-var">transitionMajorVersion</span></a></span><span>
 </span><span id="line-150"></span><span>         </span><span class="annot"><span class="annottext">Bool -&gt; Maybe ()
 forall (f :: * -&gt; *). Alternative f =&gt; Bool -&gt; f ()
-</span><span class="hs-identifier hs-var">guard</span></span><span> </span><span class="annot"><span class="annottext">(Bool -&gt; Maybe ()) -&gt; Bool -&gt; Maybe ()
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-identifier hs-var">guard</span></a></span><span> </span><span class="annot"><span class="annottext">(Bool -&gt; Maybe ()) -&gt; Bool -&gt; Maybe ()
 forall a b. (a -&gt; b) -&gt; a -&gt; b
-</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Bool
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-operator hs-var">$</span></a></span><span> </span><span class="annot"><span class="annottext">Bool
 </span><a href="#local-6989586621679665674"><span class="hs-identifier hs-var">proposalReachedQuorum</span></a></span><span>
 </span><span id="line-151"></span><span>         </span><span class="annot"><span class="annottext">Bool -&gt; Maybe ()
 forall (f :: * -&gt; *). Alternative f =&gt; Bool -&gt; f ()
-</span><span class="hs-identifier hs-var">guard</span></span><span> </span><span class="annot"><span class="annottext">(Bool -&gt; Maybe ()) -&gt; Bool -&gt; Maybe ()
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-identifier hs-var">guard</span></a></span><span> </span><span class="annot"><span class="annottext">(Bool -&gt; Maybe ()) -&gt; Bool -&gt; Maybe ()
 forall a b. (a -&gt; b) -&gt; a -&gt; b
-</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">SizeInBytes
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-operator hs-var">$</span></a></span><span> </span><span class="annot"><span class="annottext">SizeInBytes
 </span><a href="#local-6989586621679665688"><span class="hs-identifier hs-var">shelleyAfterVoting</span></a></span><span> </span><span class="annot"><span class="annottext">SizeInBytes -&gt; SizeInBytes -&gt; Bool
 forall a. Ord a =&gt; a -&gt; a -&gt; Bool
-</span><span class="hs-operator hs-var">&gt;=</span></span><span> </span><span class="annot"><span class="annottext">Word64 -&gt; SizeInBytes
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/ghc-prim-0.6.1/src"><span class="hs-operator hs-var">&gt;=</span></a></span><span> </span><span class="annot"><span class="annottext">Word64 -&gt; SizeInBytes
 forall a b. (Integral a, Num b) =&gt; a -&gt; b
-</span><span class="hs-identifier hs-var">fromIntegral</span></span><span> </span><span class="annot"><span class="annottext">Word64
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-identifier hs-var">fromIntegral</span></a></span><span> </span><span class="annot"><span class="annottext">Word64
 </span><a href="#local-6989586621679665685"><span class="hs-identifier hs-var">k</span></a></span><span>
 </span><span id="line-152"></span><span>         </span><span class="annot"><span class="annottext">EpochNo -&gt; Maybe EpochNo
 forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
-</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">EpochNo
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-identifier hs-var">return</span></a></span><span> </span><span class="annot"><span class="annottext">EpochNo
 </span><a href="#local-6989586621679665673"><span class="hs-identifier hs-var">proposalEpoch</span></a></span><span>
 </span><span id="line-153"></span><span>       </span><span class="hs-keyword">where</span><span>
 </span><span id="line-154"></span><span>         </span><span class="annot"><a href="Ouroboros.Consensus.Shelley.Ledger.Inspect.html#UpdateProposal"><span class="hs-identifier hs-type">Shelley.Inspect.UpdateProposal</span></a></span><span class="hs-special">{</span><span id="local-6989586621679665671"><span id="local-6989586621679665673"><span id="local-6989586621679665675"><span class="annot"><span class="annottext">Maybe ProtVer
@@ -364,11 +364,11 @@ proposalReachedQuorum :: Bool
 </span><span id="line-158"></span><span>    </span><span class="hs-comment">-- major protocol version. In practice this can't happen because each</span><span>
 </span><span id="line-159"></span><span>    </span><span class="hs-comment">-- delegate can only vote for one proposal, but the types don't guarantee</span><span>
 </span><span id="line-160"></span><span>    </span><span class="hs-comment">-- this. We don't need to worry about this, and just pick any of them.</span><span>
-</span><span id="line-161"></span><span>    </span><span id="local-6989586621679665989"><span class="annot"><a href="#local-6989586621679665694"><span class="hs-identifier hs-type">takeAny</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">[</span><span class="annot"><a href="#local-6989586621679665989"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><a href="#local-6989586621679665989"><span class="hs-identifier hs-type">a</span></a></span></span><span>
+</span><span id="line-161"></span><span>    </span><span id="local-6989586621679665989"><span class="annot"><a href="#local-6989586621679665694"><span class="hs-identifier hs-type">takeAny</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">[</span><span class="annot"><a href="#local-6989586621679665989"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-identifier hs-type">Maybe</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679665989"><span class="hs-identifier hs-type">a</span></a></span></span><span>
 </span><span id="line-162"></span><span>    </span><span id="local-6989586621679665694"><span class="annot"><span class="annottext">takeAny :: [a] -&gt; Maybe a
 </span><a href="#local-6989586621679665694"><span class="hs-identifier hs-var hs-var">takeAny</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[a] -&gt; Maybe a
 forall a. [a] -&gt; Maybe a
-</span><span class="hs-identifier hs-var">listToMaybe</span></span><span>
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-identifier hs-var">listToMaybe</span></a></span><span>
 </span><span id="line-163"></span><span>
 </span><span id="line-164"></span><span id="local-6989586621679665662"><span class="hs-keyword">instance</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Shelley.Eras.html#ShelleyBasedEra"><span class="hs-identifier hs-type">ShelleyBasedEra</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679665662"><span class="hs-identifier hs-type">era</span></a></span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier hs-type">SingleEraBlock</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Consensus.Shelley.Ledger.Block.html#ShelleyBlock"><span class="hs-identifier hs-type">ShelleyBlock</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679665662"><span class="hs-identifier hs-type">era</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
 </span><span id="line-165"></span><span>  </span><span id="local-6989586621679665636"><span class="annot"><span class="annottext">singleEraTransition :: PartialLedgerConfig (ShelleyBlock era)
@@ -389,11 +389,11 @@ ShelleyPartialLedgerConfig era
 </span><span id="line-167"></span><span>        </span><span class="annot"><span class="annottext">TriggerHardFork
 </span><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier hs-var">TriggerHardForkNever</span></a></span><span>                         </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Maybe EpochNo
 forall a. Maybe a
-</span><span class="hs-identifier hs-var">Nothing</span></span><span>
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-identifier hs-var">Nothing</span></a></span><span>
 </span><span id="line-168"></span><span>        </span><span class="annot"><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier hs-type">TriggerHardForkAtEpoch</span></a></span><span>   </span><span id="local-6989586621679665629"><span class="annot"><span class="annottext">EpochNo
 </span><a href="#local-6989586621679665629"><span class="hs-identifier hs-var">epoch</span></a></span></span><span>               </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">EpochNo -&gt; Maybe EpochNo
 forall a. a -&gt; Maybe a
-</span><span class="hs-identifier hs-var">Just</span></span><span> </span><span class="annot"><span class="annottext">EpochNo
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-identifier hs-var">Just</span></a></span><span> </span><span class="annot"><span class="annottext">EpochNo
 </span><a href="#local-6989586621679665629"><span class="hs-identifier hs-var">epoch</span></a></span><span>
 </span><span id="line-169"></span><span>        </span><span class="annot"><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier hs-type">TriggerHardForkAtVersion</span></a></span><span> </span><span id="local-6989586621679665627"><span class="annot"><span class="annottext">Word16
 </span><a href="#local-6989586621679665627"><span class="hs-identifier hs-var">shelleyMajorVersion</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
@@ -422,7 +422,7 @@ ShelleyBasedEra era =&gt;
 proxy era -&gt; Text
 </span><a href="Ouroboros.Consensus.Shelley.Eras.html#shelleyBasedEraName"><span class="hs-identifier hs-var">shelleyBasedEraName</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Proxy era
 forall k (t :: k). Proxy t
-</span><span class="hs-identifier hs-var">Proxy</span></span><span> </span><span class="hs-glyph">@</span><span class="annot"><a href="#local-6989586621679665662"><span class="hs-identifier hs-type">era</span></a></span><span class="hs-special">)</span><span>
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-identifier hs-var">Proxy</span></a></span><span> </span><span class="hs-glyph">@</span><span class="annot"><a href="#local-6989586621679665662"><span class="hs-identifier hs-type">era</span></a></span><span class="hs-special">)</span><span>
 </span><span id="line-177"></span><span>    </span><span class="hs-special">}</span></span><span>
 </span><span id="line-178"></span><span>
 </span><span id="line-179"></span><span id="local-6989586621679665621"><span class="hs-keyword">instance</span><span> </span><span class="annot"><span class="hs-identifier hs-type">PraosCrypto</span></span><span> </span><span class="annot"><a href="#local-6989586621679665621"><span class="hs-identifier hs-type">c</span></a></span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier hs-type">HasPartialConsensusConfig</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Consensus.Shelley.Protocol.html#TPraos"><span class="hs-identifier hs-type">TPraos</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679665621"><span class="hs-identifier hs-type">c</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
@@ -488,7 +488,7 @@ Rep (ShelleyPartialLedgerConfig era) x
 $cfrom :: forall era x.
 ShelleyPartialLedgerConfig era
 -&gt; Rep (ShelleyPartialLedgerConfig era) x
-</span><span class="hs-identifier hs-var hs-var hs-var hs-var">Generic</span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679665600"><span id="local-6989586621679665602"><span id="local-6989586621679665604"><span class="annot"><span class="annottext">Context -&gt; ShelleyPartialLedgerConfig era -&gt; IO (Maybe ThunkInfo)
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-identifier hs-var hs-var hs-var hs-var">Generic</span></a></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679665600"><span id="local-6989586621679665602"><span id="local-6989586621679665604"><span class="annot"><span class="annottext">Context -&gt; ShelleyPartialLedgerConfig era -&gt; IO (Maybe ThunkInfo)
 Proxy (ShelleyPartialLedgerConfig era) -&gt; String
 (Context -&gt; ShelleyPartialLedgerConfig era -&gt; IO (Maybe ThunkInfo))
 -&gt; (Context
@@ -548,23 +548,23 @@ forall (m :: * -&gt; *) (n :: * -&gt; *).
 </span><span class="hs-identifier hs-var">hoistEpochInfo</span></span><span>
 </span><span id="line-206"></span><span>                    </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Except Text a -&gt; Either Text a
 forall e a. Except e a -&gt; Either e a
-</span><span class="hs-identifier hs-var">runExcept</span></span><span> </span><span class="annot"><span class="annottext">(Except Text a -&gt; Either Text a)
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/transformers-0.5.6.2/src"><span class="hs-identifier hs-var">runExcept</span></a></span><span> </span><span class="annot"><span class="annottext">(Except Text a -&gt; Either Text a)
 -&gt; (ExceptT PastHorizonException Identity a -&gt; Except Text a)
 -&gt; ExceptT PastHorizonException Identity a
 -&gt; Either Text a
 forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
-</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">(PastHorizonException -&gt; Text)
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-operator hs-var">.</span></a></span><span> </span><span class="annot"><span class="annottext">(PastHorizonException -&gt; Text)
 -&gt; ExceptT PastHorizonException Identity a -&gt; Except Text a
 forall (m :: * -&gt; *) e e' a.
 Functor m =&gt;
 (e -&gt; e') -&gt; ExceptT e m a -&gt; ExceptT e' m a
-</span><span class="hs-identifier hs-var">withExceptT</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">String -&gt; Text
-</span><span class="hs-identifier hs-var">T.pack</span></span><span> </span><span class="annot"><span class="annottext">(String -&gt; Text)
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/transformers-0.5.6.2/src"><span class="hs-identifier hs-var">withExceptT</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">String -&gt; Text
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/text-1.2.4.1/src"><span class="hs-identifier hs-var">T.pack</span></a></span><span> </span><span class="annot"><span class="annottext">(String -&gt; Text)
 -&gt; (PastHorizonException -&gt; String) -&gt; PastHorizonException -&gt; Text
 forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
-</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">PastHorizonException -&gt; String
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-operator hs-var">.</span></a></span><span> </span><span class="annot"><span class="annottext">PastHorizonException -&gt; String
 forall a. Show a =&gt; a -&gt; String
-</span><span class="hs-identifier hs-var">show</span></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-identifier hs-var">show</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
 </span><span id="line-207"></span><span>                    </span><span class="annot"><span class="annottext">EpochInfo (Except PastHorizonException)
 </span><a href="#local-6989586621679665591"><span class="hs-identifier hs-var">epochInfo</span></a></span><span>
 </span><span id="line-208"></span><span>            </span><span class="hs-special">}</span><span>
@@ -573,7 +573,7 @@ forall a. Show a =&gt; a -&gt; String
 </span><span id="line-211"></span><span class="hs-comment">-- | Forecast from a Shelley-based era to the next Shelley-based era.</span><span>
 </span><span id="line-212"></span><span class="annot"><a href="Ouroboros.Consensus.Shelley.ShelleyHFC.html#forecastAcrossShelley"><span class="hs-identifier hs-type">forecastAcrossShelley</span></a></span><span> </span><span class="hs-glyph">::</span><span>
 </span><span id="line-213"></span><span>     </span><span class="hs-keyword">forall</span><span> </span><span id="local-6989586621679665828"><span class="annot"><a href="#local-6989586621679665828"><span class="hs-identifier hs-type">eraFrom</span></a></span></span><span> </span><span id="local-6989586621679665827"><span class="annot"><a href="#local-6989586621679665827"><span class="hs-identifier hs-type">eraTo</span></a></span></span><span class="hs-operator">.</span><span>
-</span><span id="line-214"></span><span>     </span><span class="hs-special">(</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Shelley.Eras.html#EraCrypto"><span class="hs-identifier hs-type">EraCrypto</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679665828"><span class="hs-identifier hs-type">eraFrom</span></a></span><span> </span><span class="annot"><span class="hs-glyph hs-type">~</span></span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Shelley.Eras.html#EraCrypto"><span class="hs-identifier hs-type">EraCrypto</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679665827"><span class="hs-identifier hs-type">eraTo</span></a></span><span>
+</span><span id="line-214"></span><span>     </span><span class="hs-special">(</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Shelley.Eras.html#EraCrypto"><span class="hs-identifier hs-type">EraCrypto</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679665828"><span class="hs-identifier hs-type">eraFrom</span></a></span><span> </span><span class="annot"><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/ghc-prim-0.6.1/src"><span class="hs-glyph hs-type">~</span></a></span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Shelley.Eras.html#EraCrypto"><span class="hs-identifier hs-type">EraCrypto</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679665827"><span class="hs-identifier hs-type">eraTo</span></a></span><span>
 </span><span id="line-215"></span><span>     </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Shelley.Eras.html#ShelleyBasedEra"><span class="hs-identifier hs-type">ShelleyBasedEra</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679665828"><span class="hs-identifier hs-type">eraFrom</span></a></span><span>
 </span><span id="line-216"></span><span>     </span><span class="hs-special">)</span><span>
 </span><span id="line-217"></span><span>  </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Shelley.Ledger.Ledger.html#ShelleyLedgerConfig"><span class="hs-identifier hs-type">ShelleyLedgerConfig</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679665828"><span class="hs-identifier hs-type">eraFrom</span></a></span><span>
@@ -581,7 +581,7 @@ forall a. Show a =&gt; a -&gt; String
 </span><span id="line-219"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier hs-type">Bound</span></a></span><span>  </span><span class="hs-comment">-- ^ Transition between the two eras</span><span>
 </span><span id="line-220"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">SlotNo</span></span><span> </span><span class="hs-comment">-- ^ Forecast for this slot</span><span>
 </span><span id="line-221"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier hs-type">LedgerState</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Consensus.Shelley.Ledger.Block.html#ShelleyBlock"><span class="hs-identifier hs-type">ShelleyBlock</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679665828"><span class="hs-identifier hs-type">eraFrom</span></a></span><span class="hs-special">)</span><span>
-</span><span id="line-222"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Except</span></span><span> </span><span class="annot"><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier hs-type">OutsideForecastRange</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier hs-type">Ticked</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier hs-type">WrapLedgerView</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Consensus.Shelley.Ledger.Block.html#ShelleyBlock"><span class="hs-identifier hs-type">ShelleyBlock</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679665827"><span class="hs-identifier hs-type">eraTo</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-222"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/transformers-0.5.6.2/src"><span class="hs-identifier hs-type">Except</span></a></span><span> </span><span class="annot"><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier hs-type">OutsideForecastRange</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier hs-type">Ticked</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier hs-type">WrapLedgerView</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Consensus.Shelley.Ledger.Block.html#ShelleyBlock"><span class="hs-identifier hs-type">ShelleyBlock</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679665827"><span class="hs-identifier hs-type">eraTo</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
 </span><span id="line-223"></span><span id="forecastAcrossShelley"><span class="annot"><span class="annottext">forecastAcrossShelley :: ShelleyLedgerConfig eraFrom
 -&gt; ShelleyLedgerConfig eraTo
 -&gt; Bound
@@ -598,13 +598,13 @@ forall a. Show a =&gt; a -&gt; String
 </span><span id="line-224"></span><span>    </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">SlotNo
 </span><a href="#local-6989586621679665583"><span class="hs-identifier hs-var">forecastFor</span></a></span><span> </span><span class="annot"><span class="annottext">SlotNo -&gt; SlotNo -&gt; Bool
 forall a. Ord a =&gt; a -&gt; a -&gt; Bool
-</span><span class="hs-operator hs-var">&lt;</span></span><span> </span><span class="annot"><span class="annottext">SlotNo
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/ghc-prim-0.6.1/src"><span class="hs-operator hs-var">&lt;</span></a></span><span> </span><span class="annot"><span class="annottext">SlotNo
 </span><a href="#local-6989586621679665580"><span class="hs-identifier hs-var">maxFor</span></a></span><span>
 </span><span id="line-225"></span><span>    </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Ticked (WrapLedgerView (ShelleyBlock eraTo))
 -&gt; Except
      OutsideForecastRange (Ticked (WrapLedgerView (ShelleyBlock eraTo)))
 forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
-</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">(Ticked (WrapLedgerView (ShelleyBlock eraTo))
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-identifier hs-var">return</span></a></span><span> </span><span class="annot"><span class="annottext">(Ticked (WrapLedgerView (ShelleyBlock eraTo))
  -&gt; Except
       OutsideForecastRange
       (Ticked (WrapLedgerView (ShelleyBlock eraTo))))
@@ -612,16 +612,16 @@ forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
 -&gt; Except
      OutsideForecastRange (Ticked (WrapLedgerView (ShelleyBlock eraTo)))
 forall a b. (a -&gt; b) -&gt; a -&gt; b
-</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">SlotNo -&gt; Ticked (WrapLedgerView (ShelleyBlock eraTo))
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-operator hs-var">$</span></a></span><span> </span><span class="annot"><span class="annottext">SlotNo -&gt; Ticked (WrapLedgerView (ShelleyBlock eraTo))
 </span><a href="#local-6989586621679665579"><span class="hs-identifier hs-var">futureLedgerView</span></a></span><span> </span><span class="annot"><span class="annottext">SlotNo
 </span><a href="#local-6989586621679665583"><span class="hs-identifier hs-var">forecastFor</span></a></span><span>
 </span><span id="line-226"></span><span>    </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Bool
-</span><span class="hs-identifier hs-var">otherwise</span></span><span>
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-identifier hs-var">otherwise</span></a></span><span>
 </span><span id="line-227"></span><span>    </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">OutsideForecastRange
 -&gt; Except
      OutsideForecastRange (Ticked (WrapLedgerView (ShelleyBlock eraTo)))
 forall e (m :: * -&gt; *) a. MonadError e m =&gt; e -&gt; m a
-</span><span class="hs-identifier hs-var">throwError</span></span><span> </span><span class="annot"><span class="annottext">(OutsideForecastRange
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/mtl-2.2.2/src"><span class="hs-identifier hs-var">throwError</span></a></span><span> </span><span class="annot"><span class="annottext">(OutsideForecastRange
  -&gt; Except
       OutsideForecastRange
       (Ticked (WrapLedgerView (ShelleyBlock eraTo))))
@@ -629,7 +629,7 @@ forall e (m :: * -&gt; *) a. MonadError e m =&gt; e -&gt; m a
 -&gt; Except
      OutsideForecastRange (Ticked (WrapLedgerView (ShelleyBlock eraTo)))
 forall a b. (a -&gt; b) -&gt; a -&gt; b
-</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">OutsideForecastRange :: WithOrigin SlotNo -&gt; SlotNo -&gt; SlotNo -&gt; OutsideForecastRange
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-operator hs-var">$</span></a></span><span> </span><span class="annot"><span class="annottext">OutsideForecastRange :: WithOrigin SlotNo -&gt; SlotNo -&gt; SlotNo -&gt; OutsideForecastRange
 </span><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier hs-type">OutsideForecastRange</span></a></span><span> </span><span class="hs-special">{</span><span>
 </span><span id="line-228"></span><span>          </span><span class="annot"><span class="annottext">outsideForecastAt :: WithOrigin SlotNo
 </span><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier hs-var">outsideForecastAt</span></a></span><span>     </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">LedgerState (ShelleyBlock eraFrom) -&gt; WithOrigin SlotNo
@@ -663,7 +663,7 @@ Ticked (LedgerView (BlockProtocol blk))
 -&gt; SlotNo
 -&gt; Ticked (WrapLedgerView (ShelleyBlock eraTo))
 forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
-</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">LedgerView (Crypto eraTo) -&gt; Ticked (LedgerView (Crypto eraTo))
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-operator hs-var">.</span></a></span><span> </span><span class="annot"><span class="annottext">LedgerView (Crypto eraTo) -&gt; Ticked (LedgerView (Crypto eraTo))
 forall c. LedgerView c -&gt; Ticked (LedgerView c)
 </span><a href="Ouroboros.Consensus.Shelley.Protocol.html#TickedPraosLedgerView"><span class="hs-identifier hs-var">TickedPraosLedgerView</span></a></span><span>
 </span><span id="line-239"></span><span>        </span><span class="annot"><span class="annottext">(LedgerView (Crypto eraTo) -&gt; Ticked (LedgerView (Crypto eraTo)))
@@ -671,26 +671,26 @@ forall c. LedgerView c -&gt; Ticked (LedgerView c)
 -&gt; SlotNo
 -&gt; Ticked (LedgerView (Crypto eraTo))
 forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
-</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">(FutureLedgerViewError eraFrom -&gt; LedgerView (Crypto eraTo))
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-operator hs-var">.</span></a></span><span> </span><span class="annot"><span class="annottext">(FutureLedgerViewError eraFrom -&gt; LedgerView (Crypto eraTo))
 -&gt; (LedgerView (Crypto eraTo) -&gt; LedgerView (Crypto eraTo))
 -&gt; Either
      (FutureLedgerViewError eraFrom) (LedgerView (Crypto eraTo))
 -&gt; LedgerView (Crypto eraTo)
 forall a c b. (a -&gt; c) -&gt; (b -&gt; c) -&gt; Either a b -&gt; c
-</span><span class="hs-identifier hs-var">either</span></span><span>
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-identifier hs-var">either</span></a></span><span>
 </span><span id="line-240"></span><span>            </span><span class="hs-special">(</span><span class="hs-glyph">\</span><span id="local-6989586621679665570"><span class="annot"><span class="annottext">FutureLedgerViewError eraFrom
 </span><a href="#local-6989586621679665570"><span class="hs-identifier hs-var">e</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">String -&gt; LedgerView (Crypto eraTo)
 forall a. HasCallStack =&gt; String -&gt; a
-</span><span class="hs-identifier hs-var">error</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">String
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-identifier hs-var">error</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">String
 </span><span class="hs-string">&quot;futureLedgerView failed: &quot;</span></span><span> </span><span class="annot"><span class="annottext">String -&gt; String -&gt; String
 forall a. Semigroup a =&gt; a -&gt; a -&gt; a
-</span><span class="hs-operator hs-var">&lt;&gt;</span></span><span> </span><span class="annot"><span class="annottext">FutureLedgerViewError eraFrom -&gt; String
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-operator hs-var">&lt;&gt;</span></a></span><span> </span><span class="annot"><span class="annottext">FutureLedgerViewError eraFrom -&gt; String
 forall a. Show a =&gt; a -&gt; String
-</span><span class="hs-identifier hs-var">show</span></span><span> </span><span class="annot"><span class="annottext">FutureLedgerViewError eraFrom
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-identifier hs-var">show</span></a></span><span> </span><span class="annot"><span class="annottext">FutureLedgerViewError eraFrom
 </span><a href="#local-6989586621679665570"><span class="hs-identifier hs-var">e</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
 </span><span id="line-241"></span><span>            </span><span class="annot"><span class="annottext">LedgerView (Crypto eraTo) -&gt; LedgerView (Crypto eraTo)
 forall a. a -&gt; a
-</span><span class="hs-identifier hs-var">id</span></span><span>
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-identifier hs-var">id</span></a></span><span>
 </span><span id="line-242"></span><span>        </span><span class="annot"><span class="annottext">(Either (FutureLedgerViewError eraFrom) (LedgerView (Crypto eraTo))
  -&gt; LedgerView (Crypto eraTo))
 -&gt; (SlotNo
@@ -699,7 +699,7 @@ forall a. a -&gt; a
 -&gt; SlotNo
 -&gt; LedgerView (Crypto eraTo)
 forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
-</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Globals
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-operator hs-var">.</span></a></span><span> </span><span class="annot"><span class="annottext">Globals
 -&gt; NewEpochState eraFrom
 -&gt; SlotNo
 -&gt; Either
@@ -745,7 +745,7 @@ forall era. ShelleyLedgerConfig era -&gt; Globals
 </span><span id="line-253"></span><span>
 </span><span id="line-254"></span><span class="annot"><a href="Ouroboros.Consensus.Shelley.ShelleyHFC.html#translateChainDepStateAcrossShelley"><span class="hs-identifier hs-type">translateChainDepStateAcrossShelley</span></a></span><span> </span><span class="hs-glyph">::</span><span>
 </span><span id="line-255"></span><span>     </span><span class="hs-keyword">forall</span><span> </span><span id="local-6989586621679665563"><span class="annot"><a href="#local-6989586621679665563"><span class="hs-identifier hs-type">eraFrom</span></a></span></span><span> </span><span id="local-6989586621679665562"><span class="annot"><a href="#local-6989586621679665562"><span class="hs-identifier hs-type">eraTo</span></a></span></span><span class="hs-operator">.</span><span>
-</span><span id="line-256"></span><span>     </span><span class="annot"><a href="Ouroboros.Consensus.Shelley.Eras.html#EraCrypto"><span class="hs-identifier hs-type">EraCrypto</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679665563"><span class="hs-identifier hs-type">eraFrom</span></a></span><span> </span><span class="annot"><span class="hs-glyph hs-type">~</span></span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Shelley.Eras.html#EraCrypto"><span class="hs-identifier hs-type">EraCrypto</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679665562"><span class="hs-identifier hs-type">eraTo</span></a></span><span>
+</span><span id="line-256"></span><span>     </span><span class="annot"><a href="Ouroboros.Consensus.Shelley.Eras.html#EraCrypto"><span class="hs-identifier hs-type">EraCrypto</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679665563"><span class="hs-identifier hs-type">eraFrom</span></a></span><span> </span><span class="annot"><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/ghc-prim-0.6.1/src"><span class="hs-glyph hs-type">~</span></a></span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Shelley.Eras.html#EraCrypto"><span class="hs-identifier hs-type">EraCrypto</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679665562"><span class="hs-identifier hs-type">eraTo</span></a></span><span>
 </span><span id="line-257"></span><span>  </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier hs-type">RequiringBoth</span></a></span><span>
 </span><span id="line-258"></span><span>       </span><span class="annot"><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier hs-type">WrapConsensusConfig</span></a></span><span>
 </span><span id="line-259"></span><span>       </span><span class="hs-special">(</span><span class="annot"><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier hs-type">Translate</span></a></span><span> </span><span class="annot"><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier hs-type">WrapChainDepState</span></a></span><span class="hs-special">)</span><span>
@@ -781,7 +781,7 @@ f x y -&gt; RequiringBoth h f x y
      (ShelleyBlock eraFrom)
      (ShelleyBlock eraTo)
 forall a b. (a -&gt; b) -&gt; a -&gt; b
-</span><span class="hs-operator hs-var">$</span></span><span>
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-operator hs-var">$</span></a></span><span>
 </span><span id="line-264"></span><span>      </span><span class="annot"><span class="annottext">(EpochNo
  -&gt; WrapChainDepState (ShelleyBlock eraFrom)
  -&gt; WrapChainDepState (ShelleyBlock eraTo))
@@ -800,7 +800,7 @@ forall (f :: * -&gt; *) x y.
 -&gt; Translate
      WrapChainDepState (ShelleyBlock eraFrom) (ShelleyBlock eraTo)
 forall a b. (a -&gt; b) -&gt; a -&gt; b
-</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679665560"><span class="annot"><span class="annottext">EpochNo
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-operator hs-var">$</span></a></span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679665560"><span class="annot"><span class="annottext">EpochNo
 </span><a href="#local-6989586621679665560"><span class="hs-identifier hs-var">_epochNo</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier hs-type">WrapChainDepState</span></a></span><span> </span><span id="local-6989586621679665558"><span class="annot"><span class="annottext">ChainDepState (BlockProtocol (ShelleyBlock eraFrom))
 </span><a href="#local-6989586621679665558"><span class="hs-identifier hs-var">chainDepState</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
 </span><span id="line-265"></span><span>        </span><span class="hs-comment">-- Same protocol, same 'ChainDepState'. Note that we don't have to apply</span><span>
@@ -816,7 +816,7 @@ ChainDepState (BlockProtocol (ShelleyBlock eraTo))
 </span><span id="line-269"></span><span>
 </span><span id="line-270"></span><span class="annot"><a href="Ouroboros.Consensus.Shelley.ShelleyHFC.html#translateLedgerViewAcrossShelley"><span class="hs-identifier hs-type">translateLedgerViewAcrossShelley</span></a></span><span> </span><span class="hs-glyph">::</span><span>
 </span><span id="line-271"></span><span>     </span><span class="hs-keyword">forall</span><span> </span><span id="local-6989586621679665557"><span class="annot"><a href="#local-6989586621679665557"><span class="hs-identifier hs-type">eraFrom</span></a></span></span><span> </span><span id="local-6989586621679665556"><span class="annot"><a href="#local-6989586621679665556"><span class="hs-identifier hs-type">eraTo</span></a></span></span><span class="hs-operator">.</span><span>
-</span><span id="line-272"></span><span>     </span><span class="hs-special">(</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Shelley.Eras.html#EraCrypto"><span class="hs-identifier hs-type">EraCrypto</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679665557"><span class="hs-identifier hs-type">eraFrom</span></a></span><span> </span><span class="annot"><span class="hs-glyph hs-type">~</span></span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Shelley.Eras.html#EraCrypto"><span class="hs-identifier hs-type">EraCrypto</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679665556"><span class="hs-identifier hs-type">eraTo</span></a></span><span>
+</span><span id="line-272"></span><span>     </span><span class="hs-special">(</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Shelley.Eras.html#EraCrypto"><span class="hs-identifier hs-type">EraCrypto</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679665557"><span class="hs-identifier hs-type">eraFrom</span></a></span><span> </span><span class="annot"><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/ghc-prim-0.6.1/src"><span class="hs-glyph hs-type">~</span></a></span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Shelley.Eras.html#EraCrypto"><span class="hs-identifier hs-type">EraCrypto</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679665556"><span class="hs-identifier hs-type">eraTo</span></a></span><span>
 </span><span id="line-273"></span><span>     </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Shelley.Eras.html#ShelleyBasedEra"><span class="hs-identifier hs-type">ShelleyBasedEra</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679665557"><span class="hs-identifier hs-type">eraFrom</span></a></span><span>
 </span><span id="line-274"></span><span>     </span><span class="hs-special">)</span><span>
 </span><span id="line-275"></span><span>  </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier hs-type">RequiringBoth</span></a></span><span>
@@ -869,7 +869,7 @@ forall k (h :: k -&gt; *) (f :: k -&gt; k -&gt; *) (x :: k) (y :: k).
      (ShelleyBlock eraFrom)
      (ShelleyBlock eraTo)
 forall a b. (a -&gt; b) -&gt; a -&gt; b
-</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-glyph">\</span><span class="hs-special">(</span><span class="annot"><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier hs-type">WrapLedgerConfig</span></a></span><span> </span><span id="local-6989586621679665553"><span class="annot"><span class="annottext">LedgerConfig (ShelleyBlock eraFrom)
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-operator hs-var">$</span></a></span><span> </span><span class="hs-glyph">\</span><span class="hs-special">(</span><span class="annot"><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier hs-type">WrapLedgerConfig</span></a></span><span> </span><span id="local-6989586621679665553"><span class="annot"><span class="annottext">LedgerConfig (ShelleyBlock eraFrom)
 </span><a href="#local-6989586621679665553"><span class="hs-identifier hs-var">cfgFrom</span></a></span></span><span class="hs-special">)</span><span>
 </span><span id="line-282"></span><span>                   </span><span class="hs-special">(</span><span class="annot"><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier hs-type">WrapLedgerConfig</span></a></span><span> </span><span id="local-6989586621679665552"><span class="annot"><span class="annottext">LedgerConfig (ShelleyBlock eraTo)
 </span><a href="#local-6989586621679665552"><span class="hs-identifier hs-var">cfgTo</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
@@ -911,7 +911,7 @@ forall (f :: * -&gt; *) (g :: * -&gt; *) x y.
      (ShelleyBlock eraFrom)
      (ShelleyBlock eraTo)
 forall a b. (a -&gt; b) -&gt; a -&gt; b
-</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">ShelleyLedgerConfig eraFrom
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-operator hs-var">$</span></a></span><span> </span><span class="annot"><span class="annottext">ShelleyLedgerConfig eraFrom
 -&gt; ShelleyLedgerConfig eraTo
 -&gt; Bound
 -&gt; SlotNo
@@ -939,7 +939,7 @@ ShelleyLedgerConfig eraTo
 </span><span id="line-288"></span><span>
 </span><span id="line-289"></span><span id="local-6989586621679665550"><span class="hs-keyword">instance</span><span> </span><span class="hs-special">(</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Shelley.Eras.html#ShelleyBasedEra"><span class="hs-identifier hs-type">ShelleyBasedEra</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679665550"><span class="hs-identifier hs-type">era</span></a></span><span>
 </span><span id="line-290"></span><span>         </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Shelley.Eras.html#ShelleyBasedEra"><span class="hs-identifier hs-type">ShelleyBasedEra</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">SL.PreviousEra</span></span><span> </span><span class="annot"><a href="#local-6989586621679665550"><span class="hs-identifier hs-type">era</span></a></span><span class="hs-special">)</span><span>
-</span><span id="line-291"></span><span>         </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Shelley.Eras.html#EraCrypto"><span class="hs-identifier hs-type">EraCrypto</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">SL.PreviousEra</span></span><span> </span><span class="annot"><a href="#local-6989586621679665550"><span class="hs-identifier hs-type">era</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="hs-glyph hs-type">~</span></span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Shelley.Eras.html#EraCrypto"><span class="hs-identifier hs-type">EraCrypto</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679665550"><span class="hs-identifier hs-type">era</span></a></span><span>
+</span><span id="line-291"></span><span>         </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Shelley.Eras.html#EraCrypto"><span class="hs-identifier hs-type">EraCrypto</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">SL.PreviousEra</span></span><span> </span><span class="annot"><a href="#local-6989586621679665550"><span class="hs-identifier hs-type">era</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/ghc-prim-0.6.1/src"><span class="hs-glyph hs-type">~</span></a></span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Shelley.Eras.html#EraCrypto"><span class="hs-identifier hs-type">EraCrypto</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679665550"><span class="hs-identifier hs-type">era</span></a></span><span>
 </span><span id="line-292"></span><span>         </span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">SL.TranslateEra</span></span><span> </span><span class="annot"><a href="#local-6989586621679665550"><span class="hs-identifier hs-type">era</span></a></span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Shelley.Ledger.Ledger.html#ShelleyTip"><span class="hs-identifier hs-type">ShelleyTip</span></a></span><span> </span><span class="hs-keyword">where</span><span>
 </span><span id="line-293"></span><span>  </span><span id="local-6989586621679665545"><span class="annot"><span class="annottext">translateEra :: TranslationContext era
 -&gt; ShelleyTip (PreviousEra era)
@@ -950,10 +950,10 @@ ShelleyLedgerConfig eraTo
 </span><a href="#local-6989586621679665541"><span class="hs-identifier hs-var">bno</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Consensus.Shelley.Ledger.Block.html#ShelleyHash"><span class="hs-identifier hs-type">ShelleyHash</span></a></span><span> </span><span id="local-6989586621679665539"><span class="annot"><a href="#local-6989586621679665539"><span class="hs-identifier hs-var">hash</span></a></span></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span>
 </span><span id="line-294"></span><span>      </span><span class="annot"><span class="annottext">ShelleyTip era -&gt; ExceptT Void Identity (ShelleyTip era)
 forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
-</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">(ShelleyTip era -&gt; ExceptT Void Identity (ShelleyTip era))
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-identifier hs-var">return</span></a></span><span> </span><span class="annot"><span class="annottext">(ShelleyTip era -&gt; ExceptT Void Identity (ShelleyTip era))
 -&gt; ShelleyTip era -&gt; ExceptT Void Identity (ShelleyTip era)
 forall a b. (a -&gt; b) -&gt; a -&gt; b
-</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">SlotNo
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-operator hs-var">$</span></a></span><span> </span><span class="annot"><span class="annottext">SlotNo
 -&gt; BlockNo -&gt; HeaderHash (ShelleyBlock era) -&gt; ShelleyTip era
 forall era.
 SlotNo
@@ -968,7 +968,7 @@ forall c. HashHeader c -&gt; ShelleyHash c
 </span><span id="line-296"></span><span id="local-6989586621679665538"><span class="hs-keyword">instance</span><span> </span><span class="hs-special">(</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Shelley.Eras.html#ShelleyBasedEra"><span class="hs-identifier hs-type">ShelleyBasedEra</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679665538"><span class="hs-identifier hs-type">era</span></a></span><span>
 </span><span id="line-297"></span><span>         </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">SL.TranslateEra</span></span><span> </span><span class="annot"><a href="#local-6989586621679665538"><span class="hs-identifier hs-type">era</span></a></span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Shelley.Ledger.Ledger.html#ShelleyTip"><span class="hs-identifier hs-type">ShelleyTip</span></a></span><span>
 </span><span id="line-298"></span><span>         </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">SL.TranslateEra</span></span><span> </span><span class="annot"><a href="#local-6989586621679665538"><span class="hs-identifier hs-type">era</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">SL.NewEpochState</span></span><span>
-</span><span id="line-299"></span><span>         </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">SL.TranslationError</span></span><span> </span><span class="annot"><a href="#local-6989586621679665538"><span class="hs-identifier hs-type">era</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">SL.NewEpochState</span></span><span> </span><span class="annot"><span class="hs-glyph hs-type">~</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Void</span></span><span>
+</span><span id="line-299"></span><span>         </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">SL.TranslationError</span></span><span> </span><span class="annot"><a href="#local-6989586621679665538"><span class="hs-identifier hs-type">era</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">SL.NewEpochState</span></span><span> </span><span class="annot"><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/ghc-prim-0.6.1/src"><span class="hs-glyph hs-type">~</span></a></span><span> </span><span class="annot"><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-identifier hs-type">Void</span></a></span><span>
 </span><span id="line-300"></span><span>         </span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">SL.TranslateEra</span></span><span> </span><span class="annot"><a href="#local-6989586621679665538"><span class="hs-identifier hs-type">era</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier hs-type">LedgerState</span></a></span><span> </span><span class="annot"><span class="hs-operator hs-type">:.:</span></span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Shelley.Ledger.Block.html#ShelleyBlock"><span class="hs-identifier hs-type">ShelleyBlock</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
 </span><span id="line-301"></span><span>  </span><span id="local-6989586621679665534"><span class="annot"><span class="annottext">translateEra :: TranslationContext era
 -&gt; (:.:) LedgerState ShelleyBlock (PreviousEra era)
@@ -985,7 +985,7 @@ forall c. HashHeader c -&gt; ShelleyHash c
 forall (t :: * -&gt; *) (m :: * -&gt; *) a b.
 (Traversable t, Monad m) =&gt;
 (a -&gt; m b) -&gt; t a -&gt; m (t b)
-</span><span class="hs-identifier hs-var">mapM</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">TranslationContext era
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-identifier hs-var">mapM</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">TranslationContext era
 -&gt; ShelleyTip (PreviousEra era)
 -&gt; Except (TranslationError era ShelleyTip) (ShelleyTip era)
 forall era (f :: * -&gt; *).
@@ -1009,12 +1009,12 @@ TranslationContext era
 </span><span id="line-304"></span><span>      </span><span class="annot"><span class="annottext">(:.:) LedgerState ShelleyBlock era
 -&gt; ExceptT Void Identity ((:.:) LedgerState ShelleyBlock era)
 forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
-</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">((:.:) LedgerState ShelleyBlock era
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-identifier hs-var">return</span></a></span><span> </span><span class="annot"><span class="annottext">((:.:) LedgerState ShelleyBlock era
  -&gt; ExceptT Void Identity ((:.:) LedgerState ShelleyBlock era))
 -&gt; (:.:) LedgerState ShelleyBlock era
 -&gt; ExceptT Void Identity ((:.:) LedgerState ShelleyBlock era)
 forall a b. (a -&gt; b) -&gt; a -&gt; b
-</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">LedgerState (ShelleyBlock era)
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-operator hs-var">$</span></a></span><span> </span><span class="annot"><span class="annottext">LedgerState (ShelleyBlock era)
 -&gt; (:.:) LedgerState ShelleyBlock era
 forall l k (f :: l -&gt; *) (g :: k -&gt; l) (p :: k).
 f (g p) -&gt; (:.:) f g p
@@ -1023,7 +1023,7 @@ f (g p) -&gt; (:.:) f g p
 -&gt; LedgerState (ShelleyBlock era)
 -&gt; (:.:) LedgerState ShelleyBlock era
 forall a b. (a -&gt; b) -&gt; a -&gt; b
-</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">ShelleyLedgerState :: forall era.
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-operator hs-var">$</span></a></span><span> </span><span class="annot"><span class="annottext">ShelleyLedgerState :: forall era.
 WithOrigin (ShelleyTip era)
 -&gt; NewEpochState era
 -&gt; ShelleyTransition
@@ -1060,14 +1060,14 @@ f (g p) -&gt; (:.:) f g p
 -&gt; WrapTx era
 -&gt; (:.:) GenTx ShelleyBlock era
 forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
-</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Tx era -&gt; GenTx (ShelleyBlock era)
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-operator hs-var">.</span></a></span><span> </span><span class="annot"><span class="annottext">Tx era -&gt; GenTx (ShelleyBlock era)
 forall era.
 ShelleyBasedEra era =&gt;
 Tx era -&gt; GenTx (ShelleyBlock era)
 </span><a href="Ouroboros.Consensus.Shelley.Ledger.Mempool.html#mkShelleyTx"><span class="hs-identifier hs-var">mkShelleyTx</span></a></span><span> </span><span class="annot"><span class="annottext">(Tx era -&gt; GenTx (ShelleyBlock era))
 -&gt; (WrapTx era -&gt; Tx era) -&gt; WrapTx era -&gt; GenTx (ShelleyBlock era)
 forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
-</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">WrapTx era -&gt; Tx era
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-operator hs-var">.</span></a></span><span> </span><span class="annot"><span class="annottext">WrapTx era -&gt; Tx era
 forall era. WrapTx era -&gt; Tx era
 </span><a href="Ouroboros.Consensus.Shelley.Eras.html#unwrapTx"><span class="hs-identifier hs-var hs-var">unwrapTx</span></a></span><span> </span><span class="hs-glyph">@</span><span class="annot"><a href="#local-6989586621679665523"><span class="hs-identifier hs-type">era</span></a></span><span>
 </span><span id="line-316"></span><span>    </span><span class="annot"><span class="annottext">(WrapTx era -&gt; (:.:) GenTx ShelleyBlock era)
@@ -1077,7 +1077,7 @@ forall era. WrapTx era -&gt; Tx era
      Identity
      ((:.:) GenTx ShelleyBlock era)
 forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
-</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">TranslationContext era
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-operator hs-var">&lt;$&gt;</span></a></span><span> </span><span class="annot"><span class="annottext">TranslationContext era
 -&gt; WrapTx (PreviousEra era)
 -&gt; ExceptT (TranslationError era WrapTx) Identity (WrapTx era)
 forall era (f :: * -&gt; *).
@@ -1112,7 +1112,7 @@ f (g p) -&gt; (:.:) f g p
 -&gt; Validated (WrapTx era)
 -&gt; (:.:) WrapValidatedGenTx ShelleyBlock era
 forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
-</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Validated (GenTx (ShelleyBlock era))
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-operator hs-var">.</span></a></span><span> </span><span class="annot"><span class="annottext">Validated (GenTx (ShelleyBlock era))
 -&gt; WrapValidatedGenTx (ShelleyBlock era)
 forall blk. Validated (GenTx blk) -&gt; WrapValidatedGenTx blk
 </span><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-consensus-0.1.0.0/noopt/doc/html/ouroboros-consensus/src"><span class="hs-identifier hs-var">WrapValidatedGenTx</span></a></span><span>
@@ -1122,7 +1122,7 @@ forall blk. Validated (GenTx blk) -&gt; WrapValidatedGenTx blk
 -&gt; Validated (WrapTx era)
 -&gt; WrapValidatedGenTx (ShelleyBlock era)
 forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
-</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Validated (Tx era) -&gt; Validated (GenTx (ShelleyBlock era))
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-operator hs-var">.</span></a></span><span> </span><span class="annot"><span class="annottext">Validated (Tx era) -&gt; Validated (GenTx (ShelleyBlock era))
 forall era.
 ShelleyBasedEra era =&gt;
 Validated (Tx era) -&gt; Validated (GenTx (ShelleyBlock era))
@@ -1131,7 +1131,7 @@ Validated (Tx era) -&gt; Validated (GenTx (ShelleyBlock era))
 -&gt; Validated (WrapTx era)
 -&gt; Validated (GenTx (ShelleyBlock era))
 forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
-</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Validated (WrapTx era) -&gt; Validated (Tx era)
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-operator hs-var">.</span></a></span><span> </span><span class="annot"><span class="annottext">Validated (WrapTx era) -&gt; Validated (Tx era)
 forall a b. Coercible a b =&gt; Validated a -&gt; Validated b
 </span><span class="hs-identifier hs-var">SL.coerceValidated</span></span><span>
 </span><span id="line-325"></span><span>    </span><span class="annot"><span class="annottext">(Validated (WrapTx era)
@@ -1143,7 +1143,7 @@ forall a b. Coercible a b =&gt; Validated a -&gt; Validated b
      Identity
      ((:.:) WrapValidatedGenTx ShelleyBlock era)
 forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
-</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">TranslationContext era
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-operator hs-var">&lt;$&gt;</span></a></span><span> </span><span class="annot"><span class="annottext">TranslationContext era
 -&gt; Validated (WrapTx (PreviousEra era))
 -&gt; ExceptT
      (TranslationError era WrapTx) Identity (Validated (WrapTx era))

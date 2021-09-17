@@ -34,12 +34,12 @@
 </span><span id="line-34"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Storage.ChainDB.Impl.html#openDBInternal"><span class="hs-identifier">openDBInternal</span></a></span><span>
 </span><span id="line-35"></span><span>  </span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
 </span><span id="line-36"></span><span>
-</span><span id="line-37"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><span class="hs-identifier">Control.Monad</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">when</span></span><span class="hs-special">)</span><span>
+</span><span id="line-37"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-identifier">Control.Monad</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-identifier">when</span></a></span><span class="hs-special">)</span><span>
 </span><span id="line-38"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><span class="hs-identifier">Control.Tracer</span></span><span>
-</span><span id="line-39"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><span class="hs-identifier">Data.Functor</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-operator">(&lt;&amp;&gt;)</span></span><span class="hs-special">)</span><span>
-</span><span id="line-40"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><span class="hs-identifier">Data.Functor.Identity</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Identity</span></span><span class="hs-special">)</span><span>
-</span><span id="line-41"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Data.Map.Strict</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Map</span></span><span>
-</span><span id="line-42"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><span class="hs-identifier">GHC.Stack</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">HasCallStack</span></span><span class="hs-special">)</span><span>
+</span><span id="line-39"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-identifier">Data.Functor</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-operator">(&lt;&amp;&gt;)</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-40"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-identifier">Data.Functor.Identity</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-identifier">Identity</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-41"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/containers-0.6.2.1/src"><span class="hs-identifier">Data.Map.Strict</span></a></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Map</span></span><span>
+</span><span id="line-42"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-identifier">GHC.Stack</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-identifier">HasCallStack</span></a></span><span class="hs-special">)</span><span>
 </span><span id="line-43"></span><span>
 </span><span id="line-44"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-network-0.1.0.0/noopt/doc/html/ouroboros-network/src"><span class="hs-identifier">Ouroboros.Network.AnchoredFragment</span></a></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">AF</span></span><span>
 </span><span id="line-45"></span><span>
@@ -82,7 +82,7 @@
 </span><span id="line-82"></span><span>     </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Block.Abstract.html#ConvertRawHash"><span class="hs-identifier hs-type">ConvertRawHash</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680040955"><span class="hs-identifier hs-type">blk</span></a></span><span>
 </span><span id="line-83"></span><span>     </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Storage.ChainDB.Impl.Types.html#SerialiseDiskConstraints"><span class="hs-identifier hs-type">SerialiseDiskConstraints</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680040955"><span class="hs-identifier hs-type">blk</span></a></span><span>
 </span><span id="line-84"></span><span>     </span><span class="hs-special">)</span><span>
-</span><span id="line-85"></span><span>  </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Storage.ChainDB.Impl.Args.html#ChainDbArgs"><span class="hs-identifier hs-type">ChainDbArgs</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Identity</span></span><span> </span><span class="annot"><a href="#local-6989586621680040956"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680040955"><span class="hs-identifier hs-type">blk</span></a></span><span>
+</span><span id="line-85"></span><span>  </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Storage.ChainDB.Impl.Args.html#ChainDbArgs"><span class="hs-identifier hs-type">ChainDbArgs</span></a></span><span> </span><span class="annot"><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-identifier hs-type">Identity</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680040956"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680040955"><span class="hs-identifier hs-type">blk</span></a></span><span>
 </span><span id="line-86"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Consensus.Storage.ChainDB.API.html#ChainDB"><span class="hs-identifier hs-type">ChainDB</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680040956"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680040955"><span class="hs-identifier hs-type">blk</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621680040956"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680040954"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span>
 </span><span id="line-87"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621680040956"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680040954"><span class="hs-identifier hs-type">a</span></a></span><span>
 </span><span id="line-88"></span><span id="withDB"><span class="annot"><span class="annottext">withDB :: ChainDbArgs Identity m blk -&gt; (ChainDB m blk -&gt; m a) -&gt; m a
@@ -94,10 +94,10 @@ MonadThrow m =&gt;
 m a -&gt; (a -&gt; m b) -&gt; (a -&gt; m c) -&gt; m c
 </span><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/io-classes-0.2.0.0/noopt/doc/html/io-classes/src"><span class="hs-identifier hs-var">bracket</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">(ChainDB m blk, Internal m blk) -&gt; ChainDB m blk
 forall a b. (a, b) -&gt; a
-</span><span class="hs-identifier hs-var">fst</span></span><span> </span><span class="annot"><span class="annottext">((ChainDB m blk, Internal m blk) -&gt; ChainDB m blk)
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-identifier hs-var">fst</span></a></span><span> </span><span class="annot"><span class="annottext">((ChainDB m blk, Internal m blk) -&gt; ChainDB m blk)
 -&gt; m (ChainDB m blk, Internal m blk) -&gt; m (ChainDB m blk)
 forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
-</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">ChainDbArgs Identity m blk
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-operator hs-var">&lt;$&gt;</span></a></span><span> </span><span class="annot"><span class="annottext">ChainDbArgs Identity m blk
 -&gt; Bool -&gt; m (ChainDB m blk, Internal m blk)
 forall (m :: * -&gt; *) blk.
 (IOLike m, LedgerSupportsProtocol blk, InspectLedger blk,
@@ -107,7 +107,7 @@ ChainDbArgs Identity m blk
 -&gt; Bool -&gt; m (ChainDB m blk, Internal m blk)
 </span><a href="Ouroboros.Consensus.Storage.ChainDB.Impl.html#openDBInternal"><span class="hs-identifier hs-var">openDBInternal</span></a></span><span> </span><span class="annot"><span class="annottext">ChainDbArgs Identity m blk
 </span><a href="#local-6989586621680040953"><span class="hs-identifier hs-var">args</span></a></span><span> </span><span class="annot"><span class="annottext">Bool
-</span><span class="hs-identifier hs-var">True</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">ChainDB m blk -&gt; m ()
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/ghc-prim-0.6.1/src"><span class="hs-identifier hs-var">True</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">ChainDB m blk -&gt; m ()
 forall (m :: * -&gt; *) blk. ChainDB m blk -&gt; m ()
 </span><a href="Ouroboros.Consensus.Storage.ChainDB.API.html#closeDB"><span class="hs-identifier hs-var hs-var">API.closeDB</span></a></span><span>
 </span><span id="line-89"></span><span>
@@ -120,16 +120,16 @@ forall (m :: * -&gt; *) blk. ChainDB m blk -&gt; m ()
 </span><span id="line-96"></span><span>     </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Block.Abstract.html#ConvertRawHash"><span class="hs-identifier hs-type">ConvertRawHash</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680040948"><span class="hs-identifier hs-type">blk</span></a></span><span>
 </span><span id="line-97"></span><span>     </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Storage.ChainDB.Impl.Types.html#SerialiseDiskConstraints"><span class="hs-identifier hs-type">SerialiseDiskConstraints</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680040948"><span class="hs-identifier hs-type">blk</span></a></span><span>
 </span><span id="line-98"></span><span>     </span><span class="hs-special">)</span><span>
-</span><span id="line-99"></span><span>  </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Storage.ChainDB.Impl.Args.html#ChainDbArgs"><span class="hs-identifier hs-type">ChainDbArgs</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Identity</span></span><span> </span><span class="annot"><a href="#local-6989586621680040949"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680040948"><span class="hs-identifier hs-type">blk</span></a></span><span>
+</span><span id="line-99"></span><span>  </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Storage.ChainDB.Impl.Args.html#ChainDbArgs"><span class="hs-identifier hs-type">ChainDbArgs</span></a></span><span> </span><span class="annot"><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-identifier hs-type">Identity</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680040949"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680040948"><span class="hs-identifier hs-type">blk</span></a></span><span>
 </span><span id="line-100"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621680040949"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Consensus.Storage.ChainDB.API.html#ChainDB"><span class="hs-identifier hs-type">ChainDB</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680040949"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680040948"><span class="hs-identifier hs-type">blk</span></a></span><span class="hs-special">)</span><span>
 </span><span id="line-101"></span><span id="openDB"><span class="annot"><span class="annottext">openDB :: ChainDbArgs Identity m blk -&gt; m (ChainDB m blk)
 </span><a href="Ouroboros.Consensus.Storage.ChainDB.Impl.html#openDB"><span class="hs-identifier hs-var hs-var">openDB</span></a></span></span><span> </span><span id="local-6989586621680040947"><span class="annot"><span class="annottext">ChainDbArgs Identity m blk
 </span><a href="#local-6989586621680040947"><span class="hs-identifier hs-var">args</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(ChainDB m blk, Internal m blk) -&gt; ChainDB m blk
 forall a b. (a, b) -&gt; a
-</span><span class="hs-identifier hs-var">fst</span></span><span> </span><span class="annot"><span class="annottext">((ChainDB m blk, Internal m blk) -&gt; ChainDB m blk)
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-identifier hs-var">fst</span></a></span><span> </span><span class="annot"><span class="annottext">((ChainDB m blk, Internal m blk) -&gt; ChainDB m blk)
 -&gt; m (ChainDB m blk, Internal m blk) -&gt; m (ChainDB m blk)
 forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
-</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">ChainDbArgs Identity m blk
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-operator hs-var">&lt;$&gt;</span></a></span><span> </span><span class="annot"><span class="annottext">ChainDbArgs Identity m blk
 -&gt; Bool -&gt; m (ChainDB m blk, Internal m blk)
 forall (m :: * -&gt; *) blk.
 (IOLike m, LedgerSupportsProtocol blk, InspectLedger blk,
@@ -139,7 +139,7 @@ ChainDbArgs Identity m blk
 -&gt; Bool -&gt; m (ChainDB m blk, Internal m blk)
 </span><a href="Ouroboros.Consensus.Storage.ChainDB.Impl.html#openDBInternal"><span class="hs-identifier hs-var">openDBInternal</span></a></span><span> </span><span class="annot"><span class="annottext">ChainDbArgs Identity m blk
 </span><a href="#local-6989586621680040947"><span class="hs-identifier hs-var">args</span></a></span><span> </span><span class="annot"><span class="annottext">Bool
-</span><span class="hs-identifier hs-var">True</span></span><span>
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/ghc-prim-0.6.1/src"><span class="hs-identifier hs-var">True</span></a></span><span>
 </span><span id="line-102"></span><span>
 </span><span id="line-103"></span><span class="annot"><a href="Ouroboros.Consensus.Storage.ChainDB.Impl.html#openDBInternal"><span class="hs-identifier hs-type">openDBInternal</span></a></span><span>
 </span><span id="line-104"></span><span>  </span><span class="hs-glyph">::</span><span> </span><span class="hs-keyword">forall</span><span> </span><span id="local-6989586621680041213"><span class="annot"><a href="#local-6989586621680041213"><span class="hs-identifier hs-type">m</span></a></span></span><span> </span><span id="local-6989586621680041211"><span class="annot"><a href="#local-6989586621680041211"><span class="hs-identifier hs-type">blk</span></a></span></span><span class="hs-operator">.</span><span>
@@ -150,8 +150,8 @@ ChainDbArgs Identity m blk
 </span><span id="line-109"></span><span>     </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Block.Abstract.html#ConvertRawHash"><span class="hs-identifier hs-type">ConvertRawHash</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680041211"><span class="hs-identifier hs-type">blk</span></a></span><span>
 </span><span id="line-110"></span><span>     </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Storage.ChainDB.Impl.Types.html#SerialiseDiskConstraints"><span class="hs-identifier hs-type">SerialiseDiskConstraints</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680041211"><span class="hs-identifier hs-type">blk</span></a></span><span>
 </span><span id="line-111"></span><span>     </span><span class="hs-special">)</span><span>
-</span><span id="line-112"></span><span>  </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Storage.ChainDB.Impl.Args.html#ChainDbArgs"><span class="hs-identifier hs-type">ChainDbArgs</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Identity</span></span><span> </span><span class="annot"><a href="#local-6989586621680041213"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680041211"><span class="hs-identifier hs-type">blk</span></a></span><span>
-</span><span id="line-113"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span><span> </span><span class="hs-comment">-- ^ 'True' = Launch background tasks</span><span>
+</span><span id="line-112"></span><span>  </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Storage.ChainDB.Impl.Args.html#ChainDbArgs"><span class="hs-identifier hs-type">ChainDbArgs</span></a></span><span> </span><span class="annot"><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-identifier hs-type">Identity</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680041213"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680041211"><span class="hs-identifier hs-type">blk</span></a></span><span>
+</span><span id="line-113"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/ghc-prim-0.6.1/src"><span class="hs-identifier hs-type">Bool</span></a></span><span> </span><span class="hs-comment">-- ^ 'True' = Launch background tasks</span><span>
 </span><span id="line-114"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621680041213"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Consensus.Storage.ChainDB.API.html#ChainDB"><span class="hs-identifier hs-type">ChainDB</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680041213"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680041211"><span class="hs-identifier hs-type">blk</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Storage.ChainDB.Impl.Types.html#Internal"><span class="hs-identifier hs-type">Internal</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680041213"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680041211"><span class="hs-identifier hs-type">blk</span></a></span><span class="hs-special">)</span><span>
 </span><span id="line-115"></span><span id="openDBInternal"><span class="annot"><span class="annottext">openDBInternal :: ChainDbArgs Identity m blk
 -&gt; Bool -&gt; m (ChainDB m blk, Internal m blk)
@@ -174,7 +174,7 @@ STM m a -&gt; m a
 </span><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/io-classes-0.2.0.0/noopt/doc/html/io-classes/src"><span class="hs-identifier hs-var">atomically</span></a></span><span> </span><span class="annot"><span class="annottext">(STM m (Point blk) -&gt; m (Point blk))
 -&gt; STM m (Point blk) -&gt; m (Point blk)
 forall a b. (a -&gt; b) -&gt; a -&gt; b
-</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">ImmutableDB m blk -&gt; STM m (Point blk)
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-operator hs-var">$</span></a></span><span> </span><span class="annot"><span class="annottext">ImmutableDB m blk -&gt; STM m (Point blk)
 forall (m :: * -&gt; *) blk.
 (MonadSTM m, HasCallStack) =&gt;
 ImmutableDB m blk -&gt; STM m (Point blk)
@@ -195,13 +195,13 @@ forall (m :: * -&gt; *) a. Tracer m a -&gt; a -&gt; m ()
 </span><span class="hs-identifier hs-var">traceWith</span></span><span> </span><span class="annot"><span class="annottext">Tracer m (TraceEvent blk)
 </span><a href="#local-6989586621680040934"><span class="hs-identifier hs-var">tracer</span></a></span><span> </span><span class="annot"><span class="annottext">(TraceEvent blk -&gt; m ()) -&gt; TraceEvent blk -&gt; m ()
 forall a b. (a -&gt; b) -&gt; a -&gt; b
-</span><span class="hs-operator hs-var">$</span></span><span>
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-operator hs-var">$</span></a></span><span>
 </span><span id="line-121"></span><span>      </span><span class="annot"><span class="annottext">TraceOpenEvent blk -&gt; TraceEvent blk
 forall blk. TraceOpenEvent blk -&gt; TraceEvent blk
 </span><a href="Ouroboros.Consensus.Storage.ChainDB.Impl.Types.html#TraceOpenEvent"><span class="hs-identifier hs-var">TraceOpenEvent</span></a></span><span> </span><span class="annot"><span class="annottext">(TraceOpenEvent blk -&gt; TraceEvent blk)
 -&gt; TraceOpenEvent blk -&gt; TraceEvent blk
 forall a b. (a -&gt; b) -&gt; a -&gt; b
-</span><span class="hs-operator hs-var">$</span></span><span>
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-operator hs-var">$</span></a></span><span>
 </span><span id="line-122"></span><span>        </span><span class="annot"><span class="annottext">Point blk -&gt; ChunkNo -&gt; TraceOpenEvent blk
 forall blk. Point blk -&gt; ChunkNo -&gt; TraceOpenEvent blk
 </span><a href="Ouroboros.Consensus.Storage.ChainDB.Impl.Types.html#OpenedImmutableDB"><span class="hs-identifier hs-var">OpenedImmutableDB</span></a></span><span> </span><span class="annot"><span class="annottext">Point blk
@@ -221,7 +221,7 @@ forall (m :: * -&gt; *) a. Tracer m a -&gt; a -&gt; m ()
 </span><span class="hs-identifier hs-var">traceWith</span></span><span> </span><span class="annot"><span class="annottext">Tracer m (TraceEvent blk)
 </span><a href="#local-6989586621680040934"><span class="hs-identifier hs-var">tracer</span></a></span><span> </span><span class="annot"><span class="annottext">(TraceEvent blk -&gt; m ()) -&gt; TraceEvent blk -&gt; m ()
 forall a b. (a -&gt; b) -&gt; a -&gt; b
-</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">TraceOpenEvent blk -&gt; TraceEvent blk
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-operator hs-var">$</span></a></span><span> </span><span class="annot"><span class="annottext">TraceOpenEvent blk -&gt; TraceEvent blk
 forall blk. TraceOpenEvent blk -&gt; TraceEvent blk
 </span><a href="Ouroboros.Consensus.Storage.ChainDB.Impl.Types.html#TraceOpenEvent"><span class="hs-identifier hs-var">TraceOpenEvent</span></a></span><span> </span><span class="annot"><span class="annottext">TraceOpenEvent blk
 forall blk. TraceOpenEvent blk
@@ -242,7 +242,7 @@ Point blk
 -&gt; Tracer m (TraceEvent blk)
 -&gt; Tracer m (TraceLedgerReplayEvent blk)
 forall (f :: * -&gt; *) a b. Contravariant f =&gt; (a -&gt; b) -&gt; f b -&gt; f a
-</span><span class="hs-identifier hs-var">contramap</span></span><span> </span><span class="annot"><span class="annottext">TraceLedgerReplayEvent blk -&gt; TraceEvent blk
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-identifier hs-var">contramap</span></a></span><span> </span><span class="annot"><span class="annottext">TraceLedgerReplayEvent blk -&gt; TraceEvent blk
 forall blk. TraceLedgerReplayEvent blk -&gt; TraceEvent blk
 </span><a href="Ouroboros.Consensus.Storage.ChainDB.Impl.Types.html#TraceLedgerReplayEvent"><span class="hs-identifier hs-var">TraceLedgerReplayEvent</span></a></span><span> </span><span class="annot"><span class="annottext">Tracer m (TraceEvent blk)
 </span><a href="#local-6989586621680040934"><span class="hs-identifier hs-var">tracer</span></a></span><span class="hs-special">)</span><span>
@@ -279,7 +279,7 @@ forall (m :: * -&gt; *) a. Tracer m a -&gt; a -&gt; m ()
 </span><span class="hs-identifier hs-var">traceWith</span></span><span> </span><span class="annot"><span class="annottext">Tracer m (TraceEvent blk)
 </span><a href="#local-6989586621680040934"><span class="hs-identifier hs-var">tracer</span></a></span><span> </span><span class="annot"><span class="annottext">(TraceEvent blk -&gt; m ()) -&gt; TraceEvent blk -&gt; m ()
 forall a b. (a -&gt; b) -&gt; a -&gt; b
-</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">TraceOpenEvent blk -&gt; TraceEvent blk
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-operator hs-var">$</span></a></span><span> </span><span class="annot"><span class="annottext">TraceOpenEvent blk -&gt; TraceEvent blk
 forall blk. TraceOpenEvent blk -&gt; TraceEvent blk
 </span><a href="Ouroboros.Consensus.Storage.ChainDB.Impl.Types.html#TraceOpenEvent"><span class="hs-identifier hs-var">TraceOpenEvent</span></a></span><span> </span><span class="annot"><span class="annottext">TraceOpenEvent blk
 forall blk. TraceOpenEvent blk
@@ -299,7 +299,7 @@ a -&gt; m (StrictTVar m a)
 forall a. a -&gt; Fingerprint -&gt; WithFingerprint a
 </span><a href="Ouroboros.Consensus.Util.STM.html#WithFingerprint"><span class="hs-identifier hs-var">WithFingerprint</span></a></span><span> </span><span class="annot"><span class="annottext">Map (HeaderHash blk) (InvalidBlockInfo blk)
 forall k a. Map k a
-</span><span class="hs-identifier hs-var">Map.empty</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Word64 -&gt; Fingerprint
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/containers-0.6.2.1/src"><span class="hs-identifier hs-var">Map.empty</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Word64 -&gt; Fingerprint
 </span><a href="Ouroboros.Consensus.Util.STM.html#Fingerprint"><span class="hs-identifier hs-var">Fingerprint</span></a></span><span> </span><span class="annot"><span class="annottext">Word64
 </span><span class="hs-number">0</span></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
 </span><span id="line-137"></span><span>    </span><span id="local-6989586621680040912"><span class="annot"><span class="annottext">StrictTVar m (Map (HeaderHash blk) (Header blk))
@@ -310,7 +310,7 @@ forall (m :: * -&gt; *) a.
 a -&gt; m (StrictTVar m a)
 </span><a href="Ouroboros.Consensus.Util.MonadSTM.NormalForm.html#newTVarIO"><span class="hs-identifier hs-var">newTVarIO</span></a></span><span> </span><span class="annot"><span class="annottext">Map (HeaderHash blk) (Header blk)
 forall k a. Map k a
-</span><span class="hs-identifier hs-var">Map.empty</span></span><span>
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/containers-0.6.2.1/src"><span class="hs-identifier hs-var">Map.empty</span></a></span><span>
 </span><span id="line-138"></span><span>
 </span><span id="line-139"></span><span>
 </span><span id="line-140"></span><span>    </span><span id="local-6989586621680040911"><span class="annot"><span class="annottext">ChainAndLedger blk
@@ -383,7 +383,7 @@ forall (m :: * -&gt; *) a.
 STM m a -&gt; m a
 </span><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/io-classes-0.2.0.0/noopt/doc/html/io-classes/src"><span class="hs-identifier hs-var">atomically</span></a></span><span> </span><span class="annot"><span class="annottext">(STM m () -&gt; m ()) -&gt; STM m () -&gt; m ()
 forall a b. (a -&gt; b) -&gt; a -&gt; b
-</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">LgrDB m blk -&gt; LedgerDB' blk -&gt; STM m ()
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-operator hs-var">$</span></a></span><span> </span><span class="annot"><span class="annottext">LgrDB m blk -&gt; LedgerDB' blk -&gt; STM m ()
 forall (m :: * -&gt; *) blk.
 IOLike m =&gt;
 LgrDB m blk -&gt; LedgerDB' blk -&gt; STM m ()
@@ -405,7 +405,7 @@ forall (m :: * -&gt; *) a.
 a -&gt; m (StrictTVar m a)
 </span><a href="Ouroboros.Consensus.Util.MonadSTM.NormalForm.html#newTVarIO"><span class="hs-identifier hs-var">newTVarIO</span></a></span><span> </span><span class="annot"><span class="annottext">Map IteratorKey (m ())
 forall k a. Map k a
-</span><span class="hs-identifier hs-var">Map.empty</span></span><span>
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/containers-0.6.2.1/src"><span class="hs-identifier hs-var">Map.empty</span></a></span><span>
 </span><span id="line-157"></span><span>    </span><span id="local-6989586621680040899"><span class="annot"><span class="annottext">StrictTVar m (Map FollowerKey (FollowerHandle m blk))
 </span><a href="#local-6989586621680040899"><span class="hs-identifier hs-var">varFollowers</span></a></span></span><span>       </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Map FollowerKey (FollowerHandle m blk)
 -&gt; m (StrictTVar m (Map FollowerKey (FollowerHandle m blk)))
@@ -414,7 +414,7 @@ forall (m :: * -&gt; *) a.
 a -&gt; m (StrictTVar m a)
 </span><a href="Ouroboros.Consensus.Util.MonadSTM.NormalForm.html#newTVarIO"><span class="hs-identifier hs-var">newTVarIO</span></a></span><span> </span><span class="annot"><span class="annottext">Map FollowerKey (FollowerHandle m blk)
 forall k a. Map k a
-</span><span class="hs-identifier hs-var">Map.empty</span></span><span>
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/containers-0.6.2.1/src"><span class="hs-identifier hs-var">Map.empty</span></a></span><span>
 </span><span id="line-158"></span><span>    </span><span id="local-6989586621680040898"><span class="annot"><span class="annottext">StrictTVar m IteratorKey
 </span><a href="#local-6989586621680040898"><span class="hs-identifier hs-var">varNextIteratorKey</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">IteratorKey -&gt; m (StrictTVar m IteratorKey)
 forall (m :: * -&gt; *) a.
@@ -445,9 +445,9 @@ a -&gt; m (StrictTVar m a)
 </span><a href="Ouroboros.Consensus.Util.MonadSTM.NormalForm.html#newTVarIO"><span class="hs-identifier hs-var">newTVarIO</span></a></span><span> </span><span class="annot"><span class="annottext">(m () -&gt; m (StrictTVar m (m ())))
 -&gt; m () -&gt; m (StrictTVar m (m ()))
 forall a b. (a -&gt; b) -&gt; a -&gt; b
-</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">() -&gt; m ()
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-operator hs-var">$</span></a></span><span> </span><span class="annot"><span class="annottext">() -&gt; m ()
 forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
-</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-identifier hs-var">return</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
 </span><span id="line-162"></span><span>    </span><span id="local-6989586621680040891"><span class="annot"><span class="annottext">BlocksToAdd m blk
 </span><a href="#local-6989586621680040891"><span class="hs-identifier hs-var">blocksToAdd</span></a></span></span><span>        </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Word -&gt; m (BlocksToAdd m blk)
 forall (m :: * -&gt; *) blk. IOLike m =&gt; Word -&gt; m (BlocksToAdd m blk)
@@ -575,20 +575,20 @@ ChainDbArgs f m blk -&gt; HKD f (CheckInFuture m blk)
 </span><a href="#local-6989586621680040859"><span class="hs-identifier hs-var">h</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">(StrictTVar m (ChainDbState m blk) -&gt; ChainDbHandle m blk)
 -&gt; m (StrictTVar m (ChainDbState m blk)) -&gt; m (ChainDbHandle m blk)
 forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
-</span><span class="hs-identifier hs-var">fmap</span></span><span> </span><span class="annot"><span class="annottext">StrictTVar m (ChainDbState m blk) -&gt; ChainDbHandle m blk
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-identifier hs-var">fmap</span></a></span><span> </span><span class="annot"><span class="annottext">StrictTVar m (ChainDbState m blk) -&gt; ChainDbHandle m blk
 forall (m :: * -&gt; *) blk.
 StrictTVar m (ChainDbState m blk) -&gt; ChainDbHandle m blk
 </span><a href="Ouroboros.Consensus.Storage.ChainDB.Impl.Types.html#CDBHandle"><span class="hs-identifier hs-var">CDBHandle</span></a></span><span> </span><span class="annot"><span class="annottext">(m (StrictTVar m (ChainDbState m blk)) -&gt; m (ChainDbHandle m blk))
 -&gt; m (StrictTVar m (ChainDbState m blk)) -&gt; m (ChainDbHandle m blk)
 forall a b. (a -&gt; b) -&gt; a -&gt; b
-</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">ChainDbState m blk -&gt; m (StrictTVar m (ChainDbState m blk))
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-operator hs-var">$</span></a></span><span> </span><span class="annot"><span class="annottext">ChainDbState m blk -&gt; m (StrictTVar m (ChainDbState m blk))
 forall (m :: * -&gt; *) a.
 (MonadSTM m, HasCallStack, NoThunks a) =&gt;
 a -&gt; m (StrictTVar m a)
 </span><a href="Ouroboros.Consensus.Util.MonadSTM.NormalForm.html#newTVarIO"><span class="hs-identifier hs-var">newTVarIO</span></a></span><span> </span><span class="annot"><span class="annottext">(ChainDbState m blk -&gt; m (StrictTVar m (ChainDbState m blk)))
 -&gt; ChainDbState m blk -&gt; m (StrictTVar m (ChainDbState m blk))
 forall a b. (a -&gt; b) -&gt; a -&gt; b
-</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">ChainDbEnv m blk -&gt; ChainDbState m blk
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-operator hs-var">$</span></a></span><span> </span><span class="annot"><span class="annottext">ChainDbEnv m blk -&gt; ChainDbState m blk
 forall (m :: * -&gt; *) blk. ChainDbEnv m blk -&gt; ChainDbState m blk
 </span><a href="Ouroboros.Consensus.Storage.ChainDB.Impl.Types.html#ChainDbOpen"><span class="hs-identifier hs-var">ChainDbOpen</span></a></span><span> </span><span class="annot"><span class="annottext">ChainDbEnv m blk
 </span><a href="#local-6989586621680040888"><span class="hs-identifier hs-var">env</span></a></span><span>
@@ -908,12 +908,12 @@ forall (m :: * -&gt; *) a. Tracer m a -&gt; a -&gt; m ()
 </span><span class="hs-identifier hs-var">traceWith</span></span><span> </span><span class="annot"><span class="annottext">Tracer m (TraceEvent blk)
 </span><a href="#local-6989586621680040934"><span class="hs-identifier hs-var">tracer</span></a></span><span> </span><span class="annot"><span class="annottext">(TraceEvent blk -&gt; m ()) -&gt; TraceEvent blk -&gt; m ()
 forall a b. (a -&gt; b) -&gt; a -&gt; b
-</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">TraceOpenEvent blk -&gt; TraceEvent blk
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-operator hs-var">$</span></a></span><span> </span><span class="annot"><span class="annottext">TraceOpenEvent blk -&gt; TraceEvent blk
 forall blk. TraceOpenEvent blk -&gt; TraceEvent blk
 </span><a href="Ouroboros.Consensus.Storage.ChainDB.Impl.Types.html#TraceOpenEvent"><span class="hs-identifier hs-var">TraceOpenEvent</span></a></span><span> </span><span class="annot"><span class="annottext">(TraceOpenEvent blk -&gt; TraceEvent blk)
 -&gt; TraceOpenEvent blk -&gt; TraceEvent blk
 forall a b. (a -&gt; b) -&gt; a -&gt; b
-</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Point blk -&gt; Point blk -&gt; TraceOpenEvent blk
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-operator hs-var">$</span></a></span><span> </span><span class="annot"><span class="annottext">Point blk -&gt; Point blk -&gt; TraceOpenEvent blk
 forall blk. Point blk -&gt; Point blk -&gt; TraceOpenEvent blk
 </span><a href="Ouroboros.Consensus.Storage.ChainDB.Impl.Types.html#OpenedDB"><span class="hs-identifier hs-var">OpenedDB</span></a></span><span>
 </span><span id="line-214"></span><span>      </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Point (Header blk) -&gt; Point blk
@@ -923,7 +923,7 @@ Point b -&gt; Point b'
 </span><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-network-0.1.0.0/noopt/doc/html/ouroboros-network/src"><span class="hs-identifier hs-var">castPoint</span></a></span><span> </span><span class="annot"><span class="annottext">(Point (Header blk) -&gt; Point blk)
 -&gt; Point (Header blk) -&gt; Point blk
 forall a b. (a -&gt; b) -&gt; a -&gt; b
-</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">AnchoredFragment (Header blk) -&gt; Point (Header blk)
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-operator hs-var">$</span></a></span><span> </span><span class="annot"><span class="annottext">AnchoredFragment (Header blk) -&gt; Point (Header blk)
 forall block. AnchoredFragment block -&gt; Point block
 </span><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-network-0.1.0.0/noopt/doc/html/ouroboros-network/src"><span class="hs-identifier hs-var">AF.anchorPoint</span></a></span><span> </span><span class="annot"><span class="annottext">AnchoredFragment (Header blk)
 </span><a href="#local-6989586621680040907"><span class="hs-identifier hs-var">chain</span></a></span><span class="hs-special">)</span><span>
@@ -934,7 +934,7 @@ Point b -&gt; Point b'
 </span><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-network-0.1.0.0/noopt/doc/html/ouroboros-network/src"><span class="hs-identifier hs-var">castPoint</span></a></span><span> </span><span class="annot"><span class="annottext">(Point (Header blk) -&gt; Point blk)
 -&gt; Point (Header blk) -&gt; Point blk
 forall a b. (a -&gt; b) -&gt; a -&gt; b
-</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">AnchoredFragment (Header blk) -&gt; Point (Header blk)
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-operator hs-var">$</span></a></span><span> </span><span class="annot"><span class="annottext">AnchoredFragment (Header blk) -&gt; Point (Header blk)
 forall block.
 HasHeader block =&gt;
 AnchoredFragment block -&gt; Point block
@@ -943,10 +943,10 @@ AnchoredFragment block -&gt; Point block
 </span><span id="line-216"></span><span>
 </span><span id="line-217"></span><span>    </span><span class="annot"><span class="annottext">Bool -&gt; m () -&gt; m ()
 forall (f :: * -&gt; *). Applicative f =&gt; Bool -&gt; f () -&gt; f ()
-</span><span class="hs-identifier hs-var">when</span></span><span> </span><span class="annot"><span class="annottext">Bool
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-identifier hs-var">when</span></a></span><span> </span><span class="annot"><span class="annottext">Bool
 </span><a href="#local-6989586621680040945"><span class="hs-identifier hs-var">launchBgTasks</span></a></span><span> </span><span class="annot"><span class="annottext">(m () -&gt; m ()) -&gt; m () -&gt; m ()
 forall a b. (a -&gt; b) -&gt; a -&gt; b
-</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">ChainDbEnv m blk -&gt; Word64 -&gt; m ()
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-operator hs-var">$</span></a></span><span> </span><span class="annot"><span class="annottext">ChainDbEnv m blk -&gt; Word64 -&gt; m ()
 forall (m :: * -&gt; *) blk.
 (IOLike m, LedgerSupportsProtocol blk, InspectLedger blk,
  HasHardForkHistory blk, LgrDbSerialiseConstraints blk) =&gt;
@@ -958,7 +958,7 @@ ChainDbEnv m blk -&gt; Word64 -&gt; m ()
 </span><span id="line-219"></span><span>    </span><span class="annot"><span class="annottext">(ChainDB m blk, Internal m blk)
 -&gt; m (ChainDB m blk, Internal m blk)
 forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
-</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">ChainDB m blk
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-identifier hs-var">return</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">ChainDB m blk
 </span><a href="#local-6989586621680040856"><span class="hs-identifier hs-var">chainDB</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Internal m blk
 forall blk. Internal m blk
 </span><a href="#local-6989586621680040821"><span class="hs-identifier hs-var">testing</span></a></span><span class="hs-special">)</span><span>
@@ -984,7 +984,7 @@ ChainDbArgs f m blk
 </span><a href="Ouroboros.Consensus.Storage.ChainDB.Impl.Args.html#fromChainDbArgs"><span class="hs-identifier hs-var">Args.fromChainDbArgs</span></a></span><span> </span><span class="annot"><span class="annottext">ChainDbArgs Identity m blk
 </span><a href="#local-6989586621680040946"><span class="hs-identifier hs-var">args</span></a></span><span>
 </span><span id="line-223"></span><span>
-</span><span id="line-224"></span><span id="local-6989586621680041024"><span id="local-6989586621680041025"><span class="annot"><a href="Ouroboros.Consensus.Storage.ChainDB.Impl.html#isOpen"><span class="hs-identifier hs-type">isOpen</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Util.IOLike.html#IOLike"><span class="hs-identifier hs-type">IOLike</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680041025"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Storage.ChainDB.Impl.Types.html#ChainDbHandle"><span class="hs-identifier hs-type">ChainDbHandle</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680041025"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680041024"><span class="hs-identifier hs-type">blk</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/io-classes-0.2.0.0/noopt/doc/html/io-classes/src"><span class="hs-identifier hs-type">STM</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680041025"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span></span></span><span>
+</span><span id="line-224"></span><span id="local-6989586621680041024"><span id="local-6989586621680041025"><span class="annot"><a href="Ouroboros.Consensus.Storage.ChainDB.Impl.html#isOpen"><span class="hs-identifier hs-type">isOpen</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Util.IOLike.html#IOLike"><span class="hs-identifier hs-type">IOLike</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680041025"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Storage.ChainDB.Impl.Types.html#ChainDbHandle"><span class="hs-identifier hs-type">ChainDbHandle</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680041025"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680041024"><span class="hs-identifier hs-type">blk</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/io-classes-0.2.0.0/noopt/doc/html/io-classes/src"><span class="hs-identifier hs-type">STM</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680041025"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/ghc-prim-0.6.1/src"><span class="hs-identifier hs-type">Bool</span></a></span></span></span><span>
 </span><span id="line-225"></span><span id="isOpen"><span class="annot"><span class="annottext">isOpen :: ChainDbHandle m blk -&gt; STM m Bool
 </span><a href="Ouroboros.Consensus.Storage.ChainDB.Impl.html#isOpen"><span class="hs-identifier hs-var hs-var">isOpen</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Consensus.Storage.ChainDB.Impl.Types.html#CDBHandle"><span class="hs-identifier hs-type">CDBHandle</span></a></span><span> </span><span id="local-6989586621680040803"><span class="annot"><span class="annottext">StrictTVar m (ChainDbState m blk)
 </span><a href="#local-6989586621680040803"><span class="hs-identifier hs-var">varState</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">StrictTVar m (ChainDbState m blk) -&gt; STM m (ChainDbState m blk)
@@ -993,19 +993,19 @@ forall (m :: * -&gt; *) a. MonadSTM m =&gt; StrictTVar m a -&gt; STM m a
 </span><a href="#local-6989586621680040803"><span class="hs-identifier hs-var">varState</span></a></span><span> </span><span class="annot"><span class="annottext">STM m (ChainDbState m blk)
 -&gt; (ChainDbState m blk -&gt; Bool) -&gt; STM m Bool
 forall (f :: * -&gt; *) a b. Functor f =&gt; f a -&gt; (a -&gt; b) -&gt; f b
-</span><span class="hs-operator hs-var">&lt;&amp;&gt;</span></span><span> </span><span class="hs-glyph">\</span><span class="hs-glyph">case</span><span>
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-operator hs-var">&lt;&amp;&gt;</span></a></span><span> </span><span class="hs-glyph">\</span><span class="hs-glyph">case</span><span>
 </span><span id="line-226"></span><span>    </span><span class="annot"><span class="annottext">ChainDbState m blk
 </span><a href="Ouroboros.Consensus.Storage.ChainDB.Impl.Types.html#ChainDbClosed"><span class="hs-identifier hs-var">ChainDbClosed</span></a></span><span>    </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Bool
-</span><span class="hs-identifier hs-var">False</span></span><span>
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/ghc-prim-0.6.1/src"><span class="hs-identifier hs-var">False</span></a></span><span>
 </span><span id="line-227"></span><span>    </span><span class="annot"><a href="Ouroboros.Consensus.Storage.ChainDB.Impl.Types.html#ChainDbOpen"><span class="hs-identifier hs-type">ChainDbOpen</span></a></span><span> </span><span id="local-6989586621680040800"><span class="annot"><span class="annottext">ChainDbEnv m blk
 </span><a href="#local-6989586621680040800"><span class="hs-identifier hs-var">_env</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Bool
-</span><span class="hs-identifier hs-var">True</span></span><span>
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/ghc-prim-0.6.1/src"><span class="hs-identifier hs-var">True</span></a></span><span>
 </span><span id="line-228"></span><span>
 </span><span id="line-229"></span><span class="annot"><a href="Ouroboros.Consensus.Storage.ChainDB.Impl.html#closeDB"><span class="hs-identifier hs-type">closeDB</span></a></span><span>
 </span><span id="line-230"></span><span>  </span><span class="hs-glyph">::</span><span> </span><span class="hs-keyword">forall</span><span> </span><span id="local-6989586621680041027"><span class="annot"><a href="#local-6989586621680041027"><span class="hs-identifier hs-type">m</span></a></span></span><span> </span><span id="local-6989586621680041026"><span class="annot"><a href="#local-6989586621680041026"><span class="hs-identifier hs-type">blk</span></a></span></span><span class="hs-operator">.</span><span>
 </span><span id="line-231"></span><span>     </span><span class="hs-special">(</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Util.IOLike.html#IOLike"><span class="hs-identifier hs-type">IOLike</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680041027"><span class="hs-identifier hs-type">m</span></a></span><span>
 </span><span id="line-232"></span><span>     </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-network-0.1.0.0/noopt/doc/html/ouroboros-network/src"><span class="hs-identifier hs-type">HasHeader</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Consensus.Block.Abstract.html#Header"><span class="hs-identifier hs-type">Header</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680041026"><span class="hs-identifier hs-type">blk</span></a></span><span class="hs-special">)</span><span>
-</span><span id="line-233"></span><span>     </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">HasCallStack</span></span><span>
+</span><span id="line-233"></span><span>     </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-identifier hs-type">HasCallStack</span></a></span><span>
 </span><span id="line-234"></span><span>     </span><span class="hs-special">)</span><span>
 </span><span id="line-235"></span><span>  </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Ouroboros.Consensus.Storage.ChainDB.Impl.Types.html#ChainDbHandle"><span class="hs-identifier hs-type">ChainDbHandle</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680041027"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><a href="#local-6989586621680041026"><span class="hs-identifier hs-type">blk</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621680041027"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
 </span><span id="line-236"></span><span id="closeDB"><span class="annot"><span class="annottext">closeDB :: ChainDbHandle m blk -&gt; m ()
@@ -1019,21 +1019,21 @@ STM m a -&gt; m a
 </span><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/io-classes-0.2.0.0/noopt/doc/html/io-classes/src"><span class="hs-identifier hs-var">atomically</span></a></span><span> </span><span class="annot"><span class="annottext">(STM m (Maybe (ChainDbEnv m blk)) -&gt; m (Maybe (ChainDbEnv m blk)))
 -&gt; STM m (Maybe (ChainDbEnv m blk)) -&gt; m (Maybe (ChainDbEnv m blk))
 forall a b. (a -&gt; b) -&gt; a -&gt; b
-</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">StrictTVar m (ChainDbState m blk) -&gt; STM m (ChainDbState m blk)
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-operator hs-var">$</span></a></span><span> </span><span class="annot"><span class="annottext">StrictTVar m (ChainDbState m blk) -&gt; STM m (ChainDbState m blk)
 forall (m :: * -&gt; *) a. MonadSTM m =&gt; StrictTVar m a -&gt; STM m a
 </span><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/io-classes-0.2.0.0/noopt/doc/html/io-classes/src"><span class="hs-identifier hs-var">readTVar</span></a></span><span> </span><span class="annot"><span class="annottext">StrictTVar m (ChainDbState m blk)
 </span><a href="#local-6989586621680040799"><span class="hs-identifier hs-var">varState</span></a></span><span> </span><span class="annot"><span class="annottext">STM m (ChainDbState m blk)
 -&gt; (ChainDbState m blk -&gt; STM m (Maybe (ChainDbEnv m blk)))
 -&gt; STM m (Maybe (ChainDbEnv m blk))
 forall (m :: * -&gt; *) a b. Monad m =&gt; m a -&gt; (a -&gt; m b) -&gt; m b
-</span><span class="hs-operator hs-var">&gt;&gt;=</span></span><span> </span><span class="hs-glyph">\</span><span class="hs-glyph">case</span><span>
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-operator hs-var">&gt;&gt;=</span></a></span><span> </span><span class="hs-glyph">\</span><span class="hs-glyph">case</span><span>
 </span><span id="line-238"></span><span>      </span><span class="hs-comment">-- Idempotent</span><span>
 </span><span id="line-239"></span><span>      </span><span class="annot"><span class="annottext">ChainDbState m blk
 </span><a href="Ouroboros.Consensus.Storage.ChainDB.Impl.Types.html#ChainDbClosed"><span class="hs-identifier hs-var">ChainDbClosed</span></a></span><span>   </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Maybe (ChainDbEnv m blk) -&gt; STM m (Maybe (ChainDbEnv m blk))
 forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
-</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">Maybe (ChainDbEnv m blk)
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-identifier hs-var">return</span></a></span><span> </span><span class="annot"><span class="annottext">Maybe (ChainDbEnv m blk)
 forall a. Maybe a
-</span><span class="hs-identifier hs-var">Nothing</span></span><span>
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-identifier hs-var">Nothing</span></a></span><span>
 </span><span id="line-240"></span><span>      </span><span class="annot"><a href="Ouroboros.Consensus.Storage.ChainDB.Impl.Types.html#ChainDbOpen"><span class="hs-identifier hs-type">ChainDbOpen</span></a></span><span> </span><span id="local-6989586621680040797"><span class="annot"><span class="annottext">ChainDbEnv m blk
 </span><a href="#local-6989586621680040797"><span class="hs-identifier hs-var">env</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">do</span><span>
 </span><span id="line-241"></span><span>        </span><span class="annot"><span class="annottext">StrictTVar m (ChainDbState m blk) -&gt; ChainDbState m blk -&gt; STM m ()
@@ -1046,12 +1046,12 @@ forall (m :: * -&gt; *) blk. ChainDbState m blk
 </span><a href="Ouroboros.Consensus.Storage.ChainDB.Impl.Types.html#ChainDbClosed"><span class="hs-identifier hs-var">ChainDbClosed</span></a></span><span>
 </span><span id="line-242"></span><span>        </span><span class="annot"><span class="annottext">Maybe (ChainDbEnv m blk) -&gt; STM m (Maybe (ChainDbEnv m blk))
 forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
-</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">(Maybe (ChainDbEnv m blk) -&gt; STM m (Maybe (ChainDbEnv m blk)))
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-identifier hs-var">return</span></a></span><span> </span><span class="annot"><span class="annottext">(Maybe (ChainDbEnv m blk) -&gt; STM m (Maybe (ChainDbEnv m blk)))
 -&gt; Maybe (ChainDbEnv m blk) -&gt; STM m (Maybe (ChainDbEnv m blk))
 forall a b. (a -&gt; b) -&gt; a -&gt; b
-</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">ChainDbEnv m blk -&gt; Maybe (ChainDbEnv m blk)
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-operator hs-var">$</span></a></span><span> </span><span class="annot"><span class="annottext">ChainDbEnv m blk -&gt; Maybe (ChainDbEnv m blk)
 forall a. a -&gt; Maybe a
-</span><span class="hs-identifier hs-var">Just</span></span><span> </span><span class="annot"><span class="annottext">ChainDbEnv m blk
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-identifier hs-var">Just</span></a></span><span> </span><span class="annot"><span class="annottext">ChainDbEnv m blk
 </span><a href="#local-6989586621680040797"><span class="hs-identifier hs-var">env</span></a></span><span>
 </span><span id="line-243"></span><span>
 </span><span id="line-244"></span><span>    </span><span class="hs-comment">-- Only when the ChainDB was open</span><span>
@@ -1063,7 +1063,7 @@ Maybe a -&gt; (a -&gt; f ()) -&gt; f ()
 </span><a href="#local-6989586621680040798"><span class="hs-identifier hs-var">mbOpenEnv</span></a></span><span> </span><span class="annot"><span class="annottext">((ChainDbEnv m blk -&gt; m ()) -&gt; m ())
 -&gt; (ChainDbEnv m blk -&gt; m ()) -&gt; m ()
 forall a b. (a -&gt; b) -&gt; a -&gt; b
-</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621680040795"><span class="annot"><span class="annottext">cdb :: ChainDbEnv m blk
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-operator hs-var">$</span></a></span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621680040795"><span class="annot"><span class="annottext">cdb :: ChainDbEnv m blk
 </span><a href="#local-6989586621680040795"><span class="hs-identifier hs-var">cdb</span></a></span></span><span class="hs-glyph">@</span><span class="annot"><a href="Ouroboros.Consensus.Storage.ChainDB.Impl.Types.html#CDB"><span class="hs-identifier hs-type">CDB</span></a></span><span class="hs-special">{</span><span id="local-6989586621680040773"><span id="local-6989586621680040774"><span id="local-6989586621680040775"><span id="local-6989586621680040776"><span id="local-6989586621680040777"><span id="local-6989586621680040778"><span id="local-6989586621680040779"><span id="local-6989586621680040780"><span id="local-6989586621680040781"><span id="local-6989586621680040782"><span id="local-6989586621680040783"><span id="local-6989586621680040784"><span id="local-6989586621680040785"><span id="local-6989586621680040786"><span id="local-6989586621680040787"><span id="local-6989586621680040788"><span id="local-6989586621680040789"><span id="local-6989586621680040790"><span id="local-6989586621680040791"><span id="local-6989586621680040792"><span id="local-6989586621680040793"><span id="local-6989586621680040794"><span class="annot"><span class="annottext">StrictTVar m (m ())
 StrictTVar m (FutureBlocks blk)
 StrictTVar m (Map FollowerKey (FollowerHandle m blk))
@@ -1158,7 +1158,7 @@ forall (m :: * -&gt; *) a.
 STM m a -&gt; m a
 </span><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/io-classes-0.2.0.0/noopt/doc/html/io-classes/src"><span class="hs-identifier hs-var">atomically</span></a></span><span> </span><span class="annot"><span class="annottext">(STM m (m ()) -&gt; m (m ())) -&gt; STM m (m ()) -&gt; m (m ())
 forall a b. (a -&gt; b) -&gt; a -&gt; b
-</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">StrictTVar m (m ()) -&gt; STM m (m ())
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-operator hs-var">$</span></a></span><span> </span><span class="annot"><span class="annottext">StrictTVar m (m ()) -&gt; STM m (m ())
 forall (m :: * -&gt; *) a. MonadSTM m =&gt; StrictTVar m a -&gt; STM m a
 </span><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/io-classes-0.2.0.0/noopt/doc/html/io-classes/src"><span class="hs-identifier hs-var">readTVar</span></a></span><span> </span><span class="annot"><span class="annottext">StrictTVar m (m ())
 </span><a href="#local-6989586621680040778"><span class="hs-identifier hs-var">cdbKillBgThreads</span></a></span><span>
@@ -1185,7 +1185,7 @@ STM m a -&gt; m a
 -&gt; STM m (AnchoredFragment (Header blk))
 -&gt; m (AnchoredFragment (Header blk))
 forall a b. (a -&gt; b) -&gt; a -&gt; b
-</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">StrictTVar m (AnchoredFragment (Header blk))
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-operator hs-var">$</span></a></span><span> </span><span class="annot"><span class="annottext">StrictTVar m (AnchoredFragment (Header blk))
 -&gt; STM m (AnchoredFragment (Header blk))
 forall (m :: * -&gt; *) a. MonadSTM m =&gt; StrictTVar m a -&gt; STM m a
 </span><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/io-classes-0.2.0.0/noopt/doc/html/io-classes/src"><span class="hs-identifier hs-var">readTVar</span></a></span><span> </span><span class="annot"><span class="annottext">StrictTVar m (AnchoredFragment (Header blk))
@@ -1196,12 +1196,12 @@ forall (m :: * -&gt; *) a. Tracer m a -&gt; a -&gt; m ()
 </span><span class="hs-identifier hs-var">traceWith</span></span><span> </span><span class="annot"><span class="annottext">Tracer m (TraceEvent blk)
 </span><a href="#local-6989586621680040783"><span class="hs-identifier hs-var">cdbTracer</span></a></span><span> </span><span class="annot"><span class="annottext">(TraceEvent blk -&gt; m ()) -&gt; TraceEvent blk -&gt; m ()
 forall a b. (a -&gt; b) -&gt; a -&gt; b
-</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">TraceOpenEvent blk -&gt; TraceEvent blk
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-operator hs-var">$</span></a></span><span> </span><span class="annot"><span class="annottext">TraceOpenEvent blk -&gt; TraceEvent blk
 forall blk. TraceOpenEvent blk -&gt; TraceEvent blk
 </span><a href="Ouroboros.Consensus.Storage.ChainDB.Impl.Types.html#TraceOpenEvent"><span class="hs-identifier hs-var">TraceOpenEvent</span></a></span><span> </span><span class="annot"><span class="annottext">(TraceOpenEvent blk -&gt; TraceEvent blk)
 -&gt; TraceOpenEvent blk -&gt; TraceEvent blk
 forall a b. (a -&gt; b) -&gt; a -&gt; b
-</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Point blk -&gt; Point blk -&gt; TraceOpenEvent blk
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-operator hs-var">$</span></a></span><span> </span><span class="annot"><span class="annottext">Point blk -&gt; Point blk -&gt; TraceOpenEvent blk
 forall blk. Point blk -&gt; Point blk -&gt; TraceOpenEvent blk
 </span><a href="Ouroboros.Consensus.Storage.ChainDB.Impl.Types.html#ClosedDB"><span class="hs-identifier hs-var">ClosedDB</span></a></span><span>
 </span><span id="line-259"></span><span>        </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Point (Header blk) -&gt; Point blk
@@ -1211,7 +1211,7 @@ Point b -&gt; Point b'
 </span><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-network-0.1.0.0/noopt/doc/html/ouroboros-network/src"><span class="hs-identifier hs-var">castPoint</span></a></span><span> </span><span class="annot"><span class="annottext">(Point (Header blk) -&gt; Point blk)
 -&gt; Point (Header blk) -&gt; Point blk
 forall a b. (a -&gt; b) -&gt; a -&gt; b
-</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">AnchoredFragment (Header blk) -&gt; Point (Header blk)
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-operator hs-var">$</span></a></span><span> </span><span class="annot"><span class="annottext">AnchoredFragment (Header blk) -&gt; Point (Header blk)
 forall block. AnchoredFragment block -&gt; Point block
 </span><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-network-0.1.0.0/noopt/doc/html/ouroboros-network/src"><span class="hs-identifier hs-var">AF.anchorPoint</span></a></span><span> </span><span class="annot"><span class="annottext">AnchoredFragment (Header blk)
 </span><a href="#local-6989586621680040767"><span class="hs-identifier hs-var">chain</span></a></span><span class="hs-special">)</span><span>
@@ -1222,7 +1222,7 @@ Point b -&gt; Point b'
 </span><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/ouroboros-network-0.1.0.0/noopt/doc/html/ouroboros-network/src"><span class="hs-identifier hs-var">castPoint</span></a></span><span> </span><span class="annot"><span class="annottext">(Point (Header blk) -&gt; Point blk)
 -&gt; Point (Header blk) -&gt; Point blk
 forall a b. (a -&gt; b) -&gt; a -&gt; b
-</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">AnchoredFragment (Header blk) -&gt; Point (Header blk)
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-operator hs-var">$</span></a></span><span> </span><span class="annot"><span class="annottext">AnchoredFragment (Header blk) -&gt; Point (Header blk)
 forall block.
 HasHeader block =&gt;
 AnchoredFragment block -&gt; Point block

@@ -18,17 +18,17 @@
 </span><span id="line-18"></span><span>    </span><span class="annot"><a href="Ouroboros.Network.BlockFetch.ClientRegistry.html#readPeerGSVs"><span class="hs-identifier">readPeerGSVs</span></a></span><span class="hs-special">,</span><span>
 </span><span id="line-19"></span><span>  </span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
 </span><span id="line-20"></span><span>
-</span><span id="line-21"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><span class="hs-identifier">Data.Functor.Contravariant</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">contramap</span></span><span class="hs-special">)</span><span>
-</span><span id="line-22"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Data.Map</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Map</span></span><span>
-</span><span id="line-23"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><span class="hs-identifier">Data.Map</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Map</span></span><span class="hs-special">)</span><span>
+</span><span id="line-21"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-identifier">Data.Functor.Contravariant</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-identifier">contramap</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-22"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/containers-0.6.2.1/src"><span class="hs-identifier">Data.Map</span></a></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Map</span></span><span>
+</span><span id="line-23"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/containers-0.6.2.1/src"><span class="hs-identifier">Data.Map</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/containers-0.6.2.1/src"><span class="hs-identifier">Map</span></a></span><span class="hs-special">)</span><span>
 </span><span id="line-24"></span><span>
-</span><span id="line-25"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><span class="hs-identifier">Control.Monad</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">unless</span></span><span class="hs-special">)</span><span>
+</span><span id="line-25"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-identifier">Control.Monad</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-identifier">unless</span></a></span><span class="hs-special">)</span><span>
 </span><span id="line-26"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/io-classes-0.2.0.0/noopt/doc/html/io-classes/src"><span class="hs-identifier">Control.Monad.Class.MonadSTM.Strict</span></a></span><span>
 </span><span id="line-27"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/io-classes-0.2.0.0/noopt/doc/html/io-classes/src"><span class="hs-identifier">Control.Monad.Class.MonadThrow</span></a></span><span>
 </span><span id="line-28"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/io-classes-0.2.0.0/noopt/doc/html/io-classes/src"><span class="hs-identifier">Control.Monad.Class.MonadAsync</span></a></span><span>
 </span><span id="line-29"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/io-classes-0.2.0.0/noopt/doc/html/io-classes/src"><span class="hs-identifier">Control.Monad.Class.MonadFork</span></a></span><span>
 </span><span id="line-30"></span><span>                   </span><span class="hs-special">(</span><span> </span><span class="annot"><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/io-classes-0.2.0.0/noopt/doc/html/io-classes/src"><span class="hs-identifier">MonadThread</span></a></span><span class="hs-special">(</span><span class="annot"><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/io-classes-0.2.0.0/noopt/doc/html/io-classes/src"><span class="hs-identifier">ThreadId</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/io-classes-0.2.0.0/noopt/doc/html/io-classes/src"><span class="hs-identifier">myThreadId</span></a></span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="annot"><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/io-classes-0.2.0.0/noopt/doc/html/io-classes/src"><span class="hs-identifier">MonadFork</span></a></span><span class="hs-special">(</span><span class="annot"><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/io-classes-0.2.0.0/noopt/doc/html/io-classes/src"><span class="hs-identifier">throwTo</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">)</span><span>
-</span><span id="line-31"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><span class="hs-identifier">Control.Exception</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">assert</span></span><span class="hs-special">)</span><span>
+</span><span id="line-31"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-identifier">Control.Exception</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-identifier">assert</span></a></span><span class="hs-special">)</span><span>
 </span><span id="line-32"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><span class="hs-identifier">Control.Tracer</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Tracer</span></span><span class="hs-special">)</span><span>
 </span><span id="line-33"></span><span>
 </span><span id="line-34"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="Ouroboros.Network.DeltaQ.html"><span class="hs-identifier">Ouroboros.Network.DeltaQ</span></a></span><span>
@@ -49,10 +49,10 @@
 </span><span id="line-49"></span><span>     </span><span id="FetchClientRegistry"><span class="annot"><a href="Ouroboros.Network.BlockFetch.ClientRegistry.html#FetchClientRegistry"><span class="hs-identifier hs-var">FetchClientRegistry</span></a></span></span><span>
 </span><span id="line-50"></span><span>       </span><span class="hs-special">(</span><span class="annot"><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/io-classes-0.2.0.0/noopt/doc/html/io-classes/src"><span class="hs-identifier hs-type">StrictTMVar</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679221274"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Tracer</span></span><span> </span><span class="annot"><a href="#local-6989586621679221274"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Network.BlockFetch.ClientState.html#TraceLabelPeer"><span class="hs-identifier hs-type">TraceLabelPeer</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679221273"><span class="hs-identifier hs-type">peer</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Network.BlockFetch.ClientState.html#TraceFetchClientState"><span class="hs-identifier hs-type">TraceFetchClientState</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679221272"><span class="hs-identifier hs-type">header</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span class="hs-special">,</span><span>
 </span><span id="line-51"></span><span>                 </span><span class="annot"><a href="Ouroboros.Network.BlockFetch.ClientState.html#FetchClientPolicy"><span class="hs-identifier hs-type">FetchClientPolicy</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679221272"><span class="hs-identifier hs-type">header</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679221271"><span class="hs-identifier hs-type">block</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679221274"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
-</span><span id="line-52"></span><span>       </span><span class="hs-special">(</span><span class="annot"><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/io-classes-0.2.0.0/noopt/doc/html/io-classes/src"><span class="hs-identifier hs-type">StrictTVar</span></a></span><span>  </span><span class="annot"><a href="#local-6989586621679221274"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Map</span></span><span> </span><span class="annot"><a href="#local-6989586621679221273"><span class="hs-identifier hs-type">peer</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Network.BlockFetch.ClientState.html#FetchClientStateVars"><span class="hs-identifier hs-type">FetchClientStateVars</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679221274"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679221272"><span class="hs-identifier hs-type">header</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
-</span><span id="line-53"></span><span>       </span><span class="hs-special">(</span><span class="annot"><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/io-classes-0.2.0.0/noopt/doc/html/io-classes/src"><span class="hs-identifier hs-type">StrictTVar</span></a></span><span>  </span><span class="annot"><a href="#local-6989586621679221274"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Map</span></span><span> </span><span class="annot"><a href="#local-6989586621679221273"><span class="hs-identifier hs-type">peer</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/io-classes-0.2.0.0/noopt/doc/html/io-classes/src"><span class="hs-identifier hs-type">ThreadId</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679221274"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/io-classes-0.2.0.0/noopt/doc/html/io-classes/src"><span class="hs-identifier hs-type">StrictTMVar</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679221274"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span class="hs-special">)</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
-</span><span id="line-54"></span><span>       </span><span class="hs-special">(</span><span class="annot"><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/io-classes-0.2.0.0/noopt/doc/html/io-classes/src"><span class="hs-identifier hs-type">StrictTVar</span></a></span><span>  </span><span class="annot"><a href="#local-6989586621679221274"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Map</span></span><span> </span><span class="annot"><a href="#local-6989586621679221273"><span class="hs-identifier hs-type">peer</span></a></span><span> </span><span class="annot"><a href="Ouroboros.Network.DeltaQ.html#PeerGSV"><span class="hs-identifier hs-type">PeerGSV</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
-</span><span id="line-55"></span><span>       </span><span class="hs-special">(</span><span class="annot"><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/io-classes-0.2.0.0/noopt/doc/html/io-classes/src"><span class="hs-identifier hs-type">StrictTVar</span></a></span><span>  </span><span class="annot"><a href="#local-6989586621679221274"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Map</span></span><span> </span><span class="annot"><a href="#local-6989586621679221273"><span class="hs-identifier hs-type">peer</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/io-classes-0.2.0.0/noopt/doc/html/io-classes/src"><span class="hs-identifier hs-type">ThreadId</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679221274"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/io-classes-0.2.0.0/noopt/doc/html/io-classes/src"><span class="hs-identifier hs-type">StrictTMVar</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679221274"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span class="hs-special">)</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-52"></span><span>       </span><span class="hs-special">(</span><span class="annot"><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/io-classes-0.2.0.0/noopt/doc/html/io-classes/src"><span class="hs-identifier hs-type">StrictTVar</span></a></span><span>  </span><span class="annot"><a href="#local-6989586621679221274"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/containers-0.6.2.1/src"><span class="hs-identifier hs-type">Map</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679221273"><span class="hs-identifier hs-type">peer</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Network.BlockFetch.ClientState.html#FetchClientStateVars"><span class="hs-identifier hs-type">FetchClientStateVars</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679221274"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679221272"><span class="hs-identifier hs-type">header</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-53"></span><span>       </span><span class="hs-special">(</span><span class="annot"><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/io-classes-0.2.0.0/noopt/doc/html/io-classes/src"><span class="hs-identifier hs-type">StrictTVar</span></a></span><span>  </span><span class="annot"><a href="#local-6989586621679221274"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/containers-0.6.2.1/src"><span class="hs-identifier hs-type">Map</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679221273"><span class="hs-identifier hs-type">peer</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/io-classes-0.2.0.0/noopt/doc/html/io-classes/src"><span class="hs-identifier hs-type">ThreadId</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679221274"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/io-classes-0.2.0.0/noopt/doc/html/io-classes/src"><span class="hs-identifier hs-type">StrictTMVar</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679221274"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span class="hs-special">)</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-54"></span><span>       </span><span class="hs-special">(</span><span class="annot"><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/io-classes-0.2.0.0/noopt/doc/html/io-classes/src"><span class="hs-identifier hs-type">StrictTVar</span></a></span><span>  </span><span class="annot"><a href="#local-6989586621679221274"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/containers-0.6.2.1/src"><span class="hs-identifier hs-type">Map</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679221273"><span class="hs-identifier hs-type">peer</span></a></span><span> </span><span class="annot"><a href="Ouroboros.Network.DeltaQ.html#PeerGSV"><span class="hs-identifier hs-type">PeerGSV</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-55"></span><span>       </span><span class="hs-special">(</span><span class="annot"><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/io-classes-0.2.0.0/noopt/doc/html/io-classes/src"><span class="hs-identifier hs-type">StrictTVar</span></a></span><span>  </span><span class="annot"><a href="#local-6989586621679221274"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/containers-0.6.2.1/src"><span class="hs-identifier hs-type">Map</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679221273"><span class="hs-identifier hs-type">peer</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/io-classes-0.2.0.0/noopt/doc/html/io-classes/src"><span class="hs-identifier hs-type">ThreadId</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679221274"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/io-classes-0.2.0.0/noopt/doc/html/io-classes/src"><span class="hs-identifier hs-type">StrictTMVar</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679221274"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span class="hs-special">)</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
 </span><span id="line-56"></span><span>
 </span><span id="line-57"></span><span id="local-6989586621679221128"><span id="local-6989586621679221129"><span id="local-6989586621679221130"><span id="local-6989586621679221131"><span class="annot"><a href="Ouroboros.Network.BlockFetch.ClientRegistry.html#newFetchClientRegistry"><span class="hs-identifier hs-type">newFetchClientRegistry</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/io-classes-0.2.0.0/noopt/doc/html/io-classes/src"><span class="hs-identifier hs-type">MonadSTM</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679221131"><span class="hs-identifier hs-type">m</span></a></span><span>
 </span><span id="line-58"></span><span>                       </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679221131"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Network.BlockFetch.ClientRegistry.html#FetchClientRegistry"><span class="hs-identifier hs-type">FetchClientRegistry</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679221130"><span class="hs-identifier hs-type">peer</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679221129"><span class="hs-identifier hs-type">header</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679221128"><span class="hs-identifier hs-type">block</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679221131"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span></span></span></span></span><span>
@@ -95,7 +95,7 @@ StrictTMVar
       -&gt; StrictTVar m (Map peer (ThreadId m, StrictTMVar m ()))
       -&gt; FetchClientRegistry peer header block m)
 forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
-</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">m (StrictTMVar
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-operator hs-var">&lt;$&gt;</span></a></span><span> </span><span class="annot"><span class="annottext">m (StrictTMVar
      m
      (Tracer m (TraceLabelPeer peer (TraceFetchClientState header)),
       FetchClientPolicy header block m))
@@ -112,12 +112,12 @@ forall (m :: * -&gt; *) a. MonadSTM m =&gt; m (StrictTMVar m a)
       -&gt; StrictTVar m (Map peer (ThreadId m, StrictTMVar m ()))
       -&gt; FetchClientRegistry peer header block m)
 forall (f :: * -&gt; *) a b. Applicative f =&gt; f (a -&gt; b) -&gt; f a -&gt; f b
-</span><span class="hs-operator hs-var">&lt;*&gt;</span></span><span> </span><span class="annot"><span class="annottext">Map peer (FetchClientStateVars m header)
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-operator hs-var">&lt;*&gt;</span></a></span><span> </span><span class="annot"><span class="annottext">Map peer (FetchClientStateVars m header)
 -&gt; m (StrictTVar m (Map peer (FetchClientStateVars m header)))
 forall (m :: * -&gt; *) a. MonadSTM m =&gt; a -&gt; m (StrictTVar m a)
 </span><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/io-classes-0.2.0.0/noopt/doc/html/io-classes/src"><span class="hs-identifier hs-var">newTVarIO</span></a></span><span> </span><span class="annot"><span class="annottext">Map peer (FetchClientStateVars m header)
 forall k a. Map k a
-</span><span class="hs-identifier hs-var">Map.empty</span></span><span>
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/containers-0.6.2.1/src"><span class="hs-identifier hs-var">Map.empty</span></a></span><span>
 </span><span id="line-61"></span><span>                                             </span><span class="annot"><span class="annottext">m (StrictTVar m (Map peer (ThreadId m, StrictTMVar m ()))
    -&gt; StrictTVar m (Map peer PeerGSV)
    -&gt; StrictTVar m (Map peer (ThreadId m, StrictTMVar m ()))
@@ -127,12 +127,12 @@ forall k a. Map k a
       -&gt; StrictTVar m (Map peer (ThreadId m, StrictTMVar m ()))
       -&gt; FetchClientRegistry peer header block m)
 forall (f :: * -&gt; *) a b. Applicative f =&gt; f (a -&gt; b) -&gt; f a -&gt; f b
-</span><span class="hs-operator hs-var">&lt;*&gt;</span></span><span> </span><span class="annot"><span class="annottext">Map peer (ThreadId m, StrictTMVar m ())
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-operator hs-var">&lt;*&gt;</span></a></span><span> </span><span class="annot"><span class="annottext">Map peer (ThreadId m, StrictTMVar m ())
 -&gt; m (StrictTVar m (Map peer (ThreadId m, StrictTMVar m ())))
 forall (m :: * -&gt; *) a. MonadSTM m =&gt; a -&gt; m (StrictTVar m a)
 </span><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/io-classes-0.2.0.0/noopt/doc/html/io-classes/src"><span class="hs-identifier hs-var">newTVarIO</span></a></span><span> </span><span class="annot"><span class="annottext">Map peer (ThreadId m, StrictTMVar m ())
 forall k a. Map k a
-</span><span class="hs-identifier hs-var">Map.empty</span></span><span>
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/containers-0.6.2.1/src"><span class="hs-identifier hs-var">Map.empty</span></a></span><span>
 </span><span id="line-62"></span><span>                                             </span><span class="annot"><span class="annottext">m (StrictTVar m (Map peer PeerGSV)
    -&gt; StrictTVar m (Map peer (ThreadId m, StrictTMVar m ()))
    -&gt; FetchClientRegistry peer header block m)
@@ -140,22 +140,22 @@ forall k a. Map k a
 -&gt; m (StrictTVar m (Map peer (ThreadId m, StrictTMVar m ()))
       -&gt; FetchClientRegistry peer header block m)
 forall (f :: * -&gt; *) a b. Applicative f =&gt; f (a -&gt; b) -&gt; f a -&gt; f b
-</span><span class="hs-operator hs-var">&lt;*&gt;</span></span><span> </span><span class="annot"><span class="annottext">Map peer PeerGSV -&gt; m (StrictTVar m (Map peer PeerGSV))
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-operator hs-var">&lt;*&gt;</span></a></span><span> </span><span class="annot"><span class="annottext">Map peer PeerGSV -&gt; m (StrictTVar m (Map peer PeerGSV))
 forall (m :: * -&gt; *) a. MonadSTM m =&gt; a -&gt; m (StrictTVar m a)
 </span><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/io-classes-0.2.0.0/noopt/doc/html/io-classes/src"><span class="hs-identifier hs-var">newTVarIO</span></a></span><span> </span><span class="annot"><span class="annottext">Map peer PeerGSV
 forall k a. Map k a
-</span><span class="hs-identifier hs-var">Map.empty</span></span><span>
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/containers-0.6.2.1/src"><span class="hs-identifier hs-var">Map.empty</span></a></span><span>
 </span><span id="line-63"></span><span>                                             </span><span class="annot"><span class="annottext">m (StrictTVar m (Map peer (ThreadId m, StrictTMVar m ()))
    -&gt; FetchClientRegistry peer header block m)
 -&gt; m (StrictTVar m (Map peer (ThreadId m, StrictTMVar m ())))
 -&gt; m (FetchClientRegistry peer header block m)
 forall (f :: * -&gt; *) a b. Applicative f =&gt; f (a -&gt; b) -&gt; f a -&gt; f b
-</span><span class="hs-operator hs-var">&lt;*&gt;</span></span><span> </span><span class="annot"><span class="annottext">Map peer (ThreadId m, StrictTMVar m ())
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-operator hs-var">&lt;*&gt;</span></a></span><span> </span><span class="annot"><span class="annottext">Map peer (ThreadId m, StrictTMVar m ())
 -&gt; m (StrictTVar m (Map peer (ThreadId m, StrictTMVar m ())))
 forall (m :: * -&gt; *) a. MonadSTM m =&gt; a -&gt; m (StrictTVar m a)
 </span><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/io-classes-0.2.0.0/noopt/doc/html/io-classes/src"><span class="hs-identifier hs-var">newTVarIO</span></a></span><span> </span><span class="annot"><span class="annottext">Map peer (ThreadId m, StrictTMVar m ())
 forall k a. Map k a
-</span><span class="hs-identifier hs-var">Map.empty</span></span><span>
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/containers-0.6.2.1/src"><span class="hs-identifier hs-var">Map.empty</span></a></span><span>
 </span><span id="line-64"></span><span>
 </span><span id="line-65"></span><span class="hs-comment">-- | This is needed to start a block fetch client. It provides the required</span><span>
 </span><span id="line-66"></span><span class="hs-comment">-- 'FetchClientContext'. It registers and unregisters the fetch client on</span><span>
@@ -164,7 +164,7 @@ forall k a. Map k a
 </span><span id="line-69"></span><span class="hs-comment">-- It also manages synchronisation with the corresponding chain sync client.</span><span>
 </span><span id="line-70"></span><span class="hs-comment">--</span><span>
 </span><span id="line-71"></span><span class="annot"><a href="Ouroboros.Network.BlockFetch.ClientRegistry.html#bracketFetchClient"><span class="hs-identifier hs-type">bracketFetchClient</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-keyword">forall</span><span> </span><span id="local-6989586621679221123"><span class="annot"><a href="#local-6989586621679221123"><span class="hs-identifier hs-type">m</span></a></span></span><span> </span><span id="local-6989586621679221122"><span class="annot"><a href="#local-6989586621679221122"><span class="hs-identifier hs-type">a</span></a></span></span><span> </span><span id="local-6989586621679221121"><span class="annot"><a href="#local-6989586621679221121"><span class="hs-identifier hs-type">peer</span></a></span></span><span> </span><span id="local-6989586621679221120"><span class="annot"><a href="#local-6989586621679221120"><span class="hs-identifier hs-type">header</span></a></span></span><span> </span><span id="local-6989586621679221119"><span class="annot"><a href="#local-6989586621679221119"><span class="hs-identifier hs-type">block</span></a></span></span><span class="hs-operator">.</span><span>
-</span><span id="line-72"></span><span>                      </span><span class="hs-special">(</span><span class="annot"><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/io-classes-0.2.0.0/noopt/doc/html/io-classes/src"><span class="hs-identifier hs-type">MonadThrow</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679221123"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/io-classes-0.2.0.0/noopt/doc/html/io-classes/src"><span class="hs-identifier hs-type">MonadSTM</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679221123"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/io-classes-0.2.0.0/noopt/doc/html/io-classes/src"><span class="hs-identifier hs-type">MonadFork</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679221123"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Ord</span></span><span> </span><span class="annot"><a href="#local-6989586621679221121"><span class="hs-identifier hs-type">peer</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-72"></span><span>                      </span><span class="hs-special">(</span><span class="annot"><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/io-classes-0.2.0.0/noopt/doc/html/io-classes/src"><span class="hs-identifier hs-type">MonadThrow</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679221123"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/io-classes-0.2.0.0/noopt/doc/html/io-classes/src"><span class="hs-identifier hs-type">MonadSTM</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679221123"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/io-classes-0.2.0.0/noopt/doc/html/io-classes/src"><span class="hs-identifier hs-type">MonadFork</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679221123"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/ghc-prim-0.6.1/src"><span class="hs-identifier hs-type">Ord</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679221121"><span class="hs-identifier hs-type">peer</span></a></span><span class="hs-special">)</span><span>
 </span><span id="line-73"></span><span>                   </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Ouroboros.Network.BlockFetch.ClientRegistry.html#FetchClientRegistry"><span class="hs-identifier hs-type">FetchClientRegistry</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679221121"><span class="hs-identifier hs-type">peer</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679221120"><span class="hs-identifier hs-type">header</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679221119"><span class="hs-identifier hs-type">block</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679221123"><span class="hs-identifier hs-type">m</span></a></span><span>
 </span><span id="line-74"></span><span>                   </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679221121"><span class="hs-identifier hs-type">peer</span></a></span><span>
 </span><span id="line-75"></span><span>                   </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Network.BlockFetch.ClientState.html#FetchClientContext"><span class="hs-identifier hs-type">FetchClientContext</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679221120"><span class="hs-identifier hs-type">header</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679221119"><span class="hs-identifier hs-type">block</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679221123"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679221123"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679221122"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span>
@@ -209,7 +209,7 @@ m a -&gt; (a -&gt; m b) -&gt; (a -&gt; m c) -&gt; m c
     (ThreadId m, StrictTMVar m ()))
 -&gt; m ()
 forall a b c. (a -&gt; b -&gt; c) -&gt; (a, b) -&gt; c
-</span><span class="hs-identifier hs-var">uncurry</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">StrictTMVar m ()
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-identifier hs-var">uncurry</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">StrictTMVar m ()
 -&gt; FetchClientContext header block m
 -&gt; (ThreadId m, StrictTMVar m ())
 -&gt; m ()
@@ -223,10 +223,10 @@ forall a b c. (a -&gt; b -&gt; c) -&gt; (a, b) -&gt; c
     (ThreadId m, StrictTMVar m ()))
 -&gt; m a
 forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
-</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">(FetchClientContext header block m, (ThreadId m, StrictTMVar m ()))
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-operator hs-var">.</span></a></span><span> </span><span class="annot"><span class="annottext">(FetchClientContext header block m, (ThreadId m, StrictTMVar m ()))
 -&gt; FetchClientContext header block m
 forall a b. (a, b) -&gt; a
-</span><span class="hs-identifier hs-var">fst</span></span><span class="hs-special">)</span><span>
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-identifier hs-var">fst</span></a></span><span class="hs-special">)</span><span>
 </span><span id="line-81"></span><span>  </span><span class="hs-keyword">where</span><span>
 </span><span id="line-82"></span><span>    </span><span class="annot"><a href="#local-6989586621679221109"><span class="hs-identifier hs-type">register</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/io-classes-0.2.0.0/noopt/doc/html/io-classes/src"><span class="hs-identifier hs-type">StrictTMVar</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679221123"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
 </span><span id="line-83"></span><span>             </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679221123"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span> </span><span class="annot"><a href="Ouroboros.Network.BlockFetch.ClientState.html#FetchClientContext"><span class="hs-identifier hs-type">FetchClientContext</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679221120"><span class="hs-identifier hs-type">header</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679221119"><span class="hs-identifier hs-type">block</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679221123"><span class="hs-identifier hs-type">m</span></a></span><span>
@@ -251,7 +251,7 @@ STM m a -&gt; m a
 -&gt; STM m (FetchClientContext header block m)
 -&gt; m (FetchClientContext header block m)
 forall a b. (a -&gt; b) -&gt; a -&gt; b
-</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-keyword">do</span><span>
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-operator hs-var">$</span></a></span><span> </span><span class="hs-keyword">do</span><span>
 </span><span id="line-88"></span><span>        </span><span class="hs-comment">-- blocks until setFetchClientContext is called</span><span>
 </span><span id="line-89"></span><span>        </span><span class="hs-special">(</span><span id="local-6989586621679221101"><span class="annot"><span class="annottext">Tracer m (TraceLabelPeer peer (TraceFetchClientState header))
 </span><a href="#local-6989586621679221101"><span class="hs-identifier hs-var">tracer</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679221100"><span class="annot"><span class="annottext">FetchClientPolicy header block m
@@ -281,7 +281,7 @@ forall (stm :: * -&gt; *). MonadSTMTx stm =&gt; Bool -&gt; stm ()
 </span><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/io-classes-0.2.0.0/noopt/doc/html/io-classes/src"><span class="hs-identifier hs-var">check</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">peer
 </span><a href="#local-6989586621679221113"><span class="hs-identifier hs-var">peer</span></a></span><span> </span><span class="annot"><span class="annottext">peer -&gt; Map peer PeerGSV -&gt; Bool
 forall k a. Ord k =&gt; k -&gt; Map k a -&gt; Bool
-</span><span class="hs-operator hs-var">`Map.member`</span></span><span> </span><span class="annot"><span class="annottext">Map peer PeerGSV
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/containers-0.6.2.1/src"><span class="hs-operator hs-var">`Map.member`</span></a></span><span> </span><span class="annot"><span class="annottext">Map peer PeerGSV
 </span><a href="#local-6989586621679221098"><span class="hs-identifier hs-var">dqPeers</span></a></span><span class="hs-special">)</span><span>
 </span><span id="line-94"></span><span>        </span><span class="annot"><span class="annottext">StrictTVar m (Map peer (ThreadId m, StrictTMVar m ()))
 -&gt; (Map peer (ThreadId m, StrictTMVar m ())
@@ -298,28 +298,28 @@ StrictTVar m a -&gt; (a -&gt; a) -&gt; STM m ()
     -&gt; Map peer (ThreadId m, StrictTMVar m ()))
 -&gt; STM m ()
 forall a b. (a -&gt; b) -&gt; a -&gt; b
-</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679221093"><span class="annot"><span class="annottext">Map peer (ThreadId m, StrictTMVar m ())
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-operator hs-var">$</span></a></span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679221093"><span class="annot"><span class="annottext">Map peer (ThreadId m, StrictTMVar m ())
 </span><a href="#local-6989586621679221093"><span class="hs-identifier hs-var">m</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
 </span><span id="line-95"></span><span>          </span><span class="annot"><span class="annottext">Bool
 -&gt; Map peer (ThreadId m, StrictTMVar m ())
 -&gt; Map peer (ThreadId m, StrictTMVar m ())
 forall a. HasCallStack =&gt; Bool -&gt; a -&gt; a
-</span><span class="hs-identifier hs-var hs-var">assert</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">peer
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-identifier hs-var hs-var">assert</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">peer
 </span><a href="#local-6989586621679221113"><span class="hs-identifier hs-var">peer</span></a></span><span> </span><span class="annot"><span class="annottext">peer -&gt; Map peer (ThreadId m, StrictTMVar m ()) -&gt; Bool
 forall k a. Ord k =&gt; k -&gt; Map k a -&gt; Bool
-</span><span class="hs-operator hs-var">`Map.notMember`</span></span><span> </span><span class="annot"><span class="annottext">Map peer (ThreadId m, StrictTMVar m ())
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/containers-0.6.2.1/src"><span class="hs-operator hs-var">`Map.notMember`</span></a></span><span> </span><span class="annot"><span class="annottext">Map peer (ThreadId m, StrictTMVar m ())
 </span><a href="#local-6989586621679221093"><span class="hs-identifier hs-var">m</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(Map peer (ThreadId m, StrictTMVar m ())
  -&gt; Map peer (ThreadId m, StrictTMVar m ()))
 -&gt; Map peer (ThreadId m, StrictTMVar m ())
 -&gt; Map peer (ThreadId m, StrictTMVar m ())
 forall a b. (a -&gt; b) -&gt; a -&gt; b
-</span><span class="hs-operator hs-var">$</span></span><span>
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-operator hs-var">$</span></a></span><span>
 </span><span id="line-96"></span><span>          </span><span class="annot"><span class="annottext">peer
 -&gt; (ThreadId m, StrictTMVar m ())
 -&gt; Map peer (ThreadId m, StrictTMVar m ())
 -&gt; Map peer (ThreadId m, StrictTMVar m ())
 forall k a. Ord k =&gt; k -&gt; a -&gt; Map k a -&gt; Map k a
-</span><span class="hs-identifier hs-var">Map.insert</span></span><span> </span><span class="annot"><span class="annottext">peer
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/containers-0.6.2.1/src"><span class="hs-identifier hs-var">Map.insert</span></a></span><span> </span><span class="annot"><span class="annottext">peer
 </span><a href="#local-6989586621679221113"><span class="hs-identifier hs-var">peer</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">ThreadId m
 </span><a href="#local-6989586621679221104"><span class="hs-identifier hs-var">tid</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">StrictTMVar m ()
 </span><a href="#local-6989586621679221105"><span class="hs-identifier hs-var">ksVar</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Map peer (ThreadId m, StrictTMVar m ())
@@ -346,35 +346,35 @@ StrictTVar m a -&gt; (a -&gt; a) -&gt; STM m ()
     -&gt; Map peer (FetchClientStateVars m header))
 -&gt; STM m ()
 forall a b. (a -&gt; b) -&gt; a -&gt; b
-</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679221088"><span class="annot"><span class="annottext">Map peer (FetchClientStateVars m header)
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-operator hs-var">$</span></a></span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679221088"><span class="annot"><span class="annottext">Map peer (FetchClientStateVars m header)
 </span><a href="#local-6989586621679221088"><span class="hs-identifier hs-var">m</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
 </span><span id="line-100"></span><span>          </span><span class="annot"><span class="annottext">Bool
 -&gt; Map peer (FetchClientStateVars m header)
 -&gt; Map peer (FetchClientStateVars m header)
 forall a. HasCallStack =&gt; Bool -&gt; a -&gt; a
-</span><span class="hs-identifier hs-var hs-var">assert</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">peer
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-identifier hs-var hs-var">assert</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">peer
 </span><a href="#local-6989586621679221113"><span class="hs-identifier hs-var">peer</span></a></span><span> </span><span class="annot"><span class="annottext">peer -&gt; Map peer (FetchClientStateVars m header) -&gt; Bool
 forall k a. Ord k =&gt; k -&gt; Map k a -&gt; Bool
-</span><span class="hs-operator hs-var">`Map.notMember`</span></span><span> </span><span class="annot"><span class="annottext">Map peer (FetchClientStateVars m header)
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/containers-0.6.2.1/src"><span class="hs-operator hs-var">`Map.notMember`</span></a></span><span> </span><span class="annot"><span class="annottext">Map peer (FetchClientStateVars m header)
 </span><a href="#local-6989586621679221088"><span class="hs-identifier hs-var">m</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(Map peer (FetchClientStateVars m header)
  -&gt; Map peer (FetchClientStateVars m header))
 -&gt; Map peer (FetchClientStateVars m header)
 -&gt; Map peer (FetchClientStateVars m header)
 forall a b. (a -&gt; b) -&gt; a -&gt; b
-</span><span class="hs-operator hs-var">$</span></span><span>
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-operator hs-var">$</span></a></span><span>
 </span><span id="line-101"></span><span>          </span><span class="annot"><span class="annottext">peer
 -&gt; FetchClientStateVars m header
 -&gt; Map peer (FetchClientStateVars m header)
 -&gt; Map peer (FetchClientStateVars m header)
 forall k a. Ord k =&gt; k -&gt; a -&gt; Map k a -&gt; Map k a
-</span><span class="hs-identifier hs-var">Map.insert</span></span><span> </span><span class="annot"><span class="annottext">peer
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/containers-0.6.2.1/src"><span class="hs-identifier hs-var">Map.insert</span></a></span><span> </span><span class="annot"><span class="annottext">peer
 </span><a href="#local-6989586621679221113"><span class="hs-identifier hs-var">peer</span></a></span><span> </span><span class="annot"><span class="annottext">FetchClientStateVars m header
 </span><a href="#local-6989586621679221090"><span class="hs-identifier hs-var">stateVars</span></a></span><span> </span><span class="annot"><span class="annottext">Map peer (FetchClientStateVars m header)
 </span><a href="#local-6989586621679221088"><span class="hs-identifier hs-var">m</span></a></span><span>
 </span><span id="line-102"></span><span>        </span><span class="annot"><span class="annottext">FetchClientContext header block m
 -&gt; STM m (FetchClientContext header block m)
 forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
-</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">FetchClientContext :: forall header block (m :: * -&gt; *).
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-identifier hs-var">return</span></a></span><span> </span><span class="annot"><span class="annottext">FetchClientContext :: forall header block (m :: * -&gt; *).
 Tracer m (TraceFetchClientState header)
 -&gt; FetchClientPolicy header block m
 -&gt; FetchClientStateVars m header
@@ -386,7 +386,7 @@ Tracer m (TraceFetchClientState header)
 -&gt; Tracer m (TraceLabelPeer peer (TraceFetchClientState header))
 -&gt; Tracer m (TraceFetchClientState header)
 forall (f :: * -&gt; *) a b. Contravariant f =&gt; (a -&gt; b) -&gt; f b -&gt; f a
-</span><span class="hs-identifier hs-var">contramap</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">peer
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-identifier hs-var">contramap</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">peer
 -&gt; TraceFetchClientState header
 -&gt; TraceLabelPeer peer (TraceFetchClientState header)
 forall peerid a. peerid -&gt; a -&gt; TraceLabelPeer peerid a
@@ -412,7 +412,7 @@ STM m a -&gt; m a
 -&gt; STM m (ThreadId m, StrictTMVar m ())
 -&gt; m (ThreadId m, StrictTMVar m ())
 forall a b. (a -&gt; b) -&gt; a -&gt; b
-</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-keyword">do</span><span>
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-operator hs-var">$</span></a></span><span> </span><span class="hs-keyword">do</span><span>
 </span><span id="line-109"></span><span>        </span><span id="local-6989586621679221081"><span class="annot"><span class="annottext">Map peer (ThreadId m, StrictTMVar m ())
 </span><a href="#local-6989586621679221081"><span class="hs-identifier hs-var">syncclients</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">StrictTVar m (Map peer (ThreadId m, StrictTMVar m ()))
 -&gt; STM m (Map peer (ThreadId m, StrictTMVar m ()))
@@ -423,24 +423,24 @@ forall (m :: * -&gt; *) a. MonadSTM m =&gt; StrictTVar m a -&gt; STM m a
 -&gt; Map peer (ThreadId m, StrictTMVar m ())
 -&gt; Maybe (ThreadId m, StrictTMVar m ())
 forall k a. Ord k =&gt; k -&gt; Map k a -&gt; Maybe a
-</span><span class="hs-identifier hs-var">Map.lookup</span></span><span> </span><span class="annot"><span class="annottext">peer
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/containers-0.6.2.1/src"><span class="hs-identifier hs-var">Map.lookup</span></a></span><span> </span><span class="annot"><span class="annottext">peer
 </span><a href="#local-6989586621679221113"><span class="hs-identifier hs-var">peer</span></a></span><span> </span><span class="annot"><span class="annottext">Map peer (ThreadId m, StrictTMVar m ())
 </span><a href="#local-6989586621679221081"><span class="hs-identifier hs-var">syncclients</span></a></span><span> </span><span class="hs-keyword">of</span><span>
 </span><span id="line-111"></span><span>          </span><span class="annot"><span class="annottext">Maybe (ThreadId m, StrictTMVar m ())
-</span><span class="hs-identifier hs-var">Nothing</span></span><span>         </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">STM m (ThreadId m, StrictTMVar m ())
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-identifier hs-var">Nothing</span></a></span><span>         </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">STM m (ThreadId m, StrictTMVar m ())
 forall (stm :: * -&gt; *) a. MonadSTMTx stm =&gt; stm a
 </span><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/io-classes-0.2.0.0/noopt/doc/html/io-classes/src"><span class="hs-identifier hs-var">retry</span></a></span><span>
-</span><span id="line-112"></span><span>          </span><span class="annot"><span class="hs-identifier hs-type">Just</span></span><span> </span><span id="local-6989586621679221078"><span class="annot"><span class="annottext">(ThreadId m, StrictTMVar m ())
+</span><span id="line-112"></span><span>          </span><span class="annot"><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-identifier hs-type">Just</span></a></span><span> </span><span id="local-6989586621679221078"><span class="annot"><span class="annottext">(ThreadId m, StrictTMVar m ())
 </span><a href="#local-6989586621679221078"><span class="hs-identifier hs-var">syncclient</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">(ThreadId m, StrictTMVar m ())
 -&gt; STM m (ThreadId m, StrictTMVar m ())
 forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
-</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">(ThreadId m, StrictTMVar m ())
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-identifier hs-var">return</span></a></span><span> </span><span class="annot"><span class="annottext">(ThreadId m, StrictTMVar m ())
 </span><a href="#local-6989586621679221078"><span class="hs-identifier hs-var">syncclient</span></a></span><span>
 </span><span id="line-113"></span><span>      </span><span class="annot"><span class="annottext">(FetchClientContext header block m, (ThreadId m, StrictTMVar m ()))
 -&gt; m (FetchClientContext header block m,
       (ThreadId m, StrictTMVar m ()))
 forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
-</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">FetchClientContext header block m
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-identifier hs-var">return</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">FetchClientContext header block m
 </span><a href="#local-6989586621679221103"><span class="hs-identifier hs-var">ctx</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">(ThreadId m, StrictTMVar m ())
 </span><a href="#local-6989586621679221082"><span class="hs-identifier hs-var">syncclient</span></a></span><span class="hs-special">)</span><span>
 </span><span id="line-114"></span><span>
@@ -467,7 +467,7 @@ forall (m :: * -&gt; *) a.
 STM m a -&gt; m a
 </span><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/io-classes-0.2.0.0/noopt/doc/html/io-classes/src"><span class="hs-identifier hs-var">atomically</span></a></span><span> </span><span class="annot"><span class="annottext">(STM m () -&gt; m ()) -&gt; STM m () -&gt; m ()
 forall a b. (a -&gt; b) -&gt; a -&gt; b
-</span><span class="hs-operator hs-var">$</span></span><span>
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-operator hs-var">$</span></a></span><span>
 </span><span id="line-123"></span><span>        </span><span class="annot"><span class="annottext">StrictTVar m (PeerFetchStatus header)
 -&gt; PeerFetchStatus header -&gt; STM m ()
 forall (m :: * -&gt; *) a.
@@ -497,7 +497,7 @@ forall (m :: * -&gt; *) a.
 STM m a -&gt; m a
 </span><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/io-classes-0.2.0.0/noopt/doc/html/io-classes/src"><span class="hs-identifier hs-var">atomically</span></a></span><span> </span><span class="annot"><span class="annottext">(STM m () -&gt; m ()) -&gt; STM m () -&gt; m ()
 forall a b. (a -&gt; b) -&gt; a -&gt; b
-</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-keyword">do</span><span>
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-operator hs-var">$</span></a></span><span> </span><span class="hs-keyword">do</span><span>
 </span><span id="line-128"></span><span>        </span><span class="hs-comment">-- Signal to keepAlive that we're going away</span><span>
 </span><span id="line-129"></span><span>        </span><span class="annot"><span class="annottext">StrictTMVar m () -&gt; () -&gt; STM m ()
 forall (m :: * -&gt; *) a.
@@ -520,27 +520,27 @@ StrictTVar m a -&gt; (a -&gt; a) -&gt; STM m ()
     -&gt; Map peer (ThreadId m, StrictTMVar m ()))
 -&gt; STM m ()
 forall a b. (a -&gt; b) -&gt; a -&gt; b
-</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679221068"><span class="annot"><span class="annottext">Map peer (ThreadId m, StrictTMVar m ())
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-operator hs-var">$</span></a></span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679221068"><span class="annot"><span class="annottext">Map peer (ThreadId m, StrictTMVar m ())
 </span><a href="#local-6989586621679221068"><span class="hs-identifier hs-var">m</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
 </span><span id="line-131"></span><span>          </span><span class="annot"><span class="annottext">Bool
 -&gt; Map peer (ThreadId m, StrictTMVar m ())
 -&gt; Map peer (ThreadId m, StrictTMVar m ())
 forall a. HasCallStack =&gt; Bool -&gt; a -&gt; a
-</span><span class="hs-identifier hs-var hs-var">assert</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">peer
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-identifier hs-var hs-var">assert</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">peer
 </span><a href="#local-6989586621679221113"><span class="hs-identifier hs-var">peer</span></a></span><span> </span><span class="annot"><span class="annottext">peer -&gt; Map peer (ThreadId m, StrictTMVar m ()) -&gt; Bool
 forall k a. Ord k =&gt; k -&gt; Map k a -&gt; Bool
-</span><span class="hs-operator hs-var">`Map.member`</span></span><span> </span><span class="annot"><span class="annottext">Map peer (ThreadId m, StrictTMVar m ())
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/containers-0.6.2.1/src"><span class="hs-operator hs-var">`Map.member`</span></a></span><span> </span><span class="annot"><span class="annottext">Map peer (ThreadId m, StrictTMVar m ())
 </span><a href="#local-6989586621679221068"><span class="hs-identifier hs-var">m</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(Map peer (ThreadId m, StrictTMVar m ())
  -&gt; Map peer (ThreadId m, StrictTMVar m ()))
 -&gt; Map peer (ThreadId m, StrictTMVar m ())
 -&gt; Map peer (ThreadId m, StrictTMVar m ())
 forall a b. (a -&gt; b) -&gt; a -&gt; b
-</span><span class="hs-operator hs-var">$</span></span><span>
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-operator hs-var">$</span></a></span><span>
 </span><span id="line-132"></span><span>          </span><span class="annot"><span class="annottext">peer
 -&gt; Map peer (ThreadId m, StrictTMVar m ())
 -&gt; Map peer (ThreadId m, StrictTMVar m ())
 forall k a. Ord k =&gt; k -&gt; Map k a -&gt; Map k a
-</span><span class="hs-identifier hs-var">Map.delete</span></span><span> </span><span class="annot"><span class="annottext">peer
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/containers-0.6.2.1/src"><span class="hs-identifier hs-var">Map.delete</span></a></span><span> </span><span class="annot"><span class="annottext">peer
 </span><a href="#local-6989586621679221113"><span class="hs-identifier hs-var">peer</span></a></span><span> </span><span class="annot"><span class="annottext">Map peer (ThreadId m, StrictTMVar m ())
 </span><a href="#local-6989586621679221068"><span class="hs-identifier hs-var">m</span></a></span><span>
 </span><span id="line-133"></span><span>
@@ -563,27 +563,27 @@ StrictTVar m a -&gt; (a -&gt; a) -&gt; STM m ()
     -&gt; Map peer (FetchClientStateVars m header))
 -&gt; STM m ()
 forall a b. (a -&gt; b) -&gt; a -&gt; b
-</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679221066"><span class="annot"><span class="annottext">Map peer (FetchClientStateVars m header)
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-operator hs-var">$</span></a></span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679221066"><span class="annot"><span class="annottext">Map peer (FetchClientStateVars m header)
 </span><a href="#local-6989586621679221066"><span class="hs-identifier hs-var">m</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
 </span><span id="line-136"></span><span>          </span><span class="annot"><span class="annottext">Bool
 -&gt; Map peer (FetchClientStateVars m header)
 -&gt; Map peer (FetchClientStateVars m header)
 forall a. HasCallStack =&gt; Bool -&gt; a -&gt; a
-</span><span class="hs-identifier hs-var hs-var">assert</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">peer
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-identifier hs-var hs-var">assert</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">peer
 </span><a href="#local-6989586621679221113"><span class="hs-identifier hs-var">peer</span></a></span><span> </span><span class="annot"><span class="annottext">peer -&gt; Map peer (FetchClientStateVars m header) -&gt; Bool
 forall k a. Ord k =&gt; k -&gt; Map k a -&gt; Bool
-</span><span class="hs-operator hs-var">`Map.member`</span></span><span> </span><span class="annot"><span class="annottext">Map peer (FetchClientStateVars m header)
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/containers-0.6.2.1/src"><span class="hs-operator hs-var">`Map.member`</span></a></span><span> </span><span class="annot"><span class="annottext">Map peer (FetchClientStateVars m header)
 </span><a href="#local-6989586621679221066"><span class="hs-identifier hs-var">m</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(Map peer (FetchClientStateVars m header)
  -&gt; Map peer (FetchClientStateVars m header))
 -&gt; Map peer (FetchClientStateVars m header)
 -&gt; Map peer (FetchClientStateVars m header)
 forall a b. (a -&gt; b) -&gt; a -&gt; b
-</span><span class="hs-operator hs-var">$</span></span><span>
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-operator hs-var">$</span></a></span><span>
 </span><span id="line-137"></span><span>          </span><span class="annot"><span class="annottext">peer
 -&gt; Map peer (FetchClientStateVars m header)
 -&gt; Map peer (FetchClientStateVars m header)
 forall k a. Ord k =&gt; k -&gt; Map k a -&gt; Map k a
-</span><span class="hs-identifier hs-var">Map.delete</span></span><span> </span><span class="annot"><span class="annottext">peer
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/containers-0.6.2.1/src"><span class="hs-identifier hs-var">Map.delete</span></a></span><span> </span><span class="annot"><span class="annottext">peer
 </span><a href="#local-6989586621679221113"><span class="hs-identifier hs-var">peer</span></a></span><span> </span><span class="annot"><span class="annottext">Map peer (FetchClientStateVars m header)
 </span><a href="#local-6989586621679221066"><span class="hs-identifier hs-var">m</span></a></span><span>
 </span><span id="line-138"></span><span>
@@ -596,7 +596,7 @@ forall k a. Ord k =&gt; k -&gt; Map k a -&gt; Map k a
 </span><span id="line-145"></span><span class="hs-comment">-- registration and deregistration.</span><span>
 </span><span id="line-146"></span><span class="hs-comment">--</span><span>
 </span><span id="line-147"></span><span class="annot"><a href="Ouroboros.Network.BlockFetch.ClientRegistry.html#bracketSyncWithFetchClient"><span class="hs-identifier hs-type">bracketSyncWithFetchClient</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-keyword">forall</span><span> </span><span id="local-6989586621679221065"><span class="annot"><a href="#local-6989586621679221065"><span class="hs-identifier hs-type">m</span></a></span></span><span> </span><span id="local-6989586621679221064"><span class="annot"><a href="#local-6989586621679221064"><span class="hs-identifier hs-type">a</span></a></span></span><span> </span><span id="local-6989586621679221063"><span class="annot"><a href="#local-6989586621679221063"><span class="hs-identifier hs-type">peer</span></a></span></span><span> </span><span id="local-6989586621679221062"><span class="annot"><a href="#local-6989586621679221062"><span class="hs-identifier hs-type">header</span></a></span></span><span> </span><span id="local-6989586621679221061"><span class="annot"><a href="#local-6989586621679221061"><span class="hs-identifier hs-type">block</span></a></span></span><span class="hs-operator">.</span><span>
-</span><span id="line-148"></span><span>                              </span><span class="hs-special">(</span><span class="annot"><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/io-classes-0.2.0.0/noopt/doc/html/io-classes/src"><span class="hs-identifier hs-type">MonadThrow</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679221065"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/io-classes-0.2.0.0/noopt/doc/html/io-classes/src"><span class="hs-identifier hs-type">MonadSTM</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679221065"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/io-classes-0.2.0.0/noopt/doc/html/io-classes/src"><span class="hs-identifier hs-type">MonadFork</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679221065"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Ord</span></span><span> </span><span class="annot"><a href="#local-6989586621679221063"><span class="hs-identifier hs-type">peer</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-148"></span><span>                              </span><span class="hs-special">(</span><span class="annot"><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/io-classes-0.2.0.0/noopt/doc/html/io-classes/src"><span class="hs-identifier hs-type">MonadThrow</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679221065"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/io-classes-0.2.0.0/noopt/doc/html/io-classes/src"><span class="hs-identifier hs-type">MonadSTM</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679221065"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/io-classes-0.2.0.0/noopt/doc/html/io-classes/src"><span class="hs-identifier hs-type">MonadFork</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679221065"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/ghc-prim-0.6.1/src"><span class="hs-identifier hs-type">Ord</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679221063"><span class="hs-identifier hs-type">peer</span></a></span><span class="hs-special">)</span><span>
 </span><span id="line-149"></span><span>                           </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Ouroboros.Network.BlockFetch.ClientRegistry.html#FetchClientRegistry"><span class="hs-identifier hs-type">FetchClientRegistry</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679221063"><span class="hs-identifier hs-type">peer</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679221062"><span class="hs-identifier hs-type">header</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679221061"><span class="hs-identifier hs-type">block</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679221065"><span class="hs-identifier hs-type">m</span></a></span><span>
 </span><span id="line-150"></span><span>                           </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679221063"><span class="hs-identifier hs-type">peer</span></a></span><span>
 </span><span id="line-151"></span><span>                           </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679221065"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679221064"><span class="hs-identifier hs-type">a</span></a></span><span>
@@ -651,7 +651,7 @@ forall (m :: * -&gt; *) a.
 STM m a -&gt; m a
 </span><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/io-classes-0.2.0.0/noopt/doc/html/io-classes/src"><span class="hs-identifier hs-var">atomically</span></a></span><span> </span><span class="annot"><span class="annottext">(STM m () -&gt; m ()) -&gt; STM m () -&gt; m ()
 forall a b. (a -&gt; b) -&gt; a -&gt; b
-</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-keyword">do</span><span>
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-operator hs-var">$</span></a></span><span> </span><span class="hs-keyword">do</span><span>
 </span><span id="line-170"></span><span>        </span><span id="local-6989586621679221047"><span class="annot"><span class="annottext">Map peer (FetchClientStateVars m header)
 </span><a href="#local-6989586621679221047"><span class="hs-identifier hs-var">fetchclients</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">StrictTVar m (Map peer (FetchClientStateVars m header))
 -&gt; STM m (Map peer (FetchClientStateVars m header))
@@ -663,7 +663,7 @@ forall (stm :: * -&gt; *). MonadSTMTx stm =&gt; Bool -&gt; stm ()
 </span><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/io-classes-0.2.0.0/noopt/doc/html/io-classes/src"><span class="hs-identifier hs-var">check</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">peer
 </span><a href="#local-6989586621679221055"><span class="hs-identifier hs-var">peer</span></a></span><span> </span><span class="annot"><span class="annottext">peer -&gt; Map peer (FetchClientStateVars m header) -&gt; Bool
 forall k a. Ord k =&gt; k -&gt; Map k a -&gt; Bool
-</span><span class="hs-operator hs-var">`Map.member`</span></span><span> </span><span class="annot"><span class="annottext">Map peer (FetchClientStateVars m header)
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/containers-0.6.2.1/src"><span class="hs-operator hs-var">`Map.member`</span></a></span><span> </span><span class="annot"><span class="annottext">Map peer (FetchClientStateVars m header)
 </span><a href="#local-6989586621679221047"><span class="hs-identifier hs-var">fetchclients</span></a></span><span class="hs-special">)</span><span>
 </span><span id="line-172"></span><span>        </span><span class="annot"><span class="annottext">StrictTVar m (Map peer (ThreadId m, StrictTMVar m ()))
 -&gt; (Map peer (ThreadId m, StrictTMVar m ())
@@ -680,28 +680,28 @@ StrictTVar m a -&gt; (a -&gt; a) -&gt; STM m ()
     -&gt; Map peer (ThreadId m, StrictTMVar m ()))
 -&gt; STM m ()
 forall a b. (a -&gt; b) -&gt; a -&gt; b
-</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679221046"><span class="annot"><span class="annottext">Map peer (ThreadId m, StrictTMVar m ())
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-operator hs-var">$</span></a></span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679221046"><span class="annot"><span class="annottext">Map peer (ThreadId m, StrictTMVar m ())
 </span><a href="#local-6989586621679221046"><span class="hs-identifier hs-var">m</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
 </span><span id="line-173"></span><span>          </span><span class="annot"><span class="annottext">Bool
 -&gt; Map peer (ThreadId m, StrictTMVar m ())
 -&gt; Map peer (ThreadId m, StrictTMVar m ())
 forall a. HasCallStack =&gt; Bool -&gt; a -&gt; a
-</span><span class="hs-identifier hs-var hs-var">assert</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">peer
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-identifier hs-var hs-var">assert</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">peer
 </span><a href="#local-6989586621679221055"><span class="hs-identifier hs-var">peer</span></a></span><span> </span><span class="annot"><span class="annottext">peer -&gt; Map peer (ThreadId m, StrictTMVar m ()) -&gt; Bool
 forall k a. Ord k =&gt; k -&gt; Map k a -&gt; Bool
-</span><span class="hs-operator hs-var">`Map.notMember`</span></span><span> </span><span class="annot"><span class="annottext">Map peer (ThreadId m, StrictTMVar m ())
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/containers-0.6.2.1/src"><span class="hs-operator hs-var">`Map.notMember`</span></a></span><span> </span><span class="annot"><span class="annottext">Map peer (ThreadId m, StrictTMVar m ())
 </span><a href="#local-6989586621679221046"><span class="hs-identifier hs-var">m</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(Map peer (ThreadId m, StrictTMVar m ())
  -&gt; Map peer (ThreadId m, StrictTMVar m ()))
 -&gt; Map peer (ThreadId m, StrictTMVar m ())
 -&gt; Map peer (ThreadId m, StrictTMVar m ())
 forall a b. (a -&gt; b) -&gt; a -&gt; b
-</span><span class="hs-operator hs-var">$</span></span><span>
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-operator hs-var">$</span></a></span><span>
 </span><span id="line-174"></span><span>          </span><span class="annot"><span class="annottext">peer
 -&gt; (ThreadId m, StrictTMVar m ())
 -&gt; Map peer (ThreadId m, StrictTMVar m ())
 -&gt; Map peer (ThreadId m, StrictTMVar m ())
 forall k a. Ord k =&gt; k -&gt; a -&gt; Map k a -&gt; Map k a
-</span><span class="hs-identifier hs-var">Map.insert</span></span><span> </span><span class="annot"><span class="annottext">peer
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/containers-0.6.2.1/src"><span class="hs-identifier hs-var">Map.insert</span></a></span><span> </span><span class="annot"><span class="annottext">peer
 </span><a href="#local-6989586621679221055"><span class="hs-identifier hs-var">peer</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">ThreadId m
 </span><a href="#local-6989586621679221048"><span class="hs-identifier hs-var">tid</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">StrictTMVar m ()
 </span><a href="#local-6989586621679221049"><span class="hs-identifier hs-var">doneVar</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Map peer (ThreadId m, StrictTMVar m ())
@@ -717,7 +717,7 @@ forall (m :: * -&gt; *) a.
 STM m a -&gt; m a
 </span><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/io-classes-0.2.0.0/noopt/doc/html/io-classes/src"><span class="hs-identifier hs-var">atomically</span></a></span><span> </span><span class="annot"><span class="annottext">(STM m () -&gt; m ()) -&gt; STM m () -&gt; m ()
 forall a b. (a -&gt; b) -&gt; a -&gt; b
-</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-keyword">do</span><span>
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-operator hs-var">$</span></a></span><span> </span><span class="hs-keyword">do</span><span>
 </span><span id="line-179"></span><span>        </span><span class="annot"><span class="annottext">StrictTMVar m () -&gt; () -&gt; STM m ()
 forall (m :: * -&gt; *) a.
 MonadSTM m =&gt;
@@ -739,35 +739,35 @@ StrictTVar m a -&gt; (a -&gt; a) -&gt; STM m ()
     -&gt; Map peer (ThreadId m, StrictTMVar m ()))
 -&gt; STM m ()
 forall a b. (a -&gt; b) -&gt; a -&gt; b
-</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679221044"><span class="annot"><span class="annottext">Map peer (ThreadId m, StrictTMVar m ())
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-operator hs-var">$</span></a></span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679221044"><span class="annot"><span class="annottext">Map peer (ThreadId m, StrictTMVar m ())
 </span><a href="#local-6989586621679221044"><span class="hs-identifier hs-var">m</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
 </span><span id="line-181"></span><span>          </span><span class="annot"><span class="annottext">Bool
 -&gt; Map peer (ThreadId m, StrictTMVar m ())
 -&gt; Map peer (ThreadId m, StrictTMVar m ())
 forall a. HasCallStack =&gt; Bool -&gt; a -&gt; a
-</span><span class="hs-identifier hs-var hs-var">assert</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">peer
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-identifier hs-var hs-var">assert</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">peer
 </span><a href="#local-6989586621679221055"><span class="hs-identifier hs-var">peer</span></a></span><span> </span><span class="annot"><span class="annottext">peer -&gt; Map peer (ThreadId m, StrictTMVar m ()) -&gt; Bool
 forall k a. Ord k =&gt; k -&gt; Map k a -&gt; Bool
-</span><span class="hs-operator hs-var">`Map.member`</span></span><span> </span><span class="annot"><span class="annottext">Map peer (ThreadId m, StrictTMVar m ())
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/containers-0.6.2.1/src"><span class="hs-operator hs-var">`Map.member`</span></a></span><span> </span><span class="annot"><span class="annottext">Map peer (ThreadId m, StrictTMVar m ())
 </span><a href="#local-6989586621679221044"><span class="hs-identifier hs-var">m</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(Map peer (ThreadId m, StrictTMVar m ())
  -&gt; Map peer (ThreadId m, StrictTMVar m ()))
 -&gt; Map peer (ThreadId m, StrictTMVar m ())
 -&gt; Map peer (ThreadId m, StrictTMVar m ())
 forall a b. (a -&gt; b) -&gt; a -&gt; b
-</span><span class="hs-operator hs-var">$</span></span><span>
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-operator hs-var">$</span></a></span><span>
 </span><span id="line-182"></span><span>          </span><span class="annot"><span class="annottext">peer
 -&gt; Map peer (ThreadId m, StrictTMVar m ())
 -&gt; Map peer (ThreadId m, StrictTMVar m ())
 forall k a. Ord k =&gt; k -&gt; Map k a -&gt; Map k a
-</span><span class="hs-identifier hs-var">Map.delete</span></span><span> </span><span class="annot"><span class="annottext">peer
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/containers-0.6.2.1/src"><span class="hs-identifier hs-var">Map.delete</span></a></span><span> </span><span class="annot"><span class="annottext">peer
 </span><a href="#local-6989586621679221055"><span class="hs-identifier hs-var">peer</span></a></span><span> </span><span class="annot"><span class="annottext">Map peer (ThreadId m, StrictTMVar m ())
 </span><a href="#local-6989586621679221044"><span class="hs-identifier hs-var">m</span></a></span><span>
 </span><span id="line-183"></span><span>
 </span><span id="line-184"></span><span class="annot"><a href="Ouroboros.Network.BlockFetch.ClientRegistry.html#bracketKeepAliveClient"><span class="hs-identifier hs-type">bracketKeepAliveClient</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-keyword">forall</span><span> </span><span id="local-6989586621679221043"><span class="annot"><a href="#local-6989586621679221043"><span class="hs-identifier hs-type">m</span></a></span></span><span> </span><span id="local-6989586621679221042"><span class="annot"><a href="#local-6989586621679221042"><span class="hs-identifier hs-type">a</span></a></span></span><span> </span><span id="local-6989586621679221041"><span class="annot"><a href="#local-6989586621679221041"><span class="hs-identifier hs-type">peer</span></a></span></span><span> </span><span id="local-6989586621679221040"><span class="annot"><a href="#local-6989586621679221040"><span class="hs-identifier hs-type">header</span></a></span></span><span> </span><span id="local-6989586621679221039"><span class="annot"><a href="#local-6989586621679221039"><span class="hs-identifier hs-type">block</span></a></span></span><span class="hs-operator">.</span><span>
-</span><span id="line-185"></span><span>                              </span><span class="hs-special">(</span><span class="annot"><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/io-classes-0.2.0.0/noopt/doc/html/io-classes/src"><span class="hs-identifier hs-type">MonadThrow</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679221043"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/io-classes-0.2.0.0/noopt/doc/html/io-classes/src"><span class="hs-identifier hs-type">MonadSTM</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679221043"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/io-classes-0.2.0.0/noopt/doc/html/io-classes/src"><span class="hs-identifier hs-type">MonadFork</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679221043"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Ord</span></span><span> </span><span class="annot"><a href="#local-6989586621679221041"><span class="hs-identifier hs-type">peer</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-185"></span><span>                              </span><span class="hs-special">(</span><span class="annot"><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/io-classes-0.2.0.0/noopt/doc/html/io-classes/src"><span class="hs-identifier hs-type">MonadThrow</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679221043"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/io-classes-0.2.0.0/noopt/doc/html/io-classes/src"><span class="hs-identifier hs-type">MonadSTM</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679221043"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/io-classes-0.2.0.0/noopt/doc/html/io-classes/src"><span class="hs-identifier hs-type">MonadFork</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679221043"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/ghc-prim-0.6.1/src"><span class="hs-identifier hs-type">Ord</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679221041"><span class="hs-identifier hs-type">peer</span></a></span><span class="hs-special">)</span><span>
 </span><span id="line-186"></span><span>                       </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Ouroboros.Network.BlockFetch.ClientRegistry.html#FetchClientRegistry"><span class="hs-identifier hs-type">FetchClientRegistry</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679221041"><span class="hs-identifier hs-type">peer</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679221040"><span class="hs-identifier hs-type">header</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679221039"><span class="hs-identifier hs-type">block</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679221043"><span class="hs-identifier hs-type">m</span></a></span><span>
 </span><span id="line-187"></span><span>                       </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679221041"><span class="hs-identifier hs-type">peer</span></a></span><span>
-</span><span id="line-188"></span><span>                       </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">(</span><span class="hs-special">(</span><span class="annot"><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/io-classes-0.2.0.0/noopt/doc/html/io-classes/src"><span class="hs-identifier hs-type">StrictTVar</span></a></span><span>  </span><span class="annot"><a href="#local-6989586621679221043"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Map</span></span><span> </span><span class="annot"><a href="#local-6989586621679221041"><span class="hs-identifier hs-type">peer</span></a></span><span> </span><span class="annot"><a href="Ouroboros.Network.DeltaQ.html#PeerGSV"><span class="hs-identifier hs-type">PeerGSV</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679221043"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679221042"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-188"></span><span>                       </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">(</span><span class="hs-special">(</span><span class="annot"><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/io-classes-0.2.0.0/noopt/doc/html/io-classes/src"><span class="hs-identifier hs-type">StrictTVar</span></a></span><span>  </span><span class="annot"><a href="#local-6989586621679221043"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/containers-0.6.2.1/src"><span class="hs-identifier hs-type">Map</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679221041"><span class="hs-identifier hs-type">peer</span></a></span><span> </span><span class="annot"><a href="Ouroboros.Network.DeltaQ.html#PeerGSV"><span class="hs-identifier hs-type">PeerGSV</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679221043"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679221042"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span>
 </span><span id="line-189"></span><span>                       </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679221043"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679221042"><span class="hs-identifier hs-type">a</span></a></span><span>
 </span><span id="line-190"></span><span id="bracketKeepAliveClient"><span class="annot"><span class="annottext">bracketKeepAliveClient :: FetchClientRegistry peer header block m
 -&gt; peer -&gt; (StrictTVar m (Map peer PeerGSV) -&gt; m a) -&gt; m a
@@ -803,7 +803,7 @@ forall (m :: * -&gt; *) a.
 STM m a -&gt; m a
 </span><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/io-classes-0.2.0.0/noopt/doc/html/io-classes/src"><span class="hs-identifier hs-var">atomically</span></a></span><span> </span><span class="annot"><span class="annottext">(STM m () -&gt; m ()) -&gt; STM m () -&gt; m ()
 forall a b. (a -&gt; b) -&gt; a -&gt; b
-</span><span class="hs-operator hs-var">$</span></span><span>
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-operator hs-var">$</span></a></span><span>
 </span><span id="line-198"></span><span>        </span><span class="annot"><span class="annottext">StrictTVar m (Map peer PeerGSV)
 -&gt; (Map peer PeerGSV -&gt; Map peer PeerGSV) -&gt; STM m ()
 forall (m :: * -&gt; *) a.
@@ -813,21 +813,21 @@ StrictTVar m a -&gt; (a -&gt; a) -&gt; STM m ()
 </span><a href="#local-6989586621679221035"><span class="hs-identifier hs-var">dqRegistry</span></a></span><span> </span><span class="annot"><span class="annottext">((Map peer PeerGSV -&gt; Map peer PeerGSV) -&gt; STM m ())
 -&gt; (Map peer PeerGSV -&gt; Map peer PeerGSV) -&gt; STM m ()
 forall a b. (a -&gt; b) -&gt; a -&gt; b
-</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679221029"><span class="annot"><span class="annottext">Map peer PeerGSV
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-operator hs-var">$</span></a></span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679221029"><span class="annot"><span class="annottext">Map peer PeerGSV
 </span><a href="#local-6989586621679221029"><span class="hs-identifier hs-var">m</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
 </span><span id="line-199"></span><span>          </span><span class="annot"><span class="annottext">Bool -&gt; Map peer PeerGSV -&gt; Map peer PeerGSV
 forall a. HasCallStack =&gt; Bool -&gt; a -&gt; a
-</span><span class="hs-identifier hs-var hs-var">assert</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">peer
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-identifier hs-var hs-var">assert</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">peer
 </span><a href="#local-6989586621679221033"><span class="hs-identifier hs-var">peer</span></a></span><span> </span><span class="annot"><span class="annottext">peer -&gt; Map peer PeerGSV -&gt; Bool
 forall k a. Ord k =&gt; k -&gt; Map k a -&gt; Bool
-</span><span class="hs-operator hs-var">`Map.notMember`</span></span><span> </span><span class="annot"><span class="annottext">Map peer PeerGSV
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/containers-0.6.2.1/src"><span class="hs-operator hs-var">`Map.notMember`</span></a></span><span> </span><span class="annot"><span class="annottext">Map peer PeerGSV
 </span><a href="#local-6989586621679221029"><span class="hs-identifier hs-var">m</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(Map peer PeerGSV -&gt; Map peer PeerGSV)
 -&gt; Map peer PeerGSV -&gt; Map peer PeerGSV
 forall a b. (a -&gt; b) -&gt; a -&gt; b
-</span><span class="hs-operator hs-var">$</span></span><span>
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-operator hs-var">$</span></a></span><span>
 </span><span id="line-200"></span><span>          </span><span class="annot"><span class="annottext">peer -&gt; PeerGSV -&gt; Map peer PeerGSV -&gt; Map peer PeerGSV
 forall k a. Ord k =&gt; k -&gt; a -&gt; Map k a -&gt; Map k a
-</span><span class="hs-identifier hs-var">Map.insert</span></span><span> </span><span class="annot"><span class="annottext">peer
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/containers-0.6.2.1/src"><span class="hs-identifier hs-var">Map.insert</span></a></span><span> </span><span class="annot"><span class="annottext">peer
 </span><a href="#local-6989586621679221033"><span class="hs-identifier hs-var">peer</span></a></span><span> </span><span class="annot"><span class="annottext">PeerGSV
 </span><a href="Ouroboros.Network.DeltaQ.html#defaultGSV"><span class="hs-identifier hs-var">defaultGSV</span></a></span><span> </span><span class="annot"><span class="annottext">Map peer PeerGSV
 </span><a href="#local-6989586621679221029"><span class="hs-identifier hs-var">m</span></a></span><span>
@@ -848,7 +848,7 @@ STM m a -&gt; m a
 -&gt; STM m (Maybe (ThreadId m, StrictTMVar m ()))
 -&gt; m (Maybe (ThreadId m, StrictTMVar m ()))
 forall a b. (a -&gt; b) -&gt; a -&gt; b
-</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-keyword">do</span><span>
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-operator hs-var">$</span></a></span><span> </span><span class="hs-keyword">do</span><span>
 </span><span id="line-207"></span><span>        </span><span id="local-6989586621679221026"><span class="annot"><span class="annottext">Map peer (ThreadId m, StrictTMVar m ())
 </span><a href="#local-6989586621679221026"><span class="hs-identifier hs-var">fetchclients</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">StrictTVar m (Map peer (ThreadId m, StrictTMVar m ()))
 -&gt; STM m (Map peer (ThreadId m, StrictTMVar m ()))
@@ -859,11 +859,11 @@ forall (m :: * -&gt; *) a. MonadSTM m =&gt; StrictTVar m a -&gt; STM m a
 -&gt; Map peer (ThreadId m, StrictTMVar m ())
 -&gt; Maybe (ThreadId m, StrictTMVar m ())
 forall k a. Ord k =&gt; k -&gt; Map k a -&gt; Maybe a
-</span><span class="hs-identifier hs-var">Map.lookup</span></span><span> </span><span class="annot"><span class="annottext">peer
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/containers-0.6.2.1/src"><span class="hs-identifier hs-var">Map.lookup</span></a></span><span> </span><span class="annot"><span class="annottext">peer
 </span><a href="#local-6989586621679221033"><span class="hs-identifier hs-var">peer</span></a></span><span> </span><span class="annot"><span class="annottext">Map peer (ThreadId m, StrictTMVar m ())
 </span><a href="#local-6989586621679221026"><span class="hs-identifier hs-var">fetchclients</span></a></span><span> </span><span class="hs-keyword">of</span><span>
 </span><span id="line-209"></span><span>             </span><span class="annot"><span class="annottext">Maybe (ThreadId m, StrictTMVar m ())
-</span><span class="hs-identifier hs-var">Nothing</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">do</span><span>
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-identifier hs-var">Nothing</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">do</span><span>
 </span><span id="line-210"></span><span>               </span><span class="hs-comment">-- If the fetch client is already dead we remove PeerGSV ourself directly.</span><span>
 </span><span id="line-211"></span><span>               </span><span class="annot"><span class="annottext">StrictTVar m (Map peer PeerGSV)
 -&gt; (Map peer PeerGSV -&gt; Map peer PeerGSV) -&gt; STM m ()
@@ -874,50 +874,50 @@ StrictTVar m a -&gt; (a -&gt; a) -&gt; STM m ()
 </span><a href="#local-6989586621679221035"><span class="hs-identifier hs-var">dqRegistry</span></a></span><span> </span><span class="annot"><span class="annottext">((Map peer PeerGSV -&gt; Map peer PeerGSV) -&gt; STM m ())
 -&gt; (Map peer PeerGSV -&gt; Map peer PeerGSV) -&gt; STM m ()
 forall a b. (a -&gt; b) -&gt; a -&gt; b
-</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679221025"><span class="annot"><span class="annottext">Map peer PeerGSV
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-operator hs-var">$</span></a></span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679221025"><span class="annot"><span class="annottext">Map peer PeerGSV
 </span><a href="#local-6989586621679221025"><span class="hs-identifier hs-var">m</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
 </span><span id="line-212"></span><span>                 </span><span class="annot"><span class="annottext">Bool -&gt; Map peer PeerGSV -&gt; Map peer PeerGSV
 forall a. HasCallStack =&gt; Bool -&gt; a -&gt; a
-</span><span class="hs-identifier hs-var hs-var">assert</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">peer
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-identifier hs-var hs-var">assert</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">peer
 </span><a href="#local-6989586621679221033"><span class="hs-identifier hs-var">peer</span></a></span><span> </span><span class="annot"><span class="annottext">peer -&gt; Map peer PeerGSV -&gt; Bool
 forall k a. Ord k =&gt; k -&gt; Map k a -&gt; Bool
-</span><span class="hs-operator hs-var">`Map.member`</span></span><span> </span><span class="annot"><span class="annottext">Map peer PeerGSV
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/containers-0.6.2.1/src"><span class="hs-operator hs-var">`Map.member`</span></a></span><span> </span><span class="annot"><span class="annottext">Map peer PeerGSV
 </span><a href="#local-6989586621679221025"><span class="hs-identifier hs-var">m</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(Map peer PeerGSV -&gt; Map peer PeerGSV)
 -&gt; Map peer PeerGSV -&gt; Map peer PeerGSV
 forall a b. (a -&gt; b) -&gt; a -&gt; b
-</span><span class="hs-operator hs-var">$</span></span><span>
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-operator hs-var">$</span></a></span><span>
 </span><span id="line-213"></span><span>                 </span><span class="annot"><span class="annottext">peer -&gt; Map peer PeerGSV -&gt; Map peer PeerGSV
 forall k a. Ord k =&gt; k -&gt; Map k a -&gt; Map k a
-</span><span class="hs-identifier hs-var">Map.delete</span></span><span> </span><span class="annot"><span class="annottext">peer
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/containers-0.6.2.1/src"><span class="hs-identifier hs-var">Map.delete</span></a></span><span> </span><span class="annot"><span class="annottext">peer
 </span><a href="#local-6989586621679221033"><span class="hs-identifier hs-var">peer</span></a></span><span> </span><span class="annot"><span class="annottext">Map peer PeerGSV
 </span><a href="#local-6989586621679221025"><span class="hs-identifier hs-var">m</span></a></span><span>
 </span><span id="line-214"></span><span>               </span><span class="annot"><span class="annottext">Maybe (ThreadId m, StrictTMVar m ())
 -&gt; STM m (Maybe (ThreadId m, StrictTMVar m ()))
 forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
-</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">Maybe (ThreadId m, StrictTMVar m ())
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-identifier hs-var">return</span></a></span><span> </span><span class="annot"><span class="annottext">Maybe (ThreadId m, StrictTMVar m ())
 forall a. Maybe a
-</span><span class="hs-identifier hs-var">Nothing</span></span><span>
-</span><span id="line-215"></span><span>             </span><span class="annot"><span class="hs-identifier hs-type">Just</span></span><span> </span><span id="local-6989586621679221024"><span class="annot"><span class="annottext">(ThreadId m, StrictTMVar m ())
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-identifier hs-var">Nothing</span></a></span><span>
+</span><span id="line-215"></span><span>             </span><span class="annot"><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-identifier hs-type">Just</span></a></span><span> </span><span id="local-6989586621679221024"><span class="annot"><span class="annottext">(ThreadId m, StrictTMVar m ())
 </span><a href="#local-6989586621679221024"><span class="hs-identifier hs-var">rc</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Maybe (ThreadId m, StrictTMVar m ())
 -&gt; STM m (Maybe (ThreadId m, StrictTMVar m ()))
 forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
-</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">(Maybe (ThreadId m, StrictTMVar m ())
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-identifier hs-var">return</span></a></span><span> </span><span class="annot"><span class="annottext">(Maybe (ThreadId m, StrictTMVar m ())
  -&gt; STM m (Maybe (ThreadId m, StrictTMVar m ())))
 -&gt; Maybe (ThreadId m, StrictTMVar m ())
 -&gt; STM m (Maybe (ThreadId m, StrictTMVar m ()))
 forall a b. (a -&gt; b) -&gt; a -&gt; b
-</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">(ThreadId m, StrictTMVar m ())
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-operator hs-var">$</span></a></span><span> </span><span class="annot"><span class="annottext">(ThreadId m, StrictTMVar m ())
 -&gt; Maybe (ThreadId m, StrictTMVar m ())
 forall a. a -&gt; Maybe a
-</span><span class="hs-identifier hs-var">Just</span></span><span> </span><span class="annot"><span class="annottext">(ThreadId m, StrictTMVar m ())
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-identifier hs-var">Just</span></a></span><span> </span><span class="annot"><span class="annottext">(ThreadId m, StrictTMVar m ())
 </span><a href="#local-6989586621679221024"><span class="hs-identifier hs-var">rc</span></a></span><span>
 </span><span id="line-216"></span><span>      </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">Maybe (ThreadId m, StrictTMVar m ())
 </span><a href="#local-6989586621679221027"><span class="hs-identifier hs-var">fetchclient_m</span></a></span><span> </span><span class="hs-keyword">of</span><span>
 </span><span id="line-217"></span><span>           </span><span class="annot"><span class="annottext">Maybe (ThreadId m, StrictTMVar m ())
-</span><span class="hs-identifier hs-var">Nothing</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">() -&gt; m ()
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-identifier hs-var">Nothing</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">() -&gt; m ()
 forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
-</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
-</span><span id="line-218"></span><span>           </span><span class="annot"><span class="hs-identifier hs-type">Just</span></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679221023"><span class="annot"><span class="annottext">ThreadId m
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-identifier hs-var">return</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
+</span><span id="line-218"></span><span>           </span><span class="annot"><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-identifier hs-type">Just</span></a></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679221023"><span class="annot"><span class="annottext">ThreadId m
 </span><a href="#local-6989586621679221023"><span class="hs-identifier hs-var">tid</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679221022"><span class="annot"><span class="annottext">StrictTMVar m ()
 </span><a href="#local-6989586621679221022"><span class="hs-identifier hs-var">doneVar</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">do</span><span>
 </span><span id="line-219"></span><span>             </span><span class="hs-comment">-- Cancel the fetch client.</span><span>
@@ -934,7 +934,7 @@ forall (m :: * -&gt; *) a.
 STM m a -&gt; m a
 </span><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/io-classes-0.2.0.0/noopt/doc/html/io-classes/src"><span class="hs-identifier hs-var">atomically</span></a></span><span> </span><span class="annot"><span class="annottext">(STM m () -&gt; m ()) -&gt; STM m () -&gt; m ()
 forall a b. (a -&gt; b) -&gt; a -&gt; b
-</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-keyword">do</span><span>
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-operator hs-var">$</span></a></span><span> </span><span class="hs-keyword">do</span><span>
 </span><span id="line-222"></span><span>               </span><span class="hs-comment">-- wait for fetch client to exit.</span><span>
 </span><span id="line-223"></span><span>               </span><span class="annot"><span class="annottext">StrictTMVar m () -&gt; STM m ()
 forall (m :: * -&gt; *) a. MonadSTM m =&gt; StrictTMVar m a -&gt; STM m a
@@ -949,21 +949,21 @@ StrictTVar m a -&gt; (a -&gt; a) -&gt; STM m ()
 </span><a href="#local-6989586621679221035"><span class="hs-identifier hs-var">dqRegistry</span></a></span><span> </span><span class="annot"><span class="annottext">((Map peer PeerGSV -&gt; Map peer PeerGSV) -&gt; STM m ())
 -&gt; (Map peer PeerGSV -&gt; Map peer PeerGSV) -&gt; STM m ()
 forall a b. (a -&gt; b) -&gt; a -&gt; b
-</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679221021"><span class="annot"><span class="annottext">Map peer PeerGSV
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-operator hs-var">$</span></a></span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679221021"><span class="annot"><span class="annottext">Map peer PeerGSV
 </span><a href="#local-6989586621679221021"><span class="hs-identifier hs-var">m</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
 </span><span id="line-225"></span><span>                 </span><span class="annot"><span class="annottext">Bool -&gt; Map peer PeerGSV -&gt; Map peer PeerGSV
 forall a. HasCallStack =&gt; Bool -&gt; a -&gt; a
-</span><span class="hs-identifier hs-var hs-var">assert</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">peer
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-identifier hs-var hs-var">assert</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">peer
 </span><a href="#local-6989586621679221033"><span class="hs-identifier hs-var">peer</span></a></span><span> </span><span class="annot"><span class="annottext">peer -&gt; Map peer PeerGSV -&gt; Bool
 forall k a. Ord k =&gt; k -&gt; Map k a -&gt; Bool
-</span><span class="hs-operator hs-var">`Map.member`</span></span><span> </span><span class="annot"><span class="annottext">Map peer PeerGSV
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/containers-0.6.2.1/src"><span class="hs-operator hs-var">`Map.member`</span></a></span><span> </span><span class="annot"><span class="annottext">Map peer PeerGSV
 </span><a href="#local-6989586621679221021"><span class="hs-identifier hs-var">m</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(Map peer PeerGSV -&gt; Map peer PeerGSV)
 -&gt; Map peer PeerGSV -&gt; Map peer PeerGSV
 forall a b. (a -&gt; b) -&gt; a -&gt; b
-</span><span class="hs-operator hs-var">$</span></span><span>
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-operator hs-var">$</span></a></span><span>
 </span><span id="line-226"></span><span>                 </span><span class="annot"><span class="annottext">peer -&gt; Map peer PeerGSV -&gt; Map peer PeerGSV
 forall k a. Ord k =&gt; k -&gt; Map k a -&gt; Map k a
-</span><span class="hs-identifier hs-var">Map.delete</span></span><span> </span><span class="annot"><span class="annottext">peer
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/containers-0.6.2.1/src"><span class="hs-identifier hs-var">Map.delete</span></a></span><span> </span><span class="annot"><span class="annottext">peer
 </span><a href="#local-6989586621679221033"><span class="hs-identifier hs-var">peer</span></a></span><span> </span><span class="annot"><span class="annottext">Map peer PeerGSV
 </span><a href="#local-6989586621679221021"><span class="hs-identifier hs-var">m</span></a></span><span>
 </span><span id="line-227"></span><span>
@@ -994,7 +994,7 @@ forall (m :: * -&gt; *) a.
 STM m a -&gt; m a
 </span><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/io-classes-0.2.0.0/noopt/doc/html/io-classes/src"><span class="hs-identifier hs-var">atomically</span></a></span><span> </span><span class="annot"><span class="annottext">(STM m () -&gt; m ()) -&gt; STM m () -&gt; m ()
 forall a b. (a -&gt; b) -&gt; a -&gt; b
-</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-keyword">do</span><span>
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-operator hs-var">$</span></a></span><span> </span><span class="hs-keyword">do</span><span>
 </span><span id="line-236"></span><span>      </span><span id="local-6989586621679221013"><span class="annot"><span class="annottext">Bool
 </span><a href="#local-6989586621679221013"><span class="hs-identifier hs-var">ok</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">StrictTMVar
   m
@@ -1015,12 +1015,12 @@ StrictTMVar m a -&gt; a -&gt; STM m Bool
 </span><a href="#local-6989586621679221014"><span class="hs-identifier hs-var">policy</span></a></span><span class="hs-special">)</span><span>
 </span><span id="line-237"></span><span>      </span><span class="annot"><span class="annottext">Bool -&gt; STM m () -&gt; STM m ()
 forall (f :: * -&gt; *). Applicative f =&gt; Bool -&gt; f () -&gt; f ()
-</span><span class="hs-identifier hs-var">unless</span></span><span> </span><span class="annot"><span class="annottext">Bool
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-identifier hs-var">unless</span></a></span><span> </span><span class="annot"><span class="annottext">Bool
 </span><a href="#local-6989586621679221013"><span class="hs-identifier hs-var">ok</span></a></span><span> </span><span class="annot"><span class="annottext">(STM m () -&gt; STM m ()) -&gt; STM m () -&gt; STM m ()
 forall a b. (a -&gt; b) -&gt; a -&gt; b
-</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">[Char] -&gt; STM m ()
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-operator hs-var">$</span></a></span><span> </span><span class="annot"><span class="annottext">[Char] -&gt; STM m ()
 forall a. HasCallStack =&gt; [Char] -&gt; a
-</span><span class="hs-identifier hs-var">error</span></span><span> </span><span class="annot"><span class="annottext">[Char]
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-identifier hs-var">error</span></a></span><span> </span><span class="annot"><span class="annottext">[Char]
 </span><span class="hs-string">&quot;setFetchClientContext: called more than once&quot;</span></span><span>
 </span><span id="line-238"></span><span>
 </span><span id="line-239"></span><span class="hs-comment">-- | A read-only 'STM' action to get the current 'PeerFetchStatus' for all</span><span>
@@ -1028,7 +1028,7 @@ forall a. HasCallStack =&gt; [Char] -&gt; a
 </span><span id="line-241"></span><span class="hs-comment">--</span><span>
 </span><span id="line-242"></span><span id="local-6989586621679221007"><span id="local-6989586621679221008"><span id="local-6989586621679221009"><span id="local-6989586621679221010"><span class="annot"><a href="Ouroboros.Network.BlockFetch.ClientRegistry.html#readFetchClientsStatus"><span class="hs-identifier hs-type">readFetchClientsStatus</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/io-classes-0.2.0.0/noopt/doc/html/io-classes/src"><span class="hs-identifier hs-type">MonadSTM</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679221010"><span class="hs-identifier hs-type">m</span></a></span><span>
 </span><span id="line-243"></span><span>                       </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Ouroboros.Network.BlockFetch.ClientRegistry.html#FetchClientRegistry"><span class="hs-identifier hs-type">FetchClientRegistry</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679221009"><span class="hs-identifier hs-type">peer</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679221008"><span class="hs-identifier hs-type">header</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679221007"><span class="hs-identifier hs-type">block</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679221010"><span class="hs-identifier hs-type">m</span></a></span><span>
-</span><span id="line-244"></span><span>                       </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/io-classes-0.2.0.0/noopt/doc/html/io-classes/src"><span class="hs-identifier hs-type">STM</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679221010"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Map</span></span><span> </span><span class="annot"><a href="#local-6989586621679221009"><span class="hs-identifier hs-type">peer</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Network.BlockFetch.ClientState.html#PeerFetchStatus"><span class="hs-identifier hs-type">PeerFetchStatus</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679221008"><span class="hs-identifier hs-type">header</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span></span></span></span></span><span>
+</span><span id="line-244"></span><span>                       </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/io-classes-0.2.0.0/noopt/doc/html/io-classes/src"><span class="hs-identifier hs-type">STM</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679221010"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/containers-0.6.2.1/src"><span class="hs-identifier hs-type">Map</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679221009"><span class="hs-identifier hs-type">peer</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Network.BlockFetch.ClientState.html#PeerFetchStatus"><span class="hs-identifier hs-type">PeerFetchStatus</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679221008"><span class="hs-identifier hs-type">header</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span></span></span></span></span><span>
 </span><span id="line-245"></span><span id="readFetchClientsStatus"><span class="annot"><span class="annottext">readFetchClientsStatus :: FetchClientRegistry peer header block m
 -&gt; STM m (Map peer (PeerFetchStatus header))
 </span><a href="Ouroboros.Network.BlockFetch.ClientRegistry.html#readFetchClientsStatus"><span class="hs-identifier hs-var hs-var">readFetchClientsStatus</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Network.BlockFetch.ClientRegistry.html#FetchClientRegistry"><span class="hs-identifier hs-type">FetchClientRegistry</span></a></span><span> </span><span class="annot"><span class="annottext">StrictTMVar
@@ -1049,13 +1049,13 @@ forall (m :: * -&gt; *) a. MonadSTM m =&gt; StrictTVar m a -&gt; STM m a
     -&gt; STM m (Map peer (PeerFetchStatus header)))
 -&gt; STM m (Map peer (PeerFetchStatus header))
 forall (m :: * -&gt; *) a b. Monad m =&gt; m a -&gt; (a -&gt; m b) -&gt; m b
-</span><span class="hs-operator hs-var">&gt;&gt;=</span></span><span> </span><span class="annot"><span class="annottext">(FetchClientStateVars m header -&gt; STM m (PeerFetchStatus header))
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-operator hs-var">&gt;&gt;=</span></a></span><span> </span><span class="annot"><span class="annottext">(FetchClientStateVars m header -&gt; STM m (PeerFetchStatus header))
 -&gt; Map peer (FetchClientStateVars m header)
 -&gt; STM m (Map peer (PeerFetchStatus header))
 forall (t :: * -&gt; *) (f :: * -&gt; *) a b.
 (Traversable t, Applicative f) =&gt;
 (a -&gt; f b) -&gt; t a -&gt; f (t b)
-</span><span class="hs-identifier hs-var">traverse</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">StrictTVar m (PeerFetchStatus header)
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-identifier hs-var">traverse</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">StrictTVar m (PeerFetchStatus header)
 -&gt; STM m (PeerFetchStatus header)
 forall (m :: * -&gt; *) a. MonadSTM m =&gt; StrictTVar m a -&gt; STM m a
 </span><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/io-classes-0.2.0.0/noopt/doc/html/io-classes/src"><span class="hs-identifier hs-var">readTVar</span></a></span><span> </span><span class="annot"><span class="annottext">(StrictTVar m (PeerFetchStatus header)
@@ -1065,7 +1065,7 @@ forall (m :: * -&gt; *) a. MonadSTM m =&gt; StrictTVar m a -&gt; STM m a
 -&gt; FetchClientStateVars m header
 -&gt; STM m (PeerFetchStatus header)
 forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
-</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">FetchClientStateVars m header
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-operator hs-var">.</span></a></span><span> </span><span class="annot"><span class="annottext">FetchClientStateVars m header
 -&gt; StrictTVar m (PeerFetchStatus header)
 forall (m :: * -&gt; *) header.
 FetchClientStateVars m header
@@ -1077,7 +1077,7 @@ FetchClientStateVars m header
 </span><span id="line-250"></span><span class="hs-comment">--</span><span>
 </span><span id="line-251"></span><span id="local-6989586621679221001"><span id="local-6989586621679221002"><span id="local-6989586621679221003"><span id="local-6989586621679221004"><span class="annot"><a href="Ouroboros.Network.BlockFetch.ClientRegistry.html#readFetchClientsStateVars"><span class="hs-identifier hs-type">readFetchClientsStateVars</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/io-classes-0.2.0.0/noopt/doc/html/io-classes/src"><span class="hs-identifier hs-type">MonadSTM</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679221004"><span class="hs-identifier hs-type">m</span></a></span><span>
 </span><span id="line-252"></span><span>                          </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Ouroboros.Network.BlockFetch.ClientRegistry.html#FetchClientRegistry"><span class="hs-identifier hs-type">FetchClientRegistry</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679221003"><span class="hs-identifier hs-type">peer</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679221002"><span class="hs-identifier hs-type">header</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679221001"><span class="hs-identifier hs-type">block</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679221004"><span class="hs-identifier hs-type">m</span></a></span><span>
-</span><span id="line-253"></span><span>                          </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/io-classes-0.2.0.0/noopt/doc/html/io-classes/src"><span class="hs-identifier hs-type">STM</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679221004"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Map</span></span><span> </span><span class="annot"><a href="#local-6989586621679221003"><span class="hs-identifier hs-type">peer</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Network.BlockFetch.ClientState.html#FetchClientStateVars"><span class="hs-identifier hs-type">FetchClientStateVars</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679221004"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679221002"><span class="hs-identifier hs-type">header</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span></span></span></span></span><span>
+</span><span id="line-253"></span><span>                          </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/io-classes-0.2.0.0/noopt/doc/html/io-classes/src"><span class="hs-identifier hs-type">STM</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679221004"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/containers-0.6.2.1/src"><span class="hs-identifier hs-type">Map</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679221003"><span class="hs-identifier hs-type">peer</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Network.BlockFetch.ClientState.html#FetchClientStateVars"><span class="hs-identifier hs-type">FetchClientStateVars</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679221004"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679221002"><span class="hs-identifier hs-type">header</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span></span></span></span></span><span>
 </span><span id="line-254"></span><span id="readFetchClientsStateVars"><span class="annot"><span class="annottext">readFetchClientsStateVars :: FetchClientRegistry peer header block m
 -&gt; STM m (Map peer (FetchClientStateVars m header))
 </span><a href="Ouroboros.Network.BlockFetch.ClientRegistry.html#readFetchClientsStateVars"><span class="hs-identifier hs-var hs-var">readFetchClientsStateVars</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Network.BlockFetch.ClientRegistry.html#FetchClientRegistry"><span class="hs-identifier hs-type">FetchClientRegistry</span></a></span><span> </span><span class="annot"><span class="annottext">StrictTMVar
@@ -1099,7 +1099,7 @@ forall (m :: * -&gt; *) a. MonadSTM m =&gt; StrictTVar m a -&gt; STM m a
 </span><span id="line-258"></span><span class="hs-comment">--</span><span>
 </span><span id="line-259"></span><span id="local-6989586621679220996"><span id="local-6989586621679220997"><span id="local-6989586621679220998"><span id="local-6989586621679220999"><span class="annot"><a href="Ouroboros.Network.BlockFetch.ClientRegistry.html#readPeerGSVs"><span class="hs-identifier hs-type">readPeerGSVs</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/io-classes-0.2.0.0/noopt/doc/html/io-classes/src"><span class="hs-identifier hs-type">MonadSTM</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679220999"><span class="hs-identifier hs-type">m</span></a></span><span>
 </span><span id="line-260"></span><span>             </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Ouroboros.Network.BlockFetch.ClientRegistry.html#FetchClientRegistry"><span class="hs-identifier hs-type">FetchClientRegistry</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679220998"><span class="hs-identifier hs-type">peer</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679220997"><span class="hs-identifier hs-type">header</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679220996"><span class="hs-identifier hs-type">block</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679220999"><span class="hs-identifier hs-type">m</span></a></span><span>
-</span><span id="line-261"></span><span>             </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/io-classes-0.2.0.0/noopt/doc/html/io-classes/src"><span class="hs-identifier hs-type">STM</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679220999"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Map</span></span><span> </span><span class="annot"><a href="#local-6989586621679220998"><span class="hs-identifier hs-type">peer</span></a></span><span> </span><span class="annot"><a href="Ouroboros.Network.DeltaQ.html#PeerGSV"><span class="hs-identifier hs-type">PeerGSV</span></a></span><span class="hs-special">)</span></span></span></span></span><span>
+</span><span id="line-261"></span><span>             </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/io-classes-0.2.0.0/noopt/doc/html/io-classes/src"><span class="hs-identifier hs-type">STM</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679220999"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/containers-0.6.2.1/src"><span class="hs-identifier hs-type">Map</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679220998"><span class="hs-identifier hs-type">peer</span></a></span><span> </span><span class="annot"><a href="Ouroboros.Network.DeltaQ.html#PeerGSV"><span class="hs-identifier hs-type">PeerGSV</span></a></span><span class="hs-special">)</span></span></span></span></span><span>
 </span><span id="line-262"></span><span id="readPeerGSVs"><span class="annot"><span class="annottext">readPeerGSVs :: FetchClientRegistry peer header block m -&gt; STM m (Map peer PeerGSV)
 </span><a href="Ouroboros.Network.BlockFetch.ClientRegistry.html#readPeerGSVs"><span class="hs-identifier hs-var hs-var">readPeerGSVs</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Network.BlockFetch.ClientRegistry.html#FetchClientRegistry"><span class="hs-identifier hs-type">FetchClientRegistry</span></a></span><span> </span><span class="annot"><span class="annottext">StrictTMVar
   m
