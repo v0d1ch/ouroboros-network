@@ -16,10 +16,8 @@ module Ouroboros.Network.Protocol.Handshake.Type
   (
   -- * Handshake Protocol
     Handshake (..)
+  , SingHandshake (..)
   , Message (..)
-  , ClientHasAgency (..)
-  , ServerHasAgency (..)
-  , NobodyHasAgency (..)
     -- $simultanous-open
   , RefuseReason (..)
   , HandshakeProtocolError (..)
@@ -31,6 +29,7 @@ import           Control.Exception
 import           Data.Text (Text)
 import           Data.Typeable (Typeable)
 import           Data.Map (Map)
+import           Data.Singletons
 
 import           Network.TypedProtocol.Core
 import           Ouroboros.Network.Util.ShowProxy (ShowProxy (..))
@@ -47,6 +46,21 @@ data Handshake vNumber vParams where
 
 instance ShowProxy (Handshake vNumber vParams) where
     showProxy _ = "Handshake"
+
+data SingHandshake (st :: Handshake vNumber vParams) where
+    SingPropose :: SingHandshake StPropose
+    SingConfirm :: SingHandshake StConfirm
+    SingDone    :: SingHandshake StDone
+
+deriving instance Show (SingHandshake st)
+
+type instance Sing = SingHandshake
+instance SingI StPropose where
+    sing = SingPropose
+instance SingI StConfirm where
+    sing = SingConfirm
+instance SingI StDone where
+    sing = SingDone
 
 -- |
 -- Reasons by which a server can refuse proposed version.
@@ -108,18 +122,10 @@ instance Protocol (Handshake vNumber vParams) where
         :: RefuseReason vNumber
         -> Message (Handshake vNumber vParams) StConfirm StDone
 
-    data ClientHasAgency st where
-      TokPropose :: ClientHasAgency StPropose
+    type StateAgency StPropose = ClientAgency
+    type StateAgency StConfirm = ServerAgency
+    type StateAgency StDone    = NobodyAgency
 
-    data ServerHasAgency st where
-      TokConfirm :: ServerHasAgency StConfirm
-
-    data NobodyHasAgency st where
-      TokDone    :: NobodyHasAgency StDone
-
-    exclusionLemma_ClientAndServerHaveAgency TokPropose tok = case tok of {}
-    exclusionLemma_NobodyAndClientHaveAgency TokDone    tok = case tok of {}
-    exclusionLemma_NobodyAndServerHaveAgency TokDone    tok = case tok of {}
 
 -- $simultanous-open
 --
@@ -133,12 +139,6 @@ instance Protocol (Handshake vNumber vParams) where
 
 deriving instance (Show vNumber, Show vParams)
     => Show (Message (Handshake vNumber vParams) from to)
-
-instance Show (ClientHasAgency (st :: Handshake vNumber vParams)) where
-    show TokPropose       = "TokPropose"
-
-instance Show (ServerHasAgency (st :: Handshake vNumber vParams)) where
-    show TokConfirm = "TokConfirm"
 
 -- | Extends handshake error @'RefuseReason'@ type, by client specific errors.
 --

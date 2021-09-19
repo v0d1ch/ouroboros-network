@@ -31,7 +31,6 @@ module Ouroboros.Network.Mux
   , runMuxPeer
   ) where
 
-import           Control.Monad.Class.MonadAsync
 import           Control.Monad.Class.MonadSTM
 import           Control.Monad.Class.MonadThrow
 import           Control.Tracer (Tracer)
@@ -41,7 +40,7 @@ import qualified Data.ByteString.Lazy as LBS
 
 import           Network.TypedProtocol.Core
 import           Network.TypedProtocol.Codec
-import           Network.TypedProtocol.Pipelined
+import           Network.TypedProtocol.Peer
 
 import qualified Network.Mux.Compat as Mux
 import           Network.Mux
@@ -135,34 +134,22 @@ data RunMiniProtocol (mode :: MuxMode) bytes m a b where
        -> RunMiniProtocol InitiatorResponderMode bytes m a b
 
 data MuxPeer bytes m a where
-    MuxPeer :: forall (pr :: PeerRole) ps (st :: ps) failure bytes m a.
+    MuxPeer :: forall (pr :: PeerRole) (pl :: Pipelined) ps (st :: ps)
+                      failure bytes m a.
                ( Show failure
-               , forall (st' :: ps). Show (ClientHasAgency st')
-               , forall (st' :: ps). Show (ServerHasAgency st')
                , ShowProxy ps
+               , Exception failure
                )
             => Tracer m (TraceSendRecv ps)
             -> Codec ps failure m bytes
-            -> Peer ps pr st m a
-            -> MuxPeer bytes m a
-
-    MuxPeerPipelined
-             :: forall (pr :: PeerRole) ps (st :: ps) failure bytes m a.
-               ( Show failure
-               , forall (st' :: ps). Show (ClientHasAgency st')
-               , forall (st' :: ps). Show (ServerHasAgency st')
-               , ShowProxy ps
-               )
-            => Tracer m (TraceSendRecv ps)
-            -> Codec ps failure m bytes
-            -> PeerPipelined ps pr st m a
+            -> Peer ps pr pl Empty st m a
             -> MuxPeer bytes m a
 
     MuxPeerRaw
            :: (Channel m bytes -> m (a, Maybe bytes))
            -> MuxPeer bytes m a
 
-toApplication :: (MonadCatch m, MonadAsync m)
+toApplication :: MonadCatch m
               => ConnectionId addr
               -> ControlMessageSTM m
               -> OuroborosApplication mode addr LBS.ByteString m a b
@@ -177,7 +164,7 @@ toApplication connectionId controlMessageSTM (OuroborosApplication ptcls) =
     | ptcl <- ptcls connectionId controlMessageSTM ]
 
 toMuxRunMiniProtocol :: forall mode m a b.
-                        (MonadCatch m, MonadAsync m)
+                        MonadCatch m
                      => RunMiniProtocol mode LBS.ByteString m a b
                      -> Mux.RunMiniProtocol mode m a b
 toMuxRunMiniProtocol (InitiatorProtocolOnly i) =
@@ -192,17 +179,12 @@ toMuxRunMiniProtocol (InitiatorAndResponderProtocol i r) =
 -- Run a @'MuxPeer'@ using either @'runPeer'@ or @'runPipelinedPeer'@.
 --
 runMuxPeer
-  :: ( MonadCatch m
-     , MonadAsync m
-     )
+  :: MonadCatch m
   => MuxPeer bytes m a
   -> Channel m bytes
   -> m (a, Maybe bytes)
 runMuxPeer (MuxPeer tracer codec peer) channel =
     runPeer tracer codec channel peer
-
-runMuxPeer (MuxPeerPipelined tracer codec peer) channel =
-    runPipelinedPeer tracer codec channel peer
 
 runMuxPeer (MuxPeerRaw action) channel =
     action channel

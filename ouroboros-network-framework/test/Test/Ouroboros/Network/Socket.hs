@@ -39,6 +39,7 @@ import           Control.Exception (IOException)
 import           Control.Tracer
 
 import           Network.TypedProtocol.Core
+import           Network.TypedProtocol.Peer.Client (Client)
 import qualified Network.TypedProtocol.ReqResp.Type   as ReqResp
 import qualified Network.TypedProtocol.ReqResp.Client as ReqResp
 import qualified Network.TypedProtocol.ReqResp.Server as ReqResp
@@ -491,7 +492,8 @@ prop_socket_client_connect_error _ xs =
                     ReqResp.codecReqResp
                     channel
                     (ReqResp.reqRespClientPeer (ReqResp.reqRespClientMap xs)
-                            :: Peer (ReqResp.ReqResp Int Int) AsClient ReqResp.StIdle IO [Int])
+                            :: Client (ReqResp.ReqResp Int Int)
+                                      NonPipelined Empty ReqResp.StIdle IO [Int])
             ((), trailing)
               <$ atomically (putTMVar cv ())
 
