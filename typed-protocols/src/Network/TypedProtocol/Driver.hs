@@ -1,6 +1,7 @@
 {-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE GADTs #-}
+{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE NamedFieldPuns #-}
@@ -69,6 +70,11 @@ data Driver ps (pr :: PeerRole) bytes failure dstate m =
         Driver {
           -- | Send a message.
           --
+          -- It allows to update 'dstate'.  This is useful to record when
+          -- a message was sent, and check if the response fits within its time
+          -- budget,  which allows to have the same timeout policy whether
+          -- a message is pipelined or not.
+          --
           sendMessage    :: forall (st :: ps) (st' :: ps).
                             ( SingI (PeerHasAgency st)
                             , SingI (ProtocolState st')
@@ -77,7 +83,8 @@ data Driver ps (pr :: PeerRole) bytes failure dstate m =
                                                  WeHaveAgency
                                                 (Relative pr (StateAgency st)))
                          -> Message ps st st'
-                         -> m ()
+                         -> dstate
+                         -> m dstate
 
         , -- | Receive a message, a blocking action which reads from the network
           -- and runs the incremental decoder until a full message is decoded.
@@ -89,8 +96,10 @@ data Driver ps (pr :: PeerRole) bytes failure dstate m =
                          => (ReflRelativeAgency (StateAgency st)
                                                  TheyHaveAgency
                                                 (Relative pr (StateAgency st)))
-                         -> Either (DecodeStep bytes failure m (SomeMessage st))
-                                    dstate
+                         -> Either ( DecodeStep bytes failure m (SomeMessage st)
+                                   , dstate
+                                   )
+                                   dstate
                          -> m (SomeMessage st, dstate)
 
         , -- | 'tryRecvMessage' is used to interpret @'Collect' _ (Just k') k@.
@@ -104,10 +113,16 @@ data Driver ps (pr :: PeerRole) bytes failure dstate m =
                          => (ReflRelativeAgency (StateAgency st)
                                                  TheyHaveAgency
                                                 (Relative pr (StateAgency st)))
-                         -> Either    (DecodeStep bytes failure m (SomeMessage st))
-                                       dstate
-                         -> m (Either (DecodeStep bytes failure m (SomeMessage st))
-                                      (SomeMessage st, dstate))
+                         -> Either    ( DecodeStep bytes failure m (SomeMessage st)
+                                      , dstate
+                                      )
+                                      dstate
+                         -> m (Either ( DecodeStep bytes failure m (SomeMessage st)
+                                      , dstate
+                                      )
+                                      ( SomeMessage st
+                                      , dstate
+                                      ))
             
         , startDState    :: dstate
         }
@@ -136,45 +151,47 @@ runPeerWithDriver Driver{sendMessage, recvMessage, tryRecvMessage} =
           dstate
        -> Peer ps pr pl 'Empty st' m a
        -> m (a, dstate)
-    goEmpty dstate (Effect k) = k >>= goEmpty dstate
+    goEmpty !dstate (Effect k) = k >>= goEmpty dstate
 
-    goEmpty dstate (Done _ x) = return (x, dstate)
+    goEmpty !dstate (Done _ x) = return (x, dstate)
 
-    goEmpty dstate (Yield refl msg k) = do
-      sendMessage refl msg
-      goEmpty dstate k
+    goEmpty !dstate (Yield refl msg k) = do
+      dstate' <- sendMessage refl msg dstate
+      goEmpty dstate' k
 
-    goEmpty dstate (Await refl k) = do
+    goEmpty !dstate (Await refl k) = do
       (SomeMessage msg, dstate') <- recvMessage refl (Right dstate)
       goEmpty dstate' (k msg)
 
-    goEmpty dstate (YieldPipelined refl msg k) = do
-      sendMessage refl msg
-      go (SingCons SingEmpty) (Right dstate) k
+    goEmpty !dstate (YieldPipelined refl msg k) = do
+      !dstate' <- sendMessage refl msg dstate
+      go (SingCons SingEmpty) (Right dstate') k
 
 
     go :: forall st1 st2 st3 q'.
-         SingQueue (Tr st1 st2 <| q')
-      -> Either (DecodeStep bytes failure m (SomeMessage st1))
+          SingQueue (Tr st1 st2 <| q')
+       -> Either ( DecodeStep bytes failure m (SomeMessage st1)
+                 , dstate
+                 )
                  dstate
-      -> Peer ps pr pl (Tr st1 st2 <| q') st3 m a
-      -> m (a, dstate)
-    go q dstate (Effect k) = k >>= go q dstate
+       -> Peer ps pr pl (Tr st1 st2 <| q') st3 m a
+       -> m (a, dstate)
+    go q !dstate (Effect k) = k >>= go q dstate
 
-    go q dstate (YieldPipelined
+    go q !dstate (YieldPipelined
                   refl
                   (msg :: Message ps st3 st')
                   (k   :: Peer ps pr pl ((Tr st1 st2 <| q') |> Tr st' st'') st'' m a))
                 = do
-      sendMessage refl msg
+      !dstate' <- sendMessage refl msg (getDState dstate)
       go (q |> (SingTr :: SingTrans (Tr st' st'')))
-         dstate k
+         (setDState dstate' dstate) k
 
-    go (SingCons q) dstate (Collect refl Nothing k) = do
+    go (SingCons q) !dstate (Collect refl Nothing k) = do
       (SomeMessage msg, dstate') <- recvMessage refl dstate
       go (SingCons q) (Right dstate') (k msg)
 
-    go q@(SingCons q') dstate (Collect refl (Just k') k) = do
+    go q@(SingCons q') !dstate (Collect refl (Just k') k) = do
       r <- tryRecvMessage refl dstate
       case r of
         Left dstate' ->
@@ -193,3 +210,15 @@ runPeerWithDriver Driver{sendMessage, recvMessage, tryRecvMessage} =
       -- 'CollectDone' can only be executed once `Collect` was effective, which
       -- means we cannot receive a partial decoder here.
       error "runPeerWithDriver: unexpected parital decoder"
+
+    --
+    -- lenses
+    --
+
+    getDState :: Either (x, dstate) dstate -> dstate
+    getDState (Left (_, dstate)) = dstate
+    getDState (Right dstate)     = dstate
+
+    setDState :: dstate -> Either (x, dstate) dstate -> Either (x, dstate) dstate
+    setDState dstate (Left (x, _dstate)) = Left (x, dstate)
+    setDState dstate (Right _dstate)    = Right dstate
