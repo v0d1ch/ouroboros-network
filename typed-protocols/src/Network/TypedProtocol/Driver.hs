@@ -29,6 +29,7 @@ module Network.TypedProtocol.Driver (
 import Data.Singletons
 
 import Network.TypedProtocol.Core
+import Network.TypedProtocol.Peer
 import Network.TypedProtocol.Codec (SomeMessage (..), DecodeStep (..))
 
 
