@@ -42,7 +42,7 @@ data NodeToClientVersion
     | NodeToClientV_9
     -- ^ enabled @CardanoNodeToClientVersion7@, i.e., Alonzo
     | NodeToClientV_10
-    -- ^ enabled @CardanoNodeToClientVersion7@, i.e., Alonzo
+    -- ^ added 'GetChainBlockNo' and 'GetChainPoint' queries
   deriving (Eq, Ord, Enum, Bounded, Show, Typeable)
 
 -- | We set 16ths bit to distinguish `NodeToNodeVersion` and

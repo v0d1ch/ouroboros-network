@@ -34,9 +34,10 @@ import           Cardano.Slotting.Slot (WithOrigin (..))
 import           Codec.CBOR.Decoding
 import           Codec.CBOR.Encoding
 import           Codec.Serialise (Serialise)
-import           Codec.Serialise.Class (encode, decode)
+import           Codec.Serialise.Class (decode, encode)
 
-import           Ouroboros.Network.Block (HeaderHash, Point (..), StandardHash, encodePoint, decodePoint)
+import           Ouroboros.Network.Block (HeaderHash, Point (..), StandardHash,
+                     decodePoint, encodePoint)
 import           Ouroboros.Network.Protocol.LocalStateQuery.Type
                      (ShowQuery (..))
 
@@ -58,6 +59,13 @@ import           Ouroboros.Consensus.Util.DepPair
 {-------------------------------------------------------------------------------
   Queries
 -------------------------------------------------------------------------------}
+
+queryName :: Query blk result -> String
+queryName query = case query of
+  BlockQuery _    -> "BlockQuery"
+  GetSystemStart  -> "GetSystemStart"
+  GetChainBlockNo -> "GetChainBlockNo"
+  GetChainPoint   -> "GetChainPoint"
 
 -- | Different queries supported by the ledger for all block types, indexed
 -- by the result type.
@@ -122,7 +130,6 @@ data QueryEncoderException blk =
 
 deriving instance Show (SomeSecond BlockQuery blk) => Show (QueryEncoderException blk)
 instance (Typeable blk, Show (SomeSecond BlockQuery blk)) => Exception (QueryEncoderException blk)
-
 
 queryEncodeNodeToClient ::
      forall blk.
@@ -207,17 +214,18 @@ queryDecodeNodeToClient codecConfig queryVersion blockVersion
         size <- decodeListLen
         tag  <- decodeWord8
         case (size, tag) of
-          (2, 0) -> requireVersion "BlockQuery"           QueryVersion1   decodeBlockQuery
-          (1, 1) -> requireVersion "GetSystemStart"       QueryVersion1 $ return (SomeSecond GetSystemStart)
-          (1, 2) -> requireVersion "GetChainBlockNo"      QueryVersion2 $ return (SomeSecond GetChainBlockNo)
-          (1, 3) -> requireVersion "GetChainPoint"        QueryVersion2 $ return (SomeSecond GetChainPoint)
+          (2, 0) -> requireVersion QueryVersion1 =<< decodeBlockQuery
+          (1, 1) -> requireVersion QueryVersion1 $ SomeSecond GetSystemStart
+          (1, 2) -> requireVersion QueryVersion2 $ SomeSecond GetChainBlockNo
+          (1, 3) -> requireVersion QueryVersion2 $ SomeSecond GetChainPoint
           _      -> fail $ "Query: invalid size and tag" <> show (size, tag)
 
-    requireVersion :: String -> QueryVersion -> Decoder s (SomeSecond Query blk) -> Decoder s (SomeSecond Query blk)
-    requireVersion name expectedVersion f =
+    requireVersion :: QueryVersion -> SomeSecond Query blk -> Decoder s (SomeSecond Query blk)
+    requireVersion expectedVersion someSecondQuery =
       if queryVersion >= expectedVersion
-        then f
-        else fail $ "Query: " <> name <> " requires at least " <> show expectedVersion
+        then return someSecondQuery
+        else case someSecondQuery of
+          SomeSecond query -> fail $ "Query: " <> queryName query <> " requires at least " <> show expectedVersion
 
     decodeBlockQuery :: Decoder s (SomeSecond Query blk)
     decodeBlockQuery = do
@@ -228,9 +236,9 @@ queryDecodeNodeToClient codecConfig queryVersion blockVersion
         blockVersion
       return (SomeSecond (BlockQuery blockQuery))
 
-instance  ( SerialiseResult blk (BlockQuery blk)
-          , Serialise (HeaderHash blk)
-          ) => SerialiseResult blk (Query blk) where
+instance ( SerialiseResult blk (BlockQuery blk)
+         , Serialise (HeaderHash blk)
+         ) => SerialiseResult blk (Query blk) where
   encodeResult codecConfig blockVersion (BlockQuery blockQuery) result
     = encodeResult codecConfig blockVersion blockQuery result
   encodeResult _ _ GetSystemStart result
