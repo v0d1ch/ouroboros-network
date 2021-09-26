@@ -35,7 +35,7 @@ import Data.Singletons
 import Data.Kind (Type)
 import Unsafe.Coerce (unsafeCoerce)
 
-import Network.TypedProtocol.Core hiding (SingQueue (..))
+import Network.TypedProtocol.Core
 import Network.TypedProtocol.Peer
 import Network.TypedProtocol.Codec (SomeMessage (..), DecodeStep (..))
 
