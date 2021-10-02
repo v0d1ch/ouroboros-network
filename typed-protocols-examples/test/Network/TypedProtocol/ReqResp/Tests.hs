@@ -26,6 +26,7 @@ import Network.TypedProtocol.ReqResp.Type
 import Network.TypedProtocol.ReqResp.Client
 import Network.TypedProtocol.ReqResp.Server
 import Network.TypedProtocol.ReqResp.Codec
+import qualified Network.TypedProtocol.ReqResp.Codec.CBOR as CBOR
 import Network.TypedProtocol.ReqResp.Examples
 
 import Control.Monad.ST (runST)
@@ -40,7 +41,8 @@ import Data.Tuple (swap)
 import Data.List (mapAccumL)
 import Data.Kind (Type)
 
-import Network.TypedProtocol.PingPong.Tests (splits2, splits3)
+import Network.TypedProtocol.PingPong.Tests (splits2, splits3, splits2BS,
+         splits3BS)
 
 import Test.QuickCheck
 import Text.Show.Functions ()
@@ -253,15 +255,15 @@ prop_codec_cbor_ReqResp
   :: AnyMessage (ReqResp String String)
   -> Bool
 prop_codec_cbor_ReqResp msg =
-  runST $ prop_codecM codecReqResp msg
+  runST $ prop_codecM CBOR.codecReqResp msg
 
 prop_codec_cbor_splits2_ReqResp
   :: AnyMessage (ReqResp String String)
   -> Bool
 prop_codec_cbor_splits2_ReqResp msg =
   runST $ prop_codec_splitsM
-      splits2
-      codecReqResp
+      splits2BS
+      CBOR.codecReqResp
       msg
 
 prop_codec_cbor_splits3_ReqResp
@@ -269,6 +271,6 @@ prop_codec_cbor_splits3_ReqResp
   -> Bool
 prop_codec_cbor_splits3_ReqResp msg =
   runST $ prop_codec_splitsM
-      splits3
-      codecReqResp
+      splits3BS
+      CBOR.codecReqResp
       msg
