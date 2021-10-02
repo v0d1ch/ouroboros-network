@@ -70,6 +70,17 @@ data SingQueueF f q where
                -> !(SingQueueF f q)
                -> SingQueueF f (Tr st st' <| q)
 
+
+-- | A synonmy for 'SingConsF'
+--
+(<|) :: forall ps f (st :: ps) (st' :: ps) (q :: Queue ps).
+        f st st'
+     -> SingQueueF f q
+     -> SingQueueF f (Tr st st' <| q)
+(<|) = SingConsF
+
+
+
 -- | Term level '|>' (snoc).
 --
 (|>) :: forall ps f (st :: ps) (st' :: ps) (q :: Queue ps).
@@ -93,6 +104,9 @@ data SingQueueF f q where
 --
 type SingQueue :: Queue ps -> Type
 newtype SingQueue q = UnsafeSingQueue Int
+
+queueDepth :: SingQueue q -> Int
+queueDepth (UnsafeSingQueue depth) = depth 
 
 type instance Sing = SingQueue
 instance SingI Empty            where sing = SingEmpty

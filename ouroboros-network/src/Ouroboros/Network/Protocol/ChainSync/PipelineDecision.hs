@@ -16,7 +16,7 @@ module Ouroboros.Network.Protocol.ChainSync.PipelineDecision
 import           Control.Exception (assert)
 import           Data.Word
 
-import           Network.TypedProtocol.Pipelined
+-- import           Network.TypedProtocol.Pipelined
 
 import           Ouroboros.Network.Block (BlockNo)
 import           Ouroboros.Network.Point (WithOrigin (..))

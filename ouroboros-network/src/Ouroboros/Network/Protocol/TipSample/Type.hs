@@ -1,13 +1,16 @@
-{-# LANGUAGE GADTs             #-}
-{-# LANGUAGE TypeFamilies      #-}
-{-# LANGUAGE DataKinds         #-}
-{-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE EmptyCase         #-}
-{-# LANGUAGE PolyKinds         #-}
-{-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE StandaloneDeriving #-}
+{-# LANGUAGE GADTs                    #-}
+{-# LANGUAGE TypeFamilies             #-}
+{-# LANGUAGE DataKinds                #-}
+{-# LANGUAGE FlexibleInstances        #-}
+{-# LANGUAGE EmptyCase                #-}
+{-# LANGUAGE PolyKinds                #-}
+{-# LANGUAGE ScopedTypeVariables      #-}
+{-# LANGUAGE StandaloneDeriving       #-}
+{-# LANGUAGE StandaloneKindSignatures #-}
 
 module Ouroboros.Network.Protocol.TipSample.Type where
+
+import Data.Singletons
 
 import Network.TypedProtocol.Core
 import Network.TypedProtocol.Pipelined (N (..), Nat)
@@ -25,11 +28,16 @@ data TipRequestKind where
     BlockUntilTip     :: TipRequestKind
 
 
-data TokTipRequest (tipRequestKind :: TipRequestKind) where
-    TokBlockUntilSlot    :: TokTipRequest BlockUntilSlot
-    TokBlockUntilTip     :: TokTipRequest BlockUntilTip
+type SingTipRequest :: TipRequestKind -> Type
+data SingTipRequest tipRequestKind where
+    SingBlockUntilSlot :: SingBlockUntilSlot
+    SingBlockUntilTip  :: SingBlockUntilTip
 
-deriving instance Show (TokTipRequest tipRequestKind)
+deriving instance Show (SingTipRequest tipRequestKind)
+
+type instance Sing = SingTipRequest
+instance SingI BlockUntilSlot where sing = SingBlockUntilSlot
+instance SingI BlockUntilTip  where sing = SingBlockUntilTip
 
 
 -- | `tip-sample` protocol, desigined for established peers to sample tip from
@@ -77,18 +85,9 @@ instance Protocol (TipSample tip) where
                          StIdle
                          StDone
 
-    data ClientHasAgency st where
-      TokIdle      :: ClientHasAgency StIdle
-
-    data ServerHasAgency st where
-      TokFollowTip :: Nat (S n) -> ServerHasAgency (StFollowTip (S n))
-
-    data NobodyHasAgency st where
-      TokDone      :: NobodyHasAgency StDone
-
-    exclusionLemma_ClientAndServerHaveAgency TokIdle tok = case tok of {}
-    exclusionLemma_NobodyAndClientHaveAgency TokDone tok = case tok of {}
-    exclusionLemma_NobodyAndServerHaveAgency TokDone tok = case tok of {}
+    type StateAgency StIdle      = ClientAgency
+    type StateAgency StFollowTip = ServerAgency
+    type StateAgency StDone      = NobodyAgency
 
 
 --
@@ -96,6 +95,3 @@ instance Protocol (TipSample tip) where
 --
 
 deriving instance Show tip => Show (Message (TipSample tip) from to)
-deriving instance Show (ClientHasAgency (st :: TipSample tip))
-deriving instance Show (ServerHasAgency (st :: TipSample tip))
-deriving instance Show (NobodyHasAgency (st :: TipSample tip))

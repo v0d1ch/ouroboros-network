@@ -1,11 +1,12 @@
-{-# LANGUAGE DataKinds           #-}
-{-# LANGUAGE EmptyCase           #-}
-{-# LANGUAGE FlexibleInstances   #-}
-{-# LANGUAGE GADTs               #-}
-{-# LANGUAGE PolyKinds           #-}
-{-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE StandaloneDeriving  #-}
-{-# LANGUAGE TypeFamilies        #-}
+{-# LANGUAGE DataKinds                #-}
+{-# LANGUAGE EmptyCase                #-}
+{-# LANGUAGE FlexibleInstances        #-}
+{-# LANGUAGE GADTs                    #-}
+{-# LANGUAGE PolyKinds                #-}
+{-# LANGUAGE ScopedTypeVariables      #-}
+{-# LANGUAGE StandaloneDeriving       #-}
+{-# LANGUAGE StandaloneKindSignatures #-}
+{-# LANGUAGE TypeFamilies             #-}
 
 -- | The type of the local transaction monitoring protocol.
 --
@@ -14,6 +15,8 @@
 --
 module Ouroboros.Network.Protocol.LocalTxMonitor.Type where
 
+import           Data.Singletons
+import           Data.Kind
 
 import           Network.TypedProtocol.Core
 import           Ouroboros.Network.Util.ShowProxy
@@ -47,6 +50,17 @@ data LocalTxMonitor tx where
 instance ShowProxy tx => ShowProxy (ShowProxy (LocalTxMonitor tx)) where
     showProxy _ = "LocalTxMonitor " ++ showProxy (Proxy :: Proxy tx)
 
+
+type SingLocalTxMonitor :: LocalTxMonitor tx -> Type
+data SingLocalTxMonitor k where
+    SingIdle :: SingLocalTxMonitor StIdle
+    SingBusy :: SingLocalTxMonitor StBusy
+    SingDone :: SingLocalTxMonitor StDone
+
+type instance Sing = SingLocalTxMonitor
+instance SingI StIdle where sing = SingIdle
+instance SingI StBusy where sing = SingBusy
+instance SingI StDone where sing = SingDone
 
 instance Protocol (LocalTxMonitor tx) where
 
@@ -87,26 +101,9 @@ instance Protocol (LocalTxMonitor tx) where
       :: Message (LocalTxMonitor tx) StIdle StDone
 
 
-  data ClientHasAgency st where
-    TokIdle  :: ClientHasAgency StIdle
-
-  data ServerHasAgency st where
-    TokBusy  :: ServerHasAgency StBusy
-
-  data NobodyHasAgency st where
-    TokDone  :: NobodyHasAgency StDone
-
-  exclusionLemma_ClientAndServerHaveAgency TokIdle tok = case tok of {}
-
-  exclusionLemma_NobodyAndClientHaveAgency TokDone tok = case tok of {}
-
-  exclusionLemma_NobodyAndServerHaveAgency TokDone tok = case tok of {}
+  type StateAgency StIdle = ClientAgency
+  type StateAgency StBusy = ServerAgency
+  type StateAgency StDone = NobodyAgency
 
 
 deriving instance Show tx => Show (Message (LocalTxMonitor tx) from to)
-
-instance Show (ClientHasAgency (st :: LocalTxMonitor tx)) where
-  show TokIdle = "TokIdle"
-
-instance Show (ServerHasAgency (st :: LocalTxMonitor tx)) where
-  show TokBusy = "TokBusy"

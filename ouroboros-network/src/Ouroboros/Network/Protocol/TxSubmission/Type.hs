@@ -1,11 +1,12 @@
-{-# LANGUAGE DataKinds           #-}
-{-# LANGUAGE EmptyCase           #-}
-{-# LANGUAGE FlexibleInstances   #-}
-{-# LANGUAGE GADTs               #-}
-{-# LANGUAGE PolyKinds           #-}
-{-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE StandaloneDeriving  #-}
-{-# LANGUAGE TypeFamilies        #-}
+{-# LANGUAGE DataKinds                #-}
+{-# LANGUAGE EmptyCase                #-}
+{-# LANGUAGE FlexibleInstances        #-}
+{-# LANGUAGE GADTs                    #-}
+{-# LANGUAGE PolyKinds                #-}
+{-# LANGUAGE ScopedTypeVariables      #-}
+{-# LANGUAGE StandaloneDeriving       #-}
+{-# LANGUAGE StandaloneKindSignatures #-}
+{-# LANGUAGE TypeFamilies             #-}
 
 -- | The type of the transaction submission protocol.
 --
@@ -14,6 +15,8 @@
 module Ouroboros.Network.Protocol.TxSubmission.Type where
 
 import           Data.Word (Word16, Word32)
+import           Data.Kind (Type)
+import           Data.Singletons
 import           Data.List.NonEmpty (NonEmpty)
 
 import           Network.TypedProtocol.Core
@@ -65,6 +68,19 @@ data TxSubmission txid tx where
   --
   StDone   :: TxSubmission txid tx
 
+type SingTxSubmission :: TxSubmission txid tx
+                      -> Type
+data SingTxSubmission k where
+    SingIdle  :: SingTxSubmission  StIdle
+    SingTxIds :: SingBlockingStyle stBlocking
+              -> SingTxSubmission (StTxIds stBlocking)
+    SingDone  :: SingTxSubmission  StDone
+
+type instance Sing = SingTxSubmission
+instance SingI StIdle               where sing = SingIdle
+instance SingI stBlocking
+      => SingI (StTxIds stBlocking) where sing = SingTxIds sing
+instance SingI StDone               where sing = SingDone
 
 instance ( ShowProxy txid
          , ShowProxy tx
@@ -124,7 +140,7 @@ instance Protocol (TxSubmission txid tx) where
     -- | Request a non-empty list of transaction identifiers from the client,
     -- and confirm a number of outstanding transaction identifiers.
     --
-    -- With 'TokBlocking' this is a a blocking operation: the response will
+    -- With 'SingBlocking' this is a a blocking operation: the response will
     -- always have at least one transaction identifier, and it does not expect
     -- a prompt response: there is no timeout. This covers the case when there
     -- is nothing else to do but wait. For example this covers leaf nodes that
@@ -138,7 +154,7 @@ instance Protocol (TxSubmission txid tx) where
     --
     -- The request gives the maximum number of transaction identifiers that
     -- can be accepted in the response. This must be greater than zero in the
-    -- 'TokBlocking' case. In the 'TokNonBlocking' case either the numbers
+    -- 'SingBlocking' case. In the 'TokNonBlocking' case either the numbers
     -- acknowledged or the number requested must be non-zero. In either case,
     -- the number requested must not put the total outstanding over the fixed
     -- protocol limit.
@@ -160,7 +176,7 @@ instance Protocol (TxSubmission txid tx) where
     --   unacknowledged transactions.
     --
     MsgRequestTxIds
-      :: TokBlockingStyle blocking
+      :: SingBlockingStyle blocking
       -> Word16 -- ^ Acknowledge this number of outstanding txids
       -> Word16 -- ^ Request up to this number of txids.
       -> Message (TxSubmission txid tx) StIdle (StTxIds blocking)
@@ -223,21 +239,10 @@ instance Protocol (TxSubmission txid tx) where
       :: Message (TxSubmission txid tx) (StTxIds StBlocking) StDone
 
 
-  data ClientHasAgency st where
-    TokTxIds  :: TokBlockingStyle b -> ClientHasAgency (StTxIds b)
-    TokTxs    :: ClientHasAgency StTxs
-
-  data ServerHasAgency st where
-    TokIdle   :: ServerHasAgency StIdle
-
-  data NobodyHasAgency st where
-    TokDone   :: NobodyHasAgency StDone
-
-  exclusionLemma_ClientAndServerHaveAgency tok TokIdle = case tok of {}
-
-  exclusionLemma_NobodyAndClientHaveAgency TokDone tok = case tok of {}
-
-  exclusionLemma_NobodyAndServerHaveAgency TokDone tok = case tok of {}
+  type StateAgency (StTxIds b) = ClientAgency
+  type StateAgency  StTxs      = ClientAgency
+  type StateAgency  StIdle     = ServerAgency
+  type StateAgency  StDone     = NobodyAgency
 
 
 -- | The value level equivalent of 'StBlockingStyle'.
@@ -245,12 +250,15 @@ instance Protocol (TxSubmission txid tx) where
 -- This is also used in 'MsgRequestTxIds' where it is interpreted (and can be
 -- encoded) as a 'Bool' with 'True' for blocking, and 'False' for non-blocking.
 --
-data TokBlockingStyle (k :: StBlockingStyle) where
-  TokBlocking    :: TokBlockingStyle StBlocking
-  TokNonBlocking :: TokBlockingStyle StNonBlocking
+data SingBlockingStyle (k :: StBlockingStyle) where
+  SingBlocking    :: SingBlockingStyle StBlocking
+  SingNonBlocking :: SingBlockingStyle StNonBlocking
 
-deriving instance Eq   (TokBlockingStyle b)
-deriving instance Show (TokBlockingStyle b)
+deriving instance Eq   (SingBlockingStyle b)
+deriving instance Show (SingBlockingStyle b)
+type instance Sing = SingBlockingStyle
+instance SingI StBlocking    where sing = SingBlocking
+instance SingI StNonBlocking where sing = SingNonBlocking
 
 -- | We have requests for lists of things. In the blocking case the
 -- corresponding reply must be non-empty, whereas in the non-blocking case
@@ -268,11 +276,3 @@ deriving instance (Eq txid, Eq tx) =>
 
 deriving instance (Show txid, Show tx) =>
                   Show (Message (TxSubmission txid tx) from to)
-
-instance Show (ClientHasAgency (st :: TxSubmission txid tx)) where
-  show (TokTxIds TokBlocking)    = "TokTxIds TokBlocking"
-  show (TokTxIds TokNonBlocking) = "TokTxIds TokNonBlocking"
-  show TokTxs                    = "TokTxs"
-
-instance Show (ServerHasAgency (st :: TxSubmission txid tx)) where
-  show TokIdle = "TokIdle"

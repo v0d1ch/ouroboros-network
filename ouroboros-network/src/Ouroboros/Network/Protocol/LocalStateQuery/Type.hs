@@ -1,13 +1,14 @@
-{-# LANGUAGE DataKinds             #-}
-{-# LANGUAGE EmptyCase             #-}
-{-# LANGUAGE FlexibleInstances     #-}
-{-# LANGUAGE GADTs                 #-}
-{-# LANGUAGE PolyKinds             #-}
-{-# LANGUAGE QuantifiedConstraints #-}
-{-# LANGUAGE RankNTypes            #-}
-{-# LANGUAGE ScopedTypeVariables   #-}
-{-# LANGUAGE TypeFamilies          #-}
-{-# LANGUAGE UndecidableInstances  #-}
+{-# LANGUAGE DataKinds                #-}
+{-# LANGUAGE EmptyCase                #-}
+{-# LANGUAGE FlexibleInstances        #-}
+{-# LANGUAGE GADTs                    #-}
+{-# LANGUAGE PolyKinds                #-}
+{-# LANGUAGE QuantifiedConstraints    #-}
+{-# LANGUAGE RankNTypes               #-}
+{-# LANGUAGE ScopedTypeVariables      #-}
+{-# LANGUAGE StandaloneKindSignatures #-}
+{-# LANGUAGE TypeFamilies             #-}
+{-# LANGUAGE UndecidableInstances     #-}
 
 -- | The type of the local ledger state query protocol.
 --
@@ -18,6 +19,7 @@ module Ouroboros.Network.Protocol.LocalStateQuery.Type where
 
 import           Data.Kind (Type)
 import           Data.Proxy (Proxy(..))
+import           Data.Singletons
 
 import           Network.TypedProtocol.Core
 
@@ -67,6 +69,26 @@ instance ( ShowProxy block
       , " "
       , showProxy (Proxy :: Proxy query)
       ]
+
+
+-- | Singletons for 'LocalStateQuery' state types.
+--
+type SingLocalStateQuery :: LocalStateQuery block point query
+                         -> Type
+data SingLocalStateQuery k where
+    SingIdle      :: SingLocalStateQuery StIdle
+    SingAcquiring :: SingLocalStateQuery StAcquiring
+    SingAcquired  :: SingLocalStateQuery StAcquired
+    SingQuerying  :: forall result. SingLocalStateQuery (StQuerying result)
+    SingDone      :: SingLocalStateQuery StDone
+
+type instance Sing = SingLocalStateQuery
+instance SingI  StIdle             where sing = SingIdle
+instance SingI  StAcquiring        where sing = SingAcquiring
+instance SingI  StAcquired         where sing = SingAcquired
+instance SingI (StQuerying result) where sing = SingQuerying
+instance SingI  StDone             where sing = SingDone
+
 
 instance Protocol (LocalStateQuery block point query) where
 
@@ -143,38 +165,17 @@ instance Protocol (LocalStateQuery block point query) where
       :: Message (LocalStateQuery block point query) StIdle StDone
 
 
-  data ClientHasAgency st where
-    TokIdle      :: ClientHasAgency StIdle
-    TokAcquired  :: ClientHasAgency StAcquired
-
-  data ServerHasAgency st where
-    TokAcquiring  :: ServerHasAgency StAcquiring
-    TokQuerying   :: query result
-                  -> ServerHasAgency (StQuerying result :: LocalStateQuery block point query)
-
-  data NobodyHasAgency st where
-    TokDone  :: NobodyHasAgency StDone
-
-  exclusionLemma_ClientAndServerHaveAgency TokIdle     tok = case tok of {}
-  exclusionLemma_ClientAndServerHaveAgency TokAcquired tok = case tok of {}
-
-  exclusionLemma_NobodyAndClientHaveAgency TokDone tok = case tok of {}
-
-  exclusionLemma_NobodyAndServerHaveAgency TokDone tok = case tok of {}
+  type StateAgency StIdle              = ClientAgency
+  type StateAgency StAcquired          = ClientAgency
+  type StateAgency StAcquiring         = ServerAgency
+  type StateAgency (StQuerying result) = ServerAgency
+  type StateAgency StDone              = NobodyAgency
 
 
 data AcquireFailure = AcquireFailurePointTooOld
                     | AcquireFailurePointNotOnChain
   deriving (Eq, Enum, Show)
 
-instance Show (ClientHasAgency (st :: LocalStateQuery block point query)) where
-  show TokIdle     = "TokIdle"
-  show TokAcquired = "TokAcquired"
-
-instance (forall result. Show (query result))
-    => Show (ServerHasAgency (st :: LocalStateQuery block point query)) where
-  show TokAcquiring        = "TokAcquiring"
-  show (TokQuerying query) = "TokQuerying " ++ show query
 
 -- | To implement 'Show' for:
 --
