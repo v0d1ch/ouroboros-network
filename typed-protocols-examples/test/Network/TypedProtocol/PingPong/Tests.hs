@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE FlexibleInstances #-}
@@ -42,6 +43,12 @@ import Control.Tracer (Tracer, nullTracer)
 
 import Data.List (inits, tails)
 import qualified Data.ByteString.Lazy as LBS
+#if !defined(mingw32_HOST_OS)
+import System.IO
+import System.Directory (removeFile)
+import qualified System.Posix.Files as Posix
+import qualified Network.Socket as Socket
+#endif
 
 import Test.QuickCheck
 import Test.Tasty (TestTree, testGroup)
@@ -65,6 +72,10 @@ tests = testGroup "Network.TypedProtocol.PingPong"
   , testProperty "connect_pipelined 5" prop_connect_pipelined5
   , testProperty "channel ST"          prop_channel_ST
   , testProperty "channel IO"          prop_channel_IO
+#if !defined(mingw32_HOST_OS)
+  , testProperty "namedPipePipelined"  prop_namedPipePipelined_IO
+  , testProperty "socketPipelined"     prop_socketPipelined_IO
+#endif
   , testGroup "Codec"
     [ testProperty "codec"             prop_codec_PingPong
     , testProperty "codec 2-splits"    prop_codec_splits2_PingPong
@@ -321,6 +332,64 @@ prop_channel_IO n =
 prop_channel_ST :: NonNegative Int -> Bool
 prop_channel_ST n =
     runSimOrThrow (prop_channel n nullTracer)
+
+
+#if !defined(mingw32_HOST_OS)
+prop_namedPipePipelined_IO :: NonNegative Int
+                           -> Property
+prop_namedPipePipelined_IO (NonNegative n) = ioProperty $ do
+    let client = pingPongClientPeer (pingPongClientCount n)
+        server = pingPongServerPeer  pingPongServerCount
+
+    let cliPath = "client.sock"
+        srvPath = "server.sock"
+        mode = Posix.ownerModes
+
+    Posix.createNamedPipe cliPath mode
+    Posix.createNamedPipe srvPath mode
+
+    bracket   (openFile cliPath ReadWriteMode)
+              (\_ -> removeFile cliPath)
+            $ \cliHandle ->
+      bracket (openFile srvPath ReadWriteMode)
+              (\_ -> removeFile srvPath)
+           $ \srvHandle -> do
+              ((), n') <- runConnectedPeers (return ( handlesAsChannel cliHandle srvHandle
+                                                    , handlesAsChannel srvHandle cliHandle
+                                                    ))
+                                            nullTracer
+                                            CBOR.codecPingPong client server
+              return (n' == n)
+#endif
+
+
+#if !defined(mingw32_HOST_OS)
+prop_socketPipelined_IO :: NonNegative Int
+                        -> Property
+prop_socketPipelined_IO (NonNegative n) = ioProperty $ do
+    ai : _ <- Socket.getAddrInfo Nothing (Just "127.0.0.1") Nothing
+    bracket
+      ((,) <$> Socket.openSocket ai
+           <*> Socket.openSocket ai)
+      ( \ (sock, sock') -> Socket.close sock
+                        >> Socket.close sock')
+      $ \ (sock, sock') -> do
+          Socket.bind sock (Socket.addrAddress ai)
+          addr <- Socket.getSocketName sock
+          Socket.listen sock 1
+          Socket.connect sock' addr
+          bracket (fst <$> Socket.accept sock) Socket.close
+                $ \sock'' -> do
+            let client = pingPongClientPeer (pingPongClientCount n)
+                server = pingPongServerPeer  pingPongServerCount
+
+            ((), n') <- runConnectedPeers (return ( socketAsChannel sock'
+                                                  , socketAsChannel sock''
+                                                  ))
+                                          nullTracer
+                                          CBOR.codecPingPong client server
+            return (n' == n)
+#endif
 
 
 --
