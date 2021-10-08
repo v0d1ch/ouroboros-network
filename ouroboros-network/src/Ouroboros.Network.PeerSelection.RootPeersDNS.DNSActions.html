@@ -1,0 +1,1115 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-pragma">{-# LANGUAGE BangPatterns #-}</span><span>
+</span><span id="line-2"></span><span class="hs-pragma">{-# LANGUAGE ScopedTypeVariables #-}</span><span>
+</span><span id="line-3"></span><span class="hs-pragma">{-# LANGUAGE RankNTypes #-}</span><span>
+</span><span id="line-4"></span><span class="hs-pragma">{-# LANGUAGE CPP #-}</span><span>
+</span><span id="line-5"></span><span class="hs-pragma">{-# LANGUAGE NamedFieldPuns #-}</span><span>
+</span><span id="line-6"></span><span>
+</span><span id="line-7"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Ouroboros.Network.PeerSelection.RootPeersDNS.DNSActions</span><span>
+</span><span id="line-8"></span><span>  </span><span class="hs-special">(</span><span>
+</span><span id="line-9"></span><span>    </span><span class="annot"><span class="hs-comment">-- * DNS based actions for local and public root providers</span></span><span>
+</span><span id="line-10"></span><span>    </span><span class="annot"><a href="Ouroboros.Network.PeerSelection.RootPeersDNS.DNSActions.html#DNSActions"><span class="hs-identifier">DNSActions</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span>
+</span><span id="line-11"></span><span>
+</span><span id="line-12"></span><span>    </span><span class="annot"><span class="hs-comment">-- * DNSActions IO</span></span><span>
+</span><span id="line-13"></span><span>    </span><span class="annot"><a href="Ouroboros.Network.PeerSelection.RootPeersDNS.DNSActions.html#ioDNSActions"><span class="hs-identifier">ioDNSActions</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-14"></span><span>
+</span><span id="line-15"></span><span>    </span><span class="annot"><span class="hs-comment">-- * Utils</span></span><span>
+</span><span id="line-16"></span><span>    </span><span class="annot"><span class="hs-comment">-- ** Resource</span></span><span>
+</span><span id="line-17"></span><span>    </span><span class="annot"><a href="Ouroboros.Network.PeerSelection.RootPeersDNS.DNSActions.html#Resource"><span class="hs-identifier">Resource</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span>
+</span><span id="line-18"></span><span>    </span><span class="annot"><a href="Ouroboros.Network.PeerSelection.RootPeersDNS.DNSActions.html#withResource%27"><span class="hs-identifier">withResource'</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-19"></span><span>    </span><span class="annot"><a href="Ouroboros.Network.PeerSelection.RootPeersDNS.DNSActions.html#constantResource"><span class="hs-identifier">constantResource</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-20"></span><span>
+</span><span id="line-21"></span><span>    </span><span class="annot"><span class="hs-comment">-- ** Error type</span></span><span>
+</span><span id="line-22"></span><span>    </span><span class="annot"><a href="Ouroboros.Network.PeerSelection.RootPeersDNS.DNSActions.html#DNSorIOError"><span class="hs-identifier">DNSorIOError</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
+</span><span id="line-23"></span><span>  </span><span class="hs-special">)</span><span>
+</span><span id="line-24"></span><span>  </span><span class="hs-keyword">where</span><span>
+</span><span id="line-25"></span><span>
+</span><span id="line-26"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-identifier">Data.List.NonEmpty</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-identifier">NonEmpty</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-27"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-identifier">Data.List.NonEmpty</span></a></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">NonEmpty</span></span><span>
+</span><span id="line-28"></span><span>
+</span><span id="line-29"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-identifier">Control.Exception</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-identifier">IOException</span></a></span><span class="hs-special">)</span><span class="hs-cpp">
+#if !defined(mingw32_HOST_OS)
+</span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/io-classes-0.2.0.0/noopt/doc/html/io-classes/src"><span class="hs-identifier">Control.Monad.Class.MonadSTM.Strict</span></a></span><span class="hs-cpp">
+#endif
+</span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/io-classes-0.2.0.0/noopt/doc/html/io-classes/src"><span class="hs-identifier">Control.Monad.Class.MonadTime</span></a></span><span>
+</span><span id="line-34"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/io-classes-0.2.0.0/noopt/doc/html/io-classes/src"><span class="hs-identifier">Control.Monad.Class.MonadTimer</span></a></span><span>
+</span><span id="line-35"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/io-classes-0.2.0.0/noopt/doc/html/io-classes/src"><span class="hs-identifier">Control.Monad.Class.MonadThrow</span></a></span><span>
+</span><span id="line-36"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><span class="hs-identifier">Control.Tracer</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Tracer</span></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">traceWith</span></span><span class="hs-special">)</span><span>
+</span><span id="line-37"></span><span>
+</span><span id="line-38"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/directory-1.3.6.0/src"><span class="hs-identifier">System.Directory</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/directory-1.3.6.0/src"><span class="hs-identifier">getModificationTime</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-39"></span><span>
+</span><span id="line-40"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><span class="hs-identifier">Data.IP</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">IPv4</span></span><span class="hs-special">)</span><span>
+</span><span id="line-41"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><span class="hs-identifier">Network.DNS</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">DNSError</span></span><span class="hs-special">)</span><span>
+</span><span id="line-42"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Network.DNS</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">DNS</span></span><span>
+</span><span id="line-43"></span><span>
+</span><span id="line-44"></span><span>
+</span><span id="line-45"></span><span class="hs-keyword">data</span><span> </span><span id="DNSorIOError"><span class="annot"><a href="Ouroboros.Network.PeerSelection.RootPeersDNS.DNSActions.html#DNSorIOError"><span class="hs-identifier hs-var">DNSorIOError</span></a></span></span><span> </span><span id="local-6989586621679223277"><span class="annot"><a href="#local-6989586621679223277"><span class="hs-identifier hs-type">exception</span></a></span></span><span>
+</span><span id="line-46"></span><span>    </span><span class="hs-glyph">=</span><span> </span><span id="DNSError"><span class="annot"><a href="Ouroboros.Network.PeerSelection.RootPeersDNS.DNSActions.html#DNSError"><span class="hs-identifier hs-var">DNSError</span></a></span></span><span> </span><span class="hs-glyph">!</span><span class="annot"><span class="hs-identifier hs-type">DNSError</span></span><span>
+</span><span id="line-47"></span><span>    </span><span class="hs-glyph">|</span><span> </span><span id="IOError"><span class="annot"><a href="Ouroboros.Network.PeerSelection.RootPeersDNS.DNSActions.html#IOError"><span class="hs-identifier hs-var">IOError</span></a></span></span><span>  </span><span class="hs-glyph">!</span><span class="annot"><a href="#local-6989586621679223277"><span class="hs-identifier hs-type">exception</span></a></span><span>
+</span><span id="line-48"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span id="local-6989586621679223234"><span id="local-6989586621679223236"><span id="local-6989586621679223238"><span class="annot"><span class="annottext">Int -&gt; DNSorIOError exception -&gt; ShowS
+[DNSorIOError exception] -&gt; ShowS
+DNSorIOError exception -&gt; String
+(Int -&gt; DNSorIOError exception -&gt; ShowS)
+-&gt; (DNSorIOError exception -&gt; String)
+-&gt; ([DNSorIOError exception] -&gt; ShowS)
+-&gt; Show (DNSorIOError exception)
+forall exception.
+Show exception =&gt;
+Int -&gt; DNSorIOError exception -&gt; ShowS
+forall exception.
+Show exception =&gt;
+[DNSorIOError exception] -&gt; ShowS
+forall exception.
+Show exception =&gt;
+DNSorIOError exception -&gt; String
+forall a.
+(Int -&gt; a -&gt; ShowS) -&gt; (a -&gt; String) -&gt; ([a] -&gt; ShowS) -&gt; Show a
+showList :: [DNSorIOError exception] -&gt; ShowS
+$cshowList :: forall exception.
+Show exception =&gt;
+[DNSorIOError exception] -&gt; ShowS
+show :: DNSorIOError exception -&gt; String
+$cshow :: forall exception.
+Show exception =&gt;
+DNSorIOError exception -&gt; String
+showsPrec :: Int -&gt; DNSorIOError exception -&gt; ShowS
+$cshowsPrec :: forall exception.
+Show exception =&gt;
+Int -&gt; DNSorIOError exception -&gt; ShowS
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></a></span></span></span></span><span>
+</span><span id="line-49"></span><span>
+</span><span id="line-50"></span><span id="local-6989586621679223232"><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679223224"><span id="local-6989586621679223226"><span id="local-6989586621679223228"><span class="annot"><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-identifier hs-type">Exception</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679223232"><span class="hs-identifier hs-type">exception</span></a></span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-identifier hs-type">Exception</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Network.PeerSelection.RootPeersDNS.DNSActions.html#DNSorIOError"><span class="hs-identifier hs-type">DNSorIOError</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679223232"><span class="hs-identifier hs-type">exception</span></a></span><span class="hs-special">)</span></span></span></span><span> </span><span class="hs-keyword">where</span></span><span>
+</span><span id="line-51"></span><span>
+</span><span id="line-52"></span><span class="hs-comment">-----------------------------------------------</span><span>
+</span><span id="line-53"></span><span class="hs-comment">-- Resource</span><span>
+</span><span id="line-54"></span><span class="hs-comment">--</span><span>
+</span><span id="line-55"></span><span>
+</span><span id="line-56"></span><span class="hs-comment">-- | Evolving resource; We use it to reinitialise the dns library if the</span><span>
+</span><span id="line-57"></span><span class="hs-comment">-- `/etc/resolv.conf` file was modified.</span><span>
+</span><span id="line-58"></span><span class="hs-comment">--</span><span>
+</span><span id="line-59"></span><span class="hs-keyword">newtype</span><span> </span><span id="Resource"><span class="annot"><a href="Ouroboros.Network.PeerSelection.RootPeersDNS.DNSActions.html#Resource"><span class="hs-identifier hs-var">Resource</span></a></span></span><span> </span><span id="local-6989586621679223330"><span class="annot"><a href="#local-6989586621679223330"><span class="hs-identifier hs-type">m</span></a></span></span><span> </span><span id="local-6989586621679223329"><span class="annot"><a href="#local-6989586621679223329"><span class="hs-identifier hs-type">err</span></a></span></span><span> </span><span id="local-6989586621679223328"><span class="annot"><a href="#local-6989586621679223328"><span class="hs-identifier hs-type">a</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="Resource"><span class="annot"><a href="Ouroboros.Network.PeerSelection.RootPeersDNS.DNSActions.html#Resource"><span class="hs-identifier hs-var">Resource</span></a></span></span><span> </span><span class="hs-special">{</span><span>
+</span><span id="line-60"></span><span>    </span><span id="withResource"><span class="annot"><span class="annottext">Resource m err a -&gt; m (Either err a, Resource m err a)
+</span><a href="Ouroboros.Network.PeerSelection.RootPeersDNS.DNSActions.html#withResource"><span class="hs-identifier hs-var hs-var">withResource</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="#local-6989586621679223330"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-identifier hs-type">Either</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679223329"><span class="hs-identifier hs-type">err</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679223328"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Ouroboros.Network.PeerSelection.RootPeersDNS.DNSActions.html#Resource"><span class="hs-identifier hs-type">Resource</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679223330"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679223329"><span class="hs-identifier hs-type">err</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679223328"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-61"></span><span>  </span><span class="hs-special">}</span><span>
+</span><span id="line-62"></span><span>
+</span><span id="line-63"></span><span class="hs-comment">-- | Like 'withResource' but retries untill success.</span><span>
+</span><span id="line-64"></span><span class="hs-comment">--</span><span>
+</span><span id="line-65"></span><span id="local-6989586621679223320"><span id="local-6989586621679223321"><span id="local-6989586621679223322"><span class="annot"><a href="Ouroboros.Network.PeerSelection.RootPeersDNS.DNSActions.html#withResource%27"><span class="hs-identifier hs-type">withResource'</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/io-classes-0.2.0.0/noopt/doc/html/io-classes/src"><span class="hs-identifier hs-type">MonadDelay</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679223322"><span class="hs-identifier hs-type">m</span></a></span><span>
+</span><span id="line-66"></span><span>              </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Tracer</span></span><span> </span><span class="annot"><a href="#local-6989586621679223322"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679223321"><span class="hs-identifier hs-type">err</span></a></span><span>
+</span><span id="line-67"></span><span>              </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-identifier hs-type">NonEmpty</span></a></span><span> </span><span class="annot"><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/time-1.9.3/src"><span class="hs-identifier hs-type">DiffTime</span></a></span><span>
+</span><span id="line-68"></span><span>              </span><span class="hs-comment">-- ^ delays between each re-try</span><span>
+</span><span id="line-69"></span><span>              </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Ouroboros.Network.PeerSelection.RootPeersDNS.DNSActions.html#Resource"><span class="hs-identifier hs-type">Resource</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679223322"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679223321"><span class="hs-identifier hs-type">err</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679223320"><span class="hs-identifier hs-type">a</span></a></span><span>
+</span><span id="line-70"></span><span>              </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679223322"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="#local-6989586621679223320"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Ouroboros.Network.PeerSelection.RootPeersDNS.DNSActions.html#Resource"><span class="hs-identifier hs-type">Resource</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679223322"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679223321"><span class="hs-identifier hs-type">err</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679223320"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span></span></span></span><span>
+</span><span id="line-71"></span><span id="withResource%27"><span class="annot"><span class="annottext">withResource' :: Tracer m err
+-&gt; NonEmpty DiffTime -&gt; Resource m err a -&gt; m (a, Resource m err a)
+</span><a href="Ouroboros.Network.PeerSelection.RootPeersDNS.DNSActions.html#withResource%27"><span class="hs-identifier hs-var hs-var">withResource'</span></a></span></span><span> </span><span id="local-6989586621679223220"><span class="annot"><span class="annottext">Tracer m err
+</span><a href="#local-6989586621679223220"><span class="hs-identifier hs-var">tracer</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">NonEmpty DiffTime -&gt; Resource m err a -&gt; m (a, Resource m err a)
+forall a.
+NonEmpty DiffTime -&gt; Resource m err a -&gt; m (a, Resource m err a)
+</span><a href="#local-6989586621679223219"><span class="hs-identifier hs-var">go</span></a></span><span>
+</span><span id="line-72"></span><span>  </span><span class="hs-keyword">where</span><span>
+</span><span id="line-73"></span><span>    </span><span id="local-6989586621679223319"><span class="annot"><a href="#local-6989586621679223218"><span class="hs-identifier hs-type">dropHead</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-identifier hs-type">NonEmpty</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679223319"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-identifier hs-type">NonEmpty</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679223319"><span class="hs-identifier hs-type">a</span></a></span></span><span>
+</span><span id="line-74"></span><span>    </span><span id="local-6989586621679223218"><span class="annot"><span class="annottext">dropHead :: NonEmpty a -&gt; NonEmpty a
+</span><a href="#local-6989586621679223218"><span class="hs-identifier hs-var hs-var">dropHead</span></a></span></span><span> </span><span id="local-6989586621679223217"><span class="annot"><span class="annottext">as :: NonEmpty a
+</span><a href="#local-6989586621679223217"><span class="hs-keyword hs-var">as</span></a></span></span><span class="hs-glyph">@</span><span class="hs-special">(</span><span class="annot"><span class="annottext">a
+</span><span class="hs-identifier">_</span></span><span> </span><span class="annot"><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-operator hs-type">:|</span></a></span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span class="hs-special">)</span><span>  </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">NonEmpty a
+</span><a href="#local-6989586621679223217"><span class="hs-keyword hs-var">as</span></a></span><span>
+</span><span id="line-75"></span><span>    </span><span class="annot"><a href="#local-6989586621679223218"><span class="hs-identifier hs-var">dropHead</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">a
+</span><span class="hs-identifier">_</span></span><span> </span><span class="annot"><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-operator hs-type">:|</span></a></span><span> </span><span id="local-6989586621679223215"><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679223215"><span class="hs-identifier hs-var">a</span></a></span></span><span> </span><span class="annot"><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/ghc-prim-0.6.1/src"><span class="hs-glyph hs-type">:</span></a></span><span> </span><span id="local-6989586621679223214"><span class="annot"><span class="annottext">[a]
+</span><a href="#local-6989586621679223214"><span class="hs-keyword hs-var">as</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679223215"><span class="hs-identifier hs-var">a</span></a></span><span> </span><span class="annot"><span class="annottext">a -&gt; [a] -&gt; NonEmpty a
+forall a. a -&gt; [a] -&gt; NonEmpty a
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-operator hs-var">:|</span></a></span><span> </span><span class="annot"><span class="annottext">[a]
+</span><a href="#local-6989586621679223214"><span class="hs-keyword hs-var">as</span></a></span><span>
+</span><span id="line-76"></span><span>
+</span><span id="line-77"></span><span>    </span><span id="local-6989586621679223219"><span class="annot"><span class="annottext">go :: NonEmpty DiffTime -&gt; Resource m err a -&gt; m (a, Resource m err a)
+</span><a href="#local-6989586621679223219"><span class="hs-identifier hs-var hs-var">go</span></a></span></span><span> </span><span class="hs-glyph">!</span><span id="local-6989586621679223213"><span class="annot"><span class="annottext">NonEmpty DiffTime
+</span><a href="#local-6989586621679223213"><span class="hs-identifier hs-var">delays</span></a></span></span><span> </span><span id="local-6989586621679223212"><span class="annot"><span class="annottext">Resource m err a
+</span><a href="#local-6989586621679223212"><span class="hs-identifier hs-var">resource</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-78"></span><span>      </span><span id="local-6989586621679223211"><span class="annot"><span class="annottext">(Either err a, Resource m err a)
+</span><a href="#local-6989586621679223211"><span class="hs-identifier hs-var">er</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Resource m err a -&gt; m (Either err a, Resource m err a)
+forall (m :: * -&gt; *) err a.
+Resource m err a -&gt; m (Either err a, Resource m err a)
+</span><a href="Ouroboros.Network.PeerSelection.RootPeersDNS.DNSActions.html#withResource"><span class="hs-identifier hs-var hs-var">withResource</span></a></span><span> </span><span class="annot"><span class="annottext">Resource m err a
+</span><a href="#local-6989586621679223212"><span class="hs-identifier hs-var">resource</span></a></span><span>
+</span><span id="line-79"></span><span>      </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">(Either err a, Resource m err a)
+</span><a href="#local-6989586621679223211"><span class="hs-identifier hs-var">er</span></a></span><span> </span><span class="hs-keyword">of</span><span>
+</span><span id="line-80"></span><span>        </span><span class="hs-special">(</span><span class="annot"><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-identifier hs-type">Left</span></a></span><span> </span><span id="local-6989586621679223210"><span class="annot"><span class="annottext">err
+</span><a href="#local-6989586621679223210"><span class="hs-identifier hs-var">err</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679223209"><span class="annot"><span class="annottext">Resource m err a
+</span><a href="#local-6989586621679223209"><span class="hs-identifier hs-var">resource'</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-81"></span><span>          </span><span class="annot"><span class="annottext">Tracer m err -&gt; err -&gt; m ()
+forall (m :: * -&gt; *) a. Tracer m a -&gt; a -&gt; m ()
+</span><span class="hs-identifier hs-var">traceWith</span></span><span> </span><span class="annot"><span class="annottext">Tracer m err
+</span><a href="#local-6989586621679223220"><span class="hs-identifier hs-var">tracer</span></a></span><span> </span><span class="annot"><span class="annottext">err
+</span><a href="#local-6989586621679223210"><span class="hs-identifier hs-var">err</span></a></span><span>
+</span><span id="line-82"></span><span>          </span><span class="annot"><span class="annottext">DiffTime -&gt; m ()
+forall (m :: * -&gt; *). MonadDelay m =&gt; DiffTime -&gt; m ()
+</span><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/io-classes-0.2.0.0/noopt/doc/html/io-classes/src"><span class="hs-identifier hs-var">threadDelay</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">NonEmpty DiffTime -&gt; DiffTime
+forall a. NonEmpty a -&gt; a
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-identifier hs-var">NonEmpty.head</span></a></span><span> </span><span class="annot"><span class="annottext">NonEmpty DiffTime
+</span><a href="#local-6989586621679223213"><span class="hs-identifier hs-var">delays</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-83"></span><span>          </span><span class="annot"><span class="annottext">Tracer m err
+-&gt; NonEmpty DiffTime -&gt; Resource m err a -&gt; m (a, Resource m err a)
+forall (m :: * -&gt; *) err a.
+MonadDelay m =&gt;
+Tracer m err
+-&gt; NonEmpty DiffTime -&gt; Resource m err a -&gt; m (a, Resource m err a)
+</span><a href="Ouroboros.Network.PeerSelection.RootPeersDNS.DNSActions.html#withResource%27"><span class="hs-identifier hs-var">withResource'</span></a></span><span> </span><span class="annot"><span class="annottext">Tracer m err
+</span><a href="#local-6989586621679223220"><span class="hs-identifier hs-var">tracer</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">NonEmpty DiffTime -&gt; NonEmpty DiffTime
+forall a. NonEmpty a -&gt; NonEmpty a
+</span><a href="#local-6989586621679223218"><span class="hs-identifier hs-var">dropHead</span></a></span><span> </span><span class="annot"><span class="annottext">NonEmpty DiffTime
+</span><a href="#local-6989586621679223213"><span class="hs-identifier hs-var">delays</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Resource m err a
+</span><a href="#local-6989586621679223209"><span class="hs-identifier hs-var">resource'</span></a></span><span>
+</span><span id="line-84"></span><span>        </span><span class="hs-special">(</span><span class="annot"><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-identifier hs-type">Right</span></a></span><span> </span><span id="local-6989586621679223206"><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679223206"><span class="hs-identifier hs-var">r</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679223205"><span class="annot"><span class="annottext">Resource m err a
+</span><a href="#local-6989586621679223205"><span class="hs-identifier hs-var">resource'</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-85"></span><span>          </span><span class="annot"><span class="annottext">(a, Resource m err a) -&gt; m (a, Resource m err a)
+forall (f :: * -&gt; *) a. Applicative f =&gt; a -&gt; f a
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-identifier hs-var">pure</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679223206"><span class="hs-identifier hs-var">r</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Resource m err a
+</span><a href="#local-6989586621679223205"><span class="hs-identifier hs-var">resource'</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-86"></span><span>
+</span><span id="line-87"></span><span id="local-6989586621679223309"><span id="local-6989586621679223310"><span id="local-6989586621679223311"><span class="annot"><a href="Ouroboros.Network.PeerSelection.RootPeersDNS.DNSActions.html#constantResource"><span class="hs-identifier hs-type">constantResource</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-identifier hs-type">Applicative</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679223311"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679223310"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Ouroboros.Network.PeerSelection.RootPeersDNS.DNSActions.html#Resource"><span class="hs-identifier hs-type">Resource</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679223311"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679223309"><span class="hs-identifier hs-type">err</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679223310"><span class="hs-identifier hs-type">a</span></a></span></span></span></span><span>
+</span><span id="line-88"></span><span id="constantResource"><span class="annot"><span class="annottext">constantResource :: a -&gt; Resource m err a
+</span><a href="Ouroboros.Network.PeerSelection.RootPeersDNS.DNSActions.html#constantResource"><span class="hs-identifier hs-var hs-var">constantResource</span></a></span></span><span> </span><span id="local-6989586621679223204"><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679223204"><span class="hs-identifier hs-var">a</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">m (Either err a, Resource m err a) -&gt; Resource m err a
+forall (m :: * -&gt; *) err a.
+m (Either err a, Resource m err a) -&gt; Resource m err a
+</span><a href="Ouroboros.Network.PeerSelection.RootPeersDNS.DNSActions.html#Resource"><span class="hs-identifier hs-var">Resource</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">(Either err a, Resource m err a)
+-&gt; m (Either err a, Resource m err a)
+forall (f :: * -&gt; *) a. Applicative f =&gt; a -&gt; f a
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-identifier hs-var">pure</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">a -&gt; Either err a
+forall a b. b -&gt; Either a b
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-identifier hs-var">Right</span></a></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679223204"><span class="hs-identifier hs-var">a</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">a -&gt; Resource m err a
+forall (m :: * -&gt; *) a err. Applicative m =&gt; a -&gt; Resource m err a
+</span><a href="Ouroboros.Network.PeerSelection.RootPeersDNS.DNSActions.html#constantResource"><span class="hs-identifier hs-var">constantResource</span></a></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679223204"><span class="hs-identifier hs-var">a</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-89"></span><span>
+</span><span id="line-90"></span><span class="hs-comment">-- | Strict version of 'Maybe' adjusted to the needs ot</span><span>
+</span><span id="line-91"></span><span class="hs-comment">-- 'asyncResolverResource'.</span><span>
+</span><span id="line-92"></span><span class="hs-comment">--</span><span>
+</span><span id="line-93"></span><span class="hs-keyword">data</span><span> </span><span id="TimedResolver"><span class="annot"><a href="Ouroboros.Network.PeerSelection.RootPeersDNS.DNSActions.html#TimedResolver"><span class="hs-identifier hs-var">TimedResolver</span></a></span></span><span>
+</span><span id="line-94"></span><span>    </span><span class="hs-glyph">=</span><span> </span><span id="TimedResolver"><span class="annot"><a href="Ouroboros.Network.PeerSelection.RootPeersDNS.DNSActions.html#TimedResolver"><span class="hs-identifier hs-var">TimedResolver</span></a></span></span><span> </span><span class="hs-glyph">!</span><span class="annot"><span class="hs-identifier hs-type">DNS.Resolver</span></span><span> </span><span class="hs-glyph">!</span><span class="annot"><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/time-1.9.3/src"><span class="hs-identifier hs-type">UTCTime</span></a></span><span>
+</span><span id="line-95"></span><span>    </span><span class="hs-glyph">|</span><span> </span><span id="NoResolver"><span class="annot"><a href="Ouroboros.Network.PeerSelection.RootPeersDNS.DNSActions.html#NoResolver"><span class="hs-identifier hs-var">NoResolver</span></a></span></span><span>
+</span><span id="line-96"></span><span>
+</span><span id="line-97"></span><span class="hs-comment">-- | Dictionary of DNS actions vocabulary</span><span>
+</span><span id="line-98"></span><span class="hs-comment">--</span><span>
+</span><span id="line-99"></span><span class="hs-keyword">data</span><span> </span><span id="DNSActions"><span class="annot"><a href="Ouroboros.Network.PeerSelection.RootPeersDNS.DNSActions.html#DNSActions"><span class="hs-identifier hs-var">DNSActions</span></a></span></span><span> </span><span id="local-6989586621679223247"><span class="annot"><a href="#local-6989586621679223247"><span class="hs-identifier hs-type">resolver</span></a></span></span><span> </span><span id="local-6989586621679223248"><span class="annot"><a href="#local-6989586621679223248"><span class="hs-identifier hs-type">exception</span></a></span></span><span> </span><span id="local-6989586621679223249"><span class="annot"><a href="#local-6989586621679223249"><span class="hs-identifier hs-type">m</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="DNSActions"><span class="annot"><a href="Ouroboros.Network.PeerSelection.RootPeersDNS.DNSActions.html#DNSActions"><span class="hs-identifier hs-var">DNSActions</span></a></span></span><span> </span><span class="hs-special">{</span><span>
+</span><span id="line-100"></span><span>
+</span><span id="line-101"></span><span>    </span><span class="hs-comment">-- |</span><span>
+</span><span id="line-102"></span><span>    </span><span class="hs-comment">--</span><span>
+</span><span id="line-103"></span><span>    </span><span class="hs-comment">-- TODO: it could be useful for `publicRootPeersProvider`.</span><span>
+</span><span id="line-104"></span><span>    </span><span class="hs-comment">--</span><span>
+</span><span id="line-105"></span><span>    </span><span id="dnsResolverResource"><span class="annot"><span class="annottext">DNSActions resolver exception m
+-&gt; ResolvConf -&gt; m (Resource m (DNSorIOError exception) resolver)
+</span><a href="Ouroboros.Network.PeerSelection.RootPeersDNS.DNSActions.html#dnsResolverResource"><span class="hs-identifier hs-var hs-var">dnsResolverResource</span></a></span></span><span>      </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">DNS.ResolvConf</span></span><span>
+</span><span id="line-106"></span><span>                             </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679223249"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Network.PeerSelection.RootPeersDNS.DNSActions.html#Resource"><span class="hs-identifier hs-type">Resource</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679223249"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Network.PeerSelection.RootPeersDNS.DNSActions.html#DNSorIOError"><span class="hs-identifier hs-type">DNSorIOError</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679223248"><span class="hs-identifier hs-type">exception</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><a href="#local-6989586621679223247"><span class="hs-identifier hs-type">resolver</span></a></span><span class="hs-special">)</span><span class="hs-special">,</span><span>
+</span><span id="line-107"></span><span>
+</span><span id="line-108"></span><span>    </span><span class="hs-comment">-- | `Resource` which passes the 'DNS.Resolver' (or abstract resolver type)</span><span>
+</span><span id="line-109"></span><span>    </span><span class="hs-comment">-- through a 'StrictTVar'. Better than 'resolverResource' when using in</span><span>
+</span><span id="line-110"></span><span>    </span><span class="hs-comment">-- multiple threads.</span><span>
+</span><span id="line-111"></span><span>    </span><span class="hs-comment">--</span><span>
+</span><span id="line-112"></span><span>    </span><span class="hs-comment">-- On /Windows/ we use a different implementation which always returns</span><span>
+</span><span id="line-113"></span><span>    </span><span class="hs-comment">-- a newly initialised 'DNS.Resolver' at each step.  This is because on</span><span>
+</span><span id="line-114"></span><span>    </span><span class="hs-comment">-- /Windows/ we don't have a way to check that the network configuration has</span><span>
+</span><span id="line-115"></span><span>    </span><span class="hs-comment">-- changed.  The 'dns' library is using 'GetNetworkParams@ win32 api call</span><span>
+</span><span id="line-116"></span><span>    </span><span class="hs-comment">-- to get the list of default dns servers.</span><span>
+</span><span id="line-117"></span><span>    </span><span id="dnsAsyncResolverResource"><span class="annot"><span class="annottext">DNSActions resolver exception m
+-&gt; ResolvConf -&gt; m (Resource m (DNSorIOError exception) resolver)
+</span><a href="Ouroboros.Network.PeerSelection.RootPeersDNS.DNSActions.html#dnsAsyncResolverResource"><span class="hs-identifier hs-var hs-var">dnsAsyncResolverResource</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">DNS.ResolvConf</span></span><span>
+</span><span id="line-118"></span><span>                             </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679223249"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Network.PeerSelection.RootPeersDNS.DNSActions.html#Resource"><span class="hs-identifier hs-type">Resource</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679223249"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Network.PeerSelection.RootPeersDNS.DNSActions.html#DNSorIOError"><span class="hs-identifier hs-type">DNSorIOError</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679223248"><span class="hs-identifier hs-type">exception</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><a href="#local-6989586621679223247"><span class="hs-identifier hs-type">resolver</span></a></span><span class="hs-special">)</span><span class="hs-special">,</span><span>
+</span><span id="line-119"></span><span>
+</span><span id="line-120"></span><span>    </span><span class="hs-comment">-- | Like 'DNS.lookupA' but also return the TTL for the results.</span><span>
+</span><span id="line-121"></span><span>    </span><span class="hs-comment">--</span><span>
+</span><span id="line-122"></span><span>    </span><span class="hs-comment">-- DNS library timeouts do not work reliably on Windows (#1873), hence the</span><span>
+</span><span id="line-123"></span><span>    </span><span class="hs-comment">-- additional timeout.</span><span>
+</span><span id="line-124"></span><span>    </span><span class="hs-comment">--</span><span>
+</span><span id="line-125"></span><span>    </span><span id="dnsLookupAWithTTL"><span class="annot"><span class="annottext">DNSActions resolver exception m
+-&gt; ResolvConf
+-&gt; resolver
+-&gt; Domain
+-&gt; m (Either DNSError [(IPv4, TTL)])
+</span><a href="Ouroboros.Network.PeerSelection.RootPeersDNS.DNSActions.html#dnsLookupAWithTTL"><span class="hs-identifier hs-var hs-var">dnsLookupAWithTTL</span></a></span></span><span>        </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">DNS.ResolvConf</span></span><span>
+</span><span id="line-126"></span><span>                             </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679223247"><span class="hs-identifier hs-type">resolver</span></a></span><span>
+</span><span id="line-127"></span><span>                             </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">DNS.Domain</span></span><span>
+</span><span id="line-128"></span><span>                             </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679223249"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-identifier hs-type">Either</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">DNS.DNSError</span></span><span> </span><span class="hs-special">[</span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">IPv4</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">DNS.TTL</span></span><span class="hs-special">)</span><span class="hs-special">]</span><span class="hs-special">)</span><span>
+</span><span id="line-129"></span><span>  </span><span class="hs-special">}</span><span>
+</span><span id="line-130"></span><span>
+</span><span id="line-131"></span><span>
+</span><span id="line-132"></span><span>
+</span><span id="line-133"></span><span>
+</span><span id="line-134"></span><span class="hs-comment">-- |</span><span>
+</span><span id="line-135"></span><span class="hs-comment">--</span><span>
+</span><span id="line-136"></span><span class="hs-comment">-- TODO: it could be useful for `publicRootPeersProvider`.</span><span>
+</span><span id="line-137"></span><span class="hs-comment">--</span><span>
+</span><span id="line-138"></span><span class="annot"><a href="Ouroboros.Network.PeerSelection.RootPeersDNS.DNSActions.html#resolverResource"><span class="hs-identifier hs-type">resolverResource</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">DNS.ResolvConf</span></span><span>
+</span><span id="line-139"></span><span>                 </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/ghc-prim-0.6.1/src"><span class="hs-identifier hs-type">IO</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Network.PeerSelection.RootPeersDNS.DNSActions.html#Resource"><span class="hs-identifier hs-type">Resource</span></a></span><span> </span><span class="annot"><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/ghc-prim-0.6.1/src"><span class="hs-identifier hs-type">IO</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Network.PeerSelection.RootPeersDNS.DNSActions.html#DNSorIOError"><span class="hs-identifier hs-type">DNSorIOError</span></a></span><span> </span><span class="annot"><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-identifier hs-type">IOException</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="hs-identifier hs-type">DNS.Resolver</span></span><span class="hs-special">)</span><span>
+</span><span id="line-140"></span><span id="resolverResource"><span class="annot"><span class="annottext">resolverResource :: ResolvConf -&gt; IO (Resource IO (DNSorIOError IOException) Resolver)
+</span><a href="Ouroboros.Network.PeerSelection.RootPeersDNS.DNSActions.html#resolverResource"><span class="hs-identifier hs-var hs-var">resolverResource</span></a></span></span><span> </span><span id="local-6989586621679223196"><span class="annot"><span class="annottext">ResolvConf
+</span><a href="#local-6989586621679223196"><span class="hs-identifier hs-var">resolvConf</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-141"></span><span>    </span><span id="local-6989586621679223195"><span class="annot"><span class="annottext">ResolvSeed
+</span><a href="#local-6989586621679223195"><span class="hs-identifier hs-var">rs</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">ResolvConf -&gt; IO ResolvSeed
+</span><span class="hs-identifier hs-var">DNS.makeResolvSeed</span></span><span> </span><span class="annot"><span class="annottext">ResolvConf
+</span><a href="#local-6989586621679223196"><span class="hs-identifier hs-var">resolvConf</span></a></span><span>
+</span><span id="line-142"></span><span>    </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">ResolvConf -&gt; FileOrNumericHost
+</span><span class="hs-identifier hs-var hs-var">DNS.resolvInfo</span></span><span> </span><span class="annot"><span class="annottext">ResolvConf
+</span><a href="#local-6989586621679223196"><span class="hs-identifier hs-var">resolvConf</span></a></span><span> </span><span class="hs-keyword">of</span><span>
+</span><span id="line-143"></span><span>      </span><span class="annot"><span class="hs-identifier hs-type">DNS.RCFilePath</span></span><span> </span><span id="local-6989586621679223191"><span class="annot"><span class="annottext">String
+</span><a href="#local-6989586621679223191"><span class="hs-identifier hs-var">filePath</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-144"></span><span>        </span><span class="annot"><span class="annottext">Resource IO (DNSorIOError IOException) Resolver
+-&gt; IO (Resource IO (DNSorIOError IOException) Resolver)
+forall (f :: * -&gt; *) a. Applicative f =&gt; a -&gt; f a
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-identifier hs-var">pure</span></a></span><span> </span><span class="annot"><span class="annottext">(Resource IO (DNSorIOError IOException) Resolver
+ -&gt; IO (Resource IO (DNSorIOError IOException) Resolver))
+-&gt; Resource IO (DNSorIOError IOException) Resolver
+-&gt; IO (Resource IO (DNSorIOError IOException) Resolver)
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-operator hs-var">$</span></a></span><span> </span><span class="annot"><span class="annottext">String
+-&gt; TimedResolver -&gt; Resource IO (DNSorIOError IOException) Resolver
+</span><a href="#local-6989586621679223190"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="annot"><span class="annottext">String
+</span><a href="#local-6989586621679223191"><span class="hs-identifier hs-var">filePath</span></a></span><span> </span><span class="annot"><span class="annottext">TimedResolver
+</span><a href="Ouroboros.Network.PeerSelection.RootPeersDNS.DNSActions.html#NoResolver"><span class="hs-identifier hs-var">NoResolver</span></a></span><span>
+</span><span id="line-145"></span><span>
+</span><span id="line-146"></span><span>      </span><span class="annot"><span class="annottext">FileOrNumericHost
+</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">ResolvSeed
+-&gt; (Resolver
+    -&gt; IO (Resource IO (DNSorIOError IOException) Resolver))
+-&gt; IO (Resource IO (DNSorIOError IOException) Resolver)
+forall a. ResolvSeed -&gt; (Resolver -&gt; IO a) -&gt; IO a
+</span><span class="hs-identifier hs-var">DNS.withResolver</span></span><span> </span><span class="annot"><span class="annottext">ResolvSeed
+</span><a href="#local-6989586621679223195"><span class="hs-identifier hs-var">rs</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Resource IO (DNSorIOError IOException) Resolver
+-&gt; IO (Resource IO (DNSorIOError IOException) Resolver)
+forall (f :: * -&gt; *) a. Applicative f =&gt; a -&gt; f a
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-identifier hs-var">pure</span></a></span><span> </span><span class="annot"><span class="annottext">(Resource IO (DNSorIOError IOException) Resolver
+ -&gt; IO (Resource IO (DNSorIOError IOException) Resolver))
+-&gt; (Resolver -&gt; Resource IO (DNSorIOError IOException) Resolver)
+-&gt; Resolver
+-&gt; IO (Resource IO (DNSorIOError IOException) Resolver)
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-operator hs-var">.</span></a></span><span> </span><span class="annot"><span class="annottext">Resolver -&gt; Resource IO (DNSorIOError IOException) Resolver
+forall (m :: * -&gt; *) a err. Applicative m =&gt; a -&gt; Resource m err a
+</span><a href="Ouroboros.Network.PeerSelection.RootPeersDNS.DNSActions.html#constantResource"><span class="hs-identifier hs-var">constantResource</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-147"></span><span>
+</span><span id="line-148"></span><span>  </span><span class="hs-keyword">where</span><span>
+</span><span id="line-149"></span><span>    </span><span class="annot"><a href="#local-6989586621679223187"><span class="hs-identifier hs-type">handlers</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-identifier hs-type">FilePath</span></a></span><span>
+</span><span id="line-150"></span><span>             </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Ouroboros.Network.PeerSelection.RootPeersDNS.DNSActions.html#TimedResolver"><span class="hs-identifier hs-type">TimedResolver</span></a></span><span>
+</span><span id="line-151"></span><span>             </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">[</span><span class="annot"><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/io-classes-0.2.0.0/noopt/doc/html/io-classes/src"><span class="hs-identifier hs-type">Handler</span></a></span><span> </span><span class="annot"><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/ghc-prim-0.6.1/src"><span class="hs-identifier hs-type">IO</span></a></span><span>
+</span><span id="line-152"></span><span>                  </span><span class="hs-special">(</span><span> </span><span class="annot"><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-identifier hs-type">Either</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Network.PeerSelection.RootPeersDNS.DNSActions.html#DNSorIOError"><span class="hs-identifier hs-type">DNSorIOError</span></a></span><span> </span><span class="annot"><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-identifier hs-type">IOException</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="hs-identifier hs-type">DNS.Resolver</span></span><span>
+</span><span id="line-153"></span><span>                  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Ouroboros.Network.PeerSelection.RootPeersDNS.DNSActions.html#Resource"><span class="hs-identifier hs-type">Resource</span></a></span><span> </span><span class="annot"><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/ghc-prim-0.6.1/src"><span class="hs-identifier hs-type">IO</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Network.PeerSelection.RootPeersDNS.DNSActions.html#DNSorIOError"><span class="hs-identifier hs-type">DNSorIOError</span></a></span><span> </span><span class="annot"><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-identifier hs-type">IOException</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="hs-identifier hs-type">DNS.Resolver</span></span><span class="hs-special">)</span><span class="hs-special">]</span><span>
+</span><span id="line-154"></span><span>    </span><span id="local-6989586621679223187"><span class="annot"><span class="annottext">handlers :: String
+-&gt; TimedResolver
+-&gt; [Handler
+      IO
+      (Either (DNSorIOError IOException) Resolver,
+       Resource IO (DNSorIOError IOException) Resolver)]
+</span><a href="#local-6989586621679223187"><span class="hs-identifier hs-var hs-var">handlers</span></a></span></span><span> </span><span id="local-6989586621679223185"><span class="annot"><span class="annottext">String
+</span><a href="#local-6989586621679223185"><span class="hs-identifier hs-var">filePath</span></a></span></span><span> </span><span id="local-6989586621679223184"><span class="annot"><span class="annottext">TimedResolver
+</span><a href="#local-6989586621679223184"><span class="hs-identifier hs-var">tr</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-155"></span><span>      </span><span class="hs-special">[</span><span> </span><span class="annot"><span class="annottext">(IOException
+ -&gt; IO
+      (Either (DNSorIOError IOException) Resolver,
+       Resource IO (DNSorIOError IOException) Resolver))
+-&gt; Handler
+     IO
+     (Either (DNSorIOError IOException) Resolver,
+      Resource IO (DNSorIOError IOException) Resolver)
+forall (m :: * -&gt; *) a e. Exception e =&gt; (e -&gt; m a) -&gt; Handler m a
+</span><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/io-classes-0.2.0.0/noopt/doc/html/io-classes/src"><span class="hs-identifier hs-var">Handler</span></a></span><span> </span><span class="annot"><span class="annottext">((IOException
+  -&gt; IO
+       (Either (DNSorIOError IOException) Resolver,
+        Resource IO (DNSorIOError IOException) Resolver))
+ -&gt; Handler
+      IO
+      (Either (DNSorIOError IOException) Resolver,
+       Resource IO (DNSorIOError IOException) Resolver))
+-&gt; (IOException
+    -&gt; IO
+         (Either (DNSorIOError IOException) Resolver,
+          Resource IO (DNSorIOError IOException) Resolver))
+-&gt; Handler
+     IO
+     (Either (DNSorIOError IOException) Resolver,
+      Resource IO (DNSorIOError IOException) Resolver)
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-operator hs-var">$</span></a></span><span>
+</span><span id="line-156"></span><span>          </span><span class="hs-glyph">\</span><span class="hs-special">(</span><span id="local-6989586621679223182"><span class="annot"><span class="annottext">IOException
+</span><a href="#local-6989586621679223182"><span class="hs-identifier hs-var">err</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-identifier hs-type">IOException</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-157"></span><span>            </span><span class="annot"><span class="annottext">(Either (DNSorIOError IOException) Resolver,
+ Resource IO (DNSorIOError IOException) Resolver)
+-&gt; IO
+     (Either (DNSorIOError IOException) Resolver,
+      Resource IO (DNSorIOError IOException) Resolver)
+forall (f :: * -&gt; *) a. Applicative f =&gt; a -&gt; f a
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-identifier hs-var">pure</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">DNSorIOError IOException
+-&gt; Either (DNSorIOError IOException) Resolver
+forall a b. a -&gt; Either a b
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-identifier hs-var">Left</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">IOException -&gt; DNSorIOError IOException
+forall exception. exception -&gt; DNSorIOError exception
+</span><a href="Ouroboros.Network.PeerSelection.RootPeersDNS.DNSActions.html#IOError"><span class="hs-identifier hs-var">IOError</span></a></span><span> </span><span class="annot"><span class="annottext">IOException
+</span><a href="#local-6989586621679223182"><span class="hs-identifier hs-var">err</span></a></span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">String
+-&gt; TimedResolver -&gt; Resource IO (DNSorIOError IOException) Resolver
+</span><a href="#local-6989586621679223190"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="annot"><span class="annottext">String
+</span><a href="#local-6989586621679223185"><span class="hs-identifier hs-var">filePath</span></a></span><span> </span><span class="annot"><span class="annottext">TimedResolver
+</span><a href="#local-6989586621679223184"><span class="hs-identifier hs-var">tr</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-158"></span><span>      </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">(DNSError
+ -&gt; IO
+      (Either (DNSorIOError IOException) Resolver,
+       Resource IO (DNSorIOError IOException) Resolver))
+-&gt; Handler
+     IO
+     (Either (DNSorIOError IOException) Resolver,
+      Resource IO (DNSorIOError IOException) Resolver)
+forall (m :: * -&gt; *) a e. Exception e =&gt; (e -&gt; m a) -&gt; Handler m a
+</span><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/io-classes-0.2.0.0/noopt/doc/html/io-classes/src"><span class="hs-identifier hs-var">Handler</span></a></span><span> </span><span class="annot"><span class="annottext">((DNSError
+  -&gt; IO
+       (Either (DNSorIOError IOException) Resolver,
+        Resource IO (DNSorIOError IOException) Resolver))
+ -&gt; Handler
+      IO
+      (Either (DNSorIOError IOException) Resolver,
+       Resource IO (DNSorIOError IOException) Resolver))
+-&gt; (DNSError
+    -&gt; IO
+         (Either (DNSorIOError IOException) Resolver,
+          Resource IO (DNSorIOError IOException) Resolver))
+-&gt; Handler
+     IO
+     (Either (DNSorIOError IOException) Resolver,
+      Resource IO (DNSorIOError IOException) Resolver)
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-operator hs-var">$</span></a></span><span>
+</span><span id="line-159"></span><span>          </span><span class="hs-glyph">\</span><span class="hs-special">(</span><span id="local-6989586621679223181"><span class="annot"><span class="annottext">DNSError
+</span><a href="#local-6989586621679223181"><span class="hs-identifier hs-var">err</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">DNS.DNSError</span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-160"></span><span>              </span><span class="annot"><span class="annottext">(Either (DNSorIOError IOException) Resolver,
+ Resource IO (DNSorIOError IOException) Resolver)
+-&gt; IO
+     (Either (DNSorIOError IOException) Resolver,
+      Resource IO (DNSorIOError IOException) Resolver)
+forall (f :: * -&gt; *) a. Applicative f =&gt; a -&gt; f a
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-identifier hs-var">pure</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">DNSorIOError IOException
+-&gt; Either (DNSorIOError IOException) Resolver
+forall a b. a -&gt; Either a b
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-identifier hs-var">Left</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">DNSError -&gt; DNSorIOError IOException
+forall exception. DNSError -&gt; DNSorIOError exception
+</span><a href="Ouroboros.Network.PeerSelection.RootPeersDNS.DNSActions.html#DNSError"><span class="hs-identifier hs-var">DNSError</span></a></span><span> </span><span class="annot"><span class="annottext">DNSError
+</span><a href="#local-6989586621679223181"><span class="hs-identifier hs-var">err</span></a></span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">String
+-&gt; TimedResolver -&gt; Resource IO (DNSorIOError IOException) Resolver
+</span><a href="#local-6989586621679223190"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="annot"><span class="annottext">String
+</span><a href="#local-6989586621679223185"><span class="hs-identifier hs-var">filePath</span></a></span><span> </span><span class="annot"><span class="annottext">TimedResolver
+</span><a href="#local-6989586621679223184"><span class="hs-identifier hs-var">tr</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-161"></span><span>      </span><span class="hs-special">]</span><span>
+</span><span id="line-162"></span><span>
+</span><span id="line-163"></span><span>    </span><span class="annot"><a href="#local-6989586621679223190"><span class="hs-identifier hs-type">go</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-identifier hs-type">FilePath</span></a></span><span>
+</span><span id="line-164"></span><span>       </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Ouroboros.Network.PeerSelection.RootPeersDNS.DNSActions.html#TimedResolver"><span class="hs-identifier hs-type">TimedResolver</span></a></span><span>
+</span><span id="line-165"></span><span>       </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Ouroboros.Network.PeerSelection.RootPeersDNS.DNSActions.html#Resource"><span class="hs-identifier hs-type">Resource</span></a></span><span> </span><span class="annot"><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/ghc-prim-0.6.1/src"><span class="hs-identifier hs-type">IO</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Network.PeerSelection.RootPeersDNS.DNSActions.html#DNSorIOError"><span class="hs-identifier hs-type">DNSorIOError</span></a></span><span> </span><span class="annot"><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-identifier hs-type">IOException</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="hs-identifier hs-type">DNS.Resolver</span></span><span>
+</span><span id="line-166"></span><span>    </span><span id="local-6989586621679223190"><span class="annot"><span class="annottext">go :: String
+-&gt; TimedResolver -&gt; Resource IO (DNSorIOError IOException) Resolver
+</span><a href="#local-6989586621679223190"><span class="hs-identifier hs-var hs-var">go</span></a></span></span><span> </span><span id="local-6989586621679223180"><span class="annot"><span class="annottext">String
+</span><a href="#local-6989586621679223180"><span class="hs-identifier hs-var">filePath</span></a></span></span><span> </span><span id="local-6989586621679223179"><span class="annot"><span class="annottext">tr :: TimedResolver
+</span><a href="#local-6989586621679223179"><span class="hs-identifier hs-var">tr</span></a></span></span><span class="hs-glyph">@</span><span class="annot"><span class="annottext">TimedResolver
+</span><a href="Ouroboros.Network.PeerSelection.RootPeersDNS.DNSActions.html#NoResolver"><span class="hs-identifier hs-var">NoResolver</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">IO
+  (Either (DNSorIOError IOException) Resolver,
+   Resource IO (DNSorIOError IOException) Resolver)
+-&gt; Resource IO (DNSorIOError IOException) Resolver
+forall (m :: * -&gt; *) err a.
+m (Either err a, Resource m err a) -&gt; Resource m err a
+</span><a href="Ouroboros.Network.PeerSelection.RootPeersDNS.DNSActions.html#Resource"><span class="hs-identifier hs-var">Resource</span></a></span><span> </span><span class="annot"><span class="annottext">(IO
+   (Either (DNSorIOError IOException) Resolver,
+    Resource IO (DNSorIOError IOException) Resolver)
+ -&gt; Resource IO (DNSorIOError IOException) Resolver)
+-&gt; IO
+     (Either (DNSorIOError IOException) Resolver,
+      Resource IO (DNSorIOError IOException) Resolver)
+-&gt; Resource IO (DNSorIOError IOException) Resolver
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-operator hs-var">$</span></a></span><span>
+</span><span id="line-167"></span><span>      </span><span class="hs-keyword">do</span><span>
+</span><span id="line-168"></span><span>        </span><span id="local-6989586621679223178"><span class="annot"><span class="annottext">UTCTime
+</span><a href="#local-6989586621679223178"><span class="hs-identifier hs-var">modTime</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">String -&gt; IO UTCTime
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/directory-1.3.6.0/src"><span class="hs-identifier hs-var">getModificationTime</span></a></span><span> </span><span class="annot"><span class="annottext">String
+</span><a href="#local-6989586621679223180"><span class="hs-identifier hs-var">filePath</span></a></span><span>
+</span><span id="line-169"></span><span>        </span><span id="local-6989586621679223177"><span class="annot"><span class="annottext">ResolvSeed
+</span><a href="#local-6989586621679223177"><span class="hs-identifier hs-var">rs</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">ResolvConf -&gt; IO ResolvSeed
+</span><span class="hs-identifier hs-var">DNS.makeResolvSeed</span></span><span> </span><span class="annot"><span class="annottext">ResolvConf
+</span><a href="#local-6989586621679223196"><span class="hs-identifier hs-var">resolvConf</span></a></span><span>
+</span><span id="line-170"></span><span>        </span><span class="annot"><span class="annottext">ResolvSeed
+-&gt; (Resolver
+    -&gt; IO
+         (Either (DNSorIOError IOException) Resolver,
+          Resource IO (DNSorIOError IOException) Resolver))
+-&gt; IO
+     (Either (DNSorIOError IOException) Resolver,
+      Resource IO (DNSorIOError IOException) Resolver)
+forall a. ResolvSeed -&gt; (Resolver -&gt; IO a) -&gt; IO a
+</span><span class="hs-identifier hs-var">DNS.withResolver</span></span><span> </span><span class="annot"><span class="annottext">ResolvSeed
+</span><a href="#local-6989586621679223177"><span class="hs-identifier hs-var">rs</span></a></span><span>
+</span><span id="line-171"></span><span>          </span><span class="hs-special">(</span><span class="hs-glyph">\</span><span id="local-6989586621679223176"><span class="annot"><span class="annottext">Resolver
+</span><a href="#local-6989586621679223176"><span class="hs-identifier hs-var">resolver</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-172"></span><span>            </span><span class="annot"><span class="annottext">(Either (DNSorIOError IOException) Resolver,
+ Resource IO (DNSorIOError IOException) Resolver)
+-&gt; IO
+     (Either (DNSorIOError IOException) Resolver,
+      Resource IO (DNSorIOError IOException) Resolver)
+forall (f :: * -&gt; *) a. Applicative f =&gt; a -&gt; f a
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-identifier hs-var">pure</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Resolver -&gt; Either (DNSorIOError IOException) Resolver
+forall a b. b -&gt; Either a b
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-identifier hs-var">Right</span></a></span><span> </span><span class="annot"><span class="annottext">Resolver
+</span><a href="#local-6989586621679223176"><span class="hs-identifier hs-var">resolver</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">String
+-&gt; TimedResolver -&gt; Resource IO (DNSorIOError IOException) Resolver
+</span><a href="#local-6989586621679223190"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="annot"><span class="annottext">String
+</span><a href="#local-6989586621679223180"><span class="hs-identifier hs-var">filePath</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Resolver -&gt; UTCTime -&gt; TimedResolver
+</span><a href="Ouroboros.Network.PeerSelection.RootPeersDNS.DNSActions.html#TimedResolver"><span class="hs-identifier hs-var">TimedResolver</span></a></span><span> </span><span class="annot"><span class="annottext">Resolver
+</span><a href="#local-6989586621679223176"><span class="hs-identifier hs-var">resolver</span></a></span><span> </span><span class="annot"><span class="annottext">UTCTime
+</span><a href="#local-6989586621679223178"><span class="hs-identifier hs-var">modTime</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-173"></span><span>      </span><span class="annot"><span class="annottext">IO
+  (Either (DNSorIOError IOException) Resolver,
+   Resource IO (DNSorIOError IOException) Resolver)
+-&gt; [Handler
+      IO
+      (Either (DNSorIOError IOException) Resolver,
+       Resource IO (DNSorIOError IOException) Resolver)]
+-&gt; IO
+     (Either (DNSorIOError IOException) Resolver,
+      Resource IO (DNSorIOError IOException) Resolver)
+forall (m :: * -&gt; *) a. MonadCatch m =&gt; m a -&gt; [Handler m a] -&gt; m a
+</span><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/io-classes-0.2.0.0/noopt/doc/html/io-classes/src"><span class="hs-operator hs-var">`catches`</span></a></span><span> </span><span class="annot"><span class="annottext">String
+-&gt; TimedResolver
+-&gt; [Handler
+      IO
+      (Either (DNSorIOError IOException) Resolver,
+       Resource IO (DNSorIOError IOException) Resolver)]
+</span><a href="#local-6989586621679223187"><span class="hs-identifier hs-var">handlers</span></a></span><span> </span><span class="annot"><span class="annottext">String
+</span><a href="#local-6989586621679223180"><span class="hs-identifier hs-var">filePath</span></a></span><span> </span><span class="annot"><span class="annottext">TimedResolver
+</span><a href="#local-6989586621679223179"><span class="hs-identifier hs-var">tr</span></a></span><span>
+</span><span id="line-174"></span><span>
+</span><span id="line-175"></span><span>    </span><span class="annot"><a href="#local-6989586621679223190"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span id="local-6989586621679223174"><span class="annot"><span class="annottext">String
+</span><a href="#local-6989586621679223174"><span class="hs-identifier hs-var">filePath</span></a></span></span><span> </span><span id="local-6989586621679223173"><span class="annot"><span class="annottext">tr :: TimedResolver
+</span><a href="#local-6989586621679223173"><span class="hs-identifier hs-var">tr</span></a></span></span><span class="hs-glyph">@</span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Network.PeerSelection.RootPeersDNS.DNSActions.html#TimedResolver"><span class="hs-identifier hs-type">TimedResolver</span></a></span><span> </span><span id="local-6989586621679223172"><span class="annot"><span class="annottext">Resolver
+</span><a href="#local-6989586621679223172"><span class="hs-identifier hs-var">resolver</span></a></span></span><span> </span><span id="local-6989586621679223171"><span class="annot"><span class="annottext">UTCTime
+</span><a href="#local-6989586621679223171"><span class="hs-identifier hs-var">modTime</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">IO
+  (Either (DNSorIOError IOException) Resolver,
+   Resource IO (DNSorIOError IOException) Resolver)
+-&gt; Resource IO (DNSorIOError IOException) Resolver
+forall (m :: * -&gt; *) err a.
+m (Either err a, Resource m err a) -&gt; Resource m err a
+</span><a href="Ouroboros.Network.PeerSelection.RootPeersDNS.DNSActions.html#Resource"><span class="hs-identifier hs-var">Resource</span></a></span><span> </span><span class="annot"><span class="annottext">(IO
+   (Either (DNSorIOError IOException) Resolver,
+    Resource IO (DNSorIOError IOException) Resolver)
+ -&gt; Resource IO (DNSorIOError IOException) Resolver)
+-&gt; IO
+     (Either (DNSorIOError IOException) Resolver,
+      Resource IO (DNSorIOError IOException) Resolver)
+-&gt; Resource IO (DNSorIOError IOException) Resolver
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-operator hs-var">$</span></a></span><span>
+</span><span id="line-176"></span><span>      </span><span class="hs-keyword">do</span><span>
+</span><span id="line-177"></span><span>        </span><span id="local-6989586621679223170"><span class="annot"><span class="annottext">UTCTime
+</span><a href="#local-6989586621679223170"><span class="hs-identifier hs-var">modTime'</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">String -&gt; IO UTCTime
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/directory-1.3.6.0/src"><span class="hs-identifier hs-var">getModificationTime</span></a></span><span> </span><span class="annot"><span class="annottext">String
+</span><a href="#local-6989586621679223174"><span class="hs-identifier hs-var">filePath</span></a></span><span>
+</span><span id="line-178"></span><span>        </span><span class="hs-keyword">if</span><span> </span><span class="annot"><span class="annottext">UTCTime
+</span><a href="#local-6989586621679223170"><span class="hs-identifier hs-var">modTime'</span></a></span><span> </span><span class="annot"><span class="annottext">UTCTime -&gt; UTCTime -&gt; Bool
+forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/ghc-prim-0.6.1/src"><span class="hs-operator hs-var">&lt;=</span></a></span><span> </span><span class="annot"><span class="annottext">UTCTime
+</span><a href="#local-6989586621679223171"><span class="hs-identifier hs-var">modTime</span></a></span><span>
+</span><span id="line-179"></span><span>          </span><span class="hs-keyword">then</span><span> </span><span class="annot"><span class="annottext">(Either (DNSorIOError IOException) Resolver,
+ Resource IO (DNSorIOError IOException) Resolver)
+-&gt; IO
+     (Either (DNSorIOError IOException) Resolver,
+      Resource IO (DNSorIOError IOException) Resolver)
+forall (f :: * -&gt; *) a. Applicative f =&gt; a -&gt; f a
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-identifier hs-var">pure</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Resolver -&gt; Either (DNSorIOError IOException) Resolver
+forall a b. b -&gt; Either a b
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-identifier hs-var">Right</span></a></span><span> </span><span class="annot"><span class="annottext">Resolver
+</span><a href="#local-6989586621679223172"><span class="hs-identifier hs-var">resolver</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">String
+-&gt; TimedResolver -&gt; Resource IO (DNSorIOError IOException) Resolver
+</span><a href="#local-6989586621679223190"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="annot"><span class="annottext">String
+</span><a href="#local-6989586621679223174"><span class="hs-identifier hs-var">filePath</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Resolver -&gt; UTCTime -&gt; TimedResolver
+</span><a href="Ouroboros.Network.PeerSelection.RootPeersDNS.DNSActions.html#TimedResolver"><span class="hs-identifier hs-var">TimedResolver</span></a></span><span> </span><span class="annot"><span class="annottext">Resolver
+</span><a href="#local-6989586621679223172"><span class="hs-identifier hs-var">resolver</span></a></span><span> </span><span class="annot"><span class="annottext">UTCTime
+</span><a href="#local-6989586621679223171"><span class="hs-identifier hs-var">modTime</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-180"></span><span>          </span><span class="hs-keyword">else</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-181"></span><span>            </span><span id="local-6989586621679223168"><span class="annot"><span class="annottext">ResolvSeed
+</span><a href="#local-6989586621679223168"><span class="hs-identifier hs-var">rs</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">ResolvConf -&gt; IO ResolvSeed
+</span><span class="hs-identifier hs-var">DNS.makeResolvSeed</span></span><span> </span><span class="annot"><span class="annottext">ResolvConf
+</span><a href="#local-6989586621679223196"><span class="hs-identifier hs-var">resolvConf</span></a></span><span>
+</span><span id="line-182"></span><span>            </span><span class="annot"><span class="annottext">ResolvSeed
+-&gt; (Resolver
+    -&gt; IO
+         (Either (DNSorIOError IOException) Resolver,
+          Resource IO (DNSorIOError IOException) Resolver))
+-&gt; IO
+     (Either (DNSorIOError IOException) Resolver,
+      Resource IO (DNSorIOError IOException) Resolver)
+forall a. ResolvSeed -&gt; (Resolver -&gt; IO a) -&gt; IO a
+</span><span class="hs-identifier hs-var">DNS.withResolver</span></span><span> </span><span class="annot"><span class="annottext">ResolvSeed
+</span><a href="#local-6989586621679223168"><span class="hs-identifier hs-var">rs</span></a></span><span>
+</span><span id="line-183"></span><span>              </span><span class="hs-special">(</span><span class="hs-glyph">\</span><span id="local-6989586621679223167"><span class="annot"><span class="annottext">Resolver
+</span><a href="#local-6989586621679223167"><span class="hs-identifier hs-var">resolver'</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-184"></span><span>                </span><span class="annot"><span class="annottext">(Either (DNSorIOError IOException) Resolver,
+ Resource IO (DNSorIOError IOException) Resolver)
+-&gt; IO
+     (Either (DNSorIOError IOException) Resolver,
+      Resource IO (DNSorIOError IOException) Resolver)
+forall (f :: * -&gt; *) a. Applicative f =&gt; a -&gt; f a
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-identifier hs-var">pure</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Resolver -&gt; Either (DNSorIOError IOException) Resolver
+forall a b. b -&gt; Either a b
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-identifier hs-var">Right</span></a></span><span> </span><span class="annot"><span class="annottext">Resolver
+</span><a href="#local-6989586621679223167"><span class="hs-identifier hs-var">resolver'</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">String
+-&gt; TimedResolver -&gt; Resource IO (DNSorIOError IOException) Resolver
+</span><a href="#local-6989586621679223190"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="annot"><span class="annottext">String
+</span><a href="#local-6989586621679223174"><span class="hs-identifier hs-var">filePath</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Resolver -&gt; UTCTime -&gt; TimedResolver
+</span><a href="Ouroboros.Network.PeerSelection.RootPeersDNS.DNSActions.html#TimedResolver"><span class="hs-identifier hs-var">TimedResolver</span></a></span><span> </span><span class="annot"><span class="annottext">Resolver
+</span><a href="#local-6989586621679223167"><span class="hs-identifier hs-var">resolver'</span></a></span><span> </span><span class="annot"><span class="annottext">UTCTime
+</span><a href="#local-6989586621679223170"><span class="hs-identifier hs-var">modTime'</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-185"></span><span>      </span><span class="annot"><span class="annottext">IO
+  (Either (DNSorIOError IOException) Resolver,
+   Resource IO (DNSorIOError IOException) Resolver)
+-&gt; [Handler
+      IO
+      (Either (DNSorIOError IOException) Resolver,
+       Resource IO (DNSorIOError IOException) Resolver)]
+-&gt; IO
+     (Either (DNSorIOError IOException) Resolver,
+      Resource IO (DNSorIOError IOException) Resolver)
+forall (m :: * -&gt; *) a. MonadCatch m =&gt; m a -&gt; [Handler m a] -&gt; m a
+</span><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/io-classes-0.2.0.0/noopt/doc/html/io-classes/src"><span class="hs-operator hs-var">`catches`</span></a></span><span> </span><span class="annot"><span class="annottext">String
+-&gt; TimedResolver
+-&gt; [Handler
+      IO
+      (Either (DNSorIOError IOException) Resolver,
+       Resource IO (DNSorIOError IOException) Resolver)]
+</span><a href="#local-6989586621679223187"><span class="hs-identifier hs-var">handlers</span></a></span><span> </span><span class="annot"><span class="annottext">String
+</span><a href="#local-6989586621679223174"><span class="hs-identifier hs-var">filePath</span></a></span><span> </span><span class="annot"><span class="annottext">TimedResolver
+</span><a href="#local-6989586621679223173"><span class="hs-identifier hs-var">tr</span></a></span><span>
+</span><span id="line-186"></span><span>
+</span><span id="line-187"></span><span>
+</span><span id="line-188"></span><span class="hs-comment">-- | `Resource` which passes the 'DNS.Resolver' through a 'StrictTVar'.  Better</span><span>
+</span><span id="line-189"></span><span class="hs-comment">-- than 'resolverResource' when using in multiple threads.</span><span>
+</span><span id="line-190"></span><span class="hs-comment">--</span><span>
+</span><span id="line-191"></span><span class="hs-comment">-- On /Windows/ returns newly intiatialised 'DNS.Resolver' at each step;  This</span><span>
+</span><span id="line-192"></span><span class="hs-comment">-- is because on /Windows/ we don't have a way to check that the network</span><span>
+</span><span id="line-193"></span><span class="hs-comment">-- configuration has changed.  The 'dns' library is using 'GetNetworkParams@</span><span>
+</span><span id="line-194"></span><span class="hs-comment">-- win32 api call to get the list of default dns servers.</span><span>
+</span><span id="line-195"></span><span class="annot"><a href="Ouroboros.Network.PeerSelection.RootPeersDNS.DNSActions.html#asyncResolverResource"><span class="hs-identifier hs-type">asyncResolverResource</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">DNS.ResolvConf</span></span><span>
+</span><span id="line-196"></span><span>                      </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/ghc-prim-0.6.1/src"><span class="hs-identifier hs-type">IO</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Network.PeerSelection.RootPeersDNS.DNSActions.html#Resource"><span class="hs-identifier hs-type">Resource</span></a></span><span> </span><span class="annot"><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/ghc-prim-0.6.1/src"><span class="hs-identifier hs-type">IO</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Network.PeerSelection.RootPeersDNS.DNSActions.html#DNSorIOError"><span class="hs-identifier hs-type">DNSorIOError</span></a></span><span> </span><span class="annot"><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-identifier hs-type">IOException</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-197"></span><span>                                         </span><span class="annot"><span class="hs-identifier hs-type">DNS.Resolver</span></span><span class="hs-special">)</span><span class="hs-cpp">
+#if !defined(mingw32_HOST_OS)
+</span><span id="asyncResolverResource"><span class="annot"><span class="annottext">asyncResolverResource :: ResolvConf -&gt; IO (Resource IO (DNSorIOError IOException) Resolver)
+</span><a href="Ouroboros.Network.PeerSelection.RootPeersDNS.DNSActions.html#asyncResolverResource"><span class="hs-identifier hs-var hs-var">asyncResolverResource</span></a></span></span><span> </span><span id="local-6989586621679223165"><span class="annot"><span class="annottext">ResolvConf
+</span><a href="#local-6989586621679223165"><span class="hs-identifier hs-var">resolvConf</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-200"></span><span>    </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">ResolvConf -&gt; FileOrNumericHost
+</span><span class="hs-identifier hs-var hs-var">DNS.resolvInfo</span></span><span> </span><span class="annot"><span class="annottext">ResolvConf
+</span><a href="#local-6989586621679223165"><span class="hs-identifier hs-var">resolvConf</span></a></span><span> </span><span class="hs-keyword">of</span><span>
+</span><span id="line-201"></span><span>      </span><span class="annot"><span class="hs-identifier hs-type">DNS.RCFilePath</span></span><span> </span><span id="local-6989586621679223164"><span class="annot"><span class="annottext">String
+</span><a href="#local-6989586621679223164"><span class="hs-identifier hs-var">filePath</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-202"></span><span>        </span><span id="local-6989586621679223163"><span class="annot"><span class="annottext">StrictTVar IO TimedResolver
+</span><a href="#local-6989586621679223163"><span class="hs-identifier hs-var">resourceVar</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">TimedResolver -&gt; IO (StrictTVar IO TimedResolver)
+forall (m :: * -&gt; *) a. MonadSTM m =&gt; a -&gt; m (StrictTVar m a)
+</span><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/io-classes-0.2.0.0/noopt/doc/html/io-classes/src"><span class="hs-identifier hs-var">newTVarIO</span></a></span><span> </span><span class="annot"><span class="annottext">TimedResolver
+</span><a href="Ouroboros.Network.PeerSelection.RootPeersDNS.DNSActions.html#NoResolver"><span class="hs-identifier hs-var">NoResolver</span></a></span><span>
+</span><span id="line-203"></span><span>        </span><span class="annot"><span class="annottext">Resource IO (DNSorIOError IOException) Resolver
+-&gt; IO (Resource IO (DNSorIOError IOException) Resolver)
+forall (f :: * -&gt; *) a. Applicative f =&gt; a -&gt; f a
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-identifier hs-var">pure</span></a></span><span> </span><span class="annot"><span class="annottext">(Resource IO (DNSorIOError IOException) Resolver
+ -&gt; IO (Resource IO (DNSorIOError IOException) Resolver))
+-&gt; Resource IO (DNSorIOError IOException) Resolver
+-&gt; IO (Resource IO (DNSorIOError IOException) Resolver)
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-operator hs-var">$</span></a></span><span> </span><span class="annot"><span class="annottext">String
+-&gt; StrictTVar IO TimedResolver
+-&gt; Resource IO (DNSorIOError IOException) Resolver
+</span><a href="#local-6989586621679223161"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="annot"><span class="annottext">String
+</span><a href="#local-6989586621679223164"><span class="hs-identifier hs-var">filePath</span></a></span><span> </span><span class="annot"><span class="annottext">StrictTVar IO TimedResolver
+</span><a href="#local-6989586621679223163"><span class="hs-identifier hs-var">resourceVar</span></a></span><span>
+</span><span id="line-204"></span><span>      </span><span class="annot"><span class="annottext">FileOrNumericHost
+</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-205"></span><span>        </span><span id="local-6989586621679223160"><span class="annot"><span class="annottext">ResolvSeed
+</span><a href="#local-6989586621679223160"><span class="hs-identifier hs-var">rs</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">ResolvConf -&gt; IO ResolvSeed
+</span><span class="hs-identifier hs-var">DNS.makeResolvSeed</span></span><span> </span><span class="annot"><span class="annottext">ResolvConf
+</span><a href="#local-6989586621679223165"><span class="hs-identifier hs-var">resolvConf</span></a></span><span>
+</span><span id="line-206"></span><span>        </span><span class="annot"><span class="annottext">ResolvSeed
+-&gt; (Resolver
+    -&gt; IO (Resource IO (DNSorIOError IOException) Resolver))
+-&gt; IO (Resource IO (DNSorIOError IOException) Resolver)
+forall a. ResolvSeed -&gt; (Resolver -&gt; IO a) -&gt; IO a
+</span><span class="hs-identifier hs-var">DNS.withResolver</span></span><span> </span><span class="annot"><span class="annottext">ResolvSeed
+</span><a href="#local-6989586621679223160"><span class="hs-identifier hs-var">rs</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Resource IO (DNSorIOError IOException) Resolver
+-&gt; IO (Resource IO (DNSorIOError IOException) Resolver)
+forall (f :: * -&gt; *) a. Applicative f =&gt; a -&gt; f a
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-identifier hs-var">pure</span></a></span><span> </span><span class="annot"><span class="annottext">(Resource IO (DNSorIOError IOException) Resolver
+ -&gt; IO (Resource IO (DNSorIOError IOException) Resolver))
+-&gt; (Resolver -&gt; Resource IO (DNSorIOError IOException) Resolver)
+-&gt; Resolver
+-&gt; IO (Resource IO (DNSorIOError IOException) Resolver)
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-operator hs-var">.</span></a></span><span> </span><span class="annot"><span class="annottext">Resolver -&gt; Resource IO (DNSorIOError IOException) Resolver
+forall (m :: * -&gt; *) a err. Applicative m =&gt; a -&gt; Resource m err a
+</span><a href="Ouroboros.Network.PeerSelection.RootPeersDNS.DNSActions.html#constantResource"><span class="hs-identifier hs-var">constantResource</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-207"></span><span>  </span><span class="hs-keyword">where</span><span>
+</span><span id="line-208"></span><span>    </span><span class="annot"><a href="#local-6989586621679223159"><span class="hs-identifier hs-type">handlers</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-identifier hs-type">FilePath</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/io-classes-0.2.0.0/noopt/doc/html/io-classes/src"><span class="hs-identifier hs-type">StrictTVar</span></a></span><span> </span><span class="annot"><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/ghc-prim-0.6.1/src"><span class="hs-identifier hs-type">IO</span></a></span><span> </span><span class="annot"><a href="Ouroboros.Network.PeerSelection.RootPeersDNS.DNSActions.html#TimedResolver"><span class="hs-identifier hs-type">TimedResolver</span></a></span><span>
+</span><span id="line-209"></span><span>             </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">[</span><span class="annot"><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/io-classes-0.2.0.0/noopt/doc/html/io-classes/src"><span class="hs-identifier hs-type">Handler</span></a></span><span> </span><span class="annot"><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/ghc-prim-0.6.1/src"><span class="hs-identifier hs-type">IO</span></a></span><span>
+</span><span id="line-210"></span><span>                  </span><span class="hs-special">(</span><span> </span><span class="annot"><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-identifier hs-type">Either</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Network.PeerSelection.RootPeersDNS.DNSActions.html#DNSorIOError"><span class="hs-identifier hs-type">DNSorIOError</span></a></span><span> </span><span class="annot"><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-identifier hs-type">IOException</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="hs-identifier hs-type">DNS.Resolver</span></span><span>
+</span><span id="line-211"></span><span>                  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Ouroboros.Network.PeerSelection.RootPeersDNS.DNSActions.html#Resource"><span class="hs-identifier hs-type">Resource</span></a></span><span> </span><span class="annot"><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/ghc-prim-0.6.1/src"><span class="hs-identifier hs-type">IO</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Network.PeerSelection.RootPeersDNS.DNSActions.html#DNSorIOError"><span class="hs-identifier hs-type">DNSorIOError</span></a></span><span> </span><span class="annot"><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-identifier hs-type">IOException</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="hs-identifier hs-type">DNS.Resolver</span></span><span class="hs-special">)</span><span class="hs-special">]</span><span>
+</span><span id="line-212"></span><span>    </span><span id="local-6989586621679223159"><span class="annot"><span class="annottext">handlers :: String
+-&gt; StrictTVar IO TimedResolver
+-&gt; [Handler
+      IO
+      (Either (DNSorIOError IOException) Resolver,
+       Resource IO (DNSorIOError IOException) Resolver)]
+</span><a href="#local-6989586621679223159"><span class="hs-identifier hs-var hs-var">handlers</span></a></span></span><span> </span><span id="local-6989586621679223158"><span class="annot"><span class="annottext">String
+</span><a href="#local-6989586621679223158"><span class="hs-identifier hs-var">filePath</span></a></span></span><span> </span><span id="local-6989586621679223157"><span class="annot"><span class="annottext">StrictTVar IO TimedResolver
+</span><a href="#local-6989586621679223157"><span class="hs-identifier hs-var">resourceVar</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-213"></span><span>      </span><span class="hs-special">[</span><span> </span><span class="annot"><span class="annottext">(IOException
+ -&gt; IO
+      (Either (DNSorIOError IOException) Resolver,
+       Resource IO (DNSorIOError IOException) Resolver))
+-&gt; Handler
+     IO
+     (Either (DNSorIOError IOException) Resolver,
+      Resource IO (DNSorIOError IOException) Resolver)
+forall (m :: * -&gt; *) a e. Exception e =&gt; (e -&gt; m a) -&gt; Handler m a
+</span><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/io-classes-0.2.0.0/noopt/doc/html/io-classes/src"><span class="hs-identifier hs-var">Handler</span></a></span><span> </span><span class="annot"><span class="annottext">((IOException
+  -&gt; IO
+       (Either (DNSorIOError IOException) Resolver,
+        Resource IO (DNSorIOError IOException) Resolver))
+ -&gt; Handler
+      IO
+      (Either (DNSorIOError IOException) Resolver,
+       Resource IO (DNSorIOError IOException) Resolver))
+-&gt; (IOException
+    -&gt; IO
+         (Either (DNSorIOError IOException) Resolver,
+          Resource IO (DNSorIOError IOException) Resolver))
+-&gt; Handler
+     IO
+     (Either (DNSorIOError IOException) Resolver,
+      Resource IO (DNSorIOError IOException) Resolver)
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-operator hs-var">$</span></a></span><span>
+</span><span id="line-214"></span><span>          </span><span class="hs-glyph">\</span><span class="hs-special">(</span><span id="local-6989586621679223156"><span class="annot"><span class="annottext">IOException
+</span><a href="#local-6989586621679223156"><span class="hs-identifier hs-var">err</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-identifier hs-type">IOException</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-215"></span><span>            </span><span class="annot"><span class="annottext">(Either (DNSorIOError IOException) Resolver,
+ Resource IO (DNSorIOError IOException) Resolver)
+-&gt; IO
+     (Either (DNSorIOError IOException) Resolver,
+      Resource IO (DNSorIOError IOException) Resolver)
+forall (f :: * -&gt; *) a. Applicative f =&gt; a -&gt; f a
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-identifier hs-var">pure</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">DNSorIOError IOException
+-&gt; Either (DNSorIOError IOException) Resolver
+forall a b. a -&gt; Either a b
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-identifier hs-var">Left</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">IOException -&gt; DNSorIOError IOException
+forall exception. exception -&gt; DNSorIOError exception
+</span><a href="Ouroboros.Network.PeerSelection.RootPeersDNS.DNSActions.html#IOError"><span class="hs-identifier hs-var">IOError</span></a></span><span> </span><span class="annot"><span class="annottext">IOException
+</span><a href="#local-6989586621679223156"><span class="hs-identifier hs-var">err</span></a></span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">String
+-&gt; StrictTVar IO TimedResolver
+-&gt; Resource IO (DNSorIOError IOException) Resolver
+</span><a href="#local-6989586621679223161"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="annot"><span class="annottext">String
+</span><a href="#local-6989586621679223158"><span class="hs-identifier hs-var">filePath</span></a></span><span> </span><span class="annot"><span class="annottext">StrictTVar IO TimedResolver
+</span><a href="#local-6989586621679223157"><span class="hs-identifier hs-var">resourceVar</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-216"></span><span>      </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">(DNSError
+ -&gt; IO
+      (Either (DNSorIOError IOException) Resolver,
+       Resource IO (DNSorIOError IOException) Resolver))
+-&gt; Handler
+     IO
+     (Either (DNSorIOError IOException) Resolver,
+      Resource IO (DNSorIOError IOException) Resolver)
+forall (m :: * -&gt; *) a e. Exception e =&gt; (e -&gt; m a) -&gt; Handler m a
+</span><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/io-classes-0.2.0.0/noopt/doc/html/io-classes/src"><span class="hs-identifier hs-var">Handler</span></a></span><span> </span><span class="annot"><span class="annottext">((DNSError
+  -&gt; IO
+       (Either (DNSorIOError IOException) Resolver,
+        Resource IO (DNSorIOError IOException) Resolver))
+ -&gt; Handler
+      IO
+      (Either (DNSorIOError IOException) Resolver,
+       Resource IO (DNSorIOError IOException) Resolver))
+-&gt; (DNSError
+    -&gt; IO
+         (Either (DNSorIOError IOException) Resolver,
+          Resource IO (DNSorIOError IOException) Resolver))
+-&gt; Handler
+     IO
+     (Either (DNSorIOError IOException) Resolver,
+      Resource IO (DNSorIOError IOException) Resolver)
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-operator hs-var">$</span></a></span><span>
+</span><span id="line-217"></span><span>          </span><span class="hs-glyph">\</span><span class="hs-special">(</span><span id="local-6989586621679223155"><span class="annot"><span class="annottext">DNSError
+</span><a href="#local-6989586621679223155"><span class="hs-identifier hs-var">err</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">DNS.DNSError</span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-218"></span><span>            </span><span class="annot"><span class="annottext">(Either (DNSorIOError IOException) Resolver,
+ Resource IO (DNSorIOError IOException) Resolver)
+-&gt; IO
+     (Either (DNSorIOError IOException) Resolver,
+      Resource IO (DNSorIOError IOException) Resolver)
+forall (f :: * -&gt; *) a. Applicative f =&gt; a -&gt; f a
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-identifier hs-var">pure</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">DNSorIOError IOException
+-&gt; Either (DNSorIOError IOException) Resolver
+forall a b. a -&gt; Either a b
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-identifier hs-var">Left</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">DNSError -&gt; DNSorIOError IOException
+forall exception. DNSError -&gt; DNSorIOError exception
+</span><a href="Ouroboros.Network.PeerSelection.RootPeersDNS.DNSActions.html#DNSError"><span class="hs-identifier hs-var">DNSError</span></a></span><span> </span><span class="annot"><span class="annottext">DNSError
+</span><a href="#local-6989586621679223155"><span class="hs-identifier hs-var">err</span></a></span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">String
+-&gt; StrictTVar IO TimedResolver
+-&gt; Resource IO (DNSorIOError IOException) Resolver
+</span><a href="#local-6989586621679223161"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="annot"><span class="annottext">String
+</span><a href="#local-6989586621679223158"><span class="hs-identifier hs-var">filePath</span></a></span><span> </span><span class="annot"><span class="annottext">StrictTVar IO TimedResolver
+</span><a href="#local-6989586621679223157"><span class="hs-identifier hs-var">resourceVar</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-219"></span><span>      </span><span class="hs-special">]</span><span>
+</span><span id="line-220"></span><span>
+</span><span id="line-221"></span><span>    </span><span class="annot"><a href="#local-6989586621679223161"><span class="hs-identifier hs-type">go</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-identifier hs-type">FilePath</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/io-classes-0.2.0.0/noopt/doc/html/io-classes/src"><span class="hs-identifier hs-type">StrictTVar</span></a></span><span> </span><span class="annot"><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/ghc-prim-0.6.1/src"><span class="hs-identifier hs-type">IO</span></a></span><span> </span><span class="annot"><a href="Ouroboros.Network.PeerSelection.RootPeersDNS.DNSActions.html#TimedResolver"><span class="hs-identifier hs-type">TimedResolver</span></a></span><span>
+</span><span id="line-222"></span><span>       </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Ouroboros.Network.PeerSelection.RootPeersDNS.DNSActions.html#Resource"><span class="hs-identifier hs-type">Resource</span></a></span><span> </span><span class="annot"><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/ghc-prim-0.6.1/src"><span class="hs-identifier hs-type">IO</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Ouroboros.Network.PeerSelection.RootPeersDNS.DNSActions.html#DNSorIOError"><span class="hs-identifier hs-type">DNSorIOError</span></a></span><span> </span><span class="annot"><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-identifier hs-type">IOException</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="hs-identifier hs-type">DNS.Resolver</span></span><span>
+</span><span id="line-223"></span><span>    </span><span id="local-6989586621679223161"><span class="annot"><span class="annottext">go :: String
+-&gt; StrictTVar IO TimedResolver
+-&gt; Resource IO (DNSorIOError IOException) Resolver
+</span><a href="#local-6989586621679223161"><span class="hs-identifier hs-var hs-var">go</span></a></span></span><span> </span><span id="local-6989586621679223154"><span class="annot"><span class="annottext">String
+</span><a href="#local-6989586621679223154"><span class="hs-identifier hs-var">filePath</span></a></span></span><span> </span><span id="local-6989586621679223153"><span class="annot"><span class="annottext">StrictTVar IO TimedResolver
+</span><a href="#local-6989586621679223153"><span class="hs-identifier hs-var">resourceVar</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">IO
+  (Either (DNSorIOError IOException) Resolver,
+   Resource IO (DNSorIOError IOException) Resolver)
+-&gt; Resource IO (DNSorIOError IOException) Resolver
+forall (m :: * -&gt; *) err a.
+m (Either err a, Resource m err a) -&gt; Resource m err a
+</span><a href="Ouroboros.Network.PeerSelection.RootPeersDNS.DNSActions.html#Resource"><span class="hs-identifier hs-var">Resource</span></a></span><span> </span><span class="annot"><span class="annottext">(IO
+   (Either (DNSorIOError IOException) Resolver,
+    Resource IO (DNSorIOError IOException) Resolver)
+ -&gt; Resource IO (DNSorIOError IOException) Resolver)
+-&gt; IO
+     (Either (DNSorIOError IOException) Resolver,
+      Resource IO (DNSorIOError IOException) Resolver)
+-&gt; Resource IO (DNSorIOError IOException) Resolver
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-operator hs-var">$</span></a></span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-224"></span><span>      </span><span id="local-6989586621679223152"><span class="annot"><span class="annottext">TimedResolver
+</span><a href="#local-6989586621679223152"><span class="hs-identifier hs-var">r</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">STM IO TimedResolver -&gt; IO TimedResolver
+forall (m :: * -&gt; *) a.
+(MonadSTM m, HasCallStack) =&gt;
+STM m a -&gt; m a
+</span><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/io-classes-0.2.0.0/noopt/doc/html/io-classes/src"><span class="hs-identifier hs-var">atomically</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">StrictTVar IO TimedResolver -&gt; STM IO TimedResolver
+forall (m :: * -&gt; *) a. MonadSTM m =&gt; StrictTVar m a -&gt; STM m a
+</span><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/io-classes-0.2.0.0/noopt/doc/html/io-classes/src"><span class="hs-identifier hs-var">readTVar</span></a></span><span> </span><span class="annot"><span class="annottext">StrictTVar IO TimedResolver
+</span><a href="#local-6989586621679223153"><span class="hs-identifier hs-var">resourceVar</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-225"></span><span>      </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">TimedResolver
+</span><a href="#local-6989586621679223152"><span class="hs-identifier hs-var">r</span></a></span><span> </span><span class="hs-keyword">of</span><span>
+</span><span id="line-226"></span><span>        </span><span class="annot"><span class="annottext">TimedResolver
+</span><a href="Ouroboros.Network.PeerSelection.RootPeersDNS.DNSActions.html#NoResolver"><span class="hs-identifier hs-var">NoResolver</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-227"></span><span>          </span><span class="hs-keyword">do</span><span>
+</span><span id="line-228"></span><span>            </span><span id="local-6989586621679223149"><span class="annot"><span class="annottext">UTCTime
+</span><a href="#local-6989586621679223149"><span class="hs-identifier hs-var">modTime</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">String -&gt; IO UTCTime
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/directory-1.3.6.0/src"><span class="hs-identifier hs-var">getModificationTime</span></a></span><span> </span><span class="annot"><span class="annottext">String
+</span><a href="#local-6989586621679223154"><span class="hs-identifier hs-var">filePath</span></a></span><span>
+</span><span id="line-229"></span><span>            </span><span id="local-6989586621679223148"><span class="annot"><span class="annottext">ResolvSeed
+</span><a href="#local-6989586621679223148"><span class="hs-identifier hs-var">rs</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">ResolvConf -&gt; IO ResolvSeed
+</span><span class="hs-identifier hs-var">DNS.makeResolvSeed</span></span><span> </span><span class="annot"><span class="annottext">ResolvConf
+</span><a href="#local-6989586621679223165"><span class="hs-identifier hs-var">resolvConf</span></a></span><span>
+</span><span id="line-230"></span><span>            </span><span class="annot"><span class="annottext">ResolvSeed
+-&gt; (Resolver
+    -&gt; IO
+         (Either (DNSorIOError IOException) Resolver,
+          Resource IO (DNSorIOError IOException) Resolver))
+-&gt; IO
+     (Either (DNSorIOError IOException) Resolver,
+      Resource IO (DNSorIOError IOException) Resolver)
+forall a. ResolvSeed -&gt; (Resolver -&gt; IO a) -&gt; IO a
+</span><span class="hs-identifier hs-var">DNS.withResolver</span></span><span> </span><span class="annot"><span class="annottext">ResolvSeed
+</span><a href="#local-6989586621679223148"><span class="hs-identifier hs-var">rs</span></a></span><span> </span><span class="annot"><span class="annottext">((Resolver
+  -&gt; IO
+       (Either (DNSorIOError IOException) Resolver,
+        Resource IO (DNSorIOError IOException) Resolver))
+ -&gt; IO
+      (Either (DNSorIOError IOException) Resolver,
+       Resource IO (DNSorIOError IOException) Resolver))
+-&gt; (Resolver
+    -&gt; IO
+         (Either (DNSorIOError IOException) Resolver,
+          Resource IO (DNSorIOError IOException) Resolver))
+-&gt; IO
+     (Either (DNSorIOError IOException) Resolver,
+      Resource IO (DNSorIOError IOException) Resolver)
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-operator hs-var">$</span></a></span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679223147"><span class="annot"><span class="annottext">Resolver
+</span><a href="#local-6989586621679223147"><span class="hs-identifier hs-var">resolver</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-231"></span><span>              </span><span class="annot"><span class="annottext">STM IO () -&gt; IO ()
+forall (m :: * -&gt; *) a.
+(MonadSTM m, HasCallStack) =&gt;
+STM m a -&gt; m a
+</span><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/io-classes-0.2.0.0/noopt/doc/html/io-classes/src"><span class="hs-identifier hs-var">atomically</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">StrictTVar IO TimedResolver -&gt; TimedResolver -&gt; STM IO ()
+forall (m :: * -&gt; *) a.
+(MonadSTM m, HasCallStack) =&gt;
+StrictTVar m a -&gt; a -&gt; STM m ()
+</span><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/io-classes-0.2.0.0/noopt/doc/html/io-classes/src"><span class="hs-identifier hs-var">writeTVar</span></a></span><span> </span><span class="annot"><span class="annottext">StrictTVar IO TimedResolver
+</span><a href="#local-6989586621679223153"><span class="hs-identifier hs-var">resourceVar</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Resolver -&gt; UTCTime -&gt; TimedResolver
+</span><a href="Ouroboros.Network.PeerSelection.RootPeersDNS.DNSActions.html#TimedResolver"><span class="hs-identifier hs-var">TimedResolver</span></a></span><span> </span><span class="annot"><span class="annottext">Resolver
+</span><a href="#local-6989586621679223147"><span class="hs-identifier hs-var">resolver</span></a></span><span> </span><span class="annot"><span class="annottext">UTCTime
+</span><a href="#local-6989586621679223149"><span class="hs-identifier hs-var">modTime</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-232"></span><span>              </span><span class="annot"><span class="annottext">(Either (DNSorIOError IOException) Resolver,
+ Resource IO (DNSorIOError IOException) Resolver)
+-&gt; IO
+     (Either (DNSorIOError IOException) Resolver,
+      Resource IO (DNSorIOError IOException) Resolver)
+forall (f :: * -&gt; *) a. Applicative f =&gt; a -&gt; f a
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-identifier hs-var">pure</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Resolver -&gt; Either (DNSorIOError IOException) Resolver
+forall a b. b -&gt; Either a b
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-identifier hs-var">Right</span></a></span><span> </span><span class="annot"><span class="annottext">Resolver
+</span><a href="#local-6989586621679223147"><span class="hs-identifier hs-var">resolver</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">String
+-&gt; StrictTVar IO TimedResolver
+-&gt; Resource IO (DNSorIOError IOException) Resolver
+</span><a href="#local-6989586621679223161"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="annot"><span class="annottext">String
+</span><a href="#local-6989586621679223154"><span class="hs-identifier hs-var">filePath</span></a></span><span> </span><span class="annot"><span class="annottext">StrictTVar IO TimedResolver
+</span><a href="#local-6989586621679223153"><span class="hs-identifier hs-var">resourceVar</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-233"></span><span>          </span><span class="annot"><span class="annottext">IO
+  (Either (DNSorIOError IOException) Resolver,
+   Resource IO (DNSorIOError IOException) Resolver)
+-&gt; [Handler
+      IO
+      (Either (DNSorIOError IOException) Resolver,
+       Resource IO (DNSorIOError IOException) Resolver)]
+-&gt; IO
+     (Either (DNSorIOError IOException) Resolver,
+      Resource IO (DNSorIOError IOException) Resolver)
+forall (m :: * -&gt; *) a. MonadCatch m =&gt; m a -&gt; [Handler m a] -&gt; m a
+</span><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/io-classes-0.2.0.0/noopt/doc/html/io-classes/src"><span class="hs-operator hs-var">`catches`</span></a></span><span> </span><span class="annot"><span class="annottext">String
+-&gt; StrictTVar IO TimedResolver
+-&gt; [Handler
+      IO
+      (Either (DNSorIOError IOException) Resolver,
+       Resource IO (DNSorIOError IOException) Resolver)]
+</span><a href="#local-6989586621679223159"><span class="hs-identifier hs-var">handlers</span></a></span><span> </span><span class="annot"><span class="annottext">String
+</span><a href="#local-6989586621679223154"><span class="hs-identifier hs-var">filePath</span></a></span><span> </span><span class="annot"><span class="annottext">StrictTVar IO TimedResolver
+</span><a href="#local-6989586621679223153"><span class="hs-identifier hs-var">resourceVar</span></a></span><span>
+</span><span id="line-234"></span><span>
+</span><span id="line-235"></span><span>        </span><span class="annot"><a href="Ouroboros.Network.PeerSelection.RootPeersDNS.DNSActions.html#TimedResolver"><span class="hs-identifier hs-type">TimedResolver</span></a></span><span> </span><span id="local-6989586621679223145"><span class="annot"><span class="annottext">Resolver
+</span><a href="#local-6989586621679223145"><span class="hs-identifier hs-var">resolver</span></a></span></span><span> </span><span id="local-6989586621679223144"><span class="annot"><span class="annottext">UTCTime
+</span><a href="#local-6989586621679223144"><span class="hs-identifier hs-var">modTime</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-236"></span><span>          </span><span class="hs-keyword">do</span><span>
+</span><span id="line-237"></span><span>            </span><span id="local-6989586621679223143"><span class="annot"><span class="annottext">UTCTime
+</span><a href="#local-6989586621679223143"><span class="hs-identifier hs-var">modTime'</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">String -&gt; IO UTCTime
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/directory-1.3.6.0/src"><span class="hs-identifier hs-var">getModificationTime</span></a></span><span> </span><span class="annot"><span class="annottext">String
+</span><a href="#local-6989586621679223154"><span class="hs-identifier hs-var">filePath</span></a></span><span>
+</span><span id="line-238"></span><span>            </span><span class="hs-keyword">if</span><span> </span><span class="annot"><span class="annottext">UTCTime
+</span><a href="#local-6989586621679223143"><span class="hs-identifier hs-var">modTime'</span></a></span><span> </span><span class="annot"><span class="annottext">UTCTime -&gt; UTCTime -&gt; Bool
+forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/ghc-prim-0.6.1/src"><span class="hs-operator hs-var">&lt;=</span></a></span><span> </span><span class="annot"><span class="annottext">UTCTime
+</span><a href="#local-6989586621679223144"><span class="hs-identifier hs-var">modTime</span></a></span><span>
+</span><span id="line-239"></span><span>                </span><span class="hs-keyword">then</span><span> </span><span class="annot"><span class="annottext">(Either (DNSorIOError IOException) Resolver,
+ Resource IO (DNSorIOError IOException) Resolver)
+-&gt; IO
+     (Either (DNSorIOError IOException) Resolver,
+      Resource IO (DNSorIOError IOException) Resolver)
+forall (f :: * -&gt; *) a. Applicative f =&gt; a -&gt; f a
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-identifier hs-var">pure</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Resolver -&gt; Either (DNSorIOError IOException) Resolver
+forall a b. b -&gt; Either a b
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-identifier hs-var">Right</span></a></span><span> </span><span class="annot"><span class="annottext">Resolver
+</span><a href="#local-6989586621679223145"><span class="hs-identifier hs-var">resolver</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">String
+-&gt; StrictTVar IO TimedResolver
+-&gt; Resource IO (DNSorIOError IOException) Resolver
+</span><a href="#local-6989586621679223161"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="annot"><span class="annottext">String
+</span><a href="#local-6989586621679223154"><span class="hs-identifier hs-var">filePath</span></a></span><span> </span><span class="annot"><span class="annottext">StrictTVar IO TimedResolver
+</span><a href="#local-6989586621679223153"><span class="hs-identifier hs-var">resourceVar</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-240"></span><span>                </span><span class="hs-keyword">else</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-241"></span><span>                  </span><span id="local-6989586621679223142"><span class="annot"><span class="annottext">ResolvSeed
+</span><a href="#local-6989586621679223142"><span class="hs-identifier hs-var">rs</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">ResolvConf -&gt; IO ResolvSeed
+</span><span class="hs-identifier hs-var">DNS.makeResolvSeed</span></span><span> </span><span class="annot"><span class="annottext">ResolvConf
+</span><a href="#local-6989586621679223165"><span class="hs-identifier hs-var">resolvConf</span></a></span><span>
+</span><span id="line-242"></span><span>                  </span><span class="annot"><span class="annottext">ResolvSeed
+-&gt; (Resolver
+    -&gt; IO
+         (Either (DNSorIOError IOException) Resolver,
+          Resource IO (DNSorIOError IOException) Resolver))
+-&gt; IO
+     (Either (DNSorIOError IOException) Resolver,
+      Resource IO (DNSorIOError IOException) Resolver)
+forall a. ResolvSeed -&gt; (Resolver -&gt; IO a) -&gt; IO a
+</span><span class="hs-identifier hs-var">DNS.withResolver</span></span><span> </span><span class="annot"><span class="annottext">ResolvSeed
+</span><a href="#local-6989586621679223142"><span class="hs-identifier hs-var">rs</span></a></span><span> </span><span class="annot"><span class="annottext">((Resolver
+  -&gt; IO
+       (Either (DNSorIOError IOException) Resolver,
+        Resource IO (DNSorIOError IOException) Resolver))
+ -&gt; IO
+      (Either (DNSorIOError IOException) Resolver,
+       Resource IO (DNSorIOError IOException) Resolver))
+-&gt; (Resolver
+    -&gt; IO
+         (Either (DNSorIOError IOException) Resolver,
+          Resource IO (DNSorIOError IOException) Resolver))
+-&gt; IO
+     (Either (DNSorIOError IOException) Resolver,
+      Resource IO (DNSorIOError IOException) Resolver)
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-operator hs-var">$</span></a></span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679223141"><span class="annot"><span class="annottext">Resolver
+</span><a href="#local-6989586621679223141"><span class="hs-identifier hs-var">resolver'</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-243"></span><span>                    </span><span class="annot"><span class="annottext">STM IO () -&gt; IO ()
+forall (m :: * -&gt; *) a.
+(MonadSTM m, HasCallStack) =&gt;
+STM m a -&gt; m a
+</span><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/io-classes-0.2.0.0/noopt/doc/html/io-classes/src"><span class="hs-identifier hs-var">atomically</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">StrictTVar IO TimedResolver -&gt; TimedResolver -&gt; STM IO ()
+forall (m :: * -&gt; *) a.
+(MonadSTM m, HasCallStack) =&gt;
+StrictTVar m a -&gt; a -&gt; STM m ()
+</span><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/io-classes-0.2.0.0/noopt/doc/html/io-classes/src"><span class="hs-identifier hs-var">writeTVar</span></a></span><span> </span><span class="annot"><span class="annottext">StrictTVar IO TimedResolver
+</span><a href="#local-6989586621679223153"><span class="hs-identifier hs-var">resourceVar</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Resolver -&gt; UTCTime -&gt; TimedResolver
+</span><a href="Ouroboros.Network.PeerSelection.RootPeersDNS.DNSActions.html#TimedResolver"><span class="hs-identifier hs-var">TimedResolver</span></a></span><span> </span><span class="annot"><span class="annottext">Resolver
+</span><a href="#local-6989586621679223141"><span class="hs-identifier hs-var">resolver'</span></a></span><span> </span><span class="annot"><span class="annottext">UTCTime
+</span><a href="#local-6989586621679223143"><span class="hs-identifier hs-var">modTime'</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-244"></span><span>                    </span><span class="annot"><span class="annottext">(Either (DNSorIOError IOException) Resolver,
+ Resource IO (DNSorIOError IOException) Resolver)
+-&gt; IO
+     (Either (DNSorIOError IOException) Resolver,
+      Resource IO (DNSorIOError IOException) Resolver)
+forall (f :: * -&gt; *) a. Applicative f =&gt; a -&gt; f a
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-identifier hs-var">pure</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Resolver -&gt; Either (DNSorIOError IOException) Resolver
+forall a b. b -&gt; Either a b
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-identifier hs-var">Right</span></a></span><span> </span><span class="annot"><span class="annottext">Resolver
+</span><a href="#local-6989586621679223141"><span class="hs-identifier hs-var">resolver'</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">String
+-&gt; StrictTVar IO TimedResolver
+-&gt; Resource IO (DNSorIOError IOException) Resolver
+</span><a href="#local-6989586621679223161"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="annot"><span class="annottext">String
+</span><a href="#local-6989586621679223154"><span class="hs-identifier hs-var">filePath</span></a></span><span> </span><span class="annot"><span class="annottext">StrictTVar IO TimedResolver
+</span><a href="#local-6989586621679223153"><span class="hs-identifier hs-var">resourceVar</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-245"></span><span>          </span><span class="annot"><span class="annottext">IO
+  (Either (DNSorIOError IOException) Resolver,
+   Resource IO (DNSorIOError IOException) Resolver)
+-&gt; [Handler
+      IO
+      (Either (DNSorIOError IOException) Resolver,
+       Resource IO (DNSorIOError IOException) Resolver)]
+-&gt; IO
+     (Either (DNSorIOError IOException) Resolver,
+      Resource IO (DNSorIOError IOException) Resolver)
+forall (m :: * -&gt; *) a. MonadCatch m =&gt; m a -&gt; [Handler m a] -&gt; m a
+</span><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/io-classes-0.2.0.0/noopt/doc/html/io-classes/src"><span class="hs-operator hs-var">`catches`</span></a></span><span> </span><span class="annot"><span class="annottext">String
+-&gt; StrictTVar IO TimedResolver
+-&gt; [Handler
+      IO
+      (Either (DNSorIOError IOException) Resolver,
+       Resource IO (DNSorIOError IOException) Resolver)]
+</span><a href="#local-6989586621679223159"><span class="hs-identifier hs-var">handlers</span></a></span><span> </span><span class="annot"><span class="annottext">String
+</span><a href="#local-6989586621679223154"><span class="hs-identifier hs-var">filePath</span></a></span><span> </span><span class="annot"><span class="annottext">StrictTVar IO TimedResolver
+</span><a href="#local-6989586621679223153"><span class="hs-identifier hs-var">resourceVar</span></a></span><span class="hs-cpp">
+#else
+</span><span class="hs-identifier">asyncResolverResource</span><span> </span><span class="hs-identifier">resolvConf</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-identifier">return</span><span> </span><span class="hs-identifier">go</span><span>
+</span><span id="line-248"></span><span>    </span><span class="hs-keyword">where</span><span>
+</span><span id="line-249"></span><span>      </span><span class="hs-identifier">go</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-identifier">Resource</span><span> </span><span class="hs-operator">$</span><span>
+</span><span id="line-250"></span><span>        </span><span class="hs-keyword">do</span><span>
+</span><span id="line-251"></span><span>          </span><span class="hs-identifier">rs</span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="hs-identifier">DNS.makeResolvSeed</span><span> </span><span class="hs-identifier">resolvConf</span><span>
+</span><span id="line-252"></span><span>          </span><span class="hs-identifier">DNS.withResolver</span><span> </span><span class="hs-identifier">rs</span><span> </span><span class="hs-operator">$</span><span> </span><span class="hs-glyph">\</span><span class="hs-identifier">resolver</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier">pure</span><span> </span><span class="hs-special">(</span><span class="hs-identifier">Right</span><span> </span><span class="hs-identifier">resolver</span><span class="hs-special">,</span><span> </span><span class="hs-identifier">go</span><span class="hs-special">)</span><span>
+</span><span id="line-253"></span><span>        </span><span class="hs-special">`</span><span class="hs-identifier">catches</span><span class="hs-special">`</span><span> </span><span class="hs-identifier">handlers</span><span>
+</span><span id="line-254"></span><span>
+</span><span id="line-255"></span><span>      </span><span class="hs-identifier">handlers</span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">[</span><span class="hs-identifier">Handler</span><span> </span><span class="hs-identifier">IO</span><span>
+</span><span id="line-256"></span><span>                    </span><span class="hs-special">(</span><span> </span><span class="hs-identifier">Either</span><span> </span><span class="hs-special">(</span><span class="hs-identifier">DNSorIOError</span><span> </span><span class="hs-identifier">IOException</span><span class="hs-special">)</span><span> </span><span class="hs-identifier">DNS.Resolver</span><span>
+</span><span id="line-257"></span><span>                    </span><span class="hs-special">,</span><span> </span><span class="hs-identifier">Resource</span><span> </span><span class="hs-identifier">IO</span><span> </span><span class="hs-special">(</span><span class="hs-identifier">DNSorIOError</span><span> </span><span class="hs-identifier">IOException</span><span class="hs-special">)</span><span> </span><span class="hs-identifier">DNS.Resolver</span><span class="hs-special">)</span><span class="hs-special">]</span><span>
+</span><span id="line-258"></span><span>      </span><span class="hs-identifier">handlers</span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-259"></span><span>        </span><span class="hs-special">[</span><span> </span><span class="hs-identifier">Handler</span><span> </span><span class="hs-operator">$</span><span>
+</span><span id="line-260"></span><span>            </span><span class="hs-glyph">\</span><span class="hs-special">(</span><span class="hs-identifier">err</span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier">IOException</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-261"></span><span>              </span><span class="hs-identifier">pure</span><span> </span><span class="hs-special">(</span><span class="hs-identifier">Left</span><span> </span><span class="hs-special">(</span><span class="hs-identifier">IOError</span><span> </span><span class="hs-identifier">err</span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="hs-identifier">go</span><span class="hs-special">)</span><span>
+</span><span id="line-262"></span><span>        </span><span class="hs-special">,</span><span> </span><span class="hs-identifier">Handler</span><span> </span><span class="hs-operator">$</span><span>
+</span><span id="line-263"></span><span>            </span><span class="hs-glyph">\</span><span class="hs-special">(</span><span class="hs-identifier">err</span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier">DNS.DNSError</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-264"></span><span>              </span><span class="hs-identifier">pure</span><span> </span><span class="hs-special">(</span><span class="hs-identifier">Left</span><span> </span><span class="hs-special">(</span><span class="hs-identifier">DNSError</span><span> </span><span class="hs-identifier">err</span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="hs-identifier">go</span><span class="hs-special">)</span><span>
+</span><span id="line-265"></span><span>        </span><span class="hs-special">]</span><span class="hs-cpp">
+#endif
+</span><span>
+</span><span id="line-268"></span><span class="hs-comment">-- | Like 'DNS.lookupA' but also return the TTL for the results.</span><span>
+</span><span id="line-269"></span><span class="hs-comment">--</span><span>
+</span><span id="line-270"></span><span class="hs-comment">-- DNS library timeouts do not work reliably on Windows (#1873), hence the</span><span>
+</span><span id="line-271"></span><span class="hs-comment">-- additional timeout.</span><span>
+</span><span id="line-272"></span><span class="hs-comment">--</span><span>
+</span><span id="line-273"></span><span class="annot"><a href="Ouroboros.Network.PeerSelection.RootPeersDNS.DNSActions.html#lookupAWithTTL"><span class="hs-identifier hs-type">lookupAWithTTL</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">DNS.ResolvConf</span></span><span>
+</span><span id="line-274"></span><span>               </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">DNS.Resolver</span></span><span>
+</span><span id="line-275"></span><span>               </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">DNS.Domain</span></span><span>
+</span><span id="line-276"></span><span>               </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/ghc-prim-0.6.1/src"><span class="hs-identifier hs-type">IO</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-identifier hs-type">Either</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">DNS.DNSError</span></span><span> </span><span class="hs-special">[</span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">IPv4</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">DNS.TTL</span></span><span class="hs-special">)</span><span class="hs-special">]</span><span class="hs-special">)</span><span>
+</span><span id="line-277"></span><span id="lookupAWithTTL"><span class="annot"><span class="annottext">lookupAWithTTL :: ResolvConf
+-&gt; Resolver -&gt; Domain -&gt; IO (Either DNSError [(IPv4, TTL)])
+</span><a href="Ouroboros.Network.PeerSelection.RootPeersDNS.DNSActions.html#lookupAWithTTL"><span class="hs-identifier hs-var hs-var">lookupAWithTTL</span></a></span></span><span> </span><span id="local-6989586621679223139"><span class="annot"><span class="annottext">ResolvConf
+</span><a href="#local-6989586621679223139"><span class="hs-identifier hs-var">resolvConf</span></a></span></span><span> </span><span id="local-6989586621679223138"><span class="annot"><span class="annottext">Resolver
+</span><a href="#local-6989586621679223138"><span class="hs-identifier hs-var">resolver</span></a></span></span><span> </span><span id="local-6989586621679223137"><span class="annot"><span class="annottext">Domain
+</span><a href="#local-6989586621679223137"><span class="hs-identifier hs-var">domain</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-278"></span><span>    </span><span id="local-6989586621679223136"><span class="annot"><span class="annottext">Maybe (Either DNSError DNSMessage)
+</span><a href="#local-6989586621679223136"><span class="hs-identifier hs-var">reply</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">DiffTime
+-&gt; IO (Either DNSError DNSMessage)
+-&gt; IO (Maybe (Either DNSError DNSMessage))
+forall (m :: * -&gt; *) a.
+MonadTimer m =&gt;
+DiffTime -&gt; m a -&gt; m (Maybe a)
+</span><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/io-classes-0.2.0.0/noopt/doc/html/io-classes/src"><span class="hs-identifier hs-var">timeout</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; DiffTime
+</span><a href="../file:///home/runner/work/ouroboros-network/ouroboros-network/dist-newstyle/build/x86_64-linux/ghc-8.10.4/io-classes-0.2.0.0/noopt/doc/html/io-classes/src"><span class="hs-identifier hs-var">microsecondsAsIntToDiffTime</span></a></span><span>
+</span><span id="line-279"></span><span>                      </span><span class="annot"><span class="annottext">(Int -&gt; DiffTime) -&gt; Int -&gt; DiffTime
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-operator hs-var">$</span></a></span><span> </span><span class="annot"><span class="annottext">ResolvConf -&gt; Int
+</span><span class="hs-identifier hs-var hs-var">DNS.resolvTimeout</span></span><span> </span><span class="annot"><span class="annottext">ResolvConf
+</span><a href="#local-6989586621679223139"><span class="hs-identifier hs-var">resolvConf</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-280"></span><span>                    </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Resolver -&gt; Domain -&gt; TYPE -&gt; IO (Either DNSError DNSMessage)
+</span><span class="hs-identifier hs-var">DNS.lookupRaw</span></span><span> </span><span class="annot"><span class="annottext">Resolver
+</span><a href="#local-6989586621679223138"><span class="hs-identifier hs-var">resolver</span></a></span><span> </span><span class="annot"><span class="annottext">Domain
+</span><a href="#local-6989586621679223137"><span class="hs-identifier hs-var">domain</span></a></span><span> </span><span class="annot"><span class="annottext">TYPE
+</span><span class="hs-identifier hs-var">DNS.A</span></span><span class="hs-special">)</span><span>
+</span><span id="line-281"></span><span>    </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">Maybe (Either DNSError DNSMessage)
+</span><a href="#local-6989586621679223136"><span class="hs-identifier hs-var">reply</span></a></span><span> </span><span class="hs-keyword">of</span><span>
+</span><span id="line-282"></span><span>      </span><span class="annot"><span class="annottext">Maybe (Either DNSError DNSMessage)
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-identifier hs-var">Nothing</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Either DNSError [(IPv4, TTL)] -&gt; IO (Either DNSError [(IPv4, TTL)])
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-identifier hs-var">return</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">DNSError -&gt; Either DNSError [(IPv4, TTL)]
+forall a b. a -&gt; Either a b
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-identifier hs-var">Left</span></a></span><span> </span><span class="annot"><span class="annottext">DNSError
+</span><span class="hs-identifier hs-var">DNS.TimeoutExpired</span></span><span class="hs-special">)</span><span>
+</span><span id="line-283"></span><span>      </span><span class="annot"><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-identifier hs-type">Just</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-identifier hs-type">Left</span></a></span><span>  </span><span id="local-6989586621679223129"><span class="annot"><span class="annottext">DNSError
+</span><a href="#local-6989586621679223129"><span class="hs-identifier hs-var">err</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Either DNSError [(IPv4, TTL)] -&gt; IO (Either DNSError [(IPv4, TTL)])
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-identifier hs-var">return</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">DNSError -&gt; Either DNSError [(IPv4, TTL)]
+forall a b. a -&gt; Either a b
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-identifier hs-var">Left</span></a></span><span> </span><span class="annot"><span class="annottext">DNSError
+</span><a href="#local-6989586621679223129"><span class="hs-identifier hs-var">err</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-284"></span><span>      </span><span class="annot"><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-identifier hs-type">Just</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-identifier hs-type">Right</span></a></span><span> </span><span id="local-6989586621679223128"><span class="annot"><span class="annottext">DNSMessage
+</span><a href="#local-6989586621679223128"><span class="hs-identifier hs-var">ans</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Either DNSError [(IPv4, TTL)] -&gt; IO (Either DNSError [(IPv4, TTL)])
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-identifier hs-var">return</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">DNSMessage
+-&gt; (DNSMessage -&gt; [(IPv4, TTL)]) -&gt; Either DNSError [(IPv4, TTL)]
+forall a. DNSMessage -&gt; (DNSMessage -&gt; a) -&gt; Either DNSError a
+</span><span class="hs-identifier hs-var">DNS.fromDNSMessage</span></span><span> </span><span class="annot"><span class="annottext">DNSMessage
+</span><a href="#local-6989586621679223128"><span class="hs-identifier hs-var">ans</span></a></span><span> </span><span class="annot"><span class="annottext">DNSMessage -&gt; [(IPv4, TTL)]
+</span><a href="#local-6989586621679223126"><span class="hs-identifier hs-var">selectA</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-285"></span><span>      </span><span class="hs-comment">--TODO: we can get the SOA TTL on NXDOMAIN here if we want to</span><span>
+</span><span id="line-286"></span><span>  </span><span class="hs-keyword">where</span><span>
+</span><span id="line-287"></span><span>    </span><span id="local-6989586621679223126"><span class="annot"><span class="annottext">selectA :: DNSMessage -&gt; [(IPv4, TTL)]
+</span><a href="#local-6989586621679223126"><span class="hs-identifier hs-var hs-var">selectA</span></a></span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">DNS.DNSMessage</span></span><span> </span><span class="hs-special">{</span><span> </span><span id="local-6989586621679223124"><span class="annot"><span class="annottext">[ResourceRecord]
+answer :: DNSMessage -&gt; [ResourceRecord]
+answer :: [ResourceRecord]
+</span><span class="hs-identifier hs-var hs-var">DNS.answer</span></span></span><span> </span><span class="hs-special">}</span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-288"></span><span>      </span><span class="hs-special">[</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">IPv4
+</span><a href="#local-6989586621679223122"><span class="hs-identifier hs-var">addr</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">TTL
+</span><a href="#local-6989586621679223121"><span class="hs-identifier hs-var">ttl</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-289"></span><span>      </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="hs-identifier hs-type">DNS.ResourceRecord</span></span><span> </span><span class="hs-special">{</span><span>
+</span><span id="line-290"></span><span>          </span><span class="annot"><span class="annottext">rdata :: ResourceRecord -&gt; RData
+</span><span class="hs-identifier hs-var">DNS.rdata</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="hs-identifier hs-type">DNS.RD_A</span></span><span> </span><span id="local-6989586621679223122"><span class="annot"><span class="annottext">IPv4
+</span><a href="#local-6989586621679223122"><span class="hs-identifier hs-var">addr</span></a></span></span><span class="hs-special">,</span><span>
+</span><span id="line-291"></span><span>          </span><span class="annot"><span class="annottext">rrttl :: ResourceRecord -&gt; TTL
+</span><span class="hs-identifier hs-var">DNS.rrttl</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="local-6989586621679223121"><span class="annot"><span class="annottext">TTL
+</span><a href="#local-6989586621679223121"><span class="hs-identifier hs-var">ttl</span></a></span></span><span>
+</span><span id="line-292"></span><span>        </span><span class="hs-special">}</span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">[ResourceRecord]
+</span><a href="#local-6989586621679223124"><span class="hs-identifier hs-var">answer</span></a></span><span>
+</span><span id="line-293"></span><span>      </span><span class="hs-special">]</span><span>
+</span><span id="line-294"></span><span>
+</span><span id="line-295"></span><span class="hs-comment">-- | Bundle of DNS Actions that runs in IO</span><span>
+</span><span id="line-296"></span><span class="hs-comment">--</span><span>
+</span><span id="line-297"></span><span class="annot"><a href="Ouroboros.Network.PeerSelection.RootPeersDNS.DNSActions.html#ioDNSActions"><span class="hs-identifier hs-type">ioDNSActions</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Ouroboros.Network.PeerSelection.RootPeersDNS.DNSActions.html#DNSActions"><span class="hs-identifier hs-type">DNSActions</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">DNS.Resolver</span></span><span> </span><span class="annot"><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/base-4.14.1.0/src"><span class="hs-identifier hs-type">IOException</span></a></span><span> </span><span class="annot"><a href="../file:///home/runner/.ghcup/ghc/8.10.4/share/doc/ghc-8.10.4/html/libraries/ghc-prim-0.6.1/src"><span class="hs-identifier hs-type">IO</span></a></span><span>
+</span><span id="line-298"></span><span id="ioDNSActions"><span class="annot"><span class="annottext">ioDNSActions :: DNSActions Resolver IOException IO
+</span><a href="Ouroboros.Network.PeerSelection.RootPeersDNS.DNSActions.html#ioDNSActions"><span class="hs-identifier hs-var hs-var">ioDNSActions</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">DNSActions :: forall resolver exception (m :: * -&gt; *).
+(ResolvConf -&gt; m (Resource m (DNSorIOError exception) resolver))
+-&gt; (ResolvConf -&gt; m (Resource m (DNSorIOError exception) resolver))
+-&gt; (ResolvConf
+    -&gt; resolver -&gt; Domain -&gt; m (Either DNSError [(IPv4, TTL)]))
+-&gt; DNSActions resolver exception m
+</span><a href="Ouroboros.Network.PeerSelection.RootPeersDNS.DNSActions.html#DNSActions"><span class="hs-identifier hs-type">DNSActions</span></a></span><span> </span><span class="hs-special">{</span><span>
+</span><span id="line-299"></span><span>    </span><span class="annot"><span class="annottext">dnsResolverResource :: ResolvConf -&gt; IO (Resource IO (DNSorIOError IOException) Resolver)
+</span><a href="Ouroboros.Network.PeerSelection.RootPeersDNS.DNSActions.html#dnsResolverResource"><span class="hs-identifier hs-var">dnsResolverResource</span></a></span><span>      </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">ResolvConf -&gt; IO (Resource IO (DNSorIOError IOException) Resolver)
+</span><a href="Ouroboros.Network.PeerSelection.RootPeersDNS.DNSActions.html#resolverResource"><span class="hs-identifier hs-var">resolverResource</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-300"></span><span>    </span><span class="annot"><span class="annottext">dnsAsyncResolverResource :: ResolvConf -&gt; IO (Resource IO (DNSorIOError IOException) Resolver)
+</span><a href="Ouroboros.Network.PeerSelection.RootPeersDNS.DNSActions.html#dnsAsyncResolverResource"><span class="hs-identifier hs-var">dnsAsyncResolverResource</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">ResolvConf -&gt; IO (Resource IO (DNSorIOError IOException) Resolver)
+</span><a href="Ouroboros.Network.PeerSelection.RootPeersDNS.DNSActions.html#asyncResolverResource"><span class="hs-identifier hs-var">asyncResolverResource</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-301"></span><span>    </span><span class="annot"><span class="annottext">dnsLookupAWithTTL :: ResolvConf
+-&gt; Resolver -&gt; Domain -&gt; IO (Either DNSError [(IPv4, TTL)])
+</span><a href="Ouroboros.Network.PeerSelection.RootPeersDNS.DNSActions.html#dnsLookupAWithTTL"><span class="hs-identifier hs-var">dnsLookupAWithTTL</span></a></span><span>        </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">ResolvConf
+-&gt; Resolver -&gt; Domain -&gt; IO (Either DNSError [(IPv4, TTL)])
+</span><a href="Ouroboros.Network.PeerSelection.RootPeersDNS.DNSActions.html#lookupAWithTTL"><span class="hs-identifier hs-var">lookupAWithTTL</span></a></span><span>
+</span><span id="line-302"></span><span>  </span><span class="hs-special">}</span><span>
+</span><span id="line-303"></span><span>
+</span><span id="line-304"></span></pre></body></html>
