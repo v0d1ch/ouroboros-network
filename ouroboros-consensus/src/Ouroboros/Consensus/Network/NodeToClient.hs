@@ -1,5 +1,6 @@
 {-# LANGUAGE DataKinds             #-}
 {-# LANGUAGE FlexibleContexts      #-}
+{-# LANGUAGE GADTs                 #-}
 {-# LANGUAGE NamedFieldPuns        #-}
 {-# LANGUAGE QuantifiedConstraints #-}
 {-# LANGUAGE RecordWildCards       #-}
@@ -197,8 +198,8 @@ defaultCodecs ccfg version networkVersion = Codecs {
           (networkVersion >= NodeToClientV_8)
           (encodePoint (encodeRawHash p))
           (decodePoint (decodeRawHash p))
-          (queryEncodeNodeToClient ccfg queryVersion version . SomeSecond)
-          ((\(SomeSecond qry) -> Some qry) <$> queryDecodeNodeToClient ccfg queryVersion version)
+          (queryEncodeNodeToClient ccfg queryVersion version . SomeQuery)
+          (queryDecodeNodeToClient ccfg queryVersion version)
           (encodeResult ccfg version)
           (decodeResult ccfg version)
     }
@@ -251,8 +252,8 @@ clientCodecs ccfg version networkVersion = Codecs {
           (networkVersion >= NodeToClientV_8)
           (encodePoint (encodeRawHash p))
           (decodePoint (decodeRawHash p))
-          (queryEncodeNodeToClient ccfg queryVersion version . SomeSecond)
-          ((\(SomeSecond qry) -> Some qry) <$> queryDecodeNodeToClient ccfg queryVersion version)
+          (queryEncodeNodeToClient ccfg queryVersion version . SomeQuery)
+          (queryDecodeNodeToClient ccfg queryVersion version)
           (encodeResult ccfg version)
           (decodeResult ccfg version)
     }
@@ -278,7 +279,9 @@ identityCodecs :: (Monad m, QueryLedger blk)
 identityCodecs = Codecs {
       cChainSyncCodec    = codecChainSyncId
     , cTxSubmissionCodec = codecLocalTxSubmissionId
-    , cStateQueryCodec   = codecLocalStateQueryId sameDepIndex
+    , cStateQueryCodec   =
+        codecLocalStateQueryId
+          (\l r -> (\Refl -> (Refl, Refl)) <$> eqQuery l r)
     }
 
 {-------------------------------------------------------------------------------

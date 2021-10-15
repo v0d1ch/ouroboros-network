@@ -1,4 +1,5 @@
-{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE FlexibleContexts      #-}
+{-# LANGUAGE QuantifiedConstraints #-}
 
 -- | Infrastructure required to run a node
 --
@@ -72,8 +73,9 @@ class ( Typeable blk
       , SerialiseNodeToClient blk (Serialised blk)
       , SerialiseNodeToClient blk (GenTx blk)
       , SerialiseNodeToClient blk (ApplyTxErr blk)
-      , SerialiseNodeToClient blk (SomeSecond BlockQuery blk)
+      , SerialiseNodeToClient blk (SomeQuery (BlockQuery blk))
       , SerialiseResult       blk (BlockQuery blk)
+      , forall fp result. Show (BlockQuery blk fp result)
       ) => SerialiseNodeToClientConstraints blk
 
 class ( LedgerSupportsProtocol           blk

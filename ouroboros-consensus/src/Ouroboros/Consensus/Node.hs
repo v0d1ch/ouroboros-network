@@ -1,3 +1,4 @@
+{-# LANGUAGE DataKinds           #-}
 {-# LANGUAGE LambdaCase          #-}
 {-# LANGUAGE MonadComprehensions #-}
 {-# LANGUAGE NamedFieldPuns      #-}
@@ -83,6 +84,7 @@ import           Ouroboros.Consensus.Fragment.InFuture (CheckInFuture,
                      ClockSkew)
 import qualified Ouroboros.Consensus.Fragment.InFuture as InFuture
 import           Ouroboros.Consensus.Ledger.Extended (ExtLedgerState (..))
+import           Ouroboros.Consensus.Ledger.Query (FootprintL (SmallL))
 import qualified Ouroboros.Consensus.Network.NodeToClient as NTC
 import qualified Ouroboros.Consensus.Network.NodeToNode as NTN
 import           Ouroboros.Consensus.Node.DbLock
@@ -456,7 +458,7 @@ openChainDB
   => ResourceRegistry m
   -> CheckInFuture m blk
   -> TopLevelConfig blk
-  -> ExtLedgerState blk
+  -> ExtLedgerState SmallL blk
      -- ^ Initial ledger
   -> ChainDbArgs Defaults m blk
   -> (ChainDbArgs Identity m blk -> ChainDbArgs Identity m blk)
@@ -476,7 +478,7 @@ mkChainDbArgs
   => ResourceRegistry m
   -> CheckInFuture m blk
   -> TopLevelConfig blk
-  -> ExtLedgerState blk
+  -> ExtLedgerState SmallL blk
      -- ^ Initial ledger
   -> ChunkInfo
   -> ChainDbArgs Defaults m blk
