@@ -126,6 +126,7 @@ mkHandlers NodeKernelArgs {cfg, tracers} NodeKernel {getChainDB, getMempool} =
       , hStateQueryServer =
           localStateQueryServer
             (ExtLedgerCfg cfg)
+            (error "NTC.DiskLedgerView")
             (ChainDB.getTipPoint getChainDB)
             (ChainDB.getPastLedger getChainDB)
             (castPoint . AF.anchorPoint <$> ChainDB.getCurrentChain getChainDB)
