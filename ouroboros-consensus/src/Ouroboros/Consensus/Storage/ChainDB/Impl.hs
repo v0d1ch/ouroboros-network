@@ -49,6 +49,7 @@ import           Ouroboros.Consensus.HardFork.Abstract
 import           Ouroboros.Consensus.Ledger.Inspect
 import           Ouroboros.Consensus.Ledger.SupportsProtocol
 import           Ouroboros.Consensus.Util (whenJust)
+import Ouroboros.Consensus.Util.ResourceRegistry (withRegistry, allocate)
 import           Ouroboros.Consensus.Util.IOLike
 import           Ouroboros.Consensus.Util.STM (Fingerprint (..),
                      WithFingerprint (..))
@@ -112,8 +113,9 @@ openDBInternal
   => ChainDbArgs Identity m blk
   -> Bool -- ^ 'True' = Launch background tasks
   -> m (ChainDB m blk, Internal m blk)
-openDBInternal args launchBgTasks = do
-    immutableDB <- ImmutableDB.openDB argsImmutableDb
+openDBInternal args launchBgTasks = withRegistry $ \rr -> do
+    immutableDB <- ImmutableDB.openDB rr argsImmutableDb
+
     immutableDbTipPoint <- atomically $ ImmutableDB.getTipPoint immutableDB
     let immutableDbTipChunk =
           chunkIndexOfPoint (Args.cdbChunkInfo args) immutableDbTipPoint
@@ -215,6 +217,8 @@ openDBInternal args launchBgTasks = do
       (castPoint $ AF.headPoint   chain)
 
     when launchBgTasks $ Background.launchBgTasks env replayed
+
+    _ <- allocate (Args.cdbRegistry args) (\_ -> return $ chainDB) API.closeDB
 
     return (chainDB, testing)
   where

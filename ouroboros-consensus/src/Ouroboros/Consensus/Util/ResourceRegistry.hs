@@ -43,6 +43,7 @@ module Ouroboros.Consensus.Util.ResourceRegistry (
   , allocateTemp
   , modifyWithTempRegistry
   , runWithTempRegistry
+  , runWithThisTempRegistry
     -- ** opaque
   , WithTempRegistry
     -- * Combinators primarily for testing
@@ -763,6 +764,41 @@ runWithTempRegistry m = withRegistry $ \rr -> do
         , tempRegistryResource = remainingResource
         }
     return a
+
+
+-- | Here the given resource registry should be closed on async exceptions
+-- outside the scope of this function. This allows sharing the same temporary
+-- registry across different instantiation of 'WithTempRegisty'.
+runWithThisTempRegistry
+  :: (IOLike m, HasCallStack)
+  => ResourceRegistry m
+  -> WithTempRegistry st m (a, st)
+  -> m a
+runWithThisTempRegistry rr m = do
+    varTransferredTo <- newTVarIO mempty
+    let tempRegistry = TempRegistry {
+            tempResourceRegistry = rr
+          , tempTransferredTo    = varTransferredTo
+          }
+    (a, st) <- runReaderT (unWithTempRegistry m) tempRegistry
+    -- We won't reach this point if an exception is thrown, so we won't check
+    -- for remaining resources in that case.
+    --
+    -- No need to mask here, whether we throw the async exception or
+    -- 'TempRegistryRemainingResource' doesn't matter.
+    transferredTo <- atomically $ readTVar varTransferredTo
+    untrackTransferredTo rr transferredTo st
+
+    context <- captureContext
+    remainingResources <- releaseAllHelper rr context release
+
+    whenJust (listToMaybe remainingResources) $ \remainingResource ->
+      throwIO $ TempRegistryRemainingResource {
+          tempRegistryContext  = registryContext rr
+        , tempRegistryResource = remainingResource
+        }
+    return a
+
 
 -- | When 'runWithTempRegistry' exits successfully while there are still
 -- resources remaining in the temporary registry that haven't been transferred

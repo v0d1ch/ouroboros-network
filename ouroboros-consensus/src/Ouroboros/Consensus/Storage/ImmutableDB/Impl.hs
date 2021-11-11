@@ -112,7 +112,7 @@ import           Ouroboros.Consensus.Util (SomePair (..))
 import           Ouroboros.Consensus.Util.Args
 import           Ouroboros.Consensus.Util.IOLike
 import           Ouroboros.Consensus.Util.ResourceRegistry (ResourceRegistry,
-                     runWithTempRegistry)
+                     runWithTempRegistry, runWithThisTempRegistry)
 
 import           Ouroboros.Consensus.Storage.Common
 import           Ouroboros.Consensus.Storage.FS.API
@@ -219,9 +219,10 @@ openDB ::
      , ImmutableDbSerialiseConstraints blk
      , HasCallStack
      )
-  => ImmutableDbArgs Identity m blk
+  => ResourceRegistry m
+  -> ImmutableDbArgs Identity m blk
   -> m (ImmutableDB m blk)
-openDB args = fst <$> openDBInternal args
+openDB rr args = fst <$> openDBInternal rr args
 
 -- | For testing purposes: exposes internals via 'Internal'
 --
@@ -234,9 +235,10 @@ openDBInternal ::
      , ImmutableDbSerialiseConstraints blk
      , HasCallStack
      )
-  => ImmutableDbArgs Identity m blk
+  => ResourceRegistry m
+  -> ImmutableDbArgs Identity m blk
   -> m (ImmutableDB m blk, Internal m blk)
-openDBInternal ImmutableDbArgs { immHasFS = SomeHasFS hasFS, .. } = runWithTempRegistry $ do
+openDBInternal rr ImmutableDbArgs { immHasFS = SomeHasFS hasFS, .. } = runWithThisTempRegistry rr $ do
     lift $ createDirectoryIfMissing hasFS True (mkFsPath [])
     let validateEnv = ValidateEnv {
             hasFS          = hasFS
