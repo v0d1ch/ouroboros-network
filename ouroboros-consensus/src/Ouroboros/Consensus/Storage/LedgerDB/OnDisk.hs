@@ -21,6 +21,7 @@ module Ouroboros.Consensus.Storage.LedgerDB.OnDisk (
     -- ** Instantiate in-memory to @blk@
   , AnnLedgerError'
   , LedgerDB'
+  , LedgerDb'AsLedger
     -- ** Abstraction over the stream API
   , NextBlock (..)
   , StreamAPI (..)
@@ -76,6 +77,9 @@ import           Ouroboros.Consensus.Storage.LedgerDB.InMemory
 -------------------------------------------------------------------------------}
 
 type LedgerDB'       blk = LedgerDB       (ExtLedgerState EmptyMK blk)
+
+type LedgerDb'AsLedger blk = LedgerDbAsLedger (ExtLedgerState EmptyMK blk)
+
 type AnnLedgerError' blk = AnnLedgerError (ExtLedgerState EmptyMK blk) blk
 
 {-------------------------------------------------------------------------------
