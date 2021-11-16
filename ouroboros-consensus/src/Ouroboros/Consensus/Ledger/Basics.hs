@@ -240,7 +240,7 @@ instance (Ord k, Eq v) => Eq (ApplyMapKind mk k v) where
   ApplyTrackingMK == _               = True
   ApplyDiffMK     == _               = True
 
-instance Ord k => NoThunks (ApplyMapKind mk k v) where
+instance (Ord k, NoThunks k, NoThunks v) => NoThunks (ApplyMapKind mk k v) where
   wNoThunks    = error "wNoThunks @ApplyMapKind"
   showTypeOf _ = "ApplyMapKind"
 
