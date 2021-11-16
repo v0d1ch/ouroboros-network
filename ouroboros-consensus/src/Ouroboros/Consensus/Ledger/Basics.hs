@@ -200,11 +200,7 @@ class ( -- Requirements on the ledger state itself
 -- This can't be in IsLedger because we have a compositional IsLedger instance
 -- for LedgerState HardForkBlock but we will not (at least ast first) have a
 -- compositional LedgerTables instance for HardForkBlock.
-class ( ShowLedgerState (LedgerTables l)
-      , forall mk. ( Typeable mk
-                   , forall k v. (NoThunks k, NoThunks v) => NoThunks (ApplyMapKind mk k v)
-                   ) => NoThunks (LedgerTables l mk)
-      ) => TableStuff (l :: LedgerStateKind) where
+class ShowLedgerState (LedgerTables l) => TableStuff (l :: LedgerStateKind) where
 
   data family LedgerTables l :: LedgerStateKind
 
@@ -245,8 +241,8 @@ instance (Ord k, Eq v) => Eq (ApplyMapKind mk k v) where
   ApplyDiffMK     == _               = True
 
 instance Ord k => NoThunks (ApplyMapKind mk k v) where
-  wNoThunks  = error "wNoThunks @ApplyMapKind"
-  showTypeOf = error "showTypeOf @ApplyMapKind"
+  wNoThunks    = error "wNoThunks @ApplyMapKind"
+  showTypeOf _ = "ApplyMapKind"
 
   -- TODO methods
 
