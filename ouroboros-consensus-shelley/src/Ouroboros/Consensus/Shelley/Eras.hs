@@ -144,6 +144,8 @@ class ( SL.ShelleyBasedEra era
 
       , ToCBOR (Core.Witnesses era)
 
+      , Eq (Core.TxOut era)
+
       ) => ShelleyBasedEra era where
 
   -- | Return the name of the Shelley-based era, e.g., @"Shelley"@, @"Allegra"@,
