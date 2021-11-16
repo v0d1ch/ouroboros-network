@@ -36,6 +36,7 @@ module Ouroboros.Consensus.Byron.Ledger.Ledger (
     -- * Type family instances
   , BlockQuery (..)
   , LedgerState (..)
+  , LedgerTables (..)
   , Ticked1 (..)
     -- * Auxiliary
   , validationErrorImpossible
