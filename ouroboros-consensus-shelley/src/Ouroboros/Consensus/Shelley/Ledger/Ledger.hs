@@ -229,11 +229,12 @@ instance ShelleyBasedEra era => TableStuff (LedgerState (ShelleyBlock era)) wher
   newtype LedgerTables (LedgerState (ShelleyBlock era)) mk = ShelleyLedgerTables {
         shelleyUTxOTable :: ApplyMapKind mk (SL.TxIn (EraCrypto era)) (Core.TxOut era)
       }
-    deriving (Generic, NoThunks)
+    deriving (Generic)
 
   -- TODO methods
 
-deriving instance ShelleyBasedEra era => Eq (LedgerTables (LedgerState (ShelleyBlock era)) mk)
+deriving instance ShelleyBasedEra era => Eq       (LedgerTables (LedgerState (ShelleyBlock era)) mk)
+deriving instance ShelleyBasedEra era => NoThunks (LedgerTables (LedgerState (ShelleyBlock era)) mk)
 
 instance ShelleyBasedEra era => ShowLedgerState (LedgerTables (LedgerState (ShelleyBlock era))) where
   showsLedgerState = error "showsLedgerState @LedgerTables ShelleyBlock"

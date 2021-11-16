@@ -144,7 +144,8 @@ class ( SL.ShelleyBasedEra era
 
       , ToCBOR (Core.Witnesses era)
 
-      , Eq (Core.TxOut era)
+      , Eq       (Core.TxOut era)
+      , NoThunks (Core.TxOut era)
 
       ) => ShelleyBasedEra era where
 
