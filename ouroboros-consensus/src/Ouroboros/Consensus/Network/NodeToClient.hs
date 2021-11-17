@@ -78,6 +78,7 @@ import           Ouroboros.Consensus.Node.Run
 import           Ouroboros.Consensus.Node.Serialisation
 import qualified Ouroboros.Consensus.Node.Tracers as Node
 import           Ouroboros.Consensus.NodeKernel
+import           Ouroboros.Consensus.Storage.LedgerDB.InMemory (ledgerDbPrefix)
 import           Ouroboros.Consensus.Util (ShowProxy)
 import           Ouroboros.Consensus.Util.IOLike
 import           Ouroboros.Consensus.Util.Orphans ()
@@ -127,7 +128,7 @@ mkHandlers NodeKernelArgs {cfg, tracers} NodeKernel {getChainDB, getMempool} =
           localStateQueryServer
             (ExtLedgerCfg cfg)
             (ChainDB.getTipPoint getChainDB)
-            (\pt -> error "splitLedgerDB" pt <$> ChainDB.getLedgerDB getChainDB)
+            (\pt -> ledgerDbPrefix pt <$> ChainDB.getLedgerDB getChainDB)
             (castPoint . AF.anchorPoint <$> ChainDB.getCurrentChain getChainDB)
       }
 
