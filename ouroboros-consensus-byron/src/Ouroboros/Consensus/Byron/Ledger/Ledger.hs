@@ -187,7 +187,7 @@ instance ShowLedgerState (LedgerState ByronBlock) where
   showsLedgerState _sing = shows
 
 instance TableStuff (LedgerState ByronBlock) where
-  data LedgerTables (LedgerState ByronBlock) mk = NoByronLedgerTables
+  newtype LedgerTables (LedgerState ByronBlock) mk = NoByronLedgerTables (SMapKind mk)
     deriving (Generic, Eq, Show, NoThunks)
 
   -- TODO methods
@@ -196,7 +196,7 @@ instance ShowLedgerState (LedgerTables (LedgerState ByronBlock)) where
   showsLedgerState _sing = shows
 
 instance TableStuff (Ticked1 (LedgerState ByronBlock)) where
-  data LedgerTables (Ticked1 (LedgerState ByronBlock)) mk = TickedNoByronLedgerTables
+  newtype LedgerTables (Ticked1 (LedgerState ByronBlock)) mk = TickedNoByronLedgerTables (SMapKind mk)
     deriving (Generic, Eq, Show, NoThunks)
 
   -- TODO methods
