@@ -40,6 +40,8 @@ module Network.TypedProtocol.Proofs (
   pipelineInterleaving,
   ) where
 
+import Control.Monad.Class.MonadSTM
+
 import Network.TypedProtocol.Core
 import Network.TypedProtocol.Peer
 import Data.Function ((&))
@@ -224,7 +226,7 @@ snocTrQ tr EmptyQ =
 --
 forgetPipelined
     :: forall ps (pr :: PeerRole) (pl :: Pipelined) (initSt :: ps) m a.
-       Functor m
+       MonadSTM m
     => [Bool]
     -- ^ interleaving choices for pipelining allowed by
     -- `Collect` primitive. False values or `[]` give no
@@ -260,6 +262,13 @@ forgetPipelined cs0 = go cs0 EmptyQ
     go []     (ConsTrQ STr pq) (Collect stok _ k) =
        Await stok $ go [] (ConsTrQ STr pq) . k
 
+    go (True:cs')    pq (CollectSTM _ stmK _) =
+      Effect $ go cs' pq <$> atomically stmK
+    go (_:cs) (ConsTrQ STr pq) (CollectSTM stok _ k) =
+       Await stok $ go cs (ConsTrQ STr pq) . k
+    go []     (ConsTrQ STr pq) (CollectSTM stok _ k) =
+      Await stok $ go [] (ConsTrQ STr pq) . k
+
     go cs (ConsTrQ _ pq) (CollectDone k) =
        go cs pq k
 
@@ -279,7 +288,7 @@ connect
                (pl :: Pipelined)
                (pl' :: Pipelined)
                (st :: ps) m a b.
-       (Monad m, SingI pr)
+       (MonadSTM m, SingI pr)
     => [Bool]
     -> [Bool]
     -> Peer ps             pr  pl  Empty st m a

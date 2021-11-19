@@ -7,6 +7,8 @@
 {-# LANGUAGE StandaloneDeriving       #-}
 {-# LANGUAGE StandaloneKindSignatures #-}
 {-# LANGUAGE TypeOperators            #-}
+-- TODO: the 'Functor' instance of 'Peer' is undecidable
+{-# LANGUAGE UndecidableInstances     #-}
 
 -- | Protocol EDSL.
 --
@@ -19,6 +21,8 @@ module Network.TypedProtocol.Peer
 
 import Data.Singletons
 import Data.Kind (Type)
+
+import Control.Monad.Class.MonadSTM
 
 import Network.TypedProtocol.Core as Core
 
@@ -212,5 +216,29 @@ data Peer ps pr pl q st m a where
     -- ^ continuation
     -> Peer ps pr 'Pipelined (Tr st st <| q) st' m a
 
+  -- TODO: Collect can be exrepssed as 'CollectSTM'
+  --
+  -- The 'Peer' driver will race two transactions, the peer continuation versus
+  -- next message.
+  --
+  -- Note: the driver, or interpreter if you wish, will build the stm
+  -- transaction.  This allows us to cleanly handle the thread which is
+  -- responsible for 
+  --
+  CollectSTM
+    :: forall ps pr st' st'' q st m a.
+       SingI (PeerHasAgency st')
+    => (ReflRelativeAgency (StateAgency st')
+                            TheyHaveAgency
+                           (Relative pr (StateAgency st')))
+    -- ^ agency singleton
+    -> STM m (Peer ps pr 'Pipelined (Tr st' st'' <| q) st m a)
+    -- ^ continuation, which is executed if it wins the race with the next
+    -- message.
+    -> (forall stNext. Message ps st' stNext
+        -> Peer ps pr 'Pipelined (Tr stNext st'' <| q) st m a)
+    -- ^ continuation
+    -> Peer     ps pr 'Pipelined (Tr st'    st'' <| q) st m a
 
-deriving instance Functor m => Functor (Peer ps (pr :: PeerRole) pl q (st :: ps) m)
+
+deriving instance (Functor m, Functor (STM m)) => Functor (Peer ps (pr :: PeerRole) pl q (st :: ps) m)
