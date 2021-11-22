@@ -386,6 +386,7 @@ validate :: forall m blk. (IOLike m, LedgerSupportsProtocol blk, HasCallStack
          -> m (ValidateResult blk)
 validate LgrDB{..} ledgerDB blockCache numRollbacks = \hdrs -> do
     aps <- mkAps hdrs <$> atomically (readTVar varPrevApplied)
+    -- TODO: see if it makes sense to use a similar pattern for reading the ledger.
     res <- fmap rewrap $ LedgerDB.defaultResolveWithErrors resolveBlock $
              LedgerDB.ledgerDbSwitch
                (configLedgerDb cfg)

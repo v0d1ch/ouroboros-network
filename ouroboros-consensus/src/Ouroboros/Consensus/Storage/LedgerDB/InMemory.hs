@@ -279,8 +279,7 @@ data Ap :: (Type -> Type) -> LedgerStateKind -> Type -> Constraint -> Type where
 -- We take in the entire 'LedgerDB' because we record that as part of errors.
 applyBlock :: forall m c l blk
             . ( ApplyBlock l blk, TickedTableStuff l, Monad m, c
-               -- TODO: discuss this new constraint
-              , HasDiskDb m l)
+              , HasDiskDb m handle l) -- TODO: try putting these constraints in the 'Ap' data constructors.
            => LedgerCfg l
            -> DbHandle l
            -> Ap m l blk c
@@ -337,8 +336,11 @@ applyBlock cfg dbhandle ap db = case ap of
           -- for that block. So does it still make sense to have a __fallback__
           -- rewind;read;forward sequence in 'applyBlock'?
           --
-          -- TODO: Douglas: discuss this with him.
           error "TODO: handle this case appropriately."
+          -- TODO: right way to handle seems to be:
+          --
+          -- > re-issue rewind;read;fw
+          --
         Just rs ->
           f $ withLedgerTables (ledgerDbCurrent db)  rs
 
@@ -368,7 +370,7 @@ forwardTableKeySets = undefined
 
 extendDbChangelog
   :: WithOrigin SlotNo
-    -- ^ TODO: Douglas/Nick: is it ok to use this as SeqNo?
+    -- TODO: use SeqNo and delegate WithOrigin SlotNo to SeqNo transformation to the instances of HasSeqNo class.
   -> l DiffMK
   -> Maybe (l SnapshotsMK)
   -> DbChangelog l
@@ -385,33 +387,15 @@ data DbHandle (l :: LedgerStateKind)
 -- matter which ledger state is stored on disk?
 instance NoThunks (DbHandle l)
 
+-- | The type of the handle will determinen the schema of the ledger state
+-- that's stored on disk.
+class HasDiskDb handle l m | handle -> l where
 
-class -- TODO: do we need this constraint?
-      --
-      --   IOLike m =>
-      --
-      -- If we do thinks get complicated since we'll need a IOLike instance for
-      -- (ReaderT r m), which will force us to propagate the
-      --
-      -- forall a . NoThunks
-      --                  (Control.Monad.Class.MonadSTM.Strict.StrictTVar (ReaderT r m) a)
-      -- , forall a . NoThunks
-      --                  (Ouroboros.Consensus.Util.MonadSTM.StrictMVar.StrictMVar
-      --                     (ReaderT r m) a)
-      --
-      -- everywhere. And I'm not even sure we can satisfy such constraint. A
-      -- Reader monad is basically a function!
-   HasDiskDb m l where
+  readDb :: handle -> RewoundTableKeySets l -> m (UnforwardedReadSets l)
 
-  readDb :: DbHandle l -> RewoundTableKeySets l -> m (UnforwardedReadSets l)
+instance ( HasDiskDb m l) => HasDiskDb (ReaderT r m) l
 
-instance ( HasDiskDb m l
---         , IOLike  (ReaderT r m)
-         ) => HasDiskDb (ReaderT r m) l
-
-instance (HasDiskDb m l
---          , IOLike (ExceptT e m)
-         ) => HasDiskDb (ExceptT e m) l
+instance (HasDiskDb m l) => HasDiskDb (ExceptT e m) l
 
 
 -- Adding this orphan instance here till I confirm that it'd make sense to add
@@ -645,6 +629,8 @@ pureBlock = ReapplyVal
 -- guess is that this won't be a problem as long as the clients of these
 -- functions keep the ledger state in memory (which should be OK for certain
 -- tests).
+--
+-- This should be solved if we use the same pattern as with ResolvesBlocks.
 ledgerDbPush' :: (ApplyBlock l blk, TickedTableStuff l, HasDiskDb Identity l)
               => LedgerDbCfg l -> DbHandle l -> blk -> LedgerDB l -> LedgerDB l
 ledgerDbPush' cfg dbhandle b = runIdentity . ledgerDbPush cfg dbhandle (pureBlock b)
