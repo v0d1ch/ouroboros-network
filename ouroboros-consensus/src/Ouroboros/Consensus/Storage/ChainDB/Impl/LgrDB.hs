@@ -59,6 +59,7 @@ import qualified Data.Set as Set
 import           Data.Word (Word64)
 import           GHC.Generics (Generic)
 import           GHC.Stack (HasCallStack)
+import           Control.Monad.Trans.Class (lift)
 
 import           Ouroboros.Consensus.Block
 import           Ouroboros.Consensus.Config
@@ -94,16 +95,12 @@ import qualified Ouroboros.Consensus.Storage.ChainDB.Impl.BlockCache as BlockCac
 import           Ouroboros.Consensus.Storage.ImmutableDB (ImmutableDB)
 import qualified Ouroboros.Consensus.Storage.ImmutableDB as ImmutableDB
 import           Ouroboros.Consensus.Storage.Serialisation
-import qualified Cardano.Prelude as Control.Monad.Trans.Except
-import qualified Control.Monad.Reader as Control.Monad.Trans.Reader
 
 -- | Thin wrapper around the ledger database
 data LgrDB m blk = LgrDB {
       varDB          :: !(StrictTVar m (LedgerDB' blk))
       -- ^ INVARIANT: the tip of the 'LedgerDB' is always in sync with the tip
       -- of the current chain of the ChainDB.
-    , lgrDBDBHandle  :: !(LedgerDB.DbHandle (ExtLedgerState blk))
-      -- ^ TODO: consider changing this to lgrDbDbHandle (Camel case)
     , varPrevApplied :: !(StrictTVar m (Set (RealPoint blk)))
       -- ^ INVARIANT: this set contains only points that are in the
       -- VolatileDB.
@@ -116,7 +113,9 @@ data LgrDB m blk = LgrDB {
       -- When a garbage-collection is performed on the VolatileDB, the points
       -- of the blocks eligible for garbage-collection should be removed from
       -- this set.
-    , resolveBlock   :: !(RealPoint blk -> m blk)
+    , lgrDbReadDb    :: !(LedgerDB.ReadDb m (ExtLedgerState blk))
+      -- ^ Function used to read keys sets from the (on-disk) ledger database.
+    , resolveBlock   :: !(LedgerDB.ResolveBlock m blk) -- TODO: ~ (RealPoint blk -> m blk)
       -- ^ Read a block from disk
     , cfg            :: !(TopLevelConfig blk)
     , diskPolicy     :: !DiskPolicy
@@ -150,8 +149,6 @@ data LgrDbArgs f m blk = LgrDbArgs {
       lgrDiskPolicy     :: DiskPolicy
     , lgrGenesis        :: HKD f (m (ExtLedgerState blk EmptyMK))
     , lgrHasFS          :: SomeHasFS m
-    , lgrDBArgsDBHandle :: LedgerDB.DbHandle (ExtLedgerState blk)
-      -- ^ TODO: change this to Db ... Db (camel-case)
     , lgrTopLevelConfig :: HKD f (TopLevelConfig blk)
     , lgrTraceLedger    :: Tracer m (LedgerDB' blk)
     , lgrTracer         :: Tracer m (TraceEvent blk)
@@ -179,7 +176,6 @@ defaultArgs lgrHasFS diskPolicy = LgrDbArgs {
 openDB :: forall m blk.
           ( IOLike m
           , LedgerSupportsProtocol blk
-          , LedgerDB.HasDiskDb m (ExtLedgerState blk)
           , LgrDbSerialiseConstraints blk
           , InspectLedger blk
           , HasCallStack
@@ -196,13 +192,17 @@ openDB :: forall m blk.
        -- up to date with tip of the immutable DB. The corresponding ledger
        -- state can then be used as the starting point for chain selection in
        -- the ChainDB driver.
+       -> LedgerDB.ReadDb m (ExtLedgerState blk)
+       -- ^ Read the key sets from disk.
        -> (RealPoint blk -> m blk)
        -- ^ Read a block from disk
        --
        -- The block may be in the immutable DB or in the volatile DB; the ledger
        -- DB does not know where the boundary is at any given point.
+       --
+       -- TODO: should we replace this type with @ResolveBlock blk m@?
        -> m (LgrDB m blk, Word64)
-openDB args@LgrDbArgs { lgrHasFS = lgrHasFS@(SomeHasFS hasFS), .. } replayTracer immutableDB getBlock = do
+openDB args@LgrDbArgs { lgrHasFS = lgrHasFS@(SomeHasFS hasFS), .. } replayTracer immutableDB readDb getBlock = do
     createDirectoryIfMissing hasFS True (mkFsPath [])
     (db, replayed) <- initFromDisk args replayTracer immutableDB
     -- When initializing the ledger DB from disk we:
@@ -228,8 +228,8 @@ openDB args@LgrDbArgs { lgrHasFS = lgrHasFS@(SomeHasFS hasFS), .. } replayTracer
     return (
         LgrDB {
             varDB          = varDB
-          , lgrDBDBHandle  = lgrDBArgsDBHandle
           , varPrevApplied = varPrevApplied
+          , lgrDbReadDb    = readDb
           , resolveBlock   = getBlock
           , cfg            = lgrTopLevelConfig
           , diskPolicy     = lgrDiskPolicy
@@ -243,7 +243,6 @@ initFromDisk
   :: forall blk m.
      ( IOLike m
      , LedgerSupportsProtocol blk
-     , LedgerDB.HasDiskDb m (ExtLedgerState blk)
      , LgrDbSerialiseConstraints blk
      , InspectLedger blk
      , HasCallStack
@@ -263,7 +262,6 @@ initFromDisk LgrDbArgs { lgrHasFS = hasFS, .. }
         decodeExtLedgerState'
         decode
         (configLedgerDb lgrTopLevelConfig)
-        lgrDBArgsDBHandle
         lgrGenesis
         (streamAPI immutableDB)
     return (db, replayed)
@@ -279,14 +277,14 @@ initFromDisk LgrDbArgs { lgrHasFS = hasFS, .. }
 -- | For testing purposes
 mkLgrDB :: StrictTVar m (LedgerDB' blk)
         -> StrictTVar m (Set (RealPoint blk))
+        -> LedgerDB.ReadDb m (ExtLedgerState blk)
         -> (RealPoint blk -> m blk)
         -> LgrDbArgs Identity m blk
         -> LgrDB m blk
-mkLgrDB varDB varPrevApplied resolveBlock args = LgrDB {..}
+mkLgrDB varDB varPrevApplied lgrDbReadDb resolveBlock args = LgrDB {..}
   where
     LgrDbArgs {
-        lgrDBArgsDBHandle = lgrDBDBHandle
-      , lgrTopLevelConfig = cfg
+        lgrTopLevelConfig = cfg
       , lgrDiskPolicy     = diskPolicy
       , lgrHasFS          = hasFS
       , lgrTracer         = tracer
@@ -374,8 +372,7 @@ data ValidateResult blk =
   | ValidateLedgerError      (AnnLedgerError' blk)
   | ValidateExceededRollBack ExceededRollback
 
-validate :: forall m blk. (IOLike m, LedgerSupportsProtocol blk, HasCallStack
-                          , LedgerDB.HasDiskDb m (ExtLedgerState blk) )
+validate :: forall m blk. (IOLike m, LedgerSupportsProtocol blk, HasCallStack)
          => LgrDB m blk
          -> LedgerDB' blk
             -- ^ This is used as the starting point for validation, not the one
@@ -387,13 +384,14 @@ validate :: forall m blk. (IOLike m, LedgerSupportsProtocol blk, HasCallStack
 validate LgrDB{..} ledgerDB blockCache numRollbacks = \hdrs -> do
     aps <- mkAps hdrs <$> atomically (readTVar varPrevApplied)
     -- TODO: see if it makes sense to use a similar pattern for reading the ledger.
-    res <- fmap rewrap $ LedgerDB.defaultResolveWithErrors resolveBlock $
-             LedgerDB.ledgerDbSwitch
-               (configLedgerDb cfg)
-               lgrDBDBHandle
-               numRollbacks
-               aps
-               ledgerDB
+    res <- fmap rewrap $
+             LedgerDB.defaultReadDb lgrDbReadDb $
+             LedgerDB.defaultResolveWithErrors (LedgerDB.DbReader . lift . resolveBlock) $
+               LedgerDB.ledgerDbSwitch
+                 (configLedgerDb cfg)
+                 numRollbacks
+                 aps
+                 ledgerDB
     atomically $ modifyTVar varPrevApplied $
       addPoints (validBlockPoints res (map headerRealPoint hdrs))
     return res
@@ -408,13 +406,14 @@ validate LgrDB{..} ledgerDB blockCache numRollbacks = \hdrs -> do
           => [Header blk]
           -> Set (RealPoint blk)
           -> [Ap n l blk ( LedgerDB.ResolvesBlocks    n   blk
+                         , LedgerDB.HasDiskDb         n l
                          , LedgerDB.ThrowsLedgerError n l blk
                          )]
     mkAps hdrs prevApplied =
       [ case ( Set.member (headerRealPoint hdr) prevApplied
              , BlockCache.lookup (headerHash hdr) blockCache
              ) of
-          (False, Nothing)  ->          ApplyRef   (headerRealPoint hdr)
+          (False, Nothing)  -> Weaken $          ApplyRef   (headerRealPoint hdr)
           (True,  Nothing)  -> Weaken $ ReapplyRef (headerRealPoint hdr)
           (False, Just blk) -> Weaken $ ApplyVal   blk
           (True,  Just blk) -> Weaken $ ReapplyVal blk

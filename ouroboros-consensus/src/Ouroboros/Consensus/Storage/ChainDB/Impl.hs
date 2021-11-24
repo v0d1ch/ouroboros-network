@@ -108,7 +108,6 @@ openDBInternal
   :: forall m blk.
      ( IOLike m
      , LedgerSupportsProtocol blk
-     , LedgerDB.HasDiskDb m (ExtLedgerState blk)
      , InspectLedger blk
      , HasHardForkHistory blk
      , ConvertRawHash blk
@@ -135,6 +134,9 @@ openDBInternal args launchBgTasks = do
     (lgrDB, replayed) <- LgrDB.openDB argsLgrDb
                             lgrReplayTracer
                             immutableDB
+                            -- TODO: Here I need to pass a ReadDb value (function)
+                            -- (Snapshots.readDb (ledgerStateHandle args))
+                            undefined
                             (Query.getAnyKnownBlock immutableDB volatileDB)
     traceWith tracer $ TraceOpenEvent OpenedLgrDB
 

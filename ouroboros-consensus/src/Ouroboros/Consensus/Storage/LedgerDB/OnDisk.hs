@@ -65,7 +65,6 @@ import           Ouroboros.Consensus.Util.CBOR (ReadIncrementalErr,
                      readIncremental)
 import           Ouroboros.Consensus.Util.IOLike
 
-import           Ouroboros.Consensus.Storage.LedgerDB.InMemory (HasDiskDb, DbHandle)
 import           Ouroboros.Consensus.Storage.FS.API
 import           Ouroboros.Consensus.Storage.FS.API.Types
 
@@ -185,7 +184,6 @@ initLedgerDB ::
      forall m blk. (
          IOLike m
        , LedgerSupportsProtocol blk
-       , HasDiskDb m (ExtLedgerState blk)
        , InspectLedger blk
        , HasCallStack
        )
@@ -195,7 +193,6 @@ initLedgerDB ::
   -> (forall s. Decoder s (ExtLedgerState blk EmptyMK))
   -> (forall s. Decoder s (HeaderHash blk))
   -> LedgerDbCfg (ExtLedgerState blk)
-  -> DbHandle (ExtLedgerState blk)
   -> m (ExtLedgerState blk EmptyMK) -- ^ Genesis ledger state
   -> StreamAPI m blk
   -> m (InitLog blk, LedgerDB' blk, Word64)
@@ -205,7 +202,6 @@ initLedgerDB replayTracer
              decLedger
              decHash
              cfg
-             dbhandle
              getGenesisLedger
              streamAPI = do
     snapshots <- listSnapshots hasFS
@@ -218,7 +214,7 @@ initLedgerDB replayTracer
         -- We're out of snapshots. Start at genesis
         traceWith replayTracer $ ReplayFromGenesis ()
         initDb <- ledgerDbWithAnchor <$> getGenesisLedger
-        ml     <- runExceptT $ initStartingWith replayTracer cfg dbhandle streamAPI initDb
+        ml     <- runExceptT $ initStartingWith replayTracer cfg streamAPI initDb
         case ml of
           Left _  -> error "invariant violation: invalid current chain"
           Right (l, replayed) -> return (acc InitFromGenesis, l, replayed)
@@ -230,7 +226,6 @@ initLedgerDB replayTracer
                              decLedger
                              decHash
                              cfg
-                             dbhandle
                              streamAPI
                              s
         case ml of
@@ -271,7 +266,6 @@ initFromSnapshot ::
      forall m blk . (
          IOLike m
        , LedgerSupportsProtocol blk
-       , HasDiskDb m (ExtLedgerState blk)
        , InspectLedger blk
        , HasCallStack
        )
@@ -280,11 +274,10 @@ initFromSnapshot ::
   -> (forall s. Decoder s (ExtLedgerState blk EmptyMK))
   -> (forall s. Decoder s (HeaderHash blk))
   -> LedgerDbCfg (ExtLedgerState blk)
-  -> DbHandle (ExtLedgerState blk)
   -> StreamAPI m blk
   -> DiskSnapshot
   -> ExceptT (InitFailure blk) m (RealPoint blk, LedgerDB' blk, Word64)
-initFromSnapshot tracer hasFS decLedger decHash cfg dbhandle streamAPI ss = do
+initFromSnapshot tracer hasFS decLedger decHash cfg streamAPI ss = do
     initSS <- withExceptT InitFailureRead $
                 readSnapshot hasFS decLedger decHash ss
     case pointToWithOriginRealPoint (castPoint (getTip initSS)) of
@@ -295,7 +288,6 @@ initFromSnapshot tracer hasFS decLedger decHash cfg dbhandle streamAPI ss = do
           initStartingWith
             tracer
             cfg
-            dbhandle
             streamAPI
             (ledgerDbWithAnchor initSS)
         return (tip, initDB, replayed)
@@ -305,17 +297,15 @@ initStartingWith ::
      forall m blk. (
          Monad m
        , LedgerSupportsProtocol blk
-       , HasDiskDb m (ExtLedgerState blk)
        , InspectLedger blk
        , HasCallStack
        )
   => Tracer m (TraceReplayEvent blk ())
   -> LedgerDbCfg (ExtLedgerState blk)
-  -> DbHandle (ExtLedgerState blk)
   -> StreamAPI m blk
   -> LedgerDB' blk
   -> ExceptT (InitFailure blk) m (LedgerDB' blk, Word64)
-initStartingWith tracer cfg dbhandle streamAPI initDb = do
+initStartingWith tracer cfg streamAPI initDb = do
     streamAll streamAPI (castPoint (ledgerDbTip initDb))
       InitFailureTooRecent
       (initDb, 0)
@@ -323,7 +313,8 @@ initStartingWith tracer cfg dbhandle streamAPI initDb = do
   where
     push :: blk -> (LedgerDB' blk, Word64) -> m (LedgerDB' blk, Word64)
     push blk !(!db, !replayed) = do
-        !db' <- ledgerDbPush cfg dbhandle (ReapplyVal blk) db
+        !db' <- defaultReadDb (undefined :: ReadDb m (ExtLedgerState blk)) $
+                  ledgerDbPush cfg (ReapplyVal blk) db
 
         let replayed' :: Word64
             !replayed' = replayed + 1
