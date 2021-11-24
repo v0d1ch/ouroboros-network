@@ -106,6 +106,11 @@ validateAndReopen validateEnv registry valPol = wrapFsError (Proxy @blk) $ do
     ValidateEnv { hasFS, tracer, cacheConfig, chunkInfo } = validateEnv
     cacheTracer = contramap TraceCacheEvent tracer
 
+decorateValidateTracer :: ChunkNo
+  -> Tracer m (TraceEvent blk)
+  -> Tracer m (TraceChunkValidation ())
+decorateValidateTracer c' = contramap $ ChunkValidationEvent . fmap (const c')
+
 -- | Execute the 'ValidationPolicy'.
 --
 -- Migrates first.
@@ -127,7 +132,7 @@ validate ::
   => ValidateEnv m blk h
   -> ValidationPolicy
   -> m (ChunkNo, WithOrigin (Tip blk))
-validate validateEnv@ValidateEnv{ hasFS } valPol = do
+validate validateEnv@ValidateEnv{ hasFS, tracer } valPol = do
 
     -- First migrate any old files before validating them
     migrate validateEnv
@@ -141,11 +146,17 @@ validate validateEnv@ValidateEnv{ hasFS } valPol = do
         removeFilesStartingFrom hasFS firstChunkNo
         return (firstChunkNo, Origin)
 
-      Just lastChunkOnDisk -> case valPol of
-        ValidateAllChunks       ->
-          validateAllChunks       validateEnv lastChunkOnDisk
-        ValidateMostRecentChunk ->
-          validateMostRecentChunk validateEnv lastChunkOnDisk
+      Just lastChunkOnDisk ->
+        let validateTracer =
+              decorateValidateTracer
+                lastChunkOnDisk
+                tracer
+        in
+         case valPol of
+          ValidateAllChunks       ->
+            validateAllChunks       validateEnv validateTracer lastChunkOnDisk
+          ValidateMostRecentChunk ->
+            validateMostRecentChunk validateEnv validateTracer lastChunkOnDisk
   where
     HasFS { listDirectory } = hasFS
 
@@ -163,10 +174,11 @@ validateAllChunks ::
      , HasCallStack
      )
   => ValidateEnv m blk h
+  -> Tracer m (TraceChunkValidation ())
   -> ChunkNo
      -- ^ Most recent chunk on disk
   -> m (ChunkNo, WithOrigin (Tip blk))
-validateAllChunks validateEnv@ValidateEnv { hasFS, chunkInfo } lastChunk =
+validateAllChunks validateEnv@ValidateEnv { hasFS, chunkInfo } validateTracer lastChunk =
     go (firstChunkNo, Origin) firstChunkNo GenesisHash
   where
     go ::
@@ -181,7 +193,7 @@ validateAllChunks validateEnv@ValidateEnv { hasFS, chunkInfo } lastChunk =
               then ShouldNotBeFinalised
               else ShouldBeFinalised
       runExceptT
-        (validateChunk validateEnv shouldBeFinalised chunk (Just prevHash)) >>= \case
+        (validateChunk validateEnv shouldBeFinalised chunk (Just prevHash) validateTracer) >>= \case
           Left  ()              -> cleanup lastValid chunk $> lastValid
           Right Nothing         -> continueOrStop lastValid                   chunk prevHash
           Right (Just validBlk) -> continueOrStop (chunk, NotOrigin validBlk) chunk prevHash'
@@ -199,7 +211,9 @@ validateAllChunks validateEnv@ValidateEnv { hasFS, chunkInfo } lastChunk =
       -> m (ChunkNo, WithOrigin (Tip blk))
     continueOrStop lastValid chunk prevHash
       | chunk < lastChunk
-      = go lastValid (nextChunkNo chunk) prevHash
+      = do
+          traceWith validateTracer (ValidatedChunk chunk ())
+          go lastValid (nextChunkNo chunk) prevHash
       | otherwise
       = assert (chunk == lastChunk) $ do
         -- Cleanup is only needed when the final chunk was empty, yet valid.
@@ -235,14 +249,18 @@ validateMostRecentChunk ::
      , HasCallStack
      )
   => ValidateEnv m blk h
+  -> Tracer m (TraceChunkValidation ())
   -> ChunkNo
      -- ^ Most recent chunk on disk, the chunk to validate
   -> m (ChunkNo, WithOrigin (Tip blk))
-validateMostRecentChunk validateEnv@ValidateEnv { hasFS } = go
+validateMostRecentChunk validateEnv@ValidateEnv { hasFS } validateTracer c = do
+    res <- go c
+    traceWith validateTracer (ValidatedChunk c ())
+    return res
   where
     go :: ChunkNo -> m (ChunkNo, WithOrigin (Tip blk))
     go chunk = runExceptT
-      (validateChunk validateEnv ShouldNotBeFinalised chunk Nothing) >>= \case
+      (validateChunk validateEnv ShouldNotBeFinalised chunk Nothing validateTracer) >>= \case
         Right (Just validBlk) -> do
             -- Found a valid block, we can stop now.
             removeFilesStartingFrom hasFS (nextChunkNo chunk)
@@ -315,6 +333,7 @@ validateChunk ::
   -> Maybe (ChainHash blk)
      -- ^ The hash of the last block of the previous chunk. 'Nothing' if
      -- unknown. When this is the first chunk, it should be 'Just Origin'.
+  -> Tracer m (TraceChunkValidation ())
   -> ExceptT () m (Maybe (Tip blk))
      -- ^ When non-empty, the 'Tip' corresponds to the last valid block in the
      -- chunk.
@@ -325,8 +344,8 @@ validateChunk ::
      -- Note that when an invalid block is detected, we don't throw, but we
      -- truncate the chunk file. When validating the chunk file after it, we
      -- would notice it doesn't fit anymore, and then throw.
-validateChunk ValidateEnv{..} shouldBeFinalised chunk mbPrevHash = do
-    trace $ ValidatingChunk chunk
+validateChunk ValidateEnv{..} shouldBeFinalised chunk mbPrevHash validationTracer = do
+    lift $ traceWith validationTracer $ StartedValidatingChunk chunk ()
     chunkFileExists <- lift $ doesFileExist chunkFile
     unless chunkFileExists $ do
       trace $ MissingChunkFile chunk

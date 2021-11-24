@@ -12,6 +12,7 @@ module Ouroboros.Consensus.Storage.ImmutableDB.Impl.Types (
   , ChunkFileError (..)
     -- * Tracing
   , TraceCacheEvent (..)
+  , TraceChunkValidation (..)
   , TraceEvent (..)
   ) where
 
@@ -111,7 +112,7 @@ data TraceEvent blk =
     NoValidLastLocation
   | ValidatedLastLocation ChunkNo (Tip blk)
     -- Validation of previous DB
-  | ValidatingChunk  ChunkNo
+  | ChunkValidationEvent (TraceChunkValidation ChunkNo)
   | MissingChunkFile ChunkNo
   | InvalidChunkFile ChunkNo (ChunkFileError blk)
   | ChunkFileDoesntFit (ChainHash blk) (ChainHash blk)
@@ -134,6 +135,11 @@ data TraceEvent blk =
     -- Events traced by the index cache
   | TraceCacheEvent !TraceCacheEvent
   deriving (Eq, Generic, Show)
+
+data TraceChunkValidation validateTo =
+    StartedValidatingChunk ChunkNo validateTo
+  | ValidatedChunk         ChunkNo validateTo
+  deriving (Generic, Eq, Show, Functor)
 
 -- | The argument with type 'Word32' is the number of past chunk currently in
 -- the cache.
