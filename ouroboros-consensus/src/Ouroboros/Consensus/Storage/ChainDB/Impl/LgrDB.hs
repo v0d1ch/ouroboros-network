@@ -149,6 +149,7 @@ data LgrDbArgs f m blk = LgrDbArgs {
       lgrDiskPolicy     :: DiskPolicy
     , lgrGenesis        :: HKD f (m (ExtLedgerState blk EmptyMK))
     , lgrHasFS          :: SomeHasFS m
+    , lgrHasFSLedgerSt  :: SomeHasFS m
     , lgrTopLevelConfig :: HKD f (TopLevelConfig blk)
     , lgrTraceLedger    :: Tracer m (LedgerDB' blk)
     , lgrTracer         :: Tracer m (TraceEvent blk)
@@ -158,12 +159,16 @@ data LgrDbArgs f m blk = LgrDbArgs {
 defaultArgs ::
      Applicative m
   => SomeHasFS m
+  -> SomeHasFS m
+  -- ^ TODO: we need some type wrappers to distinguish the two kind of SomeHasFS
+  -- we use in this function.
   -> DiskPolicy
   -> LgrDbArgs Defaults m blk
-defaultArgs lgrHasFS diskPolicy = LgrDbArgs {
+defaultArgs lgrHasFS lgrHasFSLedgerSt diskPolicy = LgrDbArgs {
       lgrDiskPolicy     = diskPolicy
     , lgrGenesis        = NoDefault
     , lgrHasFS
+    , lgrHasFSLedgerSt
     , lgrTopLevelConfig = NoDefault
     , lgrTraceLedger    = nullTracer
     , lgrTracer         = nullTracer
@@ -202,9 +207,9 @@ openDB :: forall m blk.
        --
        -- TODO: should we replace this type with @ResolveBlock blk m@?
        -> m (LgrDB m blk, Word64)
-openDB args@LgrDbArgs { lgrHasFS = lgrHasFS@(SomeHasFS hasFS), .. } replayTracer immutableDB readDb getBlock = do
+openDB args@LgrDbArgs { lgrHasFS = lgrHasFS@(SomeHasFS hasFS), .. } replayTracer immutableDB readLedgerDb getBlock = do
     createDirectoryIfMissing hasFS True (mkFsPath [])
-    (db, replayed) <- initFromDisk args replayTracer immutableDB
+    (db, replayed) <- initFromDisk args readLedgerDb replayTracer immutableDB
     -- When initializing the ledger DB from disk we:
     --
     -- - Look for the newest valid snapshot, say 'Lbs', which corresponds to the
@@ -229,7 +234,7 @@ openDB args@LgrDbArgs { lgrHasFS = lgrHasFS@(SomeHasFS hasFS), .. } replayTracer
         LgrDB {
             varDB          = varDB
           , varPrevApplied = varPrevApplied
-          , lgrDbReadDb    = readDb
+          , lgrDbReadDb    = readLedgerDb
           , resolveBlock   = getBlock
           , cfg            = lgrTopLevelConfig
           , diskPolicy     = lgrDiskPolicy
@@ -248,10 +253,12 @@ initFromDisk
      , HasCallStack
      )
   => LgrDbArgs Identity m blk
+  -> LedgerDB.ReadDb m (ExtLedgerState blk)
   -> Tracer m (TraceReplayEvent blk ())
   -> ImmutableDB m blk
   -> m (LedgerDB' blk, Word64)
 initFromDisk LgrDbArgs { lgrHasFS = hasFS, .. }
+             readLedgerDb
              replayTracer
              immutableDB = wrapFailure (Proxy @blk) $ do
     (_initLog, db, replayed) <-
@@ -262,6 +269,7 @@ initFromDisk LgrDbArgs { lgrHasFS = hasFS, .. }
         decodeExtLedgerState'
         decode
         (configLedgerDb lgrTopLevelConfig)
+        readLedgerDb
         lgrGenesis
         (streamAPI immutableDB)
     return (db, replayed)

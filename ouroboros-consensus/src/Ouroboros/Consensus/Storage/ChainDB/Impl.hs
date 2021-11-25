@@ -46,7 +46,6 @@ import qualified Ouroboros.Network.AnchoredFragment as AF
 import           Ouroboros.Consensus.Block
 import qualified Ouroboros.Consensus.Fragment.Validated as VF
 import           Ouroboros.Consensus.HardFork.Abstract
-import           Ouroboros.Consensus.Ledger.Extended (ExtLedgerState)
 import           Ouroboros.Consensus.Ledger.Inspect
 import           Ouroboros.Consensus.Ledger.SupportsProtocol
 import           Ouroboros.Consensus.Util (whenJust)
@@ -67,9 +66,11 @@ import qualified Ouroboros.Consensus.Storage.ChainDB.Impl.Iterator as Iterator
 import qualified Ouroboros.Consensus.Storage.ChainDB.Impl.LgrDB as LgrDB
 import qualified Ouroboros.Consensus.Storage.ChainDB.Impl.Query as Query
 import           Ouroboros.Consensus.Storage.ChainDB.Impl.Types
+import           Ouroboros.Consensus.Storage.FS.API (SomeHasFS)
 import qualified Ouroboros.Consensus.Storage.ImmutableDB as ImmutableDB
 import qualified Ouroboros.Consensus.Storage.LedgerDB.InMemory as LedgerDB
 import qualified Ouroboros.Consensus.Storage.VolatileDB as VolatileDB
+
 
 {-------------------------------------------------------------------------------
   Initialization
@@ -79,7 +80,6 @@ withDB
   :: forall m blk a.
      ( IOLike m
      , LedgerSupportsProtocol blk
-     , LedgerDB.HasDiskDb m (ExtLedgerState blk)
      , InspectLedger blk
      , HasHardForkHistory blk
      , ConvertRawHash blk
@@ -94,7 +94,6 @@ openDB
   :: forall m blk.
      ( IOLike m
      , LedgerSupportsProtocol blk
-     , LedgerDB.HasDiskDb m (ExtLedgerState blk)
      , InspectLedger blk
      , HasHardForkHistory blk
      , ConvertRawHash blk
@@ -103,6 +102,16 @@ openDB
   => ChainDbArgs Identity m blk
   -> m (ChainDB m blk)
 openDB args = fst <$> openDBInternal args True
+
+-- TODO: Here we would use the actual implementation of the
+-- ledger-state-database read function.
+--
+-- TODO: Maybe we want to do this instantiation somewhere else.
+actualReadDb
+  :: SomeHasFS m
+  -> LedgerDB.RewoundTableKeySets l
+  -> m (LedgerDB.UnforwardedReadSets l)
+actualReadDb = undefined
 
 openDBInternal
   :: forall m blk.
@@ -135,8 +144,7 @@ openDBInternal args launchBgTasks = do
                             lgrReplayTracer
                             immutableDB
                             -- TODO: Here I need to pass a ReadDb value (function)
-                            -- (Snapshots.readDb (ledgerStateHandle args))
-                            undefined
+                            (actualReadDb (Args.cbdHasFSLedgerState args))
                             (Query.getAnyKnownBlock immutableDB volatileDB)
     traceWith tracer $ TraceOpenEvent OpenedLgrDB
 

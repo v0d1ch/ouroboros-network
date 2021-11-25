@@ -113,7 +113,6 @@ import           Ouroboros.Consensus.Storage.ImmutableDB (ChunkInfo,
                      ValidationPolicy (..))
 import           Ouroboros.Consensus.Storage.LedgerDB.DiskPolicy
                      (SnapshotInterval (..), defaultDiskPolicy)
-import qualified Ouroboros.Consensus.Storage.LedgerDB.InMemory as LedgerDB
 import           Ouroboros.Consensus.Storage.VolatileDB
                      (BlockValidationPolicy (..))
 
@@ -236,7 +235,7 @@ data LowLevelRunNodeArgs m addrNTN addrNTC versionDataNTN versionDataNTC blk = L
 
 -- | Combination of 'runWith' and 'stdLowLevelRunArgsIO'
 run :: forall blk.
-     (RunNode blk, LedgerDB.HasDiskDb IO (ExtLedgerState blk))
+     (RunNode blk)
   => RunNodeArgs IO RemoteAddress LocalAddress blk
   -> StdRunNodeArgs IO blk
   -> IO ()
@@ -250,7 +249,6 @@ run args stdArgs = stdLowLevelRunNodeArgsIO args stdArgs >>= runWith args
 -- This function runs forever unless an exception is thrown.
 runWith :: forall m addrNTN addrNTC versionDataNTN versionDataNTC blk.
      ( RunNode blk
-     , LedgerDB.HasDiskDb m (ExtLedgerState blk)
      , IOLike m, MonadTime m, MonadTimer m
      , Hashable addrNTN, Ord addrNTN, Typeable addrNTN
      )
@@ -458,7 +456,7 @@ stdWithCheckedDB pb databasePath networkMagic body = do
     hasFS      = ioHasFS mountPoint
 
 openChainDB
-  :: forall m blk. (RunNode blk, IOLike m, LedgerDB.HasDiskDb m (ExtLedgerState blk))
+  :: forall m blk. (RunNode blk, IOLike m)
   => ResourceRegistry m
   -> CheckInFuture m blk
   -> TopLevelConfig blk

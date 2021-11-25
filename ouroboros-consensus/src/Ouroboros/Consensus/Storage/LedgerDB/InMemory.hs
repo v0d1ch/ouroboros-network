@@ -19,6 +19,8 @@
 {-# LANGUAGE EmptyDataDeriving      #-}
 
 {-# LANGUAGE DeriveFunctor      #-}
+{-# LANGUAGE DerivingStrategies      #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving  #-}
 
 
 module Ouroboros.Consensus.Storage.LedgerDB.InMemory (
@@ -27,10 +29,12 @@ module Ouroboros.Consensus.Storage.LedgerDB.InMemory (
   , ledgerDbWithAnchor
     -- ** opaque
   , LedgerDB
-    -- * Ledger DB classes (TODO: we might want to place this somewhere else)
+    -- * Ledger DB types (TODO: we might want to place this somewhere else)
   , HasDiskDb (..)
   , ReadDb
   , DbReader (..)
+  , RewoundTableKeySets (..)
+  , UnforwardedReadSets (..)
   , defaultReadDb
     -- ** Serialisation
   , decodeSnapshotBackwardsCompatible
@@ -158,7 +162,7 @@ newtype Checkpoint (l :: LedgerStateKind) = Checkpoint {
   deriving (Generic)
 
 deriving instance Eq       (l EmptyMK) => Eq       (Checkpoint l)
-deriving instance NoThunks (l EmptyMK) => NoThunks (Checkpoint l)
+deriving anyclass instance NoThunks (l EmptyMK) => NoThunks (Checkpoint l)
 
 instance ShowLedgerState l => Show (Checkpoint l) where
   showsPrec = error "showsPrec @CheckPoint"
@@ -393,7 +397,7 @@ class HasDiskDb m l  where
 type ReadDb m l = RewoundTableKeySets l -> m (UnforwardedReadSets l)
 
 newtype DbReader m l a = DbReader { runDbReader :: ReaderT (ReadDb m l) m a}
-  deriving (Functor, Applicative, Monad)
+  deriving newtype (Functor, Applicative, Monad)
 
 instance HasDiskDb (DbReader m l) l where
   readDb rks = DbReader $ ReaderT $ \f -> f rks
@@ -508,6 +512,7 @@ ledgerDbPrune (SecurityParam k) db = db {
  -- 'LedgerDB' and thus a space leak. Alternatively, we could disable the
  -- @-fstrictness@ optimisation (enabled by default for -O1). See #2532.
 {-# INLINE ledgerDbPrune #-}
+{-# LANGUAGE DerivingStrategies #-}
 
 {-------------------------------------------------------------------------------
   Internal updates
