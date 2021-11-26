@@ -105,7 +105,6 @@ import           Ouroboros.Consensus.Util.STM
 import           Ouroboros.Consensus.Util.Time
 
 import qualified Ouroboros.Consensus.Storage.ChainDB as ChainDB
-import           Ouroboros.Consensus.Storage.ChainDB.Impl (ChainDbArgs (..))
 import           Ouroboros.Consensus.Storage.FS.API (SomeHasFS (..))
 import qualified Ouroboros.Consensus.Storage.ImmutableDB as ImmutableDB
 import qualified Ouroboros.Consensus.Storage.ImmutableDB.Impl.Index as Index
@@ -694,37 +693,37 @@ runThreadNetwork systemTime ThreadNetworkArgs
               -- ^ ledger updates tracer
            -> NodeDBs (StrictTVar m MockFS)
            -> CoreNodeId
-           -> ChainDbArgs Identity m blk
+           -> ChainDB.ChainDbArgs Identity m blk
     mkArgs
       clock registry
       cfg initLedger
       invalidTracer addTracer selTracer updatesTracer
-      nodeDBs _coreNodeId = ChainDbArgs {
+      nodeDBs _coreNodeId = ChainDB.ChainDbArgs {
           -- HasFS instances
-          cdbHasFSImmutableDB       = SomeHasFS $ simHasFS (nodeDBsImm nodeDBs)
-        , cdbHasFSVolatileDB        = SomeHasFS $ simHasFS (nodeDBsVol nodeDBs)
-        , cdbHasFSLgrDB             = SomeHasFS $ simHasFS (nodeDBsLgr nodeDBs)
+          cdbaHasFSImmutableDB       = SomeHasFS $ simHasFS (nodeDBsImm nodeDBs)
+        , cdbaHasFSVolatileDB        = SomeHasFS $ simHasFS (nodeDBsVol nodeDBs)
+        , cdbaHasFSLgrDB             = SomeHasFS $ simHasFS (nodeDBsLgr nodeDBs)
           -- Policy
-        , cdbImmutableDbValidation  = ImmutableDB.ValidateAllChunks
-        , cdbVolatileDbValidation   = VolatileDB.ValidateAll
-        , cdbMaxBlocksPerFile       = VolatileDB.mkBlocksPerFile 4
-        , cdbDiskPolicy             = LgrDB.defaultDiskPolicy (configSecurityParam cfg) LgrDB.DefaultSnapshotInterval
+        , cdbaImmutableDbValidation  = ImmutableDB.ValidateAllChunks
+        , cdbaVolatileDbValidation   = VolatileDB.ValidateAll
+        , cdbaMaxBlocksPerFile       = VolatileDB.mkBlocksPerFile 4
+        , cdbaDiskPolicy             = LgrDB.defaultDiskPolicy (configSecurityParam cfg) LgrDB.DefaultSnapshotInterval
           -- Integration
-        , cdbTopLevelConfig         = cfg
-        , cdbChunkInfo              = ImmutableDB.simpleChunkInfo epochSize0
-        , cdbCheckIntegrity         = nodeCheckIntegrity (configStorage cfg)
-        , cdbGenesis                = return initLedger
-        , cdbCheckInFuture          = InFuture.reference (configLedger cfg) InFuture.defaultClockSkew
+        , cdbaTopLevelConfig         = cfg
+        , cdbaChunkInfo              = ImmutableDB.simpleChunkInfo epochSize0
+        , cdbaCheckIntegrity         = nodeCheckIntegrity (configStorage cfg)
+        , cdbaGenesis                = return initLedger
+        , cdbaCheckInFuture          = InFuture.reference (configLedger cfg) InFuture.defaultClockSkew
                                       (OracularClock.finiteSystemTime clock)
-        , cdbImmutableDbCacheConfig = Index.CacheConfig 2 60
+        , cdbaImmutableDbCacheConfig = Index.CacheConfig 2 60
         -- Misc
-        , cdbTracer                 = instrumentationTracer <> nullDebugTracer
-        , cdbTraceLedger            = nullDebugTracer
-        , cdbRegistry               = registry
+        , cdbaTracer                 = instrumentationTracer <> nullDebugTracer
+        , cdbaTraceLedger            = nullDebugTracer
+        , cdbaRegistry               = registry
           -- TODO vary these
-        , cdbGcDelay                = 0
-        , cdbGcInterval             = 1
-        , cdbBlocksToAddSize        = 2
+        , cdbaGcDelay                = 0
+        , cdbaGcInterval             = 1
+        , cdbaBlocksToAddSize        = 2
         }
       where
         prj af = case AF.headBlockNo af of

@@ -301,11 +301,11 @@ runWith RunNodeArgs{..} LowLevelRunNodeArgs{..} =
               -- When the last shutdown was not clean, validate the complete
               -- ChainDB to detect and recover from any corruptions. This will
               -- override the default value /and/ the user-customised value of
-              -- the 'ChainDB.cdbImmValidation' and the
-              -- 'ChainDB.cdbVolValidation' fields.
+              -- the 'ChainDB.cdbaImmValidation' and the
+              -- 'ChainDB.cdbaVolValidation' fields.
             = (llrnCustomiseChainDbArgs args) {
-                  ChainDB.cdbImmutableDbValidation = ValidateAllChunks
-                , ChainDB.cdbVolatileDbValidation  = ValidateAll
+                  ChainDB.cdbaImmutableDbValidation = ValidateAllChunks
+                , ChainDB.cdbaVolatileDbValidation  = ValidateAll
                 }
 
       chainDB <- openChainDB registry inFuture cfg initLedger
@@ -571,13 +571,13 @@ mkChainDbArgs
   chunkInfo
   defArgs
   = defArgs {
-      ChainDB.cdbTopLevelConfig = cfg
-    , ChainDB.cdbChunkInfo      = chunkInfo
-    , ChainDB.cdbCheckIntegrity = nodeCheckIntegrity (configStorage cfg)
-    , ChainDB.cdbGenesis        = return initLedger
-    , ChainDB.cdbCheckInFuture  = inFuture
+      ChainDB.cdbaTopLevelConfig = cfg
+    , ChainDB.cdbaChunkInfo      = chunkInfo
+    , ChainDB.cdbaCheckIntegrity = nodeCheckIntegrity (configStorage cfg)
+    , ChainDB.cdbaGenesis        = return initLedger
+    , ChainDB.cdbaCheckInFuture  = inFuture
 
-    , ChainDB.cdbRegistry       = registry
+    , ChainDB.cdbaRegistry       = registry
     }
 
 mkNodeKernelArgs
@@ -821,10 +821,10 @@ stdLowLevelRunNodeArgsIO RunNodeArgs{ rnProtocolInfo } StdRunNodeArgs{..} = do
          ChainDbArgs Defaults IO blk
       -> ChainDbArgs Defaults IO blk
     updateChainDbDefaults =
-        (\x -> x { ChainDB.cdbTracer = srnTraceChainDB }) .
+        (\x -> x { ChainDB.cdbaTracer = srnTraceChainDB }) .
         (if not srnChainDbValidateOverride then id else \x -> x
-          { ChainDB.cdbImmutableDbValidation = ValidateAllChunks
-          , ChainDB.cdbVolatileDbValidation  = ValidateAll
+          { ChainDB.cdbaImmutableDbValidation = ValidateAllChunks
+          , ChainDB.cdbaVolatileDbValidation  = ValidateAll
           })
 
     llrnCustomiseNodeKernelArgs ::

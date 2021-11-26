@@ -83,7 +83,7 @@ import           Ouroboros.Consensus.Util.STM (Fingerprint (..),
                      WithFingerprint (..))
 
 import           Ouroboros.Consensus.Storage.ChainDB hiding
-                     (TraceFollowerEvent (..))
+                     (TraceFollowerEvent (..), FollowerState(..))
 import qualified Ouroboros.Consensus.Storage.ChainDB as ChainDB
 import           Ouroboros.Consensus.Storage.FS.API (SomeHasFS (..))
 import           Ouroboros.Consensus.Storage.ImmutableDB
@@ -297,7 +297,7 @@ type TestFollower m blk = WithEq (Follower m blk (AllComponents blk))
 -- 'varDB' field of 'ChainDBEnv' with a new one.
 data ChainDBState m blk = ChainDBState
     { chainDB       :: ChainDB m blk
-    , internal      :: ChainDB.Internal m blk
+    , internal      :: Internal m blk
     , addBlockAsync :: Async m Void
       -- ^ Background thread that adds blocks to the ChainDB
     }
@@ -393,8 +393,8 @@ run env@ChainDBEnv { varDB, .. } cmd =
     giveWithEq a =
       fmap (`WithEq` a) $ atomically $ stateTVar varNextId $ \i -> (i, succ i)
 
-persistBlks :: IOLike m => ShouldGarbageCollect -> ChainDB.Internal m blk -> m ()
-persistBlks collectGarbage ChainDB.Internal{..} = do
+persistBlks :: IOLike m => ShouldGarbageCollect -> Internal m blk -> m ()
+persistBlks collectGarbage Internal{..} = do
     mSlotNo <- intCopyToImmutableDB
     case (collectGarbage, mSlotNo) of
       (DoNotGarbageCollect, _               ) -> pure ()
@@ -1620,34 +1620,34 @@ mkArgs :: IOLike m
 mkArgs cfg (MaxClockSkew maxClockSkew) chunkInfo initLedger tracer registry varCurSlot
        (immutableDbFsVar, volatileDbFsVar, lgrDbFsVar) = ChainDbArgs
     { -- HasFS instances
-      cdbHasFSImmutableDB      = SomeHasFS $ simHasFS immutableDbFsVar
-    , cdbHasFSVolatileDB       = SomeHasFS $ simHasFS volatileDbFsVar
-    , cdbHasFSLgrDB            = SomeHasFS $ simHasFS lgrDbFsVar
+      cdbaHasFSImmutableDB      = SomeHasFS $ simHasFS immutableDbFsVar
+    , cdbaHasFSVolatileDB       = SomeHasFS $ simHasFS volatileDbFsVar
+    , cdbaHasFSLgrDB            = SomeHasFS $ simHasFS lgrDbFsVar
 
       -- Policy
-    , cdbImmutableDbValidation  = ValidateAllChunks
-    , cdbVolatileDbValidation   = VolatileDB.ValidateAll
-    , cdbMaxBlocksPerFile       = VolatileDB.mkBlocksPerFile 4
-    , cdbDiskPolicy             = defaultDiskPolicy (configSecurityParam cfg) DefaultSnapshotInterval
+    , cdbaImmutableDbValidation  = ValidateAllChunks
+    , cdbaVolatileDbValidation   = VolatileDB.ValidateAll
+    , cdbaMaxBlocksPerFile       = VolatileDB.mkBlocksPerFile 4
+    , cdbaDiskPolicy             = defaultDiskPolicy (configSecurityParam cfg) DefaultSnapshotInterval
 
       -- Integration
-    , cdbTopLevelConfig         = cfg
-    , cdbChunkInfo              = chunkInfo
-    , cdbCheckIntegrity         = testBlockIsValid
-    , cdbGenesis                = return initLedger
-    , cdbCheckInFuture          = InFuture.miracle
+    , cdbaTopLevelConfig         = cfg
+    , cdbaChunkInfo              = chunkInfo
+    , cdbaCheckIntegrity         = testBlockIsValid
+    , cdbaGenesis                = return initLedger
+    , cdbaCheckInFuture          = InFuture.miracle
                                     (readTVar varCurSlot)
                                     maxClockSkew
-    , cdbImmutableDbCacheConfig = Index.CacheConfig 2 60
+    , cdbaImmutableDbCacheConfig = Index.CacheConfig 2 60
 
     -- Misc
-    , cdbTracer                 = tracer
-    , cdbTraceLedger            = nullTracer
-    , cdbRegistry               = registry
-    , cdbBlocksToAddSize        = 2
+    , cdbaTracer                 = tracer
+    , cdbaTraceLedger            = nullTracer
+    , cdbaRegistry               = registry
+    , cdbaBlocksToAddSize        = 2
       -- We don't run the background threads, so these are not used
-    , cdbGcDelay                = 1
-    , cdbGcInterval             = 1
+    , cdbaGcDelay                = 1
+    , cdbaGcInterval             = 1
     }
 
 tests :: TestTree

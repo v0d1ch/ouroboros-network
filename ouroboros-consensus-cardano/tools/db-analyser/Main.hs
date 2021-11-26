@@ -242,12 +242,12 @@ analyse CmdLine {..} args =
               registry InFuture.dontCheck cfg genesisLedger chunkInfo $
             ChainDB.defaultArgs (Node.stdMkChainDbHasFS dbDir) diskPolicy
           chainDbArgs = args' {
-              ChainDB.cdbImmutableDbValidation = immValidationPolicy
-            , ChainDB.cdbVolatileDbValidation  = volValidationPolicy
-            , ChainDB.cdbTracer                = chainDBTracer
+              ChainDB.cdbaImmutableDbValidation = immValidationPolicy
+            , ChainDB.cdbaVolatileDbValidation  = volValidationPolicy
+            , ChainDB.cdbaTracer                = chainDBTracer
             }
           (immutableDbArgs, _, _, _) = fromChainDbArgs chainDbArgs
-          ledgerDbFS = ChainDB.cdbHasFSLgrDB chainDbArgs
+          ledgerDbFS = ChainDB.cdbaHasFSLgrDB chainDbArgs
 
       case selectDB of
         SelectImmutableDB initializeFrom -> do
