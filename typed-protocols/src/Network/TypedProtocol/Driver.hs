@@ -17,6 +17,7 @@ module Network.TypedProtocol.Driver (
 
   -- * Driver interface
   Driver(..),
+  DriverState(..),
   SomeMessage(..),
 
   -- * Running a peer 

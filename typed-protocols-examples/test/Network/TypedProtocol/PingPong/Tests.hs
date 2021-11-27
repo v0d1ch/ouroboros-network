@@ -1,10 +1,12 @@
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE GADTs #-}
+{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE PolyKinds #-}
+{-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE StandaloneKindSignatures #-}
 
@@ -38,7 +40,7 @@ import Control.Monad.ST (runST)
 import Control.Monad.Class.MonadSTM
 import Control.Monad.Class.MonadAsync
 import Control.Monad.Class.MonadThrow
-import Control.Monad.IOSim (runSimOrThrow)
+import Control.Monad.IOSim (IOSim, runSimOrThrow)
 import Control.Tracer (Tracer, nullTracer)
 
 import Data.List (inits, tails)
@@ -198,7 +200,7 @@ prop_directPipelined2 (NonNegative n) =
 --
 prop_connect :: NonNegative Int -> Bool
 prop_connect (NonNegative n) =
-  case runIdentity
+  case runSimOrThrow
          (connect
            [] []
            (pingPongClientPeer (pingPongClientCount n))
@@ -219,11 +221,11 @@ prop_connect (NonNegative n) =
 -- should return the interleaving of messages it sent and received. This
 -- will be used to exercise various interleavings in properties below.
 --
-connect_pipelined :: PingPongClientPipelined Identity [Either Int Int]
+connect_pipelined :: (forall s. PingPongClientPipelined (IOSim s) [Either Int Int])
                   -> [Bool]
                   -> (Int, [Either Int Int])
 connect_pipelined client cs =
-  case runIdentity
+  case runSimOrThrow
          (connect cs []
             (pingPongClientPeerPipelined client)
             (pingPongServerPeer pingPongServerCount))
@@ -311,7 +313,7 @@ prop_connect_pipelined5 choices (Positive omax) (NonNegative n) =
 
 -- | Run a non-pipelined client and server over a channel using a codec.
 --
-prop_channel :: (MonadSTM m, MonadAsync m, MonadCatch m)
+prop_channel :: (MonadSTM m, MonadAsync m, MonadCatch m, MonadThrow (STM m))
              => NonNegative Int
              -> Tracer m (PeerRole, TraceSendRecv PingPong)
              -> m Bool

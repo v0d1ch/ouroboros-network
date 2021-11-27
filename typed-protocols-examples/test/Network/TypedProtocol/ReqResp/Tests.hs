@@ -2,6 +2,7 @@
 {-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE GADTs #-}
+{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE ScopedTypeVariables #-}
@@ -163,7 +164,7 @@ prop_directPipelined f xs =
 
 prop_connect :: (Int -> Int -> (Int, Int)) -> [Int] -> Bool
 prop_connect f xs =
-    case runIdentity
+    case runSimOrThrow
            (connect
              [] []
              (reqRespClientPeer (reqRespClientMap xs))
@@ -178,7 +179,7 @@ prop_connect f xs =
 
 prop_connectPipelined :: [Bool] -> (Int -> Int -> (Int, Int)) -> [Int] -> Bool
 prop_connectPipelined cs f xs =
-    case runIdentity
+    case runSimOrThrow
            (connect cs []
              (reqRespClientPeerPipelined (reqRespClientMapPipelined xs))
              (reqRespServerPeer          (reqRespServerMapAccumL
@@ -195,7 +196,7 @@ prop_connectPipelined cs f xs =
 -- Properties using channels, codecs and drivers.
 --
 
-prop_channel :: (MonadSTM m, MonadAsync m, MonadCatch m)
+prop_channel :: (MonadSTM m, MonadAsync m, MonadCatch m, MonadThrow (STM m))
              => (Int -> Int -> (Int, Int)) -> [Int]
              -> m Bool
 prop_channel f xs = do
@@ -219,7 +220,7 @@ prop_channel_ST f xs =
 
 
 prop_channelPipelined :: ( MonadLabelledSTM m, MonadAsync m, MonadCatch m
-                         , MonadDelay m, MonadST m)
+                         , MonadThrow (STM m), MonadDelay m, MonadST m)
                       => (Int -> Int -> (Int, Int)) -> [Int]
                       -> m Bool
 prop_channelPipelined f xs = do
