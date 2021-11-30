@@ -42,6 +42,7 @@ import           Ouroboros.Consensus.Util.SOP (Index (..))
 import           Ouroboros.Consensus.HardFork.Combinator
 import           Ouroboros.Consensus.HardFork.Combinator.Embed.Nary
 import qualified Ouroboros.Consensus.HardFork.Combinator.State as State
+import           Ouroboros.Consensus.HardFork.Combinator.Util.Functors (Flip (..))
 
 import           Ouroboros.Consensus.Byron.Ledger (ByronBlock)
 import qualified Ouroboros.Consensus.Byron.Ledger as Byron
@@ -125,9 +126,9 @@ instance Inject Examples where
       , exampleQuery            = inj (Proxy @SomeCardanoQuery)        exampleQuery
       , exampleResult           = inj (Proxy @SomeResult)              exampleResult
       , exampleAnnTip           = inj (Proxy @AnnTip)                  exampleAnnTip
-      , exampleLedgerState      = inj (Proxy @LedgerState)             exampleLedgerState
+      , exampleLedgerState      = inj (Proxy @(Flip LedgerState EmptyMK)) exampleLedgerState
       , exampleChainDepState    = inj (Proxy @WrapChainDepState)       exampleChainDepState
-      , exampleExtLedgerState   = inj (Proxy @(ExtLedgerState EmptyMK)) exampleExtLedgerState
+      , exampleExtLedgerState   = inj (Proxy @(Flip ExtLedgerState EmptyMK)) exampleExtLedgerState
       }
     where
       inj ::
@@ -238,14 +239,14 @@ codecConfig =
       Shelley.ShelleyCodecConfig
 
 ledgerStateByron ::
-     LedgerState ByronBlock
-  -> LedgerState (CardanoBlock Crypto)
+     LedgerState ByronBlock mk
+  -> LedgerState (CardanoBlock Crypto) mk
 ledgerStateByron stByron =
     HardForkLedgerState $ HardForkState $ TZ cur
   where
     cur = State.Current {
           currentStart = History.initBound
-        , currentState = stByron
+        , currentState = Flip stByron
         }
 
 {-------------------------------------------------------------------------------
