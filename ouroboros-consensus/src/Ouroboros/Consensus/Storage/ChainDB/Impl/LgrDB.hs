@@ -85,7 +85,7 @@ import           Ouroboros.Consensus.Storage.LedgerDB.InMemory (Ap (..),
 import qualified Ouroboros.Consensus.Storage.LedgerDB.InMemory as LedgerDB
 import           Ouroboros.Consensus.Storage.LedgerDB.OnDisk (AnnLedgerError',
                      DiskSnapshot, LedgerDB', NextBlock (..), StreamAPI (..),
-                     TraceEvent (..), TraceReplayEvent (..))
+                     TraceEvent (..), TraceReplayEvent (..), OnDiskLedgerStDb (..))
 import qualified Ouroboros.Consensus.Storage.LedgerDB.OnDisk as LedgerDB
 
 import           Ouroboros.Consensus.Storage.ChainDB.API (ChainDbFailure (..))
@@ -113,8 +113,10 @@ data LgrDB m blk = LgrDB {
       -- When a garbage-collection is performed on the VolatileDB, the points
       -- of the blocks eligible for garbage-collection should be removed from
       -- this set.
-    , lgrDbReadDb    :: !(LedgerDB.ReadDb m (ExtLedgerState blk))
-      -- ^ Function used to read keys sets from the (on-disk) ledger database.
+    , lgrOnDiskLedgerStDb :: !(LedgerDB.OnDiskLedgerStDb m (ExtLedgerState blk))
+      -- ^
+      --
+      -- TODO: align the other fields.
     , resolveBlock   :: !(LedgerDB.ResolveBlock m blk) -- TODO: ~ (RealPoint blk -> m blk)
       -- ^ Read a block from disk
     , cfg            :: !(TopLevelConfig blk)
@@ -197,8 +199,6 @@ openDB :: forall m blk.
        -- up to date with tip of the immutable DB. The corresponding ledger
        -- state can then be used as the starting point for chain selection in
        -- the ChainDB driver.
-       -> LedgerDB.ReadDb m (ExtLedgerState blk)
-       -- ^ Read the key sets from disk.
        -> (RealPoint blk -> m blk)
        -- ^ Read a block from disk
        --
@@ -207,9 +207,9 @@ openDB :: forall m blk.
        --
        -- TODO: should we replace this type with @ResolveBlock blk m@?
        -> m (LgrDB m blk, Word64)
-openDB args@LgrDbArgs { lgrHasFS = lgrHasFS@(SomeHasFS hasFS), .. } replayTracer immutableDB readLedgerDb getBlock = do
+openDB args@LgrDbArgs { lgrHasFS = lgrHasFS@(SomeHasFS hasFS), .. } replayTracer immutableDB getBlock = do
     createDirectoryIfMissing hasFS True (mkFsPath [])
-    (db, replayed) <- initFromDisk args readLedgerDb replayTracer immutableDB
+    (db, replayed, onDiskLedgerStDb) <- initFromDisk args replayTracer immutableDB
     -- When initializing the ledger DB from disk we:
     --
     -- - Look for the newest valid snapshot, say 'Lbs', which corresponds to the
@@ -234,7 +234,7 @@ openDB args@LgrDbArgs { lgrHasFS = lgrHasFS@(SomeHasFS hasFS), .. } replayTracer
         LgrDB {
             varDB          = varDB
           , varPrevApplied = varPrevApplied
-          , lgrDbReadDb    = readLedgerDb
+          , lgrOnDiskLedgerStDb = onDiskLedgerStDb -- TODO: align the other fields.
           , resolveBlock   = getBlock
           , cfg            = lgrTopLevelConfig
           , diskPolicy     = lgrDiskPolicy
@@ -253,27 +253,27 @@ initFromDisk
      , HasCallStack
      )
   => LgrDbArgs Identity m blk
-  -> LedgerDB.ReadDb m (ExtLedgerState blk)
   -> Tracer m (TraceReplayEvent blk ())
   -> ImmutableDB m blk
-  -> m (LedgerDB' blk, Word64)
-initFromDisk LgrDbArgs { lgrHasFS = hasFS, .. }
-             readLedgerDb
-             replayTracer
-             immutableDB = wrapFailure (Proxy @blk) $ do
+  -> m (LedgerDB' blk, Word64, OnDiskLedgerStDb m (ExtLedgerState blk))
+initFromDisk args replayTracer immutableDB = wrapFailure (Proxy @blk) $ do
+    onDiskLedgerStDb <- LedgerDB.mkOnDiskLedgerStDb lgrHasFSLedgerSt
+    -- TODO: is it correct that we pick a instance of the 'OnDiskLedgerStDb' here?
     (_initLog, db, replayed) <-
       LedgerDB.initLedgerDB
         replayTracer
         lgrTracer
         hasFS
+        onDiskLedgerStDb
         decodeExtLedgerState'
         decode
         (configLedgerDb lgrTopLevelConfig)
-        readLedgerDb
         lgrGenesis
         (streamAPI immutableDB)
-    return (db, replayed)
+    return (db, replayed, onDiskLedgerStDb)
   where
+    LgrDbArgs { lgrHasFS = hasFS, .. } = args
+
     ccfg = configCodec lgrTopLevelConfig
 
     decodeExtLedgerState' :: forall s. Decoder s (ExtLedgerState blk EmptyMK)
@@ -285,11 +285,11 @@ initFromDisk LgrDbArgs { lgrHasFS = hasFS, .. }
 -- | For testing purposes
 mkLgrDB :: StrictTVar m (LedgerDB' blk)
         -> StrictTVar m (Set (RealPoint blk))
-        -> LedgerDB.ReadDb m (ExtLedgerState blk)
+        -> LedgerDB.OnDiskLedgerStDb m (ExtLedgerState blk)
         -> (RealPoint blk -> m blk)
         -> LgrDbArgs Identity m blk
         -> LgrDB m blk
-mkLgrDB varDB varPrevApplied lgrDbReadDb resolveBlock args = LgrDB {..}
+mkLgrDB varDB varPrevApplied lgrOnDiskLedgerStDb resolveBlock args = LgrDB {..}
   where
     LgrDbArgs {
         lgrTopLevelConfig = cfg
@@ -393,7 +393,7 @@ validate LgrDB{..} ledgerDB blockCache numRollbacks = \hdrs -> do
     aps <- mkAps hdrs <$> atomically (readTVar varPrevApplied)
     -- TODO: see if it makes sense to use a similar pattern for reading the ledger.
     res <- fmap rewrap $
-             LedgerDB.defaultReadDb lgrDbReadDb $
+             LedgerDB.defaultReadDb (readKeySets lgrOnDiskLedgerStDb) $
              LedgerDB.defaultResolveWithErrors (LedgerDB.DbReader . lift . resolveBlock) $
                LedgerDB.ledgerDbSwitch
                  (configLedgerDb cfg)

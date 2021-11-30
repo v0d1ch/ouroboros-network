@@ -33,9 +33,11 @@ module Ouroboros.Consensus.Storage.LedgerDB.InMemory (
   , HasDiskDb (..)
   , ReadDb
   , DbReader (..)
+  , DbChangelog
   , RewoundTableKeySets (..)
   , UnforwardedReadSets (..)
   , defaultReadDb
+  , ledgerDbFlush
     -- ** Serialisation
   , decodeSnapshotBackwardsCompatible
   , encodeSnapshot
@@ -386,6 +388,11 @@ extendDbChangelog
   -> DbChangelog l
 extendDbChangelog = undefined
 
+ledgerDbFlush :: Monad m => (DbChangelog l -> m (DbChangelog l)) -> LedgerDB l -> m (LedgerDB l)
+ledgerDbFlush changelogFlush db = do
+  ledgerDbChangelog' <- changelogFlush (ledgerDbChangelog db)
+  return $! db { ledgerDbChangelog = ledgerDbChangelog' }
+
 -- | TODO: place this comment somewhere else: the type of the handle will
 -- determine the schema of the ledger state that's stored on disk.
 --
@@ -394,6 +401,8 @@ class HasDiskDb m l  where
 
   readDb :: ReadDb m l
 
+-- TODO: This should be sth like ReadKeySets and HasDiskDb should be renamed to
+-- sth like ReadsKeySets
 type ReadDb m l = RewoundTableKeySets l -> m (UnforwardedReadSets l)
 
 newtype DbReader m l a = DbReader { runDbReader :: ReaderT (ReadDb m l) m a}
@@ -603,6 +612,12 @@ ledgerDbSwitch cfg numRollbacks newBlocks db =
 data LedgerDbCfg l = LedgerDbCfg {
       ledgerDbCfgSecParam :: !SecurityParam
     , ledgerDbCfg         :: !(LedgerCfg l)
+    -- ledgerDbFlushingPolicy :: FP
+    --
+    -- or
+    --
+    --
+    -- ledgerDbTryFlush  :: dbhandle -> DbChangelog l -> m ()
     }
   deriving (Generic)
 

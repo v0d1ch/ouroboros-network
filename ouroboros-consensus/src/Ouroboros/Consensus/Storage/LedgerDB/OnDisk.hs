@@ -13,6 +13,8 @@
 {-# LANGUAGE TupleSections       #-}
 {-# LANGUAGE TypeApplications    #-}
 
+{-# LANGUAGE DerivingVia    #-}
+
 module Ouroboros.Consensus.Storage.LedgerDB.OnDisk (
     -- * Opening the database
     InitFailure (..)
@@ -24,6 +26,9 @@ module Ouroboros.Consensus.Storage.LedgerDB.OnDisk (
     -- ** Abstraction over the stream API
   , NextBlock (..)
   , StreamAPI (..)
+    -- * Abstraction over the ledger-state HD interface
+  , OnDiskLedgerStDb (..)
+  , mkOnDiskLedgerStDb
     -- * Read from disk
   , readSnapshot
     -- * Write to disk
@@ -55,6 +60,7 @@ import           Data.Word
 import           GHC.Generics (Generic)
 import           GHC.Stack
 import           Text.Read (readMaybe)
+import           NoThunks.Class (OnlyCheckWhnfNamed (..))
 
 import           Ouroboros.Consensus.Block
 import           Ouroboros.Consensus.Ledger.Abstract
@@ -190,23 +196,26 @@ initLedgerDB ::
   => Tracer m (TraceReplayEvent blk ())
   -> Tracer m (TraceEvent blk)
   -> SomeHasFS m
+  -> OnDiskLedgerStDb m (ExtLedgerState blk)
   -> (forall s. Decoder s (ExtLedgerState blk EmptyMK))
   -> (forall s. Decoder s (HeaderHash blk))
   -> LedgerDbCfg (ExtLedgerState blk)
-  -> ReadDb m (ExtLedgerState blk)
   -> m (ExtLedgerState blk EmptyMK) -- ^ Genesis ledger state
   -> StreamAPI m blk
   -> m (InitLog blk, LedgerDB' blk, Word64)
 initLedgerDB replayTracer
              tracer
              hasFS
+             onDiskLedgerDbSt
              decLedger
              decHash
              cfg
-             readLedgerDb
              getGenesisLedger
              streamAPI = do
     snapshots <- listSnapshots hasFS
+    -- Here we'd get the dbhandle
+    --
+    -- We can use this dbhandle to fetch the restore points.
     tryNewestFirst id snapshots
   where
     tryNewestFirst :: (InitLog blk -> InitLog blk)
@@ -217,7 +226,19 @@ initLedgerDB replayTracer
         traceWith replayTracer $ ReplayFromGenesis ()
         initDb <- ledgerDbWithAnchor <$> getGenesisLedger
         ml     <- runExceptT
-                  $ initStartingWith replayTracer cfg readLedgerDb streamAPI initDb
+                  -- TODO: here initStartingWith could and should probably flush!
+                  --
+                  -- If we're replaying from genesis (or simply replaying a very
+                  -- large number of blocks) we will need to flush from time to
+                  -- time inside this function.
+                  --
+                  -- Note that at the moment no LedgerDB snapshots are taken by
+                  -- this function.
+                  --
+                  -- Note that whatever restore point we take here, it will
+                  -- belong to the immutable part of the chain. So the restore
+                  -- point will not lie ahead of the immutable DB tip.
+                  $ initStartingWith replayTracer cfg onDiskLedgerDbSt streamAPI initDb
         case ml of
           Left _  -> error "invariant violation: invalid current chain"
           Right (l, replayed) -> return (acc InitFromGenesis, l, replayed)
@@ -229,7 +250,7 @@ initLedgerDB replayTracer
                              decLedger
                              decHash
                              cfg
-                             readLedgerDb
+                             onDiskLedgerDbSt
                              streamAPI
                              s
         case ml of
@@ -278,7 +299,7 @@ initFromSnapshot ::
   -> (forall s. Decoder s (ExtLedgerState blk EmptyMK))
   -> (forall s. Decoder s (HeaderHash blk))
   -> LedgerDbCfg (ExtLedgerState blk)
-  -> ReadDb m (ExtLedgerState blk)
+  -> OnDiskLedgerStDb m (ExtLedgerState blk)
   -> StreamAPI m blk
   -> DiskSnapshot
   -> ExceptT (InitFailure blk) m (RealPoint blk, LedgerDB' blk, Word64)
@@ -298,6 +319,51 @@ initFromSnapshot tracer hasFS decLedger decHash cfg readLedgerDb streamAPI ss = 
             (ledgerDbWithAnchor initSS)
         return (tip, initDB, replayed)
 
+
+mkOnDiskLedgerStDb :: SomeHasFS m -> m (OnDiskLedgerStDb m l)
+mkOnDiskLedgerStDb = undefined
+  -- \(SomeHasFS fs) -> do
+  --   dbhandle <- hOpen fs "ledgerStateDb"
+  --   ...
+
+  --   return OnDiskLedgerStDb
+  --   { ...
+  --     , readKeySets = Snapshots.readDb dbhandle
+
+  --     }
+
+-- | On disk ledger state API.
+--
+--
+data OnDiskLedgerStDb m l =
+  OnDiskLedgerStDb
+  { rewindTableKeySets   :: () -- TODO: move the corresponding function from
+                               -- InMemory here.
+  , forwardTableKeySets  :: () -- TODO: ditto.
+
+  , readKeySets :: RewoundTableKeySets l -> m (UnforwardedReadSets l)
+   -- ^ Captures the handle. Implemented by Snapshots.readDb
+   --
+   -- TODO: consider unifying this with defaultReadDb. Why? Because we are always using
+   -- 'defaultReadDb' with readKeySets.
+  , flushDb     :: DbChangelog l -> m (DbChangelog l )
+    -- ^ Flush the ledger DB when appropriate. We assume the implementation of
+    -- this function will determine when to flush.
+    --
+    -- NOTE: Captures the handle and the flushing policy. Implemented by
+    -- Snapshots.writeDb.
+  , createRestorePoint :: DbChangelog l -> m ()
+    -- ^ Captures the DbHandle. Implemented using createRestorePoint (proposed
+    -- by Douglas). We need to take the current SeqNo for the on disk state from
+    -- the DbChangelog.
+
+    {- * other restore point ops ... -}
+  , closeDb :: m ()
+    -- ^ This closes the captured handle.
+  }
+  deriving NoThunks via OnlyCheckWhnfNamed "OnDiskLedgerStDb" (OnDiskLedgerStDb m l)
+
+
 -- | Attempt to initialize the ledger DB starting from the given ledger DB
 initStartingWith ::
      forall m blk. (
@@ -308,11 +374,11 @@ initStartingWith ::
        )
   => Tracer m (TraceReplayEvent blk ())
   -> LedgerDbCfg (ExtLedgerState blk)
-  -> ReadDb m (ExtLedgerState blk)
+  -> OnDiskLedgerStDb m (ExtLedgerState blk)
   -> StreamAPI m blk
   -> LedgerDB' blk
   -> ExceptT (InitFailure blk) m (LedgerDB' blk, Word64)
-initStartingWith tracer cfg readLedgerDb streamAPI initDb = do
+initStartingWith tracer cfg onDiskLedgerDbSt streamAPI initDb = do
     streamAll streamAPI (castPoint (ledgerDbTip initDb))
       InitFailureTooRecent
       (initDb, 0)
@@ -320,9 +386,17 @@ initStartingWith tracer cfg readLedgerDb streamAPI initDb = do
   where
     push :: blk -> (LedgerDB' blk, Word64) -> m (LedgerDB' blk, Word64)
     push blk !(!db, !replayed) = do
-        !db' <- defaultReadDb readLedgerDb $
+        !db' <- defaultReadDb (readKeySets onDiskLedgerDbSt) $
                   ledgerDbPush cfg (ReapplyVal blk) db
-
+        db'' <- ledgerDbFlush (flushDb onDiskLedgerDbSt) db' -- TODO: why not flush inside dbpush? Otherwise we'd have to replicate the flushing policy.
+        -- TODO: it seems we'd want:
+        --
+        --     - flush
+        --
+        --     - make a restore-point
+        --
+        -- We can't make the flush in the levels above push since this function
+        -- consumes the whole stream of immutable DB blocks.
         let replayed' :: Word64
             !replayed' = replayed + 1
 
@@ -330,10 +404,10 @@ initStartingWith tracer cfg readLedgerDb streamAPI initDb = do
             events = inspectLedger
                        (getExtLedgerCfg (ledgerDbCfg cfg))
                        (ledgerState (ledgerDbCurrent db))
-                       (ledgerState (ledgerDbCurrent db'))
+                       (ledgerState (ledgerDbCurrent db''))
 
         traceWith tracer (ReplayedBlock (blockRealPoint blk) events ())
-        return (db', replayed')
+        return (db'', replayed')
 
 {-------------------------------------------------------------------------------
   Write to disk
