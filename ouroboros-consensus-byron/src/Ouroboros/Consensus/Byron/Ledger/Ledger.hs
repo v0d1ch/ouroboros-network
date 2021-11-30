@@ -192,6 +192,10 @@ instance TableStuff (LedgerState ByronBlock) where
 
   -- TODO methods
 
+instance TickedTableStuff (LedgerState ByronBlock) where
+
+  -- TODO methods
+
 instance ShowLedgerState (LedgerTables (LedgerState ByronBlock)) where
   showsLedgerState _sing = shows
 

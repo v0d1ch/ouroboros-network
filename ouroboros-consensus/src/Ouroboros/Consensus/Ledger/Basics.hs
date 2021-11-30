@@ -45,6 +45,7 @@ module Ouroboros.Consensus.Ledger.Basics (
   , SMapKind (..)
   , TableKeySets
   , TableStuff (..)
+  , TickedTableStuff (..)
   , emptyAppliedMK
   , mapValuesAppliedMK
   , toSMapKind
@@ -213,13 +214,9 @@ class ShowLedgerState (LedgerTables l) => TableStuff (l :: LedgerStateKind) wher
 
   data family LedgerTables l :: LedgerStateKind
 
-  forgetTickedLedgerStateTracking :: Ticked1 l TrackingMK -> Ticked1 l ValuesMK
-  forgetLedgerStateTracking       ::         l TrackingMK ->         l ValuesMK
+  forgetLedgerStateTracking :: l TrackingMK -> l ValuesMK
 
   forgetLedgerStateTables :: l any -> l EmptyMK
-
-  -- TODO change first argument's mk to DiffMK
-  prependLedgerStateTracking :: Ticked1 l TrackingMK -> l TrackingMK -> l TrackingMK
 
   projectLedgerTables :: l mk -> LedgerTables l mk
 
@@ -231,6 +228,14 @@ class ShowLedgerState (LedgerTables l) => TableStuff (l :: LedgerStateKind) wher
   -- tables argument should not contain any data from eras that succeed the
   -- current era of the ledger state argument.
   withLedgerTables :: HasCallStack => l any -> LedgerTables l mk -> l mk
+
+-- Separate so that we can have a 'TableStuff' instance for 'Ticked1' without
+-- involving double-ticked types.
+class TableStuff l => TickedTableStuff (l :: LedgerStateKind) where
+  forgetTickedLedgerStateTracking :: Ticked1 l TrackingMK -> Ticked1 l ValuesMK
+
+  -- TODO change first argument's mk to DiffMK
+  prependLedgerStateTracking :: Ticked1 l TrackingMK -> l TrackingMK -> l TrackingMK
 
 -- | 'lrResult' after 'applyChainTickLedgerResult'
 applyChainTick :: IsLedger l => LedgerCfg l -> SlotNo -> l ValuesMK -> Ticked1 l TrackingMK
