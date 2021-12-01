@@ -388,7 +388,12 @@ initStartingWith tracer cfg onDiskLedgerDbSt streamAPI initDb = do
     push blk !(!db, !replayed) = do
         !db' <- defaultReadDb (readKeySets onDiskLedgerDbSt) $
                   ledgerDbPush cfg (ReapplyVal blk) db
-        db'' <- ledgerDbFlush (flushDb onDiskLedgerDbSt) db' -- TODO: why not flush inside dbpush? Otherwise we'd have to replicate the flushing policy.
+        -- TODO: here it is important that we don't have a lock acquired.
+
+        -- Alternatively, we could chose not to lock check for a lock when we're
+        -- flushing here since we know the `LgrDB` does not exist at this point
+        -- yet.
+        db'' <- ledgerDbFlush (flushDb onDiskLedgerDbSt) db'
         -- TODO: it seems we'd want:
         --
         --     - flush

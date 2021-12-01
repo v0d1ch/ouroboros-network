@@ -230,6 +230,7 @@ openDB args@LgrDbArgs { lgrHasFS = lgrHasFS@(SomeHasFS hasFS), .. } replayTracer
     let dbPrunedToImmDBTip = LedgerDB.ledgerDbPrune (SecurityParam 0) db
     (varDB, varPrevApplied) <-
       (,) <$> newTVarIO dbPrunedToImmDBTip <*> newTVarIO Set.empty
+    -- TODO: here we should create the LgrDB.changelogLock
     return (
         LgrDB {
             varDB          = varDB
@@ -324,12 +325,19 @@ decorateReplayTracer immTip = contramap $ fmap (const immTip)
 
 getCurrent :: IOLike m => LgrDB m blk -> STM m (LedgerDB' blk)
 getCurrent LgrDB{..} = readTVar varDB
+  -- TODO: would we acquire a changelog lock on the ledger DB here?
 
 -- | PRECONDITION: The new 'LedgerDB' must be the result of calling either
 -- 'LedgerDB.ledgerDbSwitch' or 'LedgerDB.ledgerDbPushMany' on the current
 -- 'LedgerDB'.
 setCurrent :: IOLike m => LgrDB m blk -> LedgerDB' blk -> STM m ()
 setCurrent LgrDB{..} = writeTVar $! varDB
+  -- TODO: if getCurrent acquires the lock, we should release it here. On the
+  -- other hand, we also need a function to release the lock for those cases in
+  -- which we only want to read the ledger state.
+
+  -- TODO: if we release the block here, maybe this is a good time to flush, by
+  -- calling ledgerDbFlush.
 
 currentPoint :: forall blk. UpdateLedger blk => LedgerDB' blk -> Point blk
 currentPoint = castPoint
@@ -391,7 +399,6 @@ validate :: forall m blk. (IOLike m, LedgerSupportsProtocol blk, HasCallStack)
          -> m (ValidateResult blk)
 validate LgrDB{..} ledgerDB blockCache numRollbacks = \hdrs -> do
     aps <- mkAps hdrs <$> atomically (readTVar varPrevApplied)
-    -- TODO: see if it makes sense to use a similar pattern for reading the ledger.
     res <- fmap rewrap $
              LedgerDB.defaultReadDb (readKeySets lgrOnDiskLedgerStDb) $
              LedgerDB.defaultResolveWithErrors (LedgerDB.DbReader . lift . resolveBlock) $
@@ -421,7 +428,7 @@ validate LgrDB{..} ledgerDB blockCache numRollbacks = \hdrs -> do
       [ case ( Set.member (headerRealPoint hdr) prevApplied
              , BlockCache.lookup (headerHash hdr) blockCache
              ) of
-          (False, Nothing)  -> Weaken $          ApplyRef   (headerRealPoint hdr)
+          (False, Nothing)  -> Weaken $ ApplyRef   (headerRealPoint hdr)
           (True,  Nothing)  -> Weaken $ ReapplyRef (headerRealPoint hdr)
           (False, Just blk) -> Weaken $ ApplyVal   blk
           (True,  Just blk) -> Weaken $ ReapplyVal blk

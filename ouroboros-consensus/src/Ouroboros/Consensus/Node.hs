@@ -6,8 +6,6 @@
 {-# LANGUAGE RecordWildCards     #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeApplications    #-}
-
-{-# LANGUAGE FlexibleContexts    #-}
 -- | Run the whole Node
 --
 -- Intended for qualified import.
@@ -235,7 +233,7 @@ data LowLevelRunNodeArgs m addrNTN addrNTC versionDataNTN versionDataNTC blk = L
 
 -- | Combination of 'runWith' and 'stdLowLevelRunArgsIO'
 run :: forall blk.
-     (RunNode blk)
+     RunNode blk
   => RunNodeArgs IO RemoteAddress LocalAddress blk
   -> StdRunNodeArgs IO blk
   -> IO ()

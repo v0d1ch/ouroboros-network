@@ -69,7 +69,6 @@ import           Ouroboros.Consensus.Storage.ChainDB.Impl.Types
 import qualified Ouroboros.Consensus.Storage.ImmutableDB as ImmutableDB
 import qualified Ouroboros.Consensus.Storage.VolatileDB as VolatileDB
 
-
 {-------------------------------------------------------------------------------
   Initialization
 -------------------------------------------------------------------------------}
@@ -101,7 +100,6 @@ openDB
   -> m (ChainDB m blk)
 openDB args = fst <$> openDBInternal args True
 
-
 openDBInternal
   :: forall m blk.
      ( IOLike m
@@ -129,10 +127,14 @@ openDBInternal args launchBgTasks = do
           LgrDB.decorateReplayTracer
             immutableDbTipPoint
             (contramap TraceLedgerReplayEvent tracer)
+    -- TODO: at this point the LgrDB.changelogLock is not created, so the ledger
+    -- DB initialization from disk can flush freely.
     (lgrDB, replayed) <- LgrDB.openDB argsLgrDb
                             lgrReplayTracer
                             immutableDB
                             (Query.getAnyKnownBlock immutableDB volatileDB)
+    -- TODO: at this point we should have an initialized LgrDB.changelogLock
+    -- that is ready to be acquired.
     traceWith tracer $ TraceOpenEvent OpenedLgrDB
 
     varInvalid      <- newTVarIO (WithFingerprint Map.empty (Fingerprint 0))
