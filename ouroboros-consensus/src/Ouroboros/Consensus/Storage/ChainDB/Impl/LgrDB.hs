@@ -21,6 +21,8 @@ module Ouroboros.Consensus.Storage.ChainDB.Impl.LgrDB (
   , LgrDbArgs (..)
   , defaultArgs
   , openDB
+    -- * Ledger HD operations
+  , flush
     -- * 'TraceReplayEvent' decorator
   , TraceLedgerReplayEvent
   , decorateReplayTracer
@@ -117,6 +119,7 @@ data LgrDB m blk = LgrDB {
       -- ^
       --
       -- TODO: align the other fields.
+    , lgrDbFlushLock :: !FlushLock
     , resolveBlock   :: !(LedgerDB.ResolveBlock m blk) -- TODO: ~ (RealPoint blk -> m blk)
       -- ^ Read a block from disk
     , cfg            :: !(TopLevelConfig blk)
@@ -230,12 +233,16 @@ openDB args@LgrDbArgs { lgrHasFS = lgrHasFS@(SomeHasFS hasFS), .. } replayTracer
     let dbPrunedToImmDBTip = LedgerDB.ledgerDbPrune (SecurityParam 0) db
     (varDB, varPrevApplied) <-
       (,) <$> newTVarIO dbPrunedToImmDBTip <*> newTVarIO Set.empty
-    -- TODO: here we should create the LgrDB.changelogLock
+    flock <- mkFlushLock -- TODO: do we want to register this lock in any
+                         -- resource registry? Depending on how the lock will be
+                         -- implemented an exception after lock creation might
+                         -- not be a problem (eg using MVars or TVars).
     return (
         LgrDB {
             varDB          = varDB
           , varPrevApplied = varPrevApplied
           , lgrOnDiskLedgerStDb = onDiskLedgerStDb -- TODO: align the other fields.
+          , lgrDbFlushLock = flock
           , resolveBlock   = getBlock
           , cfg            = lgrTopLevelConfig
           , diskPolicy     = lgrDiskPolicy
@@ -287,10 +294,11 @@ initFromDisk args replayTracer immutableDB = wrapFailure (Proxy @blk) $ do
 mkLgrDB :: StrictTVar m (LedgerDB' blk)
         -> StrictTVar m (Set (RealPoint blk))
         -> LedgerDB.OnDiskLedgerStDb m (ExtLedgerState blk)
+        -> FlushLock
         -> (RealPoint blk -> m blk)
         -> LgrDbArgs Identity m blk
         -> LgrDB m blk
-mkLgrDB varDB varPrevApplied lgrOnDiskLedgerStDb resolveBlock args = LgrDB {..}
+mkLgrDB varDB varPrevApplied lgrOnDiskLedgerStDb lgrDbFlushLock resolveBlock args = LgrDB {..}
   where
     LgrDbArgs {
         lgrTopLevelConfig = cfg
@@ -380,21 +388,42 @@ getDiskPolicy :: LgrDB m blk -> DiskPolicy
 getDiskPolicy = diskPolicy
 
 flush :: IOLike m => LgrDB m blk -> m ()
-flush LgrDB { varDB, lgrOnDiskLedgerStDb } = do
-  db <- readTVarIO varDB
-  -- TODO: what happens if the LedgerDB is read in other threads at this point?
-  -- For instance chain selection could aqcquire a flush lock, extend the ledger
-  -- db and then release the lock. In principle this should not be a problem:
-  -- the flush buffer is behind the immutable tip, so any modified ledger will
-  -- have to share the write buffer (the portion betwee the on-disk anchor and
-  -- the state anchor).
-  --
-  -- If we don't acquire the lock in this function then we have the possibility
-  -- of making lockind a concern of the 'flushDb' implementation. If we do
-  -- acquire the lock in this function we have more control over the locking
-  -- mechanism.
-  db' <- LedgerDB.ledgerDbFlush (flushDb lgrOnDiskLedgerStDb) db
-  atomically $ writeTVar varDB db'
+flush LgrDB { varDB, lgrOnDiskLedgerStDb, lgrDbFlushLock } =
+  -- TODO: why putting the lock inside LgrDB and not in the CDB? I rather couple
+  -- the ledger DB with the flush lock that guards it. I don't feel comfortable
+  -- with the possiblility of having a lock as a parameter here that could come
+  -- from anywhere. Also, when we use this function, we don't have to pass the
+  -- extra argument.
+  withFlushLock lgrDbFlushLock $ do
+    db  <- readTVarIO varDB
+    db' <- LedgerDB.ledgerDbFlush (flushDb lgrOnDiskLedgerStDb) db
+    atomically $ writeTVar varDB db'
+
+
+data FlushLock = FlushLock
+  deriving (Show, Eq, Generic, NoThunks)
+
+mkFlushLock :: IOLike m => m FlushLock
+mkFlushLock = undefined
+
+-- | Acquire the flush lock, perform the action and release it.
+withFlushLock :: IOLike m => FlushLock -> m () -> m ()
+withFlushLock fl act = bracket_ (acquireFlushLock fl) act (releaseFlushLock fl)
+
+-- Block till the flush lock is acquired. TODO: is this what we want?
+--
+-- TODO: we must ensure that all the uses of 'acquireFlushLock' are guarded
+-- against asynchronous exceptions. For instance, we discussed this with Nick
+-- Frisby, and he mentioned that we have a exception handling mechanism for when
+-- the other end of the query server disconnects, so we should make sure we call
+-- 'releaseFlushLock' when the server resources are released.
+--
+acquireFlushLock :: FlushLock -> m ()
+acquireFlushLock = undefined
+
+releaseFlushLock :: FlushLock -> m ()
+releaseFlushLock = undefined
+
 
 {-------------------------------------------------------------------------------
   Validation
