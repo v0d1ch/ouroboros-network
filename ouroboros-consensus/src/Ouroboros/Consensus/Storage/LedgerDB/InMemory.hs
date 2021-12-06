@@ -388,6 +388,16 @@ extendDbChangelog
   -> DbChangelog l
 extendDbChangelog = undefined
 
+-- TODO: flushing the changelog will invalidate other copies of `LedgerDB`. So
+-- we need to find a way to make sure that whenever we flush we try to acquire
+-- the lock!
+--
+-- Maybe the implementation of changelogFlush should take care of this. This
+-- makes sense as for an in-memory implementation of the backend we won't need
+-- to flush to disk. However other implementations might require this.
+--
+-- Alternatively, we could make flush locking a separate concern (and not a
+-- concern of the Ledger HD backend).
 ledgerDbFlush :: Monad m => (DbChangelog l -> m (DbChangelog l)) -> LedgerDB l -> m (LedgerDB l)
 ledgerDbFlush changelogFlush db = do
   ledgerDbChangelog' <- changelogFlush (ledgerDbChangelog db)

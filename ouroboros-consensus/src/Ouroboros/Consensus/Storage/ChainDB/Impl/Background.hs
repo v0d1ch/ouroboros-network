@@ -309,6 +309,9 @@ updateLedgerSnapshots ::
      )
   => ChainDbEnv m blk -> m ()
 updateLedgerSnapshots CDB{..} = do
+    -- TODO: if we couple snapshotting and flushing we need to make sure these
+    -- calls are not interleaved.
+    LgrDb.flush cdbLgrDB
     void $ LgrDB.takeSnapshot  cdbLgrDB
     void $ LgrDB.trimSnapshots cdbLgrDB
 

@@ -379,6 +379,23 @@ trimSnapshots LgrDB { diskPolicy, tracer, hasFS } = wrapFailure (Proxy @blk) $
 getDiskPolicy :: LgrDB m blk -> DiskPolicy
 getDiskPolicy = diskPolicy
 
+flush :: IOLike m => LgrDB m blk -> m ()
+flush LgrDB { varDB, lgrOnDiskLedgerStDb } = do
+  db <- readTVarIO varDB
+  -- TODO: what happens if the LedgerDB is read in other threads at this point?
+  -- For instance chain selection could aqcquire a flush lock, extend the ledger
+  -- db and then release the lock. In principle this should not be a problem:
+  -- the flush buffer is behind the immutable tip, so any modified ledger will
+  -- have to share the write buffer (the portion betwee the on-disk anchor and
+  -- the state anchor).
+  --
+  -- If we don't acquire the lock in this function then we have the possibility
+  -- of making lockind a concern of the 'flushDb' implementation. If we do
+  -- acquire the lock in this function we have more control over the locking
+  -- mechanism.
+  db' <- LedgerDB.ledgerDbFlush (flushDb lgrOnDiskLedgerStDb) db
+  atomically $ writeTVar varDB db'
+
 {-------------------------------------------------------------------------------
   Validation
 -------------------------------------------------------------------------------}

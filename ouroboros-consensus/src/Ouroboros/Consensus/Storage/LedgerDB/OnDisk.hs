@@ -390,7 +390,7 @@ initStartingWith tracer cfg onDiskLedgerDbSt streamAPI initDb = do
                   ledgerDbPush cfg (ReapplyVal blk) db
         -- TODO: here it is important that we don't have a lock acquired.
 
-        -- Alternatively, we could chose not to lock check for a lock when we're
+        -- Alternatively, we could chose not to check for a lock when we're
         -- flushing here since we know the `LgrDB` does not exist at this point
         -- yet.
         db'' <- ledgerDbFlush (flushDb onDiskLedgerDbSt) db'
