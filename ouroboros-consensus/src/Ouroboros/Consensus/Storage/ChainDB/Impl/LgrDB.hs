@@ -23,6 +23,13 @@ module Ouroboros.Consensus.Storage.ChainDB.Impl.LgrDB (
   , openDB
     -- * Ledger HD operations
   , flush
+    -- ** Read/Write lock operations
+  , withReadLock
+  , withWriteLock
+  , unsafeAcquireReadLock
+  , unsafeReleaseReadLock
+  , unsafeAcquireWriteLock
+  , unsafeReleaseWriteLock
     -- * 'TraceReplayEvent' decorator
   , TraceLedgerReplayEvent
   , decorateReplayTracer
@@ -388,42 +395,16 @@ getDiskPolicy :: LgrDB m blk -> DiskPolicy
 getDiskPolicy = diskPolicy
 
 flush :: IOLike m => LgrDB m blk -> m ()
-flush LgrDB { varDB, lgrOnDiskLedgerStDb, lgrDbFlushLock } =
+flush lgrDB@LgrDB { varDB, lgrOnDiskLedgerStDb } =
   -- TODO: why putting the lock inside LgrDB and not in the CDB? I rather couple
   -- the ledger DB with the flush lock that guards it. I don't feel comfortable
   -- with the possiblility of having a lock as a parameter here that could come
   -- from anywhere. Also, when we use this function, we don't have to pass the
   -- extra argument.
-  withFlushLock lgrDbFlushLock $ do
+  withWriteLock lgrDB $ do
     db  <- readTVarIO varDB
     db' <- LedgerDB.ledgerDbFlush (flushDb lgrOnDiskLedgerStDb) db
     atomically $ writeTVar varDB db'
-
-
-data FlushLock = FlushLock
-  deriving (Show, Eq, Generic, NoThunks)
-
-mkFlushLock :: IOLike m => m FlushLock
-mkFlushLock = undefined
-
--- | Acquire the flush lock, perform the action and release it.
-withFlushLock :: IOLike m => FlushLock -> m () -> m ()
-withFlushLock fl act = bracket_ (acquireFlushLock fl) act (releaseFlushLock fl)
-
--- Block till the flush lock is acquired. TODO: is this what we want?
---
--- TODO: we must ensure that all the uses of 'acquireFlushLock' are guarded
--- against asynchronous exceptions. For instance, we discussed this with Nick
--- Frisby, and he mentioned that we have a exception handling mechanism for when
--- the other end of the query server disconnects, so we should make sure we call
--- 'releaseFlushLock' when the server resources are released.
---
-acquireFlushLock :: FlushLock -> m ()
-acquireFlushLock = undefined
-
-releaseFlushLock :: FlushLock -> m ()
-releaseFlushLock = undefined
-
 
 {-------------------------------------------------------------------------------
   Validation
@@ -565,3 +546,39 @@ configLedgerDb cfg = LedgerDbCfg {
       ledgerDbCfgSecParam = configSecurityParam cfg
     , ledgerDbCfg         = ExtLedgerCfg cfg
     }
+
+{-------------------------------------------------------------------------------
+  Flush lock operations
+-------------------------------------------------------------------------------}
+
+-- | Perform an action acquiring and holding the ledger DB read lock.
+withReadLock :: IOLike m => LgrDB m blk -> m a -> m a
+withReadLock lgrDB =
+  bracket_ (unsafeAcquireReadLock lgrDB) (unsafeReleaseReadLock lgrDB)
+
+-- | Perform an action acquiring and holding the ledger DB write lock.
+withWriteLock :: IOLike m => LgrDB m blk -> m () -> m ()
+withWriteLock lgrDB =
+  bracket_ (unsafeAcquireWriteLock lgrDB) (unsafeReleaseWriteLock lgrDB)
+
+-- | Acquire a read lock on the ledger DB.
+--
+-- This operation must be guarded against (asyncrhonous) exceptions, ensuring
+-- that the corresponding release operation is called.
+unsafeAcquireReadLock :: LgrDB m blk -> m ()
+unsafeAcquireReadLock = undefined
+
+unsafeReleaseReadLock :: LgrDB m blk -> m ()
+unsafeReleaseReadLock = undefined
+
+unsafeAcquireWriteLock :: LgrDB m blk -> m ()
+unsafeAcquireWriteLock = undefined
+
+unsafeReleaseWriteLock :: LgrDB m blk -> m ()
+unsafeReleaseWriteLock = undefined
+
+data FlushLock = FlushLock
+  deriving (Show, Eq, Generic, NoThunks)
+
+mkFlushLock :: IOLike m => m FlushLock
+mkFlushLock = undefined
