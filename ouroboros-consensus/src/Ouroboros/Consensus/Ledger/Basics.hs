@@ -215,14 +215,21 @@ class ( -- Requirements on the ledger state itself
   -- | Given a block, get the key-sets that we need to apply it to a ledger
   -- state.
   --
-  -- TODO: the assumption here is that the the resulting key-sets contain the
-  -- keys that the ledger needs to tick to the slot of the given block.
+  -- TODO: we assume this function will be implemented in terms of
+  -- 'getTickKeySets'. Thus, the resulting keys set will contain the keys that
+  -- the ledger needs to tick to the slot of a given block.
   --
   -- TODO: this might not be the best place to define this function. Maybe we
   -- want to make the on-disk ledger state storage concern orthogonal to the
   -- ledger state transformation concern.
-  getKeySets :: blk -> Maybe (l EmptyMK) -> TableKeySets l
+  getBlockKeySets :: blk -> TableKeySets l
 
+  -- | We won't use this in the first iteration.
+  --
+  -- TODO: should we check in property tests that the result 'getTickKeySets' is a
+  -- subset of what 'getBlockKeySets' return?
+  ---
+  getTickKeySets :: SlotNo -> l EmptyMK  -> TableKeySets l
 
 
 -- This can't be in IsLedger because we have a compositional IsLedger instance
@@ -245,6 +252,8 @@ class ShowLedgerState (LedgerTables l) => TableStuff (l :: LedgerStateKind) wher
   -- 'Ouroboros.Consensus.HardFork.Combinator.Basics.HardForkBlock' ledger, the
   -- tables argument should not contain any data from eras that succeed the
   -- current era of the ledger state argument.
+  --
+  -- TODO: reconsider the name: don't we use 'withX' in the context of bracket like functions?
   withLedgerTables :: HasCallStack => l any -> LedgerTables l mk -> l mk
 
 -- Separate so that we can have a 'TableStuff' instance for 'Ticked1' without
@@ -255,7 +264,6 @@ class TableStuff l => TickedTableStuff (l :: LedgerStateKind) where
   -- TODO change first argument's mk to DiffMK
   prependLedgerStateTracking :: Ticked1 l TrackingMK -> l TrackingMK -> l TrackingMK
 
-  -- TODO: Nick/Douglas: we can assume we can define such funnction, right?
   trackingTablesToDiffs :: l TrackingMK -> l DiffMK
 
 -- | 'lrResult' after 'applyChainTickLedgerResult'
@@ -273,8 +281,8 @@ data MapKind = EmptyMK
              | ValuesMK
              | TrackingMK
              | DiffMK
-             | SnapshotsMK
-               -- ^ Do we want to define this?
+             -- | SnapshotsMK
+             --  TODO: we won't use snapshots in the first iteration.
              | AnnMK Type MapKind
 
 data ApplyMapKind :: MapKind -> Type -> Type -> Type where
@@ -308,6 +316,7 @@ mapValuesAppliedMK f = \case
   ApplyValuesMK vs -> ApplyValuesMK (f <$> vs)
   ApplyTrackingMK  -> ApplyTrackingMK
   ApplyDiffMK      -> ApplyDiffMK
+
 
 instance (Ord k, Eq v) => Eq (ApplyMapKind mk k v) where
   ApplyEmptyMK    == _               = True

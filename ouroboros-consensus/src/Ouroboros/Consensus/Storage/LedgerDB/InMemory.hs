@@ -94,6 +94,7 @@ import           Ouroboros.Consensus.Ledger.Abstract
 import           Ouroboros.Consensus.Util
 import           Ouroboros.Consensus.Util.CBOR (decodeWithOrigin)
 import           Ouroboros.Consensus.Util.Versioned
+import Cardano.Slotting.Slot (WithOrigin(At))
 
 {-------------------------------------------------------------------------------
   Ledger DB types
@@ -322,7 +323,7 @@ applyBlock cfg ap db = case ap of
       -> (l ValuesMK -> m (l TrackingMK))
       -> m (l TrackingMK)
     withBlockReadSets b f = do
-      let ks = getKeySets b Nothing :: TableKeySets l
+      let ks = getBlockKeySets b :: TableKeySets l
       let aks = rewindTableKeySets (ledgerDbChangelog db) ks :: RewoundTableKeySets l
       urs <- readDb aks
       withHydratedLedgerState urs f
@@ -380,13 +381,18 @@ forwardTableKeySets
 forwardTableKeySets = undefined
 
 extendDbChangelog
-  :: WithOrigin SlotNo
-    -- TODO: use SeqNo and delegate WithOrigin SlotNo to SeqNo transformation to the instances of HasSeqNo class.
+  :: SeqNo l
   -> l DiffMK
-  -> Maybe (l SnapshotsMK)
+  -- -> Maybe (l SnapshotsMK) TOOD: We won't use this parameter in the first iteration.
   -> DbChangelog l
   -> DbChangelog l
 extendDbChangelog = undefined
+
+newtype SeqNo (state :: LedgerStateKind) = SeqNo { unSeqNo :: Word64 }
+  deriving (Eq, Ord, Show)
+
+class HasSeqNo (state :: LedgerStateKind) where
+  stateSeqNo :: state table -> SeqNo state
 
 -- TODO: flushing the changelog will invalidate other copies of 'LedgerDB'. At
 -- the moment the flush-locking concern is outside the scope of this module.
@@ -541,11 +547,16 @@ pushLedgerState ::
 pushLedgerState secParam current' db@LedgerDB{..}  =
     ledgerDbPrune secParam $ db {
         ledgerDbCheckpoints = ledgerDbCheckpoints AS.:> Checkpoint (forgetLedgerStateTables current')
-      , ledgerDbChangelog   = extendDbChangelog (getTipSlot current')
+      , ledgerDbChangelog   = extendDbChangelog (stateSeqNo current')
                                                 (trackingTablesToDiffs current')
-                                                Nothing
                                                 ledgerDbChangelog
       }
+
+instance IsLedger l => HasSeqNo l where
+  stateSeqNo l =
+    case getTipSlot l of
+      Origin        -> SeqNo 0
+      At (SlotNo n) -> SeqNo (n + 1)
 
 {-------------------------------------------------------------------------------
   Internal: rolling back
