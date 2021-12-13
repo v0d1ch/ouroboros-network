@@ -58,6 +58,7 @@ import           Ouroboros.Consensus.Block
 import           Ouroboros.Consensus.Config
 import           Ouroboros.Consensus.HardFork.Abstract
 import           Ouroboros.Consensus.Ledger.Abstract
+import           Ouroboros.Consensus.Ledger.Extended (ExtLedgerState)
 import           Ouroboros.Consensus.Ledger.Inspect
 import           Ouroboros.Consensus.Ledger.SupportsProtocol
 import           Ouroboros.Consensus.Protocol.Abstract
@@ -74,6 +75,7 @@ import           Ouroboros.Consensus.Storage.ChainDB.Impl.LgrDB
 import qualified Ouroboros.Consensus.Storage.ChainDB.Impl.LgrDB as LgrDB
 import           Ouroboros.Consensus.Storage.ChainDB.Impl.Types
 import qualified Ouroboros.Consensus.Storage.ImmutableDB as ImmutableDB
+import qualified Ouroboros.Consensus.Storage.LedgerDB.InMemory as LedgerDB
 import           Ouroboros.Consensus.Storage.LedgerDB.DiskPolicy
                      (TimeSinceLast (..))
 import qualified Ouroboros.Consensus.Storage.VolatileDB as VolatileDB
@@ -86,6 +88,7 @@ launchBgTasks
   :: forall m blk.
      ( IOLike m
      , LedgerSupportsProtocol blk
+     , LedgerDB.HasDiskDb m (ExtLedgerState blk)
      , InspectLedger blk
      , HasHardForkHistory blk
      , LgrDbSerialiseConstraints blk
@@ -528,6 +531,7 @@ dumpGcSchedule (GcSchedule varQueue) = toList <$> readTVar varQueue
 addBlockRunner
   :: ( IOLike m
      , LedgerSupportsProtocol blk
+     , LedgerDB.HasDiskDb m (ExtLedgerState blk)
      , InspectLedger blk
      , HasHardForkHistory blk
      , HasCallStack

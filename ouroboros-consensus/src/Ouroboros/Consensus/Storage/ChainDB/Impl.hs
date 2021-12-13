@@ -46,6 +46,7 @@ import qualified Ouroboros.Network.AnchoredFragment as AF
 import           Ouroboros.Consensus.Block
 import qualified Ouroboros.Consensus.Fragment.Validated as VF
 import           Ouroboros.Consensus.HardFork.Abstract
+import           Ouroboros.Consensus.Ledger.Extended (ExtLedgerState)
 import           Ouroboros.Consensus.Ledger.Inspect
 import           Ouroboros.Consensus.Ledger.SupportsProtocol
 import           Ouroboros.Consensus.Util (whenJust)
@@ -67,6 +68,7 @@ import qualified Ouroboros.Consensus.Storage.ChainDB.Impl.LgrDB as LgrDB
 import qualified Ouroboros.Consensus.Storage.ChainDB.Impl.Query as Query
 import           Ouroboros.Consensus.Storage.ChainDB.Impl.Types
 import qualified Ouroboros.Consensus.Storage.ImmutableDB as ImmutableDB
+import qualified Ouroboros.Consensus.Storage.LedgerDB.InMemory as LedgerDB
 import qualified Ouroboros.Consensus.Storage.VolatileDB as VolatileDB
 
 {-------------------------------------------------------------------------------
@@ -77,6 +79,7 @@ withDB
   :: forall m blk a.
      ( IOLike m
      , LedgerSupportsProtocol blk
+     , LedgerDB.HasDiskDb m (ExtLedgerState blk)
      , InspectLedger blk
      , HasHardForkHistory blk
      , ConvertRawHash blk
@@ -91,6 +94,7 @@ openDB
   :: forall m blk.
      ( IOLike m
      , LedgerSupportsProtocol blk
+     , LedgerDB.HasDiskDb m (ExtLedgerState blk)
      , InspectLedger blk
      , HasHardForkHistory blk
      , ConvertRawHash blk
@@ -104,6 +108,7 @@ openDBInternal
   :: forall m blk.
      ( IOLike m
      , LedgerSupportsProtocol blk
+     , LedgerDB.HasDiskDb m (ExtLedgerState blk)
      , InspectLedger blk
      , HasHardForkHistory blk
      , ConvertRawHash blk

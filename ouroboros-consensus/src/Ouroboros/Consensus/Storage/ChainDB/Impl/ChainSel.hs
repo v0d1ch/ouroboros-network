@@ -75,6 +75,7 @@ import           Ouroboros.Consensus.Storage.ChainDB.Impl.Paths
 import qualified Ouroboros.Consensus.Storage.ChainDB.Impl.Paths as Paths
 import qualified Ouroboros.Consensus.Storage.ChainDB.Impl.Query as Query
 import           Ouroboros.Consensus.Storage.ChainDB.Impl.Types
+import qualified Ouroboros.Consensus.Storage.LedgerDB.InMemory as LedgerDB
 import           Ouroboros.Consensus.Storage.ImmutableDB (ImmutableDB)
 import qualified Ouroboros.Consensus.Storage.ImmutableDB as ImmutableDB
 import           Ouroboros.Consensus.Storage.VolatileDB (VolatileDB)
@@ -87,7 +88,7 @@ import qualified Ouroboros.Consensus.Storage.VolatileDB as VolatileDB
 --
 -- See "## Initialization" in ChainDB.md.
 initialChainSelection
-  :: forall m blk. (IOLike m, LedgerSupportsProtocol blk)
+  :: forall m blk. (IOLike m, LedgerSupportsProtocol blk, LedgerDB.HasDiskDb m (ExtLedgerState blk))
   => ImmutableDB m blk
   -> VolatileDB m blk
   -> LgrDB m blk
@@ -241,6 +242,7 @@ addBlockSync
      ( IOLike m
      , GetPrevHash blk
      , LedgerSupportsProtocol blk
+     , LedgerDB.HasDiskDb m (ExtLedgerState blk)
      , InspectLedger blk
      , HasHardForkHistory blk
      , HasCallStack
@@ -355,6 +357,7 @@ olderThanK hdr isEBB immBlockNo
 chainSelectionForFutureBlocks
   :: ( IOLike m
      , LedgerSupportsProtocol blk
+     , LedgerDB.HasDiskDb m (ExtLedgerState blk)
      , InspectLedger blk
      , HasHardForkHistory blk
      , HasCallStack
@@ -413,6 +416,7 @@ chainSelectionForBlock
      ( IOLike m
      , HasHeader blk
      , LedgerSupportsProtocol blk
+     , LedgerDB.HasDiskDb m (ExtLedgerState blk)
      , InspectLedger blk
      , HasHardForkHistory blk
      , HasCallStack
@@ -769,6 +773,7 @@ chainSelection
   :: forall m blk.
      ( IOLike m
      , LedgerSupportsProtocol blk
+     , LedgerDB.HasDiskDb m (ExtLedgerState blk)
      , HasCallStack
      )
   => ChainSelEnv m blk
@@ -906,6 +911,7 @@ ledgerValidateCandidate
   :: forall m blk.
      ( IOLike m
      , LedgerSupportsProtocol blk
+     , LedgerDB.HasDiskDb m (ExtLedgerState blk)
      , HasCallStack
      )
   => ChainSelEnv m blk
@@ -1020,6 +1026,7 @@ futureCheckCandidate chainSelEnv validatedChainDiff =
 validateCandidate
   :: ( IOLike m
      , LedgerSupportsProtocol blk
+     , LedgerDB.HasDiskDb m (ExtLedgerState blk)
      , HasCallStack
      )
   => ChainSelEnv m blk

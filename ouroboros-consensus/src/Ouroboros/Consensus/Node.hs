@@ -6,6 +6,8 @@
 {-# LANGUAGE RecordWildCards     #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeApplications    #-}
+
+{-# LANGUAGE FlexibleContexts    #-}
 -- | Run the whole Node
 --
 -- Intended for qualified import.
@@ -111,8 +113,10 @@ import           Ouroboros.Consensus.Storage.ImmutableDB (ChunkInfo,
                      ValidationPolicy (..))
 import           Ouroboros.Consensus.Storage.LedgerDB.DiskPolicy
                      (SnapshotInterval (..), defaultDiskPolicy)
+import qualified Ouroboros.Consensus.Storage.LedgerDB.InMemory as LedgerDB
 import           Ouroboros.Consensus.Storage.VolatileDB
                      (BlockValidationPolicy (..))
+
 
 {-------------------------------------------------------------------------------
   The arguments to the Consensus Layer node functionality
@@ -232,7 +236,7 @@ data LowLevelRunNodeArgs m addrNTN addrNTC versionDataNTN versionDataNTC blk = L
 
 -- | Combination of 'runWith' and 'stdLowLevelRunArgsIO'
 run :: forall blk.
-     RunNode blk
+     (RunNode blk, LedgerDB.HasDiskDb IO (ExtLedgerState blk))
   => RunNodeArgs IO RemoteAddress LocalAddress blk
   -> StdRunNodeArgs IO blk
   -> IO ()
@@ -246,6 +250,7 @@ run args stdArgs = stdLowLevelRunNodeArgsIO args stdArgs >>= runWith args
 -- This function runs forever unless an exception is thrown.
 runWith :: forall m addrNTN addrNTC versionDataNTN versionDataNTC blk.
      ( RunNode blk
+     , LedgerDB.HasDiskDb m (ExtLedgerState blk)
      , IOLike m, MonadTime m, MonadTimer m
      , Hashable addrNTN, Ord addrNTN, Typeable addrNTN
      )
@@ -453,7 +458,7 @@ stdWithCheckedDB pb databasePath networkMagic body = do
     hasFS      = ioHasFS mountPoint
 
 openChainDB
-  :: forall m blk. (RunNode blk, IOLike m)
+  :: forall m blk. (RunNode blk, IOLike m, LedgerDB.HasDiskDb m (ExtLedgerState blk))
   => ResourceRegistry m
   -> CheckInFuture m blk
   -> TopLevelConfig blk

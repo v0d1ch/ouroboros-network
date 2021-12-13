@@ -16,6 +16,8 @@
 {-# LANGUAGE TypeApplications       #-}
 {-# LANGUAGE TypeFamilies           #-}
 {-# LANGUAGE UndecidableInstances   #-}
+{-# LANGUAGE EmptyDataDeriving      #-}
+
 
 module Ouroboros.Consensus.Storage.LedgerDB.InMemory (
     -- * LedgerDB proper
@@ -23,6 +25,9 @@ module Ouroboros.Consensus.Storage.LedgerDB.InMemory (
   , ledgerDbWithAnchor
     -- ** opaque
   , LedgerDB
+    -- * Ledger DB classes (TODO: we might want to place this somewhere else)
+  , HasDiskDb (..)
+  , DbHandle
     -- ** Serialisation
   , decodeSnapshotBackwardsCompatible
   , encodeSnapshot
@@ -79,6 +84,9 @@ import           Ouroboros.Consensus.Ledger.Abstract
 import           Ouroboros.Consensus.Util
 import           Ouroboros.Consensus.Util.CBOR (decodeWithOrigin)
 import           Ouroboros.Consensus.Util.Versioned
+import           Ouroboros.Consensus.Util.IOLike (IOLike)
+import qualified Control.Monad.Class.MonadSTM.Strict
+import qualified Ouroboros.Consensus.Util.MonadSTM.StrictMVar
 
 {-------------------------------------------------------------------------------
   Ledger DB types
@@ -125,12 +133,13 @@ import           Ouroboros.Consensus.Util.Versioned
 -- blocks. For example, if we are on line (*), and roll back 6 blocks, we get
 --
 -- > L3 |> []
-newtype LedgerDB (l :: LedgerStateKind) = LedgerDB {
+data LedgerDB (l :: LedgerStateKind) = LedgerDB {
       -- | Ledger states
       ledgerDbCheckpoints :: AnchoredSeq
                                (WithOrigin SlotNo)
                                (Checkpoint l)
                                (Checkpoint l)
+    , ledgerDbChangelog   :: DbChangelog l
     }
   deriving (Generic)
 
@@ -165,6 +174,7 @@ instance GetTip (l EmptyMK) => Anchorable (WithOrigin SlotNo) (Checkpoint l) (Ch
 ledgerDbWithAnchor :: (forall mk. GetTip (l mk)) => l EmptyMK -> LedgerDB l
 ledgerDbWithAnchor anchor = LedgerDB {
       ledgerDbCheckpoints = Empty (Checkpoint anchor)
+    , ledgerDbChangelog   = initialDbChangelog (getTipSlot anchor) anchor
     }
 
 {-------------------------------------------------------------------------------
@@ -267,30 +277,154 @@ data Ap :: (Type -> Type) -> LedgerStateKind -> Type -> Constraint -> Type where
 -- | Apply block to the current ledger state
 --
 -- We take in the entire 'LedgerDB' because we record that as part of errors.
-applyBlock :: forall m c l blk. (ApplyBlock l blk, TickedTableStuff l, Monad m, c)
+applyBlock :: forall m c l blk
+            . ( ApplyBlock l blk, TickedTableStuff l, Monad m, c
+               -- TODO: discuss this new constraint
+              , HasDiskDb m l)
            => LedgerCfg l
+           -> DbHandle l
            -> Ap m l blk c
            -> LedgerDB l -> m (l TrackingMK)
-applyBlock cfg ap db = case ap of
+applyBlock cfg dbhandle ap db = case ap of
     ReapplyVal b ->
-      return $
-        tickThenReapply cfg b l
+      withBlockReadSets b $ \lh ->
+        return $
+          tickThenReapply cfg b lh
     ApplyVal b ->
-      either (throwLedgerError db (blockRealPoint b)) return $ runExcept $
-        tickThenApply cfg b l
+      withBlockReadSets b $ \lh ->
+        either (throwLedgerError db (blockRealPoint b)) return $ runExcept $
+          tickThenApply cfg b lh
     ReapplyRef r  -> do
       b <- resolveBlock r
-      return $
-        tickThenReapply cfg b l
+      withBlockReadSets b $ \lh ->
+        return $
+          tickThenReapply cfg b lh
     ApplyRef r -> do
       b <- resolveBlock r
-      either (throwLedgerError db r) return $ runExcept $
-        tickThenApply cfg b l
+      withBlockReadSets b $ \lh ->
+        either (throwLedgerError db r) return $ runExcept $
+          tickThenApply cfg b lh
     Weaken ap' ->
-      applyBlock cfg ap' db
+      applyBlock cfg dbhandle ap' db
   where
-    l :: l ValuesMK
-    l = error "UTxO HD applyBlock" (ledgerDbCurrent db :: l EmptyMK)
+    withBlockReadSets
+      :: blk
+      -> (l ValuesMK -> m (l TrackingMK))
+      -> m (l TrackingMK)
+    withBlockReadSets b f = do
+      let ks = getKeySets b Nothing :: TableKeySets l
+      let aks = rewindTableKeySets (ledgerDbChangelog db) ks :: RewoundTableKeySets l
+      urs <- readDb dbhandle aks
+      withHydratedLedgerState urs f
+
+    withHydratedLedgerState
+      :: UnforwardedReadSets l
+      -> (l ValuesMK -> a)
+      -> a
+    withHydratedLedgerState urs f =
+      case forwardTableKeySets (ledgerDbChangelog db) urs of
+        Nothing ->
+          -- We should explain here in which circumstances this might happen.
+          --
+          -- Here we're doing the rewind;read;forward sequence using the same
+          -- ledger state (and without flushing to disk), so the forward
+          -- operation __must__ succeed. However, what happens if the database
+          -- becomes corrupted. Is this realistic?
+          --
+          -- Also, in the future, when we introduce pipelining, the
+          -- rewind;read;forward sequence will not take place in 'applyBlock':
+          -- block keys reads will occur way before we invoke chain selection
+          -- for that block. So does it still make sense to have a __fallback__
+          -- rewind;read;forward sequence in 'applyBlock'?
+          --
+          -- TODO: Douglas: discuss this with him.
+          error "TODO: handle this case appropriately."
+        Just rs ->
+          f $ withLedgerTables (ledgerDbCurrent db)  rs
+
+{-------------------------------------------------------------------------------
+  HD Interface that I need (Could be moved to  Ouroboros.Consensus.Ledger.Basics )
+-------------------------------------------------------------------------------}
+
+
+data DbChangelog (l :: LedgerStateKind)
+  deriving (Eq, Generic, NoThunks)
+
+newtype RewoundTableKeySets l = RewoundTableKeySets (AnnTableKeySets l ()) -- KeySetSanityInfo l
+
+initialDbChangelog
+  :: WithOrigin SlotNo -> l EmptyMK -> DbChangelog l
+initialDbChangelog = undefined
+
+rewindTableKeySets
+  :: DbChangelog l -> TableKeySets l -> RewoundTableKeySets l
+rewindTableKeySets = undefined
+
+newtype UnforwardedReadSets l = UnforwardedReadSets (AnnTableReadSets l ())
+
+forwardTableKeySets
+  :: DbChangelog l -> UnforwardedReadSets l -> Maybe (TableReadSets l)
+forwardTableKeySets = undefined
+
+extendDbChangelog
+  :: WithOrigin SlotNo
+    -- ^ TODO: Douglas/Nick: is it ok to use this as SeqNo?
+  -> l DiffMK
+  -> Maybe (l SnapshotsMK)
+  -> DbChangelog l
+  -> DbChangelog l
+extendDbChangelog = undefined
+
+
+-- TODO: this needs to take the ledger state as an argument, if only as a
+-- phantom type, which is used to describe the schema of what's stored on-disk.
+data DbHandle (l :: LedgerStateKind)
+     deriving Generic
+
+-- | TODO: Douglas: Is it ok to assume that the handle will be free of thunks no
+-- matter which ledger state is stored on disk?
+instance NoThunks (DbHandle l)
+
+
+class -- TODO: do we need this constraint?
+      --
+      --   IOLike m =>
+      --
+      -- If we do thinks get complicated since we'll need a IOLike instance for
+      -- (ReaderT r m), which will force us to propagate the
+      --
+      -- forall a . NoThunks
+      --                  (Control.Monad.Class.MonadSTM.Strict.StrictTVar (ReaderT r m) a)
+      -- , forall a . NoThunks
+      --                  (Ouroboros.Consensus.Util.MonadSTM.StrictMVar.StrictMVar
+      --                     (ReaderT r m) a)
+      --
+      -- everywhere. And I'm not even sure we can satisfy such constraint. A
+      -- Reader monad is basically a function!
+   HasDiskDb m l where
+
+  readDb :: DbHandle l -> RewoundTableKeySets l -> m (UnforwardedReadSets l)
+
+instance ( HasDiskDb m l
+--         , IOLike  (ReaderT r m)
+         ) => HasDiskDb (ReaderT r m) l
+
+instance (HasDiskDb m l
+--          , IOLike (ExceptT e m)
+         ) => HasDiskDb (ExceptT e m) l
+
+
+-- Adding this orphan instance here till I confirm that it'd make sense to add
+-- such an instance in  'Ouroboros.Consensus.Util.IOLike'
+instance ( IOLike m
+         , forall a . NoThunks (ReaderT r m a)
+         , forall a . NoThunks
+                          (Control.Monad.Class.MonadSTM.Strict.StrictTVar (ReaderT r m) a)
+         , forall a . NoThunks
+                          (Ouroboros.Consensus.Util.MonadSTM.StrictMVar.StrictMVar
+                             (ReaderT r m) a)
+         -- , forall a . NoThunks (ReaderT r m a)
+         ) => IOLike (ReaderT r m) where
 
 {-------------------------------------------------------------------------------
   Queries
@@ -356,11 +490,17 @@ ledgerDbPrefix pt db
     | pt == castPoint (getTip (ledgerDbAnchor db))
     = Just $ ledgerDbWithAnchor (ledgerDbAnchor db)
     | otherwise
-    =   fmap LedgerDB
-      $ AS.rollback
-          (pointSlot pt)
-          ((== pt) . castPoint . getTip . unCheckpoint . either id id)
-          (ledgerDbCheckpoints db)
+    =  do
+        checkpoints' <- AS.rollback
+                          (pointSlot pt)
+                          ((== pt) . castPoint . getTip . unCheckpoint . either id id)
+                          (ledgerDbCheckpoints db)
+
+        return $ LedgerDB
+                  { ledgerDbCheckpoints = checkpoints'
+                  , ledgerDbChangelog   = undefined -- TODO rollback the changelog
+                  }
+
 
 -- | Transform the underlying 'AnchoredSeq' using the given functions.
 ledgerDbBimap ::
@@ -393,13 +533,17 @@ ledgerDbPrune (SecurityParam k) db = db {
 
 -- | Push an updated ledger state
 pushLedgerState ::
-     (IsLedger l, TableStuff l)
+     (IsLedger l, TickedTableStuff l)
   => SecurityParam
   -> l TrackingMK -- ^ Updated ledger state
   -> LedgerDB l -> LedgerDB l
 pushLedgerState secParam current' db@LedgerDB{..}  =
     ledgerDbPrune secParam $ db {
         ledgerDbCheckpoints = ledgerDbCheckpoints AS.:> Checkpoint (forgetLedgerStateTables current')
+      , ledgerDbChangelog   = extendDbChangelog (getTipSlot current')
+                                                (trackingTablesToDiffs current')
+                                                Nothing
+                                                ledgerDbChangelog
       }
 
 {-------------------------------------------------------------------------------
@@ -434,27 +578,36 @@ data ExceededRollback = ExceededRollback {
     , rollbackRequested :: Word64
     }
 
-ledgerDbPush :: forall m c l blk. (ApplyBlock l blk, TickedTableStuff l, Monad m, c)
+ledgerDbPush :: forall m c l blk
+              . ( ApplyBlock l blk, TickedTableStuff l, Monad m, c
+                , HasDiskDb m l
+                )
              => LedgerDbCfg l
+             -> DbHandle l
              -> Ap m l blk c -> LedgerDB l -> m (LedgerDB l)
-ledgerDbPush cfg ap db =
+ledgerDbPush cfg dbhandle ap db =
     (\current' -> pushLedgerState (ledgerDbCfgSecParam cfg) current' db) <$>
-      applyBlock (ledgerDbCfg cfg) ap db
+      applyBlock (ledgerDbCfg cfg) dbhandle ap db
 
 -- | Push a bunch of blocks (oldest first)
-ledgerDbPushMany :: (ApplyBlock l blk, TickedTableStuff l, Monad m, c)
+ledgerDbPushMany :: (ApplyBlock l blk, TickedTableStuff l, Monad m, c
+                    , HasDiskDb m l)
                  => LedgerDbCfg l
+                 -> DbHandle l
                  -> [Ap m l blk c] -> LedgerDB l -> m (LedgerDB l)
-ledgerDbPushMany = repeatedlyM . ledgerDbPush
+ledgerDbPushMany cfg = repeatedlyM . ledgerDbPush cfg
 
 -- | Switch to a fork
-ledgerDbSwitch :: (ApplyBlock l blk, TickedTableStuff l, Monad m, c)
+ledgerDbSwitch :: (ApplyBlock l blk, TickedTableStuff l, Monad m, c
+                  , HasDiskDb m l
+                  )
                => LedgerDbCfg l
+               -> DbHandle l
                -> Word64          -- ^ How many blocks to roll back
                -> [Ap m l blk c]  -- ^ New blocks to apply
                -> LedgerDB l
                -> m (Either ExceededRollback (LedgerDB l))
-ledgerDbSwitch cfg numRollbacks newBlocks db =
+ledgerDbSwitch cfg dbhandle numRollbacks newBlocks db =
     case rollback numRollbacks db of
       Nothing ->
         return $ Left $ ExceededRollback {
@@ -462,7 +615,7 @@ ledgerDbSwitch cfg numRollbacks newBlocks db =
           , rollbackRequested = numRollbacks
           }
       Just db' ->
-        Right <$> ledgerDbPushMany cfg newBlocks db'
+        Right <$> ledgerDbPushMany cfg dbhandle newBlocks db'
 
 {-------------------------------------------------------------------------------
   LedgerDB Config
@@ -488,19 +641,28 @@ instance IsLedger l => GetTip (LedgerDB l) where
 pureBlock :: blk -> Ap m l blk ()
 pureBlock = ReapplyVal
 
-ledgerDbPush' :: (ApplyBlock l blk, TickedTableStuff l)
-              => LedgerDbCfg l -> blk -> LedgerDB l -> LedgerDB l
-ledgerDbPush' cfg b = runIdentity . ledgerDbPush cfg (pureBlock b)
+-- TODO: these operations will require a 'HasDiskDb Identity l' instance. My
+-- guess is that this won't be a problem as long as the clients of these
+-- functions keep the ledger state in memory (which should be OK for certain
+-- tests).
+ledgerDbPush' :: (ApplyBlock l blk, TickedTableStuff l, HasDiskDb Identity l)
+              => LedgerDbCfg l -> DbHandle l -> blk -> LedgerDB l -> LedgerDB l
+ledgerDbPush' cfg dbhandle b = runIdentity . ledgerDbPush cfg dbhandle (pureBlock b)
 
-ledgerDbPushMany' :: (ApplyBlock l blk, TickedTableStuff l)
-                  => LedgerDbCfg l -> [blk] -> LedgerDB l -> LedgerDB l
-ledgerDbPushMany' cfg bs = runIdentity . ledgerDbPushMany cfg (map pureBlock bs)
+ledgerDbPushMany' :: (ApplyBlock l blk, TickedTableStuff l, HasDiskDb Identity l)
+                  => LedgerDbCfg l
+                  -> DbHandle l
+                  -> [blk] -> LedgerDB l -> LedgerDB l
+ledgerDbPushMany' cfg dbhandle bs =
+  runIdentity . ledgerDbPushMany cfg dbhandle (map pureBlock bs)
 
-ledgerDbSwitch' :: forall l blk. (ApplyBlock l blk, TickedTableStuff l)
+ledgerDbSwitch' :: forall l blk
+                 . (ApplyBlock l blk, TickedTableStuff l, HasDiskDb Identity l)
                 => LedgerDbCfg l
+                -> DbHandle l
                 -> Word64 -> [blk] -> LedgerDB l -> Maybe (LedgerDB l)
-ledgerDbSwitch' cfg n bs db =
-    case runIdentity $ ledgerDbSwitch cfg n (map pureBlock bs) db of
+ledgerDbSwitch' cfg dbhandle n bs db =
+    case runIdentity $ ledgerDbSwitch cfg dbhandle n (map pureBlock bs) db of
       Left  ExceededRollback{} -> Nothing
       Right db'                -> Just db'
 

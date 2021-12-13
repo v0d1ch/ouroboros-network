@@ -45,6 +45,9 @@ module Ouroboros.Consensus.Ledger.Basics (
   , SMapKind
   , Sing (..)
   , TableKeySets
+  , AnnTableKeySets
+  , TableReadSets
+  , AnnTableReadSets
   , TableStuff (..)
   , TickedTableStuff (..)
   , emptyAppliedMK
@@ -209,6 +212,19 @@ class ( -- Requirements on the ledger state itself
     -> LedgerResult l (Ticked1 l TrackingMK)
 
 
+  -- | Given a block, get the key-sets that we need to apply it to a ledger
+  -- state.
+  --
+  -- TODO: the assumption here is that the the resulting key-sets contain the
+  -- keys that the ledger needs to tick to the slot of the given block.
+  --
+  -- TODO: this might not be the best place to define this function. Maybe we
+  -- want to make the on-disk ledger state storage concern orthogonal to the
+  -- ledger state transformation concern.
+  getKeySets :: blk -> Maybe (l EmptyMK) -> TableKeySets l
+
+
+
 -- This can't be in IsLedger because we have a compositional IsLedger instance
 -- for LedgerState HardForkBlock but we will not (at least ast first) have a
 -- compositional LedgerTables instance for HardForkBlock.
@@ -239,6 +255,9 @@ class TableStuff l => TickedTableStuff (l :: LedgerStateKind) where
   -- TODO change first argument's mk to DiffMK
   prependLedgerStateTracking :: Ticked1 l TrackingMK -> l TrackingMK -> l TrackingMK
 
+  -- TODO: Nick/Douglas: we can assume we can define such funnction, right?
+  trackingTablesToDiffs :: l TrackingMK -> l DiffMK
+
 -- | 'lrResult' after 'applyChainTickLedgerResult'
 applyChainTick :: IsLedger l => LedgerCfg l -> SlotNo -> l ValuesMK -> Ticked1 l TrackingMK
 applyChainTick = lrResult ..: applyChainTickLedgerResult
@@ -249,7 +268,14 @@ applyChainTick = lrResult ..: applyChainTickLedgerResult
 
 type LedgerStateKind = MapKind -> Type
 
-data MapKind = EmptyMK | KeysMK | ValuesMK | TrackingMK | DiffMK {- | AnnMK Type MapKind -}
+data MapKind = EmptyMK
+             | KeysMK
+             | ValuesMK
+             | TrackingMK
+             | DiffMK
+             | SnapshotsMK
+               -- ^ Do we want to define this?
+             | AnnMK Type MapKind
 
 data ApplyMapKind :: MapKind -> Type -> Type -> Type where
   ApplyEmptyMK    ::                                 ApplyMapKind EmptyMK      k v
@@ -348,3 +374,9 @@ type TickedLedgerState blk mk = Ticked1   (LedgerState blk) mk
 data family DiskLedgerView blk :: (Type -> Type) -> Type
 
 type TableKeySets l = LedgerTables l KeysMK
+
+type AnnTableKeySets l a = LedgerTables l (AnnMK a KeysMK)
+
+type TableReadSets l = LedgerTables l ValuesMK
+
+type AnnTableReadSets l a = LedgerTables l (AnnMK a ValuesMK)
