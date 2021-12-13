@@ -30,13 +30,13 @@ module Ouroboros.Consensus.Storage.LedgerDB.InMemory (
     -- ** opaque
   , LedgerDB
     -- * Ledger DB types (TODO: we might want to place this somewhere else)
-  , HasDiskDb (..)
-  , ReadDb
+  , ReadsKeySets (..)
+  , ReadKeySets
   , DbReader (..)
   , DbChangelog
   , RewoundTableKeySets (..)
   , UnforwardedReadSets (..)
-  , defaultReadDb
+  , defaultReadKeySets
   , ledgerDbFlush
     -- ** Serialisation
   , decodeSnapshotBackwardsCompatible
@@ -267,15 +267,15 @@ instance Monad m => ThrowsLedgerError (ExceptT (AnnLedgerError l blk) m) l blk w
 --   a. If we are passing a block by reference, we must be able to resolve it.
 --   b. If we are applying rather than reapplying, we might have ledger errors.
 data Ap :: (Type -> Type) -> LedgerStateKind -> Type -> Constraint -> Type where
-  ReapplyVal ::           blk -> Ap m l blk ( HasDiskDb m l )
-  ApplyVal   ::           blk -> Ap m l blk ( HasDiskDb m l
+  ReapplyVal ::           blk -> Ap m l blk ( ReadsKeySets m l )
+  ApplyVal   ::           blk -> Ap m l blk ( ReadsKeySets m l
                                             , ThrowsLedgerError m l blk )
   ReapplyRef :: RealPoint blk -> Ap m l blk ( ResolvesBlocks m blk
-                                            , HasDiskDb m l
+                                            , ReadsKeySets m l
                                             )
   ApplyRef   :: RealPoint blk -> Ap m l blk ( ResolvesBlocks m blk
                                             , ThrowsLedgerError m l blk
-                                            , HasDiskDb m l
+                                            , ReadsKeySets m l
                                             )
 
   -- | 'Weaken' increases the constraint on the monad @m@.
@@ -292,7 +292,7 @@ data Ap :: (Type -> Type) -> LedgerStateKind -> Type -> Constraint -> Type where
 --
 -- We take in the entire 'LedgerDB' because we record that as part of errors.
 applyBlock :: forall m c l blk
-            . (ApplyBlock l blk, TickedTableStuff l, Monad m, c) -- TODO: try putting these constraints in the 'Ap' data constructors.
+            . (ApplyBlock l blk, TickedTableStuff l, Monad m, c)
            => LedgerCfg l
            -> Ap m l blk c
            -> LedgerDB l -> m (l TrackingMK)
@@ -318,7 +318,7 @@ applyBlock cfg ap db = case ap of
       applyBlock cfg ap' db
   where
     withBlockReadSets
-      ::HasDiskDb m l
+      ::ReadsKeySets m l
       => blk
       -> (l ValuesMK -> m (l TrackingMK))
       -> m (l TrackingMK)
@@ -326,35 +326,28 @@ applyBlock cfg ap db = case ap of
       let ks = getBlockKeySets b :: TableKeySets l
       let aks = rewindTableKeySets (ledgerDbChangelog db) ks :: RewoundTableKeySets l
       urs <- readDb aks
-      withHydratedLedgerState urs f
+      case withHydratedLedgerState urs f of
+        Nothing ->
+          -- We performed the rewind;read;forward sequence in this function. So
+          -- the forward operation should not fail. If this is the case we're in
+          -- the presence of a problem that we cannot deal with at this level,
+          -- so we throw an error.
+          --
+          -- When we introduce pipelining, if the forward operation fails it
+          -- could be because the DB handle was modified by a DB flush that took
+          -- place when __after__ we read the unforwarded keys-set from disk.
+          -- However, performing rewind;read;forward with the same __locked__
+          -- changelog should always succeed.
+          error "Changelog rewind;read;forward sequence failed."
+        Just res -> res
 
     withHydratedLedgerState
       :: UnforwardedReadSets l
       -> (l ValuesMK -> a)
-      -> a
-    withHydratedLedgerState urs f =
-      case forwardTableKeySets (ledgerDbChangelog db) urs of
-        Nothing ->
-          -- We should explain here in which circumstances this might happen.
-          --
-          -- Here we're doing the rewind;read;forward sequence using the same
-          -- ledger state (and without flushing to disk), so the forward
-          -- operation __must__ succeed. However, what happens if the database
-          -- becomes corrupted. Is this realistic?
-          --
-          -- Also, in the future, when we introduce pipelining, the
-          -- rewind;read;forward sequence will not take place in 'applyBlock':
-          -- block keys reads will occur way before we invoke chain selection
-          -- for that block. So does it still make sense to have a __fallback__
-          -- rewind;read;forward sequence in 'applyBlock'?
-          --
-          error "TODO: handle this case appropriately."
-          -- TODO: right way to handle seems to be:
-          --
-          -- > re-issue rewind;read;fw
-          --
-        Just rs ->
-          f $ withLedgerTables (ledgerDbCurrent db)  rs
+      -> Maybe a
+    withHydratedLedgerState urs f = do
+      rs <- forwardTableKeySets (ledgerDbChangelog db) urs
+      return $ f $ withLedgerTables (ledgerDbCurrent db)  rs
 
 {-------------------------------------------------------------------------------
   HD Interface that I need (Could be moved to  Ouroboros.Consensus.Ledger.Basics )
@@ -404,33 +397,27 @@ ledgerDbFlush changelogFlush db = do
   ledgerDbChangelog' <- changelogFlush (ledgerDbChangelog db)
   return $! db { ledgerDbChangelog = ledgerDbChangelog' }
 
--- | TODO: place this comment somewhere else: the type of the handle will
--- determine the schema of the ledger state that's stored on disk.
---
--- TODO: for the sake of consistency rename to ReadsDb
-class HasDiskDb m l  where
+class ReadsKeySets m l  where
 
-  readDb :: ReadDb m l
+  readDb :: ReadKeySets m l
 
--- TODO: This should be sth like ReadKeySets and HasDiskDb should be renamed to
--- sth like ReadsKeySets
-type ReadDb m l = RewoundTableKeySets l -> m (UnforwardedReadSets l)
+type ReadKeySets m l = RewoundTableKeySets l -> m (UnforwardedReadSets l)
 
-newtype DbReader m l a = DbReader { runDbReader :: ReaderT (ReadDb m l) m a}
+newtype DbReader m l a = DbReader { runDbReader :: ReaderT (ReadKeySets m l) m a}
   deriving newtype (Functor, Applicative, Monad)
 
-instance HasDiskDb (DbReader m l) l where
+instance ReadsKeySets (DbReader m l) l where
   readDb rks = DbReader $ ReaderT $ \f -> f rks
 
 -- TODO: this is leaking details on how we want to compose monads at the higher levels.
-instance (Monad m, HasDiskDb m l) => HasDiskDb (ReaderT r m) l where
+instance (Monad m, ReadsKeySets m l) => ReadsKeySets (ReaderT r m) l where
   readDb = lift . readDb
 
-instance (Monad m, HasDiskDb m l) => HasDiskDb (ExceptT e m) l where
+instance (Monad m, ReadsKeySets m l) => ReadsKeySets (ExceptT e m) l where
   readDb = lift . readDb
 
-defaultReadDb :: ReadDb m l -> DbReader m l a -> m a
-defaultReadDb f dbReader = runReaderT (runDbReader dbReader) f
+defaultReadKeySets :: ReadKeySets m l -> DbReader m l a -> m a
+defaultReadKeySets f dbReader = runReaderT (runDbReader dbReader) f
 
 {-------------------------------------------------------------------------------
   Queries
@@ -648,20 +635,20 @@ instance IsLedger l => GetTip (LedgerDB l) where
   Support for testing
 -------------------------------------------------------------------------------}
 
-pureBlock :: blk -> Ap m l blk (HasDiskDb m l)
+pureBlock :: blk -> Ap m l blk (ReadsKeySets m l)
 pureBlock = ReapplyVal
 
-ledgerDbPush' :: (ApplyBlock l blk, TickedTableStuff l, HasDiskDb Identity l)
+ledgerDbPush' :: (ApplyBlock l blk, TickedTableStuff l, ReadsKeySets Identity l)
               => LedgerDbCfg l -> blk -> LedgerDB l -> LedgerDB l
 ledgerDbPush' cfg b = runIdentity . ledgerDbPush cfg (pureBlock b)
 
-ledgerDbPushMany' :: (ApplyBlock l blk, TickedTableStuff l, HasDiskDb Identity l)
+ledgerDbPushMany' :: (ApplyBlock l blk, TickedTableStuff l, ReadsKeySets Identity l)
                   => LedgerDbCfg l
                   -> [blk] -> LedgerDB l -> LedgerDB l
 ledgerDbPushMany' cfg bs = runIdentity . ledgerDbPushMany cfg (map pureBlock bs)
 
 ledgerDbSwitch' :: forall l blk
-                 . (ApplyBlock l blk, TickedTableStuff l, HasDiskDb Identity l)
+                 . (ApplyBlock l blk, TickedTableStuff l, ReadsKeySets Identity l)
                 => LedgerDbCfg l
                 -> Word64 -> [blk] -> LedgerDB l -> Maybe (LedgerDB l)
 ledgerDbSwitch' cfg n bs db =

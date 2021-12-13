@@ -344,8 +344,8 @@ data OnDiskLedgerStDb m l =
   , readKeySets :: RewoundTableKeySets l -> m (UnforwardedReadSets l)
    -- ^ Captures the handle. Implemented by Snapshots.readDb
    --
-   -- TODO: consider unifying this with defaultReadDb. Why? Because we are always using
-   -- 'defaultReadDb' with readKeySets.
+   -- TODO: consider unifying this with defaultReadKeySets. Why? Because we are always using
+   -- 'defaultReadKeySets' with readKeySets.
   , flushDb     :: DbChangelog l -> m (DbChangelog l )
     -- ^ Flush the ledger DB when appropriate. We assume the implementation of
     -- this function will determine when to flush.
@@ -386,7 +386,7 @@ initStartingWith tracer cfg onDiskLedgerDbSt streamAPI initDb = do
   where
     push :: blk -> (LedgerDB' blk, Word64) -> m (LedgerDB' blk, Word64)
     push blk !(!db, !replayed) = do
-        !db' <- defaultReadDb (readKeySets onDiskLedgerDbSt) $
+        !db' <- defaultReadKeySets (readKeySets onDiskLedgerDbSt) $
                   ledgerDbPush cfg (ReapplyVal blk) db
         -- TODO: here it is important that we don't have a lock acquired.
 

@@ -279,9 +279,6 @@ copyAndSnapshotRunner cdb@CDB{..} gcSchedule replayed =
           elapsed   = (\prev -> now `diffTime` prev) <$> mPrevSnapshot
 
       if onDiskShouldTakeSnapshot elapsed distance' then do
-        -- TODO: Here we could create a restore point. We must make sure that
-        --  the SeqNo passed to 'createRestorePoint' is the 'SeqNo' of the last
-        --  flushed state.
         updateLedgerSnapshots cdb
         loop (TimeSinceLast now) 0
       else
@@ -312,6 +309,10 @@ updateLedgerSnapshots CDB{..} = do
     -- TODO: if we couple snapshotting and flushing we need to make sure these
     -- calls are not interleaved.
     LgrDB.flush cdbLgrDB
+    -- TODO: Here we should create a restore point.
+    --
+    -- We must make sure that the SeqNo passed to 'createRestorePoint' is
+    -- the 'SeqNo' of the last flushed state.
     void $ LgrDB.takeSnapshot  cdbLgrDB
     void $ LgrDB.trimSnapshots cdbLgrDB
 

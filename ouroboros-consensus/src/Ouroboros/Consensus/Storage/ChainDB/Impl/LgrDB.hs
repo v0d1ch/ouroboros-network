@@ -340,19 +340,12 @@ decorateReplayTracer immTip = contramap $ fmap (const immTip)
 
 getCurrent :: IOLike m => LgrDB m blk -> STM m (LedgerDB' blk)
 getCurrent LgrDB{..} = readTVar varDB
-  -- TODO: would we acquire a changelog lock on the ledger DB here?
 
 -- | PRECONDITION: The new 'LedgerDB' must be the result of calling either
 -- 'LedgerDB.ledgerDbSwitch' or 'LedgerDB.ledgerDbPushMany' on the current
 -- 'LedgerDB'.
 setCurrent :: IOLike m => LgrDB m blk -> LedgerDB' blk -> STM m ()
 setCurrent LgrDB{..} = writeTVar $! varDB
-  -- TODO: if getCurrent acquires the lock, we should release it here. On the
-  -- other hand, we also need a function to release the lock for those cases in
-  -- which we only want to read the ledger state.
-
-  -- TODO: if we release the block here, maybe this is a good time to flush, by
-  -- calling ledgerDbFlush.
 
 currentPoint :: forall blk. UpdateLedger blk => LedgerDB' blk -> Point blk
 currentPoint = castPoint
@@ -427,7 +420,7 @@ validate :: forall m blk. (IOLike m, LedgerSupportsProtocol blk, HasCallStack)
 validate LgrDB{..} ledgerDB blockCache numRollbacks = \hdrs -> do
     aps <- mkAps hdrs <$> atomically (readTVar varPrevApplied)
     res <- fmap rewrap $
-             LedgerDB.defaultReadDb (readKeySets lgrOnDiskLedgerStDb) $
+             LedgerDB.defaultReadKeySets (readKeySets lgrOnDiskLedgerStDb) $
              LedgerDB.defaultResolveWithErrors (LedgerDB.DbReader . lift . resolveBlock) $
                LedgerDB.ledgerDbSwitch
                  (configLedgerDb cfg)
@@ -448,7 +441,7 @@ validate LgrDB{..} ledgerDB blockCache numRollbacks = \hdrs -> do
           => [Header blk]
           -> Set (RealPoint blk)
           -> [Ap n l blk ( LedgerDB.ResolvesBlocks    n   blk
-                         , LedgerDB.HasDiskDb         n l
+                         , LedgerDB.ReadsKeySets         n l
                          , LedgerDB.ThrowsLedgerError n l blk
                          )]
     mkAps hdrs prevApplied =
