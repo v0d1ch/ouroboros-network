@@ -15,7 +15,6 @@
 
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE QuantifiedConstraints #-}
-{-# LANGUAGE AllowAmbiguousTypes #-}
 
 module Ouroboros.Consensus.Ledger.Extended (
     -- * Extended ledger state
@@ -75,10 +74,10 @@ data ExtValidationError i blk =
   | ExtValidationErrorHeader !(HeaderError blk)
   deriving (Generic)
 
--- instance (LedgerSupportsProtocol blk, forall l i. ApplyBlock l i blk) => NoThunks (ExtValidationError blk)
+instance (LedgerSupportsProtocol i blk, forall l. ApplyBlock l blk) => NoThunks (ExtValidationError i blk)
 
--- deriving instance LedgerSupportsProtocol blk => Show (ExtValidationError    blk)
--- deriving instance LedgerSupportsProtocol blk => Eq   (ExtValidationError    blk)
+deriving instance LedgerSupportsProtocol i blk => Show (ExtValidationError    i blk)
+deriving instance LedgerSupportsProtocol i blk => Eq   (ExtValidationError    i blk)
 
 -- instance LedgerSupportsProtocol blk => ShowLedgerState (ExtLedgerState blk) where
 --   showsLedgerState = error "showsLedgerState @ExtLedgerState"

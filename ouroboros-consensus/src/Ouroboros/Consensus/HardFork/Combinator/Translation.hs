@@ -20,15 +20,15 @@ import           Ouroboros.Consensus.HardFork.Combinator.Util.InPairs
   Translate from one era to the next
 -------------------------------------------------------------------------------}
 
-data EraTranslation xs = EraTranslation {
-      translateLedgerState   :: InPairs (RequiringBoth WrapLedgerConfig    TranslateLedgerState)       xs
+data EraTranslation i xs = EraTranslation {
+      translateLedgerState   :: InPairs (RequiringBoth (WrapLedgerConfig i)    (TranslateLedgerState i))       xs
     , translateChainDepState :: InPairs (RequiringBoth WrapConsensusConfig (Translate WrapChainDepState)) xs
-    , translateLedgerView    :: InPairs (RequiringBoth WrapLedgerConfig    (TranslateForecast LedgerState WrapLedgerView)) xs
+    , translateLedgerView    :: InPairs (RequiringBoth (WrapLedgerConfig i)    (TranslateForecast (LedgerState i) WrapLedgerView)) xs
     }
   deriving NoThunks
-       via OnlyCheckWhnfNamed "EraTranslation" (EraTranslation xs)
+       via OnlyCheckWhnfNamed "EraTranslation" (EraTranslation i xs)
 
-trivialEraTranslation :: EraTranslation '[blk]
+trivialEraTranslation :: EraTranslation i '[blk]
 trivialEraTranslation = EraTranslation {
       translateLedgerState   = PNil
     , translateLedgerView    = PNil

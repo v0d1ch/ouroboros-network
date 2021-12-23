@@ -117,7 +117,7 @@ situate ns = go ns . getHardForkState
   Aligning
 -------------------------------------------------------------------------------}
 
-align :: forall xs f f' f''. All SingleEraBlock xs
+align :: forall xs f f' f'' i. All (SingleEraBlock i) xs
       => InPairs (Translate f) xs
       -> NP (f' -.-> f -.-> f'') xs
       -> HardForkState f'  xs -- ^ State we are aligning with

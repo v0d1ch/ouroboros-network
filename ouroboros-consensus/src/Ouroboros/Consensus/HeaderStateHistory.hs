@@ -128,8 +128,8 @@ rewind p (HeaderStateHistory history) = HeaderStateHistory <$>
 --
 -- Note: this function does not trim the 'HeaderStateHistory'.
 validateHeader ::
-     forall blk. (BlockSupportsProtocol blk, ValidateEnvelope blk)
-  => TopLevelConfig blk
+     forall blk i. (BlockSupportsProtocol blk, ValidateEnvelope blk)
+  => TopLevelConfig i blk
   -> Ticked (LedgerView (BlockProtocol blk))
   -> Header blk
   -> HeaderStateHistory blk
@@ -154,19 +154,19 @@ validateHeader cfg ledgerView hdr history = do
 --
 -- PRECONDITION: the blocks in the chain are valid.
 fromChain ::
-     (ApplyBlock (ExtLedgerState blk) blk, TickedTableStuff (LedgerState blk))
-  => TopLevelConfig blk
-  -> ExtLedgerState blk ValuesMK
+     (ApplyBlock (ExtLedgerState i blk) blk, TickedTableStuff (LedgerState i blk), CoercibleLedgerState (ExtLedgerState i blk))
+  => TopLevelConfig i blk
+  -> ExtLedgerState i blk ValuesMK
      -- ^ Initial ledger state
   -> Chain blk
   -> HeaderStateHistory blk
-fromChain cfg initState chain =
-    HeaderStateHistory (AS.fromOldestFirst anchorSnapshot snapshots)
-  where
-    anchorSnapshot NE.:| snapshots =
-          fmap headerState
-        . NE.scanl
-            (\st blk -> forgetLedgerStateTracking $ tickThenReapply (ExtLedgerCfg cfg) blk st)
-            initState
-        . Chain.toOldestFirst
-        $ chain
+fromChain cfg initState chain = undefined
+  --   HeaderStateHistory (AS.fromOldestFirst anchorSnapshot snapshots)
+  -- where
+  --   anchorSnapshot NE.:| snapshots =
+  --         fmap headerState
+  --       . NE.scanl
+  --           (\st blk -> forgetLedgerStateTracking $ tickThenReapply (ExtLedgerCfg cfg) blk st)
+  --           initState
+  --       . Chain.toOldestFirst
+  --       $ chain

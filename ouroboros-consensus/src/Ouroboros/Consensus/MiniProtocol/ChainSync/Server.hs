@@ -31,13 +31,13 @@ import           Ouroboros.Consensus.Util.ResourceRegistry (ResourceRegistry)
 
 
 chainSyncHeaderServerFollower
-    :: ChainDB m blk
+    :: ChainDB m i blk
     -> ResourceRegistry m
     -> m (Follower m blk (WithPoint blk (SerialisedHeader blk)))
 chainSyncHeaderServerFollower chainDB registry = ChainDB.newFollower chainDB registry getSerialisedHeaderWithPoint
 
 chainSyncBlockServerFollower
-    :: ChainDB m blk
+    :: ChainDB m i blk
     -> ResourceRegistry m
     -> m (Follower m blk (WithPoint blk (Serialised blk)))
 chainSyncBlockServerFollower chainDB registry = ChainDB.newFollower chainDB registry getSerialisedBlockWithPoint
@@ -48,12 +48,12 @@ chainSyncBlockServerFollower chainDB registry = ChainDB.newFollower chainDB regi
 -- headers (and fetches blocks separately with the block fetch mini-protocol).
 --
 chainSyncHeadersServer
-    :: forall m blk.
+    :: forall m blk i.
        ( IOLike m
        , HasHeader (Header blk)
        )
     => Tracer m (TraceChainSyncServerEvent blk)
-    -> ChainDB m blk
+    -> ChainDB m i blk
     -> Follower m blk (WithPoint blk (SerialisedHeader blk))
     -> ChainSyncServer (SerialisedHeader blk) (Point blk) (Tip blk) m ()
 chainSyncHeadersServer tracer chainDB flr =
@@ -65,9 +65,9 @@ chainSyncHeadersServer tracer chainDB flr =
 -- chains of full blocks (rather than a header \/ body split).
 --
 chainSyncBlocksServer
-    :: forall m blk. (IOLike m, HasHeader (Header blk))
+    :: forall m blk i. (IOLike m, HasHeader (Header blk))
     => Tracer m (TraceChainSyncServerEvent blk)
-    -> ChainDB m blk
+    -> ChainDB m i blk
     -> Follower m blk (WithPoint blk (Serialised blk))
     -> ChainSyncServer (Serialised blk) (Point blk) (Tip blk) m ()
 chainSyncBlocksServer tracer chainDB flr =
@@ -83,12 +83,12 @@ chainSyncBlocksServer tracer chainDB flr =
 -- All the hard work is done by the 'Follower's provided by the 'ChainDB'.
 --
 chainSyncServerForFollower ::
-     forall m blk b.
+     forall m blk b i.
      ( IOLike m
      , HasHeader (Header blk)
      )
   => Tracer m (TraceChainSyncServerEvent blk)
-  -> ChainDB m blk
+  -> ChainDB m i blk
   -> Follower  m blk (WithPoint blk b)
   -> ChainSyncServer b (Point blk) (Tip blk) m ()
 chainSyncServerForFollower tracer chainDB flr =

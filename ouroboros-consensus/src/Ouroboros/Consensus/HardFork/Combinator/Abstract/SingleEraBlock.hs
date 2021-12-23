@@ -5,6 +5,8 @@
 {-# LANGUAGE TypeApplications     #-}
 {-# LANGUAGE TypeOperators        #-}
 {-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE AllowAmbiguousTypes #-}
 
 module Ouroboros.Consensus.HardFork.Combinator.Abstract.SingleEraBlock (
     -- * Single era block
@@ -52,19 +54,19 @@ import           Ouroboros.Consensus.HardFork.Combinator.Util.Match
 -------------------------------------------------------------------------------}
 
 -- | Blocks from which we can assemble a hard fork
-class ( LedgerSupportsProtocol blk
+class ( LedgerSupportsProtocol i blk
       , InspectLedger blk
-      , LedgerSupportsMempool blk
+      , LedgerSupportsMempool i blk
       , HasTxId (GenTx blk)
       , QueryLedger blk
       , HasPartialConsensusConfig (BlockProtocol blk)
-      , HasPartialLedgerConfig blk
+      , HasPartialLedgerConfig i blk
       , ConvertRawHash blk
       , ReconstructNestedCtxt Header blk
-      , CommonProtocolParams blk
+      , CommonProtocolParams i blk
       , LedgerSupportsPeerSelection blk
       , ConfigSupportsNode blk
-      , NodeInitStorage blk
+      , NodeInitStorage i blk
       , BlockSupportsMetrics blk
         -- Instances required to support testing
       , Eq   (GenTx blk)
@@ -75,7 +77,7 @@ class ( LedgerSupportsProtocol blk
       , Show (CannotForge blk)
       , Show (ForgeStateInfo blk)
       , Show (ForgeStateUpdateError blk)
-      ) => SingleEraBlock blk where
+      ) => SingleEraBlock i blk where
 
   -- | Era transition
   --
@@ -85,23 +87,23 @@ class ( LedgerSupportsProtocol blk
   -- Since we need this to construct the 'HardForkSummary' (and hence the
   -- 'EpochInfo'), this takes the /partial/ config, not the full config
   -- (or we'd end up with a catch-22).
-  singleEraTransition :: PartialLedgerConfig blk
+  singleEraTransition :: PartialLedgerConfig i blk
                       -> EraParams -- ^ Current era parameters
                       -> Bound     -- ^ Start of this era
-                      -> LedgerState blk mk
+                      -> LedgerState i blk mk
                       -> Maybe EpochNo
 
   -- | Era information (for use in error messages)
   singleEraInfo       :: proxy blk -> SingleEraInfo blk
 
-proxySingle :: Proxy SingleEraBlock
+proxySingle :: Proxy (SingleEraBlock i)
 proxySingle = Proxy
 
-singleEraTransition' :: SingleEraBlock blk
-                     => WrapPartialLedgerConfig blk
+singleEraTransition' :: SingleEraBlock i blk
+                     => WrapPartialLedgerConfig i blk
                      -> EraParams
                      -> Bound
-                     -> LedgerState blk mk -> Maybe EpochNo
+                     -> LedgerState i blk mk -> Maybe EpochNo
 singleEraTransition' = singleEraTransition . unwrapPartialLedgerConfig
 
 {-------------------------------------------------------------------------------
@@ -115,10 +117,10 @@ newtype EraIndex xs = EraIndex {
 instance Eq (EraIndex xs) where
   EraIndex era == EraIndex era' = isRight (matchNS era era')
 
-instance All SingleEraBlock xs => Show (EraIndex xs) where
+instance All (SingleEraBlock i) xs => Show (EraIndex xs) where
   show = hcollapse . hcmap proxySingle getEraName . getEraIndex
     where
-      getEraName :: forall blk. SingleEraBlock blk
+      getEraName :: forall blk i. SingleEraBlock i blk
                  => K () blk -> K String blk
       getEraName _ =
             K
@@ -127,10 +129,10 @@ instance All SingleEraBlock xs => Show (EraIndex xs) where
           . singleEraName
           $ singleEraInfo (Proxy @blk)
 
-instance All SingleEraBlock xs => Condense (EraIndex xs) where
+instance All (SingleEraBlock i) xs => Condense (EraIndex xs) where
   condense = hcollapse . hcmap proxySingle getEraName . getEraIndex
     where
-      getEraName :: forall blk. SingleEraBlock blk
+      getEraName :: forall blk. SingleEraBlock i blk
                  => K () blk -> K String blk
       getEraName _ =
             K

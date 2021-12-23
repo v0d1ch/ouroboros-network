@@ -41,7 +41,10 @@ import           Ouroboros.Consensus.Storage.LedgerDB.InMemory.Base
 -------------------------------------------------------------------------------}
 
 type BaseLedgerState blk = LedgerState Old blk
-type BaseLedgerState' blk = BaseLedgerState blk (BaseLedgerStateMK (BaseLedgerState blk))
+
+type instance BaseLedgerStateMK (BaseLedgerState blk) = ValuesMK
+
+type BaseLedgerState' blk = BaseLedgerState blk (BaseLedgerStateMK (BaseLedgerState blk)) -- LedgerState Old blk ValuesMK
 
 -- | Internal state of the ledger DB
 --
@@ -91,9 +94,6 @@ data instance LedgerDB (BaseLedgerState blk) = LedgerDB {
                          (Checkpoint blk)
   }
   deriving (Generic)
-type instance BaseLedgerStateMK (BaseLedgerState blk) = ValuesMK
-
-
 
 deriving instance Eq       (BaseLedgerState' blk) => Eq       (LedgerDB (BaseLedgerState blk))
 deriving instance NoThunks (BaseLedgerState' blk) => NoThunks (LedgerDB (BaseLedgerState blk))
@@ -133,7 +133,7 @@ ledgerDbWithAnchor anchor = LedgerDB {
   Block application
 -------------------------------------------------------------------------------}
 
-pureBlock :: blk -> Ap m l blk ()
+pureBlock :: blk -> Ap m (BaseLedgerState blk) blk ()
 pureBlock = ReapplyVal
 
 -- | 'Ap' is used to pass information about blocks to ledger DB updates
@@ -148,16 +148,16 @@ pureBlock = ReapplyVal
 --   a. If we are passing a block by reference, we must be able to resolve it.
 --   b. If we are applying rather than reapplying, we might have ledger errors.
 data Ap :: (Type -> Type) -> LedgerStateKind -> Type -> Constraint -> Type where
-  ReapplyVal ::           blk -> Ap m l blk ( )
-  ApplyVal   ::           blk -> Ap m l blk (                       ThrowsLedgerError m l blk)
-  ReapplyRef :: RealPoint blk -> Ap m l blk (ResolvesBlocks m blk)
-  ApplyRef   :: RealPoint blk -> Ap m l blk (ResolvesBlocks m blk , ThrowsLedgerError m l blk)
+  ReapplyVal ::           blk -> Ap m (BaseLedgerState blk) blk ( )
+  ApplyVal   ::           blk -> Ap m (BaseLedgerState blk) blk (                       ThrowsLedgerError m (BaseLedgerState blk) blk)
+  ReapplyRef :: RealPoint blk -> Ap m (BaseLedgerState blk) blk (ResolvesBlocks m blk)
+  ApplyRef   :: RealPoint blk -> Ap m (BaseLedgerState blk) blk (ResolvesBlocks m blk , ThrowsLedgerError m (BaseLedgerState blk) blk)
 
   -- | 'Weaken' increases the constraint on the monad @m@.
   --
   -- This is primarily useful when combining multiple 'Ap's in a single
   -- homogeneous structure.
-  Weaken :: (c' => c) => Ap m l blk c -> Ap m l blk c'
+  Weaken :: (c' => c) => Ap m (BaseLedgerState blk) blk c -> Ap m (BaseLedgerState blk) blk c'
 
 {-------------------------------------------------------------------------------
   Internal utilities for 'Ap'
@@ -301,10 +301,9 @@ ledgerDbPrune (SecurityParam k) db = db {
 
 -- | Push an updated ledger state
 pushLedgerState ::
-     ( Output (BaseLedgerState blk) ~ ValuesMK
-     , GetTip (BaseLedgerState' blk))
+     (GetTip (BaseLedgerState' blk))
   => SecurityParam
-  -> BaseLedgerState blk (Output (BaseLedgerState blk)) -- ^ Updated ledger state
+  -> BaseLedgerState' blk  -- ^ Updated ledger state
   -> LedgerDB (BaseLedgerState blk)
   -> LedgerDB (BaseLedgerState blk)
 pushLedgerState secParam current' db@LedgerDB{..} =

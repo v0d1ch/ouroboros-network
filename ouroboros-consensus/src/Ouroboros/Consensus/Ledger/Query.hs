@@ -273,9 +273,9 @@ deriving instance Show (BlockQuery blk fp result) => Show (Query blk fp result)
 -- | Answer the given query about the extended ledger state.
 answerQuery ::
      (QueryLedger blk, ConfigSupportsNode blk, HasAnnTip blk, QuerySat mk fp)
-  => ExtLedgerCfg blk
+  => ExtLedgerCfg i blk
   -> Query          blk fp result
-  -> ExtLedgerState blk mk
+  -> ExtLedgerState i blk mk
   -> result
 answerQuery cfg query st = case query of
   BlockQuery blockQuery -> answerBlockQuery cfg blockQuery st
@@ -283,7 +283,7 @@ answerQuery cfg query st = case query of
   GetChainBlockNo -> headerStateBlockNo (headerState st)
   GetChainPoint -> headerStatePoint (headerState st)
 
-prepareQuery :: QueryLedger blk => Query blk LargeL result -> TableKeySets (LedgerState blk)
+prepareQuery :: QueryLedger blk => Query blk LargeL result -> TableKeySets (LedgerState i blk)
 prepareQuery (BlockQuery query) = prepareBlockQuery query
 
 class QuerySat (mk :: MapKind) (fp :: FootprintL)
@@ -302,34 +302,34 @@ data family BlockQuery blk :: FootprintL -> Type -> Type
 class IsQuery (BlockQuery blk) => QueryLedger blk where
 
   -- | Answer the given query about the extended ledger state.
-  answerBlockQuery :: QuerySat mk fp => ExtLedgerCfg blk -> BlockQuery blk fp result -> ExtLedgerState blk mk -> result
+  answerBlockQuery :: QuerySat mk fp => ExtLedgerCfg i blk -> BlockQuery blk fp result -> ExtLedgerState i blk mk -> result
 
-  prepareBlockQuery :: BlockQuery blk LargeL result -> TableKeySets (LedgerState blk)
+  prepareBlockQuery :: BlockQuery blk LargeL result -> TableKeySets (LedgerState i blk)
 
   -- This method need not be defined for a @'BlockQuery' blk@ that only contains
   -- 'SmallL' queries.
-  default prepareBlockQuery :: SmallQuery (BlockQuery blk) => BlockQuery blk LargeL result -> TableKeySets (LedgerState blk)
+  default prepareBlockQuery :: SmallQuery (BlockQuery blk) => BlockQuery blk LargeL result -> TableKeySets (LedgerState i blk)
   prepareBlockQuery query = proveNotLargeQuery query
 
 -- | Same as 'handleLargeQuery', but can also handle small queries.
 handleQuery ::
-     forall blk m fp result. (ConfigSupportsNode blk, HasAnnTip blk, QueryLedger blk, Monad m)
-  => ExtLedgerCfg blk
+     forall blk m fp result i. (ConfigSupportsNode blk, HasAnnTip blk, QueryLedger blk, Monad m)
+  => ExtLedgerCfg i blk
   -> DiskLedgerView blk m
   -> Query blk fp result
-  -> LedgerDB' blk
+  -> LedgerDB' i blk
   -> m result
 handleQuery cfg dlv query lgrdb = case classifyQuery query of
   Left  Refl -> pure $ answerQuery cfg query (error "getLatestState" lgrdb)
   Right Refl -> handleLargeQuery cfg dlv query lgrdb
 
 handleLargeQuery ::
-     forall blk m result. (ConfigSupportsNode blk, HasAnnTip blk, QueryLedger blk, Monad m)
-  => ExtLedgerCfg blk
+     forall blk m result i. (ConfigSupportsNode blk, HasAnnTip blk, QueryLedger blk, Monad m)
+  => ExtLedgerCfg i blk
   -> DiskLedgerView blk m
      -- ^ interface used to read the on-disk ledger data
   -> Query blk LargeL result
-  -> LedgerDB' blk
+  -> LedgerDB' i blk
      -- ^ the ledger state to query, ie an in-memory ledger state along with its
      -- contemporary 'DbChangelog'
      --
@@ -346,7 +346,7 @@ handleLargeQuery cfg dlv query lgrdb = do
       old_keys = error "rewindTableKeySets" chlog now_keys
   (old_values, chlog') <- error "readKeys" dlv old_keys
   let now_values = error "forwardTableReadSets" chlog' old_values
-      now_state  :: ExtLedgerState blk TrackingMK
+      now_state  :: ExtLedgerState i blk TrackingMK
       now_state  = error "setTables" (error "getLatestState" lgrdb) now_values
 
   -- All of the above is just bookkeeping necessary to enable this computation.

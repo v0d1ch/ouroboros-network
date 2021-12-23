@@ -71,7 +71,7 @@ import           Ouroboros.Consensus.Util.IOLike
 --
 -- This shows that @'tryAddTxs' wti@ is an homomorphism from '++' and '>>',
 -- which informally makes these operations "distributive".
-data Mempool m blk idx = Mempool {
+data Mempool m i blk idx = Mempool {
       -- | Add a bunch of transactions (oldest to newest)
       --
       -- As long as we keep the mempool entirely in-memory this could live in
@@ -163,19 +163,19 @@ data Mempool m blk idx = Mempool {
       -- n.b. in our current implementation, when one opens a mempool, we
       -- spawn a thread which performs this action whenever the 'ChainDB' tip
       -- point changes.
-    , syncWithLedger :: m (MempoolSnapshot blk idx)
+    , syncWithLedger :: m (MempoolSnapshot i blk idx)
 
       -- | Get a snapshot of the current mempool state. This allows for
       -- further pure queries on the snapshot.
       --
       -- This doesn't look at the ledger state at all.
-    , getSnapshot    :: STM m (MempoolSnapshot blk idx)
+    , getSnapshot    :: STM m (MempoolSnapshot i blk idx)
 
       -- | Get a snapshot of the mempool state that is valid with respect to
       -- the given ledger state
       --
       -- This does not update the state of the mempool.
-    , getSnapshotFor :: ForgeLedgerState blk -> STM m (MempoolSnapshot blk idx)
+    , getSnapshotFor :: ForgeLedgerState i blk -> STM m (MempoolSnapshot i blk idx)
 
       -- | Get the mempool's capacity in bytes.
       --
@@ -234,8 +234,8 @@ isMempoolTxRejected _                   = False
 --
 -- See the necessary invariants on the Haddock for 'tryAddTxs'.
 addTxs
-  :: forall m blk idx. MonadSTM m
-  => Mempool m blk idx
+  :: forall m blk idx i. MonadSTM m
+  => Mempool m i blk idx
   -> [GenTx blk]
   -> m [MempoolAddTxResult blk]
 addTxs mempool = addTxsHelper mempool DoNotIntervene
@@ -244,16 +244,16 @@ addTxs mempool = addTxsHelper mempool DoNotIntervene
 --
 -- See 'Intervene'.
 addLocalTxs
-  :: forall m blk idx. MonadSTM m
-  => Mempool m blk idx
+  :: forall m blk idx i . MonadSTM m
+  => Mempool m i blk idx
   -> [GenTx blk]
   -> m [MempoolAddTxResult blk]
 addLocalTxs mempool = addTxsHelper mempool Intervene
 
 -- | See 'addTxs'
 addTxsHelper
-  :: forall m blk idx. MonadSTM m
-  => Mempool m blk idx
+  :: forall m blk idx i. MonadSTM m
+  => Mempool m i blk idx
   -> WhetherToIntervene
   -> [GenTx blk]
   -> m [MempoolAddTxResult blk]
@@ -297,12 +297,12 @@ addTxsHelper mempool wti = \txs -> do
 -- ledger: the update system might be updated, scheduled delegations might be
 -- applied, etc., and such changes should take effect before we validate any
 -- transactions.
-data ForgeLedgerState blk =
+data ForgeLedgerState i blk =
     -- | The slot number of the block is known
     --
     -- This will only be the case when we realized that we are the slot leader
     -- and we are actually producing a block.
-    ForgeInKnownSlot SlotNo (TickedLedgerState blk ValuesMK)
+    ForgeInKnownSlot SlotNo (TickedLedgerState i blk ValuesMK)
 
     -- | The slot number of the block is not yet known
     --
@@ -310,7 +310,7 @@ data ForgeLedgerState blk =
     -- will end up, we have to make an assumption about which slot number to use
     -- for 'applyChainTick' to prepare the ledger state; we will assume that
     -- they will end up in the slot after the slot at the tip of the ledger.
-  | ForgeInUnknownSlot (LedgerState blk EmptyMK)
+  | ForgeInUnknownSlot (LedgerState i blk EmptyMK)
 
 {-------------------------------------------------------------------------------
   Mempool capacity in bytes
@@ -337,8 +337,8 @@ data MempoolCapacityBytesOverride
 -- | If no override is provided, calculate the default mempool capacity as 2x
 -- the current ledger's maximum transaction capacity of a block.
 computeMempoolCapacity
-  :: LedgerSupportsMempool blk
-  => TickedLedgerState blk mk
+  :: LedgerSupportsMempool i blk
+  => TickedLedgerState i blk mk
   -> MempoolCapacityBytesOverride
   -> MempoolCapacityBytes
 computeMempoolCapacity st = \case
@@ -365,7 +365,7 @@ computeMempoolCapacity st = \case
 -- even for tx sequence numbers returned in previous snapshots. This happens
 -- when the transaction has been removed from the mempool between snapshots.
 --
-data MempoolSnapshot blk idx = MempoolSnapshot {
+data MempoolSnapshot i blk idx = MempoolSnapshot {
     -- | Get all transactions (oldest to newest) in the mempool snapshot along
     -- with their ticket number.
     snapshotTxs         :: [(Validated (GenTx blk), idx)]
@@ -390,7 +390,7 @@ data MempoolSnapshot blk idx = MempoolSnapshot {
   , snapshotSlotNo      :: SlotNo
 
     -- | The ledger state after all transactions in the snapshot
-  , snapshotLedgerState :: TickedLedgerState blk ValuesMK
+  , snapshotLedgerState :: TickedLedgerState i blk ValuesMK
   }
 
 {-------------------------------------------------------------------------------

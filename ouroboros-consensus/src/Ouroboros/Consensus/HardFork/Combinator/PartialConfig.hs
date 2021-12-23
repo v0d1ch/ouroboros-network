@@ -4,6 +4,9 @@
 {-# LANGUAGE StandaloneDeriving         #-}
 {-# LANGUAGE TypeFamilies               #-}
 {-# LANGUAGE UndecidableInstances       #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE TypeApplications #-}
+{-# LANGUAGE AllowAmbiguousTypes #-}
 
 module Ouroboros.Consensus.HardFork.Combinator.PartialConfig (
     HasPartialConsensusConfig (..)
@@ -50,11 +53,11 @@ class ( ConsensusProtocol p
   completeConsensusConfig _ _ = id
 
 -- | Partial ledger config
-class ( UpdateLedger blk
-      , NoThunks (PartialLedgerConfig blk)
-      ) => HasPartialLedgerConfig blk where
-  type PartialLedgerConfig blk :: Type
-  type PartialLedgerConfig blk = LedgerConfig blk
+class ( UpdateLedger i blk
+      , NoThunks (PartialLedgerConfig i blk)
+      ) => HasPartialLedgerConfig i blk where
+  type PartialLedgerConfig i blk :: Type
+  type PartialLedgerConfig i blk = LedgerConfig i blk
 
   -- | Construct 'LedgerConfig' from 'PartialLedgerCfg'
   --
@@ -65,19 +68,19 @@ class ( UpdateLedger blk
   --
   completeLedgerConfig :: proxy blk
                        -> EpochInfo (Except PastHorizonException)
-                       -> PartialLedgerConfig blk  -> LedgerConfig blk
-  default completeLedgerConfig :: (PartialLedgerConfig blk ~ LedgerConfig blk)
+                       -> PartialLedgerConfig i blk  -> LedgerConfig i blk
+  default completeLedgerConfig :: (PartialLedgerConfig i blk ~ LedgerConfig i blk)
                                => proxy blk
                                -> EpochInfo (Except PastHorizonException)
-                               -> PartialLedgerConfig blk  -> LedgerConfig blk
+                               -> PartialLedgerConfig i blk  -> LedgerConfig i blk
   completeLedgerConfig _ _ = id
 
 {-------------------------------------------------------------------------------
   Newtype wrappers
 -------------------------------------------------------------------------------}
 
-newtype WrapPartialLedgerConfig    blk = WrapPartialLedgerConfig    { unwrapPartialLedgerConfig    :: PartialLedgerConfig                   blk  }
+newtype WrapPartialLedgerConfig    i blk = WrapPartialLedgerConfig    { unwrapPartialLedgerConfig    :: PartialLedgerConfig                   i blk  }
 newtype WrapPartialConsensusConfig blk = WrapPartialConsensusConfig { unwrapPartialConsensusConfig :: PartialConsensusConfig (BlockProtocol blk) }
 
-deriving instance NoThunks (PartialLedgerConfig                   blk)  => NoThunks (WrapPartialLedgerConfig    blk)
+deriving instance NoThunks (PartialLedgerConfig                   i blk)  => NoThunks (WrapPartialLedgerConfig    i blk)
 deriving instance NoThunks (PartialConsensusConfig (BlockProtocol blk)) => NoThunks (WrapPartialConsensusConfig blk)

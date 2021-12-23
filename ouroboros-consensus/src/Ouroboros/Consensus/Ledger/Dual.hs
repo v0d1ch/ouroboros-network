@@ -144,7 +144,7 @@ instance ConvertRawHash m => ConvertRawHash (DualBlock m a) where
 newtype instance Header (DualBlock m a) = DualHeader { dualHeaderMain :: Header m }
   deriving NoThunks via AllowThunk (Header (DualBlock m a))
 
-instance Bridge m a => GetHeader (DualBlock m a) where
+instance Bridge m i a => GetHeader (DualBlock m a) where
   getHeader = DualHeader . getHeader . dualBlockMain
 
   blockMatchesHeader hdr =
@@ -228,34 +228,34 @@ class (
         HasHeader              m
       , GetHeader              m
       , HasHeader     (Header  m)
-      , LedgerSupportsProtocol m
+      , LedgerSupportsProtocol i m
       , HasHardForkHistory     m
-      , LedgerSupportsMempool  m
-      , CommonProtocolParams   m
+      , LedgerSupportsMempool  i m
+      , CommonProtocolParams   i m
       , HasTxId (GenTx         m)
       , Show (ApplyTxErr       m)
 
         -- Requirements on the auxiliary block
         -- No 'LedgerSupportsProtocol' for @a@!
       , Typeable                a
-      , UpdateLedger            a
-      , LedgerSupportsMempool   a
+      , UpdateLedger            i a
+      , LedgerSupportsMempool   i a
       , Show (ApplyTxErr        a)
-      , NoThunks (LedgerConfig  a)
+      , NoThunks (LedgerConfig  i a)
       , NoThunks (CodecConfig   a)
       , NoThunks (StorageConfig a)
 
         -- Requirements on the various bridges
-      , Show      (BridgeLedger m a)
-      , Eq        (BridgeLedger m a)
-      , Serialise (BridgeLedger m a)
+      , Show      (BridgeLedger m i a)
+      , Eq        (BridgeLedger m i a)
+      , Serialise (BridgeLedger m i a)
       , Serialise (BridgeBlock  m a)
       , Serialise (BridgeTx     m a)
       , Show      (BridgeTx     m a)
-      ) => Bridge m a where
+      ) => Bridge m i a where
 
   -- | Additional information relating both ledgers
-  type BridgeLedger m a :: Type
+  type BridgeLedger m i a :: Type
 
   -- | Information required to update the bridge when applying a block
   type BridgeBlock m a :: Type
@@ -264,22 +264,22 @@ class (
   type BridgeTx m a :: Type
 
   updateBridgeWithBlock :: DualBlock m a
-                        -> BridgeLedger m a -> BridgeLedger m a
+                        -> BridgeLedger m i a -> BridgeLedger m i a
 
   updateBridgeWithTx :: Validated (GenTx (DualBlock m a))
-                     -> BridgeLedger m a -> BridgeLedger m a
+                     -> BridgeLedger m i a -> BridgeLedger m i a
 
 {-------------------------------------------------------------------------------
   HasHeader instance
 -------------------------------------------------------------------------------}
 
-instance Bridge m a => HasHeader (DualBlock m a) where
+instance Bridge m i a => HasHeader (DualBlock m a) where
   getHeaderFields = getBlockHeaderFields
 
-instance Bridge m a => HasHeader (DualHeader m a) where
+instance Bridge m i a => HasHeader (DualHeader m a) where
   getHeaderFields = castHeaderFields . getHeaderFields . dualHeaderMain
 
-instance Bridge m a => GetPrevHash (DualBlock m a) where
+instance Bridge m i a => GetPrevHash (DualBlock m a) where
   headerPrevHash = castHash . headerPrevHash . dualHeaderMain
 
 {-------------------------------------------------------------------------------
@@ -288,7 +288,7 @@ instance Bridge m a => GetPrevHash (DualBlock m a) where
 
 type instance BlockProtocol (DualBlock m a) = BlockProtocol m
 
-instance Bridge m a => BlockSupportsProtocol (DualBlock m a) where
+instance Bridge m i a => BlockSupportsProtocol (DualBlock m a) where
   validateView cfg = validateView (dualBlockConfigMain cfg) . dualHeaderMain
   selectView   cfg = selectView   (dualBlockConfigMain cfg) . dualHeaderMain
 
@@ -305,9 +305,9 @@ instance Bridge m a => BlockSupportsProtocol (DualBlock m a) where
 -- (see 'agreeOnError'), rather than a regular chain failure; if this happens,
 -- it indicates a bug, and the node should fail (rather than just, for example,
 -- reject a block).
-data DualLedgerError m a = DualLedgerError {
-        dualLedgerErrorMain :: LedgerError m
-      , dualLedgerErrorAux  :: LedgerError a
+data DualLedgerError m i a = DualLedgerError {
+        dualLedgerErrorMain :: LedgerError i m
+      , dualLedgerErrorAux  :: LedgerError i a
       }
   deriving NoThunks via AllowThunk (DualLedgerError m a)
 
@@ -322,36 +322,36 @@ deriving instance ( Eq (LedgerError m)
   Update the ledger
 -------------------------------------------------------------------------------}
 
-data DualLedgerConfig m a = DualLedgerConfig {
-      dualLedgerConfigMain :: LedgerConfig m
-    , dualLedgerConfigAux  :: LedgerConfig a
+data DualLedgerConfig m i a = DualLedgerConfig {
+      dualLedgerConfigMain :: LedgerConfig i m
+    , dualLedgerConfigAux  :: LedgerConfig i a
     }
   deriving NoThunks via AllowThunk (DualLedgerConfig m a)
 
-type instance LedgerCfg (LedgerState (DualBlock m a)) = DualLedgerConfig m a
+type instance LedgerCfg (LedgerState i (DualBlock m a)) = DualLedgerConfig m i a
 
-instance Bridge m a => GetTip (LedgerState (DualBlock m a) mk) where
+instance Bridge m i a => GetTip (LedgerState i (DualBlock m a) mk) where
   getTip = castPoint . getTip . dualLedgerStateMain
 
-instance Bridge m a => GetTip (Ticked1 (LedgerState (DualBlock m a)) mk) where
+instance Bridge m i a => GetTip (Ticked1 (LedgerState i (DualBlock m a)) mk) where
   getTip = castPoint . getTip . tickedDualLedgerStateMain
 
-data instance Ticked1 (LedgerState (DualBlock m a)) mk = TickedDualLedgerState {
-      tickedDualLedgerStateMain    :: Ticked1 (LedgerState m) mk
-    , tickedDualLedgerStateAux     :: Ticked1 (LedgerState a) mk
-    , tickedDualLedgerStateBridge  :: BridgeLedger m a
+data instance Ticked1 (LedgerState i (DualBlock m a)) mk = TickedDualLedgerState {
+      tickedDualLedgerStateMain    :: Ticked1 (LedgerState i m) mk
+    , tickedDualLedgerStateAux     :: Ticked1 (LedgerState i a) mk
+    , tickedDualLedgerStateBridge  :: BridgeLedger m i a
 
       -- | The original, unticked ledger for the auxiliary block
       --
       -- The reason we keep this in addition to the ticked ledger state is that
       -- not every main block is paired with an auxiliary block. When there is
       -- no auxiliary block, the auxiliary ledger state remains unchanged.
-    , tickedDualLedgerStateAuxOrig :: LedgerState a EmptyMK
+    , tickedDualLedgerStateAuxOrig :: LedgerState i a EmptyMK
     }
   deriving NoThunks via AllowThunk (Ticked1 (LedgerState (DualBlock m a)) mk)
 
-instance Bridge m a => IsLedger (LedgerState (DualBlock m a)) where
-  type LedgerErr (LedgerState (DualBlock m a)) = DualLedgerError   m a
+instance Bridge m i a => IsLedger (LedgerState i (DualBlock m a)) where
+  type LedgerErr (LedgerState i (DualBlock m a)) = DualLedgerError   m i a
 
   -- | The dual ledger events are exactly those of the main ledger; it ignores
   -- any possible auxiliary ledger events.
@@ -360,7 +360,7 @@ instance Bridge m a => IsLedger (LedgerState (DualBlock m a)) where
   -- the same events. And right now we only use the Dual ledger for our tests,
   -- and do so only with the Byron and ByronSpecs ledgers, neither of which have
   -- any events. So we make this easy choice for for now.
-  type AuxLedgerEvent (LedgerState (DualBlock m a)) = AuxLedgerEvent (LedgerState m)
+  type AuxLedgerEvent (LedgerState i (DualBlock m a)) = AuxLedgerEvent (LedgerState i m)
 
   applyChainTickLedgerResult DualLedgerConfig{..}
                              slot
@@ -380,37 +380,37 @@ instance Bridge m a => IsLedger (LedgerState (DualBlock m a)) where
                        slot
                        dualLedgerStateMain
 
-instance TableStuff (LedgerState (DualBlock m a)) where
+instance TableStuff (LedgerState i (DualBlock m a)) where
 
-  data LedgerTables (LedgerState (DualBlock m a)) mk =
+  data LedgerTables (LedgerState i (DualBlock m a)) mk =
       DualBlockLedgerTables
-        (LedgerTables (LedgerState m) mk)
-        (LedgerTables (LedgerState a) mk)
+        (LedgerTables (LedgerState i m) mk)
+        (LedgerTables (LedgerState i a) mk)
     deriving NoThunks via AllowThunk (LedgerTables (LedgerState (DualBlock m a)) mk)
 
   -- TODO methods
 
-instance TickedTableStuff (LedgerState (DualBlock m a)) where
+instance TickedTableStuff (LedgerState i (DualBlock m a)) where
 
   -- TODO methods
 
-instance ShowLedgerState (LedgerTables (LedgerState (DualBlock m a))) where
+instance ShowLedgerState (LedgerTables (LedgerState i (DualBlock m a))) where
   showsLedgerState = error "showsLedgerState @LedgerTables DualBlock"
 
-instance TableStuff (Ticked1 (LedgerState (DualBlock m a))) where
+instance TableStuff (Ticked1 (LedgerState i (DualBlock m a))) where
 
-  data LedgerTables (Ticked1 (LedgerState (DualBlock m a))) mk =
+  data LedgerTables (Ticked1 (LedgerState i (DualBlock m a))) mk =
       TickedDualBlockLedgerTables
-        (Ticked1 (LedgerTables (LedgerState m)) mk)
-        (Ticked1 (LedgerTables (LedgerState a)) mk)
+        (Ticked1 (LedgerTables (LedgerState i m)) mk)
+        (Ticked1 (LedgerTables (LedgerState i a)) mk)
     deriving NoThunks via AllowThunk (LedgerTables (Ticked1 (LedgerState (DualBlock m a))) mk)
 
   -- TODO methods
 
-instance ShowLedgerState (LedgerTables (Ticked1 (LedgerState (DualBlock m a)))) where
+instance ShowLedgerState (LedgerTables (Ticked1 (LedgerState i (DualBlock m a)))) where
   showsLedgerState = error "showsLedgerState @Ticked1 LedgerTables DualBlock"
 
-instance Bridge m a => ApplyBlock (LedgerState (DualBlock m a)) (DualBlock m a) where
+instance Bridge m i a => ApplyBlock (LedgerState i (DualBlock m a)) (DualBlock m a) where
 
   applyBlockLedgerResult cfg
                          block@DualBlock{..}
@@ -455,24 +455,24 @@ instance Bridge m a => ApplyBlock (LedgerState (DualBlock m a)) (DualBlock m a) 
                        dualBlockMain
                        tickedDualLedgerStateMain
 
-data instance LedgerState (DualBlock m a) mk = DualLedgerState {
-      dualLedgerStateMain   :: LedgerState m mk
-    , dualLedgerStateAux    :: LedgerState a mk
-    , dualLedgerStateBridge :: BridgeLedger m a
+data instance LedgerState Both (DualBlock m a) mk = DualLedgerState {
+      dualLedgerStateMain   :: LedgerState Both m mk
+    , dualLedgerStateAux    :: LedgerState Both a mk
+    , dualLedgerStateBridge :: BridgeLedger m Both a
     }
   deriving NoThunks via AllowThunk (LedgerState (DualBlock m a) mk)
 
-instance Bridge m a => UpdateLedger (DualBlock m a)
+instance Bridge m i a => UpdateLedger i (DualBlock m a)
 
 deriving instance ( Eq (LedgerState m mk)
                   , Eq (LedgerState a mk)
                   , Bridge m a
                   ) => Eq (LedgerState (DualBlock m a) mk)
 
-instance ( ShowLedgerState (LedgerState m)
-         , ShowLedgerState (LedgerState a)
-         , Bridge m a
-         ) => ShowLedgerState (LedgerState (DualBlock m a)) where
+instance ( ShowLedgerState (LedgerState i m)
+         , ShowLedgerState (LedgerState i a)
+         , Bridge m i a
+         ) => ShowLedgerState (LedgerState i (DualBlock m a)) where
   showsLedgerState = error "showsLedgerState @DualBlock"
 
 {-------------------------------------------------------------------------------
@@ -492,18 +492,18 @@ dualExtValidationErrorMain = \case
   in the consensus protocol, and has no 'LedgerSupportsProtocol' instance.
 -------------------------------------------------------------------------------}
 
-instance Bridge m a => HasAnnTip (DualBlock m a) where
+instance Bridge m i a => HasAnnTip (DualBlock m a) where
   type TipInfo (DualBlock m a) = TipInfo m
   tipInfoHash _ = tipInfoHash (Proxy @m)
   getTipInfo    = getTipInfo . dualHeaderMain
 
-instance Bridge m a => BasicEnvelopeValidation (DualBlock m a) where
+instance Bridge m i a => BasicEnvelopeValidation (DualBlock m a) where
   expectedFirstBlockNo  _ = expectedFirstBlockNo  (Proxy @m)
   expectedNextBlockNo   _ = expectedNextBlockNo   (Proxy @m)
   minimumPossibleSlotNo _ = minimumPossibleSlotNo (Proxy @m)
   minimumNextSlotNo     _ = minimumNextSlotNo     (Proxy @m)
 
-instance Bridge m a => ValidateEnvelope (DualBlock m a) where
+instance Bridge m i a => ValidateEnvelope (DualBlock m a) where
   type OtherHeaderEnvelopeError (DualBlock m a) = OtherHeaderEnvelopeError m
 
   additionalEnvelopeChecks cfg ledgerView hdr =
@@ -512,7 +512,7 @@ instance Bridge m a => ValidateEnvelope (DualBlock m a) where
         ledgerView
         (dualHeaderMain hdr)
 
-instance Bridge m a => LedgerSupportsProtocol (DualBlock m a) where
+instance Bridge m i a => LedgerSupportsProtocol i (DualBlock m a) where
   protocolLedgerView cfg state =
       protocolLedgerView
         (dualLedgerConfigMain      cfg)
@@ -523,7 +523,7 @@ instance Bridge m a => LedgerSupportsProtocol (DualBlock m a) where
         (dualLedgerConfigMain cfg)
         (dualLedgerStateMain  state)
 
-instance Bridge m a => HasHardForkHistory (DualBlock m a) where
+instance Bridge m i a => HasHardForkHistory (DualBlock m a) where
   type HardForkIndices (DualBlock m a) = HardForkIndices m
 
   hardForkSummary cfg state =
@@ -545,7 +545,7 @@ instance (Typeable m, Typeable a)
     => ShowProxy (BlockQuery (DualBlock m a)) where
 
 -- | Not used in the tests: no constructors
-instance Bridge m a => QueryLedger (DualBlock m a) where
+instance Bridge m i a => QueryLedger (DualBlock m a) where
   answerBlockQuery _ = \case {}
 
 instance EqQuery (BlockQuery (DualBlock m a)) where
@@ -557,7 +557,7 @@ instance ShowQuery (BlockQuery (DualBlock m a)) where
 instance IsQuery (BlockQuery (DualBlock m a))
 
 -- | Forward to the main ledger
-instance Bridge m a => CommonProtocolParams (DualBlock m a) where
+instance Bridge m i a => CommonProtocolParams i (DualBlock m a) where
   maxHeaderSize = maxHeaderSize . dualLedgerStateMain
   maxTxSize     = maxTxSize     . dualLedgerStateMain
 
@@ -592,7 +592,7 @@ instance (Typeable m, Typeable a)
 
 type instance ApplyTxErr (DualBlock m a) = DualGenTxErr m a
 
-instance Bridge m a => LedgerSupportsMempool (DualBlock m a) where
+instance Bridge m i a => LedgerSupportsMempool i (DualBlock m a) where
   applyTx DualLedgerConfig{..}
           wti
           slot
@@ -678,7 +678,7 @@ newtype instance TxId (GenTx (DualBlock m a)) = DualGenTxId {
 instance (Typeable m, Typeable a)
     => ShowProxy (TxId (GenTx (DualBlock m a))) where
 
-instance Bridge m a => HasTxId (GenTx (DualBlock m a)) where
+instance Bridge m i a => HasTxId (GenTx (DualBlock m a)) where
   txId = DualGenTxId . txId . dualGenTxMain
 
 deriving instance Bridge m a => Show (GenTx (DualBlock m a))

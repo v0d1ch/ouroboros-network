@@ -17,11 +17,11 @@ import           Ouroboros.Consensus.Storage.LedgerDB.OnDisk (LedgerDB')
 import           Ouroboros.Consensus.Util.IOLike
 
 localStateQueryServer ::
-     forall m blk. (IOLike m, QueryLedger blk, Query.ConfigSupportsNode blk, HasAnnTip blk)
-  => ExtLedgerCfg blk
+     forall m blk i. (IOLike m, QueryLedger blk, Query.ConfigSupportsNode blk, HasAnnTip blk)
+  => ExtLedgerCfg i blk
   -> STM m (Point blk)
      -- ^ Get tip point
-  -> (Point blk -> STM m (Maybe (LedgerDB' blk)))
+  -> (Point blk -> STM m (Maybe (LedgerDB' i blk)))
      -- ^ Get a past ledger
   -> STM m (Point blk)
      -- ^ Get the immutable point
@@ -54,7 +54,7 @@ localStateQueryServer cfg getTipPoint getPastLedger getImmutablePoint =
             | otherwise
             -> SendMsgFailure AcquireFailurePointNotOnChain idle
 
-    acquired :: LedgerDB' blk
+    acquired :: LedgerDB' i blk
              -> ServerStAcquired blk (Point blk) (Query blk) m ()
     acquired ledgerDB = ServerStAcquired {
           recvMsgQuery     = handleQuery ledgerDB
@@ -69,7 +69,7 @@ localStateQueryServer cfg getTipPoint getPastLedger getImmutablePoint =
         }
 
     handleQuery ::
-         LedgerDB' blk
+         LedgerDB' i blk
       -> Query blk fp result
       -> m (ServerStQuerying blk (Point blk) (Query blk) m () result)
     handleQuery ledgerDB query = do

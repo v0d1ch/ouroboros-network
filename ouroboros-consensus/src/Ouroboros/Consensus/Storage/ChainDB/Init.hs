@@ -19,17 +19,17 @@ import qualified Ouroboros.Consensus.Storage.ChainDB.API as ChainDB
 import           Ouroboros.Consensus.Util.IOLike
 
 -- | Restricted interface to the 'ChainDB' used on node initialization
-data InitChainDB m blk = InitChainDB {
+data InitChainDB m i blk = InitChainDB {
       -- | Add a block to the DB
       addBlock         :: blk -> m ()
 
       -- | Return the current ledger state
-    , getCurrentLedger :: m (LedgerState blk EmptyMK)
+    , getCurrentLedger :: m (LedgerState i blk EmptyMK)
     }
 
 fromFull ::
-     (IsLedger (LedgerState blk), IOLike m)
-  => ChainDB m blk -> InitChainDB m blk
+     (IsLedger (LedgerState i blk), IOLike m)
+  => ChainDB m i blk -> InitChainDB i m blk
 fromFull db = InitChainDB {
       addBlock         = ChainDB.addBlock_ db
     , getCurrentLedger =
@@ -39,8 +39,8 @@ fromFull db = InitChainDB {
 map ::
      Functor m
   => (blk' -> blk)
-  -> (LedgerState blk EmptyMK -> LedgerState blk' EmptyMK)
-  -> InitChainDB m blk -> InitChainDB m blk'
+  -> (LedgerState i blk EmptyMK -> LedgerState i blk' EmptyMK)
+  -> InitChainDB m i blk -> InitChainDB m i blk'
 map f g db = InitChainDB {
       addBlock         = addBlock db . f
     , getCurrentLedger = g <$> getCurrentLedger db

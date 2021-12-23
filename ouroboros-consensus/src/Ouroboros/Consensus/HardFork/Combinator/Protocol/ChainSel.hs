@@ -65,7 +65,7 @@ data AcrossEraSelection :: Type -> Type -> Type where
 -------------------------------------------------------------------------------}
 
 acrossEras ::
-     forall blk blk'. SingleEraBlock blk
+     forall blk blk' i. SingleEraBlock i blk
   => WithBlockNo WrapSelectView blk
   -> WithBlockNo WrapSelectView blk'
   -> AcrossEraSelection blk blk'
@@ -77,7 +77,7 @@ acrossEras (WithBlockNo bnoL (WrapSelectView l))
     SelectSameProtocol -> compare l r
 
 acrossEraSelection ::
-     All SingleEraBlock              xs
+     All (SingleEraBlock i)              xs
   => Tails AcrossEraSelection        xs
   -> WithBlockNo (NS WrapSelectView) xs
   -> WithBlockNo (NS WrapSelectView) xs
@@ -86,7 +86,7 @@ acrossEraSelection = \ffs l r ->
     goLeft ffs (distribBlockNo l, distribBlockNo r)
   where
     goLeft ::
-         All SingleEraBlock                xs
+         All (SingleEraBlock i)                xs
       => Tails AcrossEraSelection          xs
       -> ( NS (WithBlockNo WrapSelectView) xs
          , NS (WithBlockNo WrapSelectView) xs
@@ -100,14 +100,14 @@ acrossEraSelection = \ffs l r ->
         (S a, S b) -> goLeft ffs' (a, b)
 
     goRight ::
-         forall x xs. (SingleEraBlock x, All SingleEraBlock xs)
+         forall x xs i. (SingleEraBlock i x, All (SingleEraBlock i) xs)
       => WithBlockNo WrapSelectView x
       -> NP (AcrossEraSelection     x)   xs
       -> NS (WithBlockNo WrapSelectView) xs
       -> Ordering
     goRight a = go
       where
-        go :: forall xs'. All SingleEraBlock  xs'
+        go :: forall xs'. All (SingleEraBlock i)  xs'
            => NP (AcrossEraSelection x)       xs'
            -> NS (WithBlockNo WrapSelectView) xs'
            -> Ordering

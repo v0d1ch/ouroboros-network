@@ -3,6 +3,7 @@
 {-# LANGUAGE FlexibleInstances       #-}
 {-# LANGUAGE TypeOperators           #-}
 {-# LANGUAGE UndecidableSuperClasses #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
 
 module Ouroboros.Consensus.HardFork.Combinator.Abstract.CanHardFork (CanHardFork (..)) where
 
@@ -28,18 +29,18 @@ import qualified Ouroboros.Consensus.HardFork.Combinator.Util.Tails as Tails
   CanHardFork
 -------------------------------------------------------------------------------}
 
-class (All SingleEraBlock xs, Typeable xs, IsNonEmpty xs) => CanHardFork xs where
-  hardForkEraTranslation :: EraTranslation xs
-  hardForkChainSel       :: Tails AcrossEraSelection xs
+class (All (SingleEraBlock i) xs, Typeable xs, IsNonEmpty xs) => CanHardFork i xs where
+  hardForkEraTranslation :: EraTranslation i xs
+  hardForkChainSel       :: Tails (AcrossEraSelection i) xs
   hardForkInjectTxs      ::
     InPairs
       ( RequiringBoth
-          WrapLedgerConfig
+          (WrapLedgerConfig i)
           (Product2 InjectTx InjectValidatedTx)
       )
       xs
 
-instance SingleEraBlock blk => CanHardFork '[blk] where
+instance SingleEraBlock i blk => CanHardFork i '[blk] where
   hardForkEraTranslation = trivialEraTranslation
   hardForkChainSel       = Tails.mk1
   hardForkInjectTxs      = InPairs.mk1

@@ -22,15 +22,21 @@
 {-# LANGUAGE DerivingStrategies      #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving  #-}
 {-# OPTIONS_GHC -Wno-orphans #-}
+{-# LANGUAGE DerivingVia #-}
 -- |
 
-module Ouroboros.Consensus.Storage.LedgerDB.InMemory.New where
+module Ouroboros.Consensus.Storage.LedgerDB.InMemory.New
+  where
 
 import           Control.Monad.Except hiding (ap)
 import           Data.Functor.Identity
 import           Data.Word
 import           GHC.Generics (Generic)
-import           NoThunks.Class (NoThunks)
+import           NoThunks.Class (NoThunks, OnlyCheckWhnfNamed(..))
+import           Data.Kind
+import           Control.Monad.Reader hiding (ap)
+
+import           Cardano.Slotting.Slot
 
 import           Ouroboros.Consensus.Block
 import           Ouroboros.Consensus.Config
@@ -38,9 +44,7 @@ import           Ouroboros.Consensus.Ledger.Abstract
 import           Ouroboros.Consensus.Util
 
 import           Ouroboros.Consensus.Storage.LedgerDB.InMemory.Base
-import Data.Kind
-import Control.Monad.Reader
-import Cardano.Slotting.Slot
+import Ouroboros.Consensus.Storage.FS.API
 
 {-------------------------------------------------------------------------------
   Ledger types
@@ -93,7 +97,7 @@ ledgerDbWithAnchor anchor = LedgerDB {
   Block application
 -------------------------------------------------------------------------------}
 
-pureBlock :: blk -> Ap m l blk (ReadsKeySets m l)
+pureBlock :: blk -> Ap m (BaseLedgerState blk) blk (ReadsKeySets m (BaseLedgerState blk))
 pureBlock = ReapplyVal
 
 -- | 'Ap' is used to pass information about blocks to ledger DB updates
@@ -108,22 +112,22 @@ pureBlock = ReapplyVal
 --   a. If we are passing a block by reference, we must be able to resolve it.
 --   b. If we are applying rather than reapplying, we might have ledger errors.
 data Ap :: (Type -> Type) -> LedgerStateKind -> Type -> Constraint -> Type where
-  ReapplyVal ::           blk -> Ap m l blk ( ReadsKeySets m l )
-  ApplyVal   ::           blk -> Ap m l blk ( ReadsKeySets m l
-                                            , ThrowsLedgerError m l blk )
-  ReapplyRef :: RealPoint blk -> Ap m l blk ( ResolvesBlocks m blk
-                                            , ReadsKeySets m l
+  ReapplyVal ::           blk -> Ap m (BaseLedgerState blk) blk ( ReadsKeySets m (BaseLedgerState blk) )
+  ApplyVal   ::           blk -> Ap m (BaseLedgerState blk) blk ( ReadsKeySets m (BaseLedgerState blk)
+                                            , ThrowsLedgerError m (BaseLedgerState blk) blk )
+  ReapplyRef :: RealPoint blk -> Ap m (BaseLedgerState blk) blk ( ResolvesBlocks m blk
+                                            , ReadsKeySets m (BaseLedgerState blk)
                                             )
-  ApplyRef   :: RealPoint blk -> Ap m l blk ( ResolvesBlocks m blk
-                                            , ThrowsLedgerError m l blk
-                                            , ReadsKeySets m l
+  ApplyRef   :: RealPoint blk -> Ap m (BaseLedgerState blk) blk ( ResolvesBlocks m blk
+                                            , ThrowsLedgerError m (BaseLedgerState blk) blk
+                                            , ReadsKeySets m (BaseLedgerState blk)
                                             )
 
   -- | 'Weaken' increases the constraint on the monad @m@.
   --
   -- This is primarily useful when combining multiple 'Ap's in a single
   -- homogeneous structure.
-  Weaken :: (c' => c) => Ap m l blk c -> Ap m l blk c'
+  Weaken :: (c' => c) => Ap m (BaseLedgerState blk) blk c -> Ap m (BaseLedgerState blk) blk c'
 
 {-------------------------------------------------------------------------------
   Internal utilities for 'Ap'
@@ -164,7 +168,7 @@ applyBlock cfg ap db = case ap of
       -> m (BaseLedgerState blk (Output (BaseLedgerState blk)))
     withBlockReadSets b f = do
       let ks = getBlockKeySets b :: TableKeySets (BaseLedgerState blk)
-      let aks = rewindTableKeySets (ledgerDbChangelog db) ks :: RewoundTableKeySets (BaseLedgerState blk)
+      let aks = rewindTableKeySetsImpl (ledgerDbChangelog db) ks :: RewoundTableKeySets (BaseLedgerState blk)
       urs <- readDb aks
       case withHydratedLedgerState urs f of
         Nothing ->
@@ -186,7 +190,7 @@ applyBlock cfg ap db = case ap of
       -> (BaseLedgerState blk ValuesMK -> a)
       -> Maybe a
     withHydratedLedgerState urs f = do
-      rs <- forwardTableKeySets (ledgerDbChangelog db) urs
+      rs <- forwardTableKeySetsImpl (ledgerDbChangelog db) urs
       return $ f $ withLedgerTables (ledgerDbCurrent db)  rs
 
 {-------------------------------------------------------------------------------
@@ -211,7 +215,7 @@ ledgerDbSnapshots db = undefined $ ledgerDbChangelog db
 ledgerDbMaxRollback ::
      LedgerDB (BaseLedgerState blk)
   -> Word64
-ledgerDbMaxRollback db = fromIntegral (undefined $ ledgerDbChangelog db)
+ledgerDbMaxRollback _db = undefined
 
 ledgerDbTip ::
      IsLedger (BaseLedgerState blk)
@@ -229,7 +233,6 @@ ledgerDbIsSaturated (SecurityParam k) db =
 ledgerDbPast ::
      ( HasHeader blk
      , IsLedger (BaseLedgerState blk)
-     , HeaderHash (BaseLedgerState blk) ~ HeaderHash blk
      )
   => Point blk
   -> LedgerDB (BaseLedgerState blk)
@@ -246,7 +249,6 @@ ledgerDbPast pt db = ledgerDbCurrent <$> ledgerDbPrefix pt db
 ledgerDbPrefix ::
      ( HasHeader blk
      , IsLedger (BaseLedgerState blk)
-     , HeaderHash (BaseLedgerState blk) ~ HeaderHash blk
      )
   => Point blk
   ->        LedgerDB (BaseLedgerState blk)
@@ -262,7 +264,7 @@ ledgerDbPrune ::
      SecurityParam
   -> LedgerDB (BaseLedgerState blk)
   -> LedgerDB (BaseLedgerState blk)
-ledgerDbPrune (SecurityParam k) db =  undefined
+ledgerDbPrune (SecurityParam _k) _db =  undefined
 
 {-------------------------------------------------------------------------------
   Internal updates
@@ -270,15 +272,11 @@ ledgerDbPrune (SecurityParam k) db =  undefined
 
 -- | Push an updated ledger state
 pushLedgerState ::
-     ( IsLedger (BaseLedgerState blk)
-     , TickedTableStuff (BaseLedgerState blk)
-     , Output (BaseLedgerState blk) ~ TrackingMK
-     )
-  => SecurityParam
+     SecurityParam
   -> BaseLedgerState blk (Output (BaseLedgerState blk)) -- ^ Updated ledger state
   -> LedgerDB (BaseLedgerState blk)
   -> LedgerDB (BaseLedgerState blk)
-pushLedgerState secParam current' db  =
+pushLedgerState secParam _current' db  =
     ledgerDbPrune secParam $ db {
         ledgerDbChangelog = undefined
     }
@@ -389,15 +387,15 @@ initialDbChangelog
   :: WithOrigin SlotNo -> l EmptyMK -> DbChangelog l
 initialDbChangelog = undefined
 
-rewindTableKeySets
+rewindTableKeySetsImpl
   :: DbChangelog l -> TableKeySets l -> RewoundTableKeySets l
-rewindTableKeySets = undefined
+rewindTableKeySetsImpl = undefined
 
 newtype UnforwardedReadSets l = UnforwardedReadSets (AnnTableReadSets l ())
 
-forwardTableKeySets
+forwardTableKeySetsImpl
   :: DbChangelog l -> UnforwardedReadSets l -> Maybe (TableReadSets l)
-forwardTableKeySets = undefined
+forwardTableKeySetsImpl = undefined
 
 extendDbChangelog
   :: SeqNo l
@@ -440,3 +438,47 @@ instance IsLedger l => HasSeqNo l where
     case getTipSlot l of
       Origin        -> SeqNo 0
       At (SlotNo n) -> SeqNo (n + 1)
+
+
+mkOnDiskLedgerStDb :: SomeHasFS m -> m (OnDiskLedgerStDb m l)
+mkOnDiskLedgerStDb = undefined
+  -- \(SomeHasFS fs) -> do
+  --   dbhandle <- hOpen fs "ledgerStateDb"
+  --   ...
+
+  --   return OnDiskLedgerStDb
+  --   { ...
+  --     , readKeySets = Snapshots.readDb dbhandle
+
+  --     }
+
+-- | On disk ledger state API.
+--
+--
+data OnDiskLedgerStDb m l =
+  OnDiskLedgerStDb
+  { rewindTableKeySets   :: () -- TODO: move the corresponding function from
+                               -- InMemory here.
+  , forwardTableKeySets  :: () -- TODO: ditto.
+
+  , readKeySets :: RewoundTableKeySets l -> m (UnforwardedReadSets l)
+   -- ^ Captures the handle. Implemented by Snapshots.readDb
+   --
+   -- TODO: consider unifying this with defaultReadKeySets. Why? Because we are always using
+   -- 'defaultReadKeySets' with readKeySets.
+  , flushDb     :: DbChangelog l -> m (DbChangelog l )
+    -- ^ Flush the ledger DB when appropriate. We assume the implementation of
+    -- this function will determine when to flush.
+    --
+    -- NOTE: Captures the handle and the flushing policy. Implemented by
+    -- Snapshots.writeDb.
+  , createRestorePoint :: DbChangelog l -> m ()
+    -- ^ Captures the DbHandle. Implemented using createRestorePoint (proposed
+    -- by Douglas). We need to take the current SeqNo for the on disk state from
+    -- the DbChangelog.
+
+    {- * other restore point ops ... -}
+  , closeDb :: m ()
+    -- ^ This closes the captured handle.
+  }
+  deriving NoThunks via OnlyCheckWhnfNamed "OnDiskLedgerStDb" (OnDiskLedgerStDb m l)

@@ -53,6 +53,7 @@ module Ouroboros.Consensus.Storage.LedgerDB.InMemory (
     -- ** Updates
   , ExceededRollback (..)
   , ledgerDbPush
+  , ledgerDbPushMany
   , ledgerDbSwitch
     -- * Exports for the benefit of tests
     -- ** Additional queries
@@ -72,6 +73,7 @@ import           GHC.Generics (Generic)
 import           NoThunks.Class (NoThunks)
 import           Control.Exception
 import           Data.Coerce
+import           Control.Monad.Identity hiding (ap)
 import qualified Data.Map.Strict as Map
 
 import           Ouroboros.Network.AnchoredSeq (AnchoredSeq (..))
@@ -86,7 +88,7 @@ import           Ouroboros.Consensus.Util.Versioned
 import           Ouroboros.Consensus.Storage.LedgerDB.InMemory.Base
 import qualified Ouroboros.Consensus.Storage.LedgerDB.InMemory.Old as Old
 import qualified Ouroboros.Consensus.Storage.LedgerDB.InMemory.New as New
-import Control.Monad.Identity
+import Data.Kind
 
 {-------------------------------------------------------------------------------
   Ledger DB types
@@ -122,12 +124,55 @@ ledgerDbWithAnchor (LedgerState old new) = LedgerDB {
   Internal utilities for 'Ap'
 -------------------------------------------------------------------------------}
 
-type Ap m blk c = New.Ap m (LedgerState New blk) blk c
+pureBlock :: blk -> Ap m (LedgerState Both blk) blk (New.ReadsKeySets m (New.BaseLedgerState blk))
+pureBlock = ReapplyVal
 
-apToOldAp :: Ap m blk c -> Old.Ap m (LedgerState Old blk) blk c
-apToOldAp = undefined
+-- | 'Ap' is used to pass information about blocks to ledger DB updates
+--
+-- The constructors serve two purposes:
+--
+-- * Specify the various parameters
+--   a. Are we passing the block by value or by reference?
+--   b. Are we applying or reapplying the block?
+--
+-- * Compute the constraint @c@ on the monad @m@ in order to run the query:
+--   a. If we are passing a block by reference, we must be able to resolve it.
+--   b. If we are applying rather than reapplying, we might have ledger errors.
+data Ap :: (Type -> Type) -> LedgerStateKind -> Type -> Constraint -> Type where
+  ReapplyVal ::           blk -> Ap m (LedgerState Both blk) blk ( New.ReadsKeySets m (New.BaseLedgerState blk))
+  ApplyVal   ::           blk -> Ap m (LedgerState Both blk) blk ( New.ReadsKeySets m (New.BaseLedgerState blk)
+                                                                 , ThrowsLedgerError m (Old.BaseLedgerState blk) blk
+                                                                 , ThrowsLedgerError m (New.BaseLedgerState blk) blk)
+  ReapplyRef :: RealPoint blk -> Ap m (LedgerState Both blk) blk ( ResolvesBlocks m blk
+                                                                 , New.ReadsKeySets m (New.BaseLedgerState blk)
+                                                                 )
+  ApplyRef   :: RealPoint blk -> Ap m (LedgerState Both blk) blk ( ResolvesBlocks m blk
+                                                                 , ThrowsLedgerError m (Old.BaseLedgerState blk) blk
+                                                                 , ThrowsLedgerError m (New.BaseLedgerState blk) blk
+                                                                 , New.ReadsKeySets m (New.BaseLedgerState blk)
+                                                                 )
 
-applyBlock :: forall m c blk
+  -- | 'Weaken' increases the constraint on the monad @m@.
+  --
+  -- This is primarily useful when combining multiple 'Ap's in a single
+  -- homogeneous structure.
+  Weaken :: (c' => c) => Ap m (LedgerState Both blk) blk c -> Ap m (LedgerState Both blk) blk c'
+
+apToOldAp :: Ap m (LedgerState Both blk) blk c -> Old.Ap m (Old.BaseLedgerState blk) blk c
+apToOldAp (ApplyVal b)   = Old.Weaken $ Old.ApplyVal b
+apToOldAp (ReapplyVal b) = Old.Weaken $ Old.ReapplyVal b
+apToOldAp (ApplyRef b)   = Old.Weaken $ Old.ApplyRef b
+apToOldAp (ReapplyRef b) = Old.Weaken $ Old.ReapplyRef b
+apToOldAp (Weaken ap)    = Old.Weaken $ apToOldAp ap
+
+apToNewAp :: Ap m (LedgerState Both blk) blk c -> New.Ap m (New.BaseLedgerState blk) blk c
+apToNewAp (ApplyVal b)   = New.Weaken $ New.ApplyVal b
+apToNewAp (ReapplyVal b) = New.Weaken $ New.ReapplyVal b
+apToNewAp (ApplyRef b)   = New.Weaken $ New.ApplyRef b
+apToNewAp (ReapplyRef b) = New.Weaken $ New.ReapplyRef b
+apToNewAp (Weaken ap)    = New.Weaken $ apToNewAp ap
+
+_applyBlock :: forall m c blk
             . ( ApplyBlockC m c (Old.BaseLedgerState blk) blk
               , ApplyBlockC m c (New.BaseLedgerState blk) blk
               , LedgerCfg (LedgerState Both blk) ~ LedgerCfg (Old.BaseLedgerState blk)
@@ -136,13 +181,13 @@ applyBlock :: forall m c blk
               , Output (New.BaseLedgerState blk) ~ TrackingMK
               )
            => LedgerCfg (LedgerState Both blk)
-           -> Ap m blk c
+           -> Ap m (LedgerState Both blk) blk c
            -> LedgerDB (LedgerState Both blk)
            -> m ( Old.BaseLedgerState' blk
                 , New.BaseLedgerState blk TrackingMK)
-applyBlock cfg ap LedgerDB{..} = do
+_applyBlock cfg ap LedgerDB{..} = do
   old <- Old.applyBlock cfg (apToOldAp ap) ledgerDbOld
-  new <- New.applyBlock cfg ap ledgerDbNew
+  new <- New.applyBlock cfg (apToNewAp ap) ledgerDbNew
   return $ (old, new)
 
 {-------------------------------------------------------------------------------
@@ -202,7 +247,6 @@ ledgerDbIsSaturated (SecurityParam k) db =
 
 ledgerDbPast ::
      ( HasHeader blk
-     , HeaderHash (LedgerState Both blk) ~ HeaderHash blk
      , IsLedger (LedgerState New blk)
      , IsLedger (LedgerState Old blk)
      )
@@ -213,7 +257,6 @@ ledgerDbPast pt LedgerDB{..} = (,) <$> Old.ledgerDbPast pt ledgerDbOld <*> New.l
 
 ledgerDbPrefix ::
      ( HasHeader blk
-     , HeaderHash (LedgerState Both blk) ~ HeaderHash blk
      , IsLedger (LedgerState Old blk)
      , IsLedger (LedgerState New blk)
      )
@@ -232,7 +275,7 @@ ledgerDbBimap ::
   -> (l EmptyMK -> b)
   -> LedgerDB l
   -> AnchoredSeq (WithOrigin SlotNo) a b
-ledgerDbBimap f g =
+ledgerDbBimap _f _g =
     -- Instead of exposing 'ledgerDbCheckpoints' directly, this function hides
     -- the internal 'Checkpoint' type.
     -- AS.bimap (f . unCheckpoint) (g . unCheckpoint) . ledgerDbCheckpoints
@@ -257,18 +300,16 @@ ledgerDbPrune s LedgerDB{..} = LedgerDB (Old.ledgerDbPrune s ledgerDbOld) (New.l
 -------------------------------------------------------------------------------}
 
 -- | Push an updated ledger state
-pushLedgerState ::
+_pushLedgerState ::
      ( Output (LedgerState Old blk) ~ ValuesMK
      , Output (LedgerState New blk) ~ TrackingMK
      , GetTip (LedgerState Old blk ValuesMK)
-     , IsLedger (LedgerState New blk)
-     , TickedTableStuff (LedgerState New blk)
      )
   => SecurityParam
   -> ( (LedgerState Old blk) (Output (LedgerState Old blk))
      , (LedgerState New blk) (Output (LedgerState New blk))) -- ^ Updated ledger state
   -> LedgerDB (LedgerState Both blk) -> LedgerDB (LedgerState Both blk)
-pushLedgerState secParam (currentOld, currentNew) db@LedgerDB{..}  =
+_pushLedgerState secParam (currentOld, currentNew) LedgerDB{..}  =
     LedgerDB (Old.pushLedgerState secParam currentOld ledgerDbOld)
              (New.pushLedgerState secParam currentNew ledgerDbNew)
 
@@ -279,12 +320,12 @@ pushLedgerState secParam (currentOld, currentNew) db@LedgerDB{..}  =
 -- | Rollback
 --
 -- Returns 'Nothing' if maximum rollback is exceeded.
-rollback ::
+_rollback ::
      GetTip (LedgerState Old blk ValuesMK)
   => Word64
   ->        LedgerDB (LedgerState Both blk)
   -> Maybe (LedgerDB (LedgerState Both blk))
-rollback n db@LedgerDB{..} = LedgerDB <$> Old.rollback n ledgerDbOld <*> New.rollback n ledgerDbNew
+_rollback n LedgerDB{..} = LedgerDB <$> Old.rollback n ledgerDbOld <*> New.rollback n ledgerDbNew
 
 {-------------------------------------------------------------------------------
   Updates
@@ -297,13 +338,13 @@ ledgerDbPush :: forall m c blk
                 , Coercible (LedgerDbCfg (LedgerState Both blk))  (LedgerDbCfg (LedgerState New blk))
                 )
              => LedgerDbCfg (LedgerState Both blk)
-             -> Ap m blk c
+             -> Ap m (LedgerState Both blk) blk c
              ->    LedgerDB (LedgerState Both blk)
              -> m (LedgerDB (LedgerState Both blk))
-ledgerDbPush cfg ap db@LedgerDB{..} =
+ledgerDbPush cfg ap LedgerDB{..} =
       LedgerDB
   <$> Old.ledgerDbPush (coerce cfg) (apToOldAp ap) ledgerDbOld
-  <*> New.ledgerDbPush (coerce cfg) ap ledgerDbNew
+  <*> New.ledgerDbPush (coerce cfg) (apToNewAp ap) ledgerDbNew
 
     -- (\current' -> pushLedgerState (ledgerDbCfgSecParam cfg) current' db) <$>
     --   applyBlock (ledgerDbCfg cfg) ap db
@@ -316,7 +357,7 @@ ledgerDbPushMany ::
                 , Coercible (LedgerDbCfg (LedgerState Both blk))  (LedgerDbCfg (LedgerState New blk))
                 )
                 => LedgerDbCfg (LedgerState Both blk)
-                -> [Ap m blk c]
+                -> [Ap m (LedgerState Both blk) blk c]
                 ->    LedgerDB (LedgerState Both blk)
                 -> m (LedgerDB (LedgerState Both blk))
 ledgerDbPushMany = repeatedlyM . ledgerDbPush
@@ -330,12 +371,12 @@ ledgerDbSwitch ::
                 )
                => LedgerDbCfg (LedgerState Both blk)
                -> Word64          -- ^ How many blocks to roll back
-               -> [Ap m blk c]  -- ^ New blocks to apply
+               -> [Ap m (LedgerState Both blk) blk c]  -- ^ New blocks to apply
                ->                             LedgerDB (LedgerState Both blk)
                -> m (Either ExceededRollback (LedgerDB (LedgerState Both blk)))
-ledgerDbSwitch cfg numRollbacks newBlocks db@LedgerDB{..} = do
+ledgerDbSwitch cfg numRollbacks newBlocks LedgerDB{..} = do
   old <- Old.ledgerDbSwitch (coerce cfg) numRollbacks (map apToOldAp newBlocks) ledgerDbOld
-  new <- New.ledgerDbSwitch (coerce cfg) numRollbacks newBlocks ledgerDbNew
+  new <- New.ledgerDbSwitch (coerce cfg) numRollbacks (map apToNewAp newBlocks) ledgerDbNew
   return $ LedgerDB <$> old <*> new
 
 {-------------------------------------------------------------------------------
@@ -385,7 +426,7 @@ ledgerDbSwitch' :: ( New.TestingLedgerDBPush (New.BaseLedgerState blk) blk Track
                 -> [blk]
                 ->        LedgerDB (LedgerState Both blk)
                 -> Maybe (LedgerDB (LedgerState Both blk))
-ledgerDbSwitch' cfg n bs db@LedgerDB{..} =
+ledgerDbSwitch' cfg n bs LedgerDB{..} =
       LedgerDB
   <$> Old.ledgerDbSwitch' (coerce cfg) n bs ledgerDbOld
   <*> New.ledgerDbSwitch' (coerce cfg) n bs ledgerDbNew

@@ -44,16 +44,16 @@ import qualified Ouroboros.Consensus.HardFork.History as HF
 import           Ouroboros.Consensus.Ledger.Abstract
 import           Ouroboros.Consensus.Util.Time
 
-data CheckInFuture m blk = CheckInFuture {
+data CheckInFuture m i blk = CheckInFuture {
        -- | POSTCONDITION:
        -- > checkInFuture vf >>= \(af, fut) ->
        -- >   validatedFragment vf == af <=> null fut
        checkInFuture :: forall mk.
-                        ValidatedFragment (Header blk) (LedgerState blk mk)
+                        ValidatedFragment (Header blk) (LedgerState i blk mk)
                      -> m (AnchoredFragment (Header blk), [InFuture blk])
     }
   deriving NoThunks
-       via OnlyCheckWhnfNamed "CheckInFuture" (CheckInFuture m blk)
+       via OnlyCheckWhnfNamed "CheckInFuture" (CheckInFuture m i blk)
 
 -- | Header of block that we found to be in the future
 data InFuture blk = InFuture {
@@ -105,11 +105,11 @@ clockSkewInSeconds = ClockSkew . secondsToNominalDiffTime
   Reference implementation
 -------------------------------------------------------------------------------}
 
-reference :: forall m blk. (Monad m, UpdateLedger blk, HasHardForkHistory blk)
-          => LedgerConfig blk
+reference :: forall m blk i. (Monad m, UpdateLedger i blk, HasHardForkHistory blk)
+          => LedgerConfig i blk
           -> ClockSkew
           -> SystemTime m
-          -> CheckInFuture m blk
+          -> CheckInFuture m i blk
 reference cfg (ClockSkew clockSkew) SystemTime{..} = CheckInFuture {
       checkInFuture = \validated -> do
         now <- systemTimeCurrent
@@ -159,7 +159,7 @@ reference cfg (ClockSkew clockSkew) SystemTime{..} = CheckInFuture {
 -- | Trivial 'InFuture' check that doesn't do any check at all
 --
 -- This is useful for testing and tools such as the DB converter.
-dontCheck :: Monad m => CheckInFuture m blk
+dontCheck :: Monad m => CheckInFuture m i blk
 dontCheck = CheckInFuture {
       checkInFuture = \validated -> return (VF.validatedFragment validated, [])
     }
@@ -169,10 +169,10 @@ dontCheck = CheckInFuture {
 --
 -- NOTE: Use of 'miracle' in tests means that none of the hard fork
 -- infrastructure for converting slots to time is tested.
-miracle :: forall m blk. (MonadSTM m, HasHeader (Header blk))
+miracle :: forall m blk i. (MonadSTM m, HasHeader (Header blk))
         => STM m SlotNo          -- ^ Get current slot
         -> Word64                -- ^ Maximum clock skew (in terms of slots)
-        -> CheckInFuture m blk
+        -> CheckInFuture m i blk
 miracle oracle clockSkew = CheckInFuture {
       checkInFuture = \validated -> do
         now <- atomically $ oracle

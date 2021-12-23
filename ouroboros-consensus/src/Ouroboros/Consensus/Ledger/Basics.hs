@@ -10,7 +10,6 @@
 {-# LANGUAGE QuantifiedConstraints #-}
 {-# LANGUAGE StandaloneDeriving    #-}
 {-# LANGUAGE TypeFamilies          #-}
-{-# LANGUAGE TypeFamilyDependencies #-}
 {-# LANGUAGE UndecidableInstances  #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE ScopedTypeVariables   #-}
@@ -169,10 +168,6 @@ class ( -- Requirements on the ledger state itself
         -- ticked ledger.
       , forall mk. GetTip         (l mk)
       , forall mk. GetTip (Ticked1 l mk)
-      -- , HeaderHash (l EmptyMK) ~ HeaderHash l
-      -- , HeaderHash (l ValuesMK) ~ HeaderHash l
-      -- , HeaderHash (l DiffMK) ~ HeaderHash l
-      -- , HeaderHash (l TrackingMK) ~ HeaderHash l
       ) => IsLedger (l :: LedgerStateKind) where
   -- | Errors that can arise when updating the ledger
   --
@@ -188,9 +183,6 @@ class ( -- Requirements on the ledger state itself
   type family AuxLedgerEvent l :: Type
 
   type family Output l :: MapKind
-
-  -- type instance Output (LedgerState Old blk) = ValuesMK
-  -- type instance Output (LedgerState New blk) = TrackingMK
 
   -- | Apply "slot based" state transformations
   --

@@ -76,6 +76,7 @@ import           Ouroboros.Consensus.Storage.FS.API.Types
 
 import           Ouroboros.Consensus.Storage.LedgerDB.DiskPolicy
 import           Ouroboros.Consensus.Storage.LedgerDB.InMemory
+import Ouroboros.Consensus.Storage.LedgerDB.InMemory.New (OnDiskLedgerStDb, mkOnDiskLedgerStDb)
 
 {-------------------------------------------------------------------------------
   Instantiate the in-memory DB to @blk@
@@ -318,51 +319,6 @@ initFromSnapshot tracer hasFS decLedger decHash cfg readLedgerDb streamAPI ss = 
             streamAPI
             (ledgerDbWithAnchor initSS)
         return (tip, initDB, replayed)
-
-
-mkOnDiskLedgerStDb :: SomeHasFS m -> m (OnDiskLedgerStDb m l)
-mkOnDiskLedgerStDb = undefined
-  -- \(SomeHasFS fs) -> do
-  --   dbhandle <- hOpen fs "ledgerStateDb"
-  --   ...
-
-  --   return OnDiskLedgerStDb
-  --   { ...
-  --     , readKeySets = Snapshots.readDb dbhandle
-
-  --     }
-
--- | On disk ledger state API.
---
---
-data OnDiskLedgerStDb m l =
-  OnDiskLedgerStDb
-  { rewindTableKeySets   :: () -- TODO: move the corresponding function from
-                               -- InMemory here.
-  , forwardTableKeySets  :: () -- TODO: ditto.
-
-  , readKeySets :: RewoundTableKeySets l -> m (UnforwardedReadSets l)
-   -- ^ Captures the handle. Implemented by Snapshots.readDb
-   --
-   -- TODO: consider unifying this with defaultReadKeySets. Why? Because we are always using
-   -- 'defaultReadKeySets' with readKeySets.
-  , flushDb     :: DbChangelog l -> m (DbChangelog l )
-    -- ^ Flush the ledger DB when appropriate. We assume the implementation of
-    -- this function will determine when to flush.
-    --
-    -- NOTE: Captures the handle and the flushing policy. Implemented by
-    -- Snapshots.writeDb.
-  , createRestorePoint :: DbChangelog l -> m ()
-    -- ^ Captures the DbHandle. Implemented using createRestorePoint (proposed
-    -- by Douglas). We need to take the current SeqNo for the on disk state from
-    -- the DbChangelog.
-
-    {- * other restore point ops ... -}
-  , closeDb :: m ()
-    -- ^ This closes the captured handle.
-  }
-  deriving NoThunks via OnlyCheckWhnfNamed "OnDiskLedgerStDb" (OnDiskLedgerStDb m l)
-
 
 -- | Attempt to initialize the ledger DB starting from the given ledger DB
 initStartingWith ::

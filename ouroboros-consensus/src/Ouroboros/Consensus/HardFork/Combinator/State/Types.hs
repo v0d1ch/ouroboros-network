@@ -61,14 +61,14 @@ data Past = Past {
   deriving (Eq, Show, Generic, NoThunks)
 
 -- | Thin wrapper around 'Telescope.sequence'
-sequenceHardForkState :: forall m f xs. (All Top xs, Functor m)
-                      => HardForkState (m :.: f) xs -> m (HardForkState f xs)
+sequenceHardForkState :: forall m f xs i. (All Top xs, Functor m)
+                      => HardForkState (m :.: (f i)) xs -> m (HardForkState (f i) xs)
 sequenceHardForkState (HardForkState tel) =
       fmap HardForkState
     $ Telescope.sequence
     $ hmap sequenceCurrent tel
   where
-    sequenceCurrent :: Current (m :.: f) a -> (m :.: Current f) a
+    sequenceCurrent :: Current (m :.: (f i)) a -> (m :.: Current (f i)) a
     sequenceCurrent (Current start state) =
       Comp $ Current start <$> unComp state
 
@@ -100,11 +100,11 @@ newtype TranslateForecast f g x y = TranslateForecast {
         -> Except OutsideForecastRange (Ticked (g y))
     }
 
-newtype TranslateLedgerState x y = TranslateLedgerState {
+newtype TranslateLedgerState i x y = TranslateLedgerState {
       translateLedgerStateWith ::
            EpochNo
-        -> LedgerState x ValuesMK
-        -> LedgerState y ValuesMK
+        -> LedgerState i x ValuesMK
+        -> LedgerState i y ValuesMK
     }
 
 -- | Knowledge in a particular era of the transition to the next era

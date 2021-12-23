@@ -1,3 +1,5 @@
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE AllowAmbiguousTypes #-}
 module Ouroboros.Consensus.Node.InitStorage (NodeInitStorage (..)) where
 
 import           Ouroboros.Consensus.Block.Abstract
@@ -7,7 +9,7 @@ import           Ouroboros.Consensus.Storage.ChainDB.Init (InitChainDB)
 import           Ouroboros.Consensus.Storage.ImmutableDB (ChunkInfo)
 
 -- | Functionality needed to initialise the storage layer of the node.
-class NodeInitStorage blk where
+class NodeInitStorage i blk where
   -- | The 'ChunkInfo' to use for the ImmutableDB, i.e., how many slots to put
   -- together in a single chunk file.
   --
@@ -36,5 +38,5 @@ class NodeInitStorage blk where
   -- useful for the definition of combinators (which may need to turn a
   -- 'InitChainDB' for one type of block into an 'InitChainDB' for a closely
   -- related type of block).
-  nodeInitChainDB :: IOLike m => StorageConfig blk -> InitChainDB m blk -> m ()
+  nodeInitChainDB :: IOLike m => StorageConfig blk -> InitChainDB m i blk -> m ()
   nodeInitChainDB _ _ = return ()

@@ -47,11 +47,11 @@ import           Ouroboros.Consensus.Util.Time
 -- incur computational overhead.)
 newtype BackoffDelay = BackoffDelay NominalDiffTime
 
-data HardForkBlockchainTimeArgs m blk = HardForkBlockchainTimeArgs
+data HardForkBlockchainTimeArgs m i blk = HardForkBlockchainTimeArgs
   { hfbtBackoffDelay   :: m BackoffDelay
     -- ^ See 'BackoffDelay'
-  , hfbtGetLedgerState :: STM m (LedgerState blk EmptyMK)
-  , hfbtLedgerConfig   :: LedgerConfig blk
+  , hfbtGetLedgerState :: STM m (LedgerState i blk EmptyMK)
+  , hfbtLedgerConfig   :: LedgerConfig i blk
   , hfbtRegistry       :: ResourceRegistry m
   , hfbtSystemTime     :: SystemTime m
   , hfbtTracer         :: Tracer m (TraceBlockchainTimeEvent RelativeTime)
@@ -69,12 +69,12 @@ data HardForkBlockchainTimeArgs m blk = HardForkBlockchainTimeArgs
   }
 
 -- | 'BlockchainTime' instance with support for the hard fork history
-hardForkBlockchainTime :: forall m blk.
+hardForkBlockchainTime :: forall m blk i.
                           ( IOLike m
                           , HasHardForkHistory blk
                           , HasCallStack
                           )
-                       => HardForkBlockchainTimeArgs m blk
+                       => HardForkBlockchainTimeArgs m i blk
                        -> m (BlockchainTime m)
 hardForkBlockchainTime args = do
     run <- HF.runWithCachedSummary (summarize <$> getLedgerState)
@@ -99,7 +99,7 @@ hardForkBlockchainTime args = do
       , hfbtMaxClockRewind = maxClockRewind
       } = args
 
-    summarize :: LedgerState blk mk -> HF.Summary (HardForkIndices blk)
+    summarize :: LedgerState i blk mk -> HF.Summary (HardForkIndices blk)
     summarize st = hardForkSummary cfg st
 
     loop :: HF.RunWithCachedSummary xs m
