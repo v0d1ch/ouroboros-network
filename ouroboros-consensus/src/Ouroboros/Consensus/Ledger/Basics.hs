@@ -10,7 +10,10 @@
 {-# LANGUAGE QuantifiedConstraints #-}
 {-# LANGUAGE StandaloneDeriving    #-}
 {-# LANGUAGE TypeFamilies          #-}
+{-# LANGUAGE TypeFamilyDependencies #-}
 {-# LANGUAGE UndecidableInstances  #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE ScopedTypeVariables   #-}
 
 -- | Definition is 'IsLedger'
 --
@@ -34,7 +37,8 @@ module Ouroboros.Consensus.Ledger.Basics (
     -- * Link block to its ledger
   , LedgerConfig
   , LedgerError
-  , LedgerState
+  --, LedgerState
+  , LedgerState(..)
   , LedgerStateKind
   , TickedLedgerState
     -- * UTxO HD
@@ -55,6 +59,9 @@ module Ouroboros.Consensus.Ledger.Basics (
   , toSMapKind
     -- * Misc
   , ShowLedgerState (..)
+    -- * Javier
+  , Implementation(..)
+  , GetsTableKeySets(..)
   ) where
 
 import           Data.Kind (Type)
@@ -141,6 +148,8 @@ class ShowLedgerState (l :: LedgerStateKind) where
   Definition of a ledger independent of a choice of block
 -------------------------------------------------------------------------------}
 
+data Implementation = New | Old | Both
+
 -- | Static environment required for the ledger
 type family LedgerCfg (l :: LedgerStateKind) :: Type
 
@@ -160,10 +169,10 @@ class ( -- Requirements on the ledger state itself
         -- ticked ledger.
       , forall mk. GetTip         (l mk)
       , forall mk. GetTip (Ticked1 l mk)
-      , HeaderHash (l EmptyMK) ~ HeaderHash l
-      , HeaderHash (l ValuesMK) ~ HeaderHash l
-      , HeaderHash (l DiffMK) ~ HeaderHash l
-      , HeaderHash (l TrackingMK) ~ HeaderHash l
+      -- , HeaderHash (l EmptyMK) ~ HeaderHash l
+      -- , HeaderHash (l ValuesMK) ~ HeaderHash l
+      -- , HeaderHash (l DiffMK) ~ HeaderHash l
+      -- , HeaderHash (l TrackingMK) ~ HeaderHash l
       ) => IsLedger (l :: LedgerStateKind) where
   -- | Errors that can arise when updating the ledger
   --
@@ -177,6 +186,11 @@ class ( -- Requirements on the ledger state itself
   -- 'InspectLedger'. When that module is rewritten to make use of ledger
   -- derived events, we may rename this type.
   type family AuxLedgerEvent l :: Type
+
+  type family Output l :: MapKind
+
+  -- type instance Output (LedgerState Old blk) = ValuesMK
+  -- type instance Output (LedgerState New blk) = TrackingMK
 
   -- | Apply "slot based" state transformations
   --
@@ -209,9 +223,9 @@ class ( -- Requirements on the ledger state itself
        LedgerCfg l
     -> SlotNo
     -> l ValuesMK
-    -> LedgerResult l (Ticked1 l TrackingMK)
+    -> LedgerResult l (Ticked1 l (Output l))
 
-
+class GetsTableKeySets l where
   -- | Given a block, get the key-sets that we need to apply it to a ledger
   -- state.
   --
@@ -267,7 +281,7 @@ class TableStuff l => TickedTableStuff (l :: LedgerStateKind) where
   trackingTablesToDiffs :: l TrackingMK -> l DiffMK
 
 -- | 'lrResult' after 'applyChainTickLedgerResult'
-applyChainTick :: IsLedger l => LedgerCfg l -> SlotNo -> l ValuesMK -> Ticked1 l TrackingMK
+applyChainTick :: IsLedger l => LedgerCfg l -> SlotNo -> l ValuesMK -> Ticked1 l (Output l)
 applyChainTick = lrResult ..: applyChainTickLedgerResult
 
 {-------------------------------------------------------------------------------
@@ -365,14 +379,19 @@ instance Show (Sing (mk :: MapKind)) where
 deriving via OnlyCheckWhnfNamed "Sing @MapKind" (Sing (mk :: MapKind)) instance NoThunks (Sing mk)
 
 -- | Ledger state associated with a block
-data family LedgerState blk :: LedgerStateKind
+data family LedgerState (i :: Implementation) blk :: LedgerStateKind
 
-type instance HeaderHash (LedgerState blk)    = HeaderHash blk
-type instance HeaderHash (LedgerState blk mk) = HeaderHash blk
+data instance LedgerState Both blk mk = LedgerState {
+    ledgerStateOld :: LedgerState Old blk ValuesMK
+  , ledgerStateNew :: LedgerState New blk mk
+  }
 
-type LedgerConfig      blk    = LedgerCfg (LedgerState blk)
-type LedgerError       blk    = LedgerErr (LedgerState blk)
-type TickedLedgerState blk mk = Ticked1   (LedgerState blk) mk
+type instance HeaderHash (LedgerState i blk) = HeaderHash blk
+type instance HeaderHash (LedgerState i blk mk) = HeaderHash blk
+
+type LedgerConfig      i blk    = LedgerCfg (LedgerState i blk)
+type LedgerError       i blk    = LedgerErr (LedgerState i blk)
+type TickedLedgerState i blk mk = Ticked1   (LedgerState i blk) mk
 
 {-------------------------------------------------------------------------------
   UTxO HD stubs

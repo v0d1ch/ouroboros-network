@@ -36,9 +36,9 @@ import           Ouroboros.Consensus.Protocol.Abstract
 -------------------------------------------------------------------------------}
 
 -- | The top-level node configuration
-data TopLevelConfig blk = TopLevelConfig {
+data TopLevelConfig i blk = TopLevelConfig {
       topLevelConfigProtocol :: !(ConsensusConfig (BlockProtocol blk))
-    , topLevelConfigLedger   :: !(LedgerConfig blk)
+    , topLevelConfigLedger   :: !(LedgerConfig i blk)
     , topLevelConfigBlock    :: !(BlockConfig blk)
     , topLevelConfigCodec    :: !(CodecConfig blk)
     , topLevelConfigStorage  :: !(StorageConfig blk)
@@ -46,49 +46,49 @@ data TopLevelConfig blk = TopLevelConfig {
   deriving (Generic)
 
 instance ( ConsensusProtocol (BlockProtocol blk)
-         , NoThunks (LedgerConfig  blk)
+         , NoThunks (LedgerConfig  i blk)
          , NoThunks (BlockConfig   blk)
          , NoThunks (CodecConfig   blk)
          , NoThunks (StorageConfig blk)
-         ) => NoThunks (TopLevelConfig blk)
+         ) => NoThunks (TopLevelConfig i blk)
 
 mkTopLevelConfig ::
      ConsensusConfig (BlockProtocol blk)
-  -> LedgerConfig   blk
+  -> LedgerConfig   i blk
   -> BlockConfig    blk
   -> CodecConfig    blk
   -> StorageConfig  blk
-  -> TopLevelConfig blk
+  -> TopLevelConfig i blk
 mkTopLevelConfig = TopLevelConfig
 
-configConsensus :: TopLevelConfig blk -> ConsensusConfig (BlockProtocol blk)
+configConsensus :: TopLevelConfig i blk -> ConsensusConfig (BlockProtocol blk)
 configConsensus = topLevelConfigProtocol
 
-configLedger :: TopLevelConfig blk -> LedgerConfig blk
+configLedger :: TopLevelConfig i blk -> LedgerConfig i blk
 configLedger = topLevelConfigLedger
 
-configBlock  :: TopLevelConfig blk -> BlockConfig  blk
+configBlock  :: TopLevelConfig i blk -> BlockConfig  blk
 configBlock = topLevelConfigBlock
 
-configCodec  :: TopLevelConfig blk -> CodecConfig  blk
+configCodec  :: TopLevelConfig i blk -> CodecConfig  blk
 configCodec = topLevelConfigCodec
 
-configStorage  :: TopLevelConfig blk -> StorageConfig blk
+configStorage  :: TopLevelConfig i blk -> StorageConfig blk
 configStorage = topLevelConfigStorage
 
 configSecurityParam :: ConsensusProtocol (BlockProtocol blk)
-                    => TopLevelConfig blk -> SecurityParam
+                    => TopLevelConfig i blk -> SecurityParam
 configSecurityParam = protocolSecurityParam . configConsensus
 
 castTopLevelConfig ::
      ( Coercible (ConsensusConfig (BlockProtocol blk))
                  (ConsensusConfig (BlockProtocol blk'))
-     , LedgerConfig blk ~ LedgerConfig blk'
+     , LedgerConfig i blk ~ LedgerConfig i blk'
      , Coercible (BlockConfig   blk) (BlockConfig   blk')
      , Coercible (CodecConfig   blk) (CodecConfig   blk')
      , Coercible (StorageConfig blk) (StorageConfig blk')
      )
-  => TopLevelConfig blk -> TopLevelConfig blk'
+  => TopLevelConfig i blk -> TopLevelConfig i blk'
 castTopLevelConfig TopLevelConfig{..} = TopLevelConfig{
       topLevelConfigProtocol = coerce topLevelConfigProtocol
     , topLevelConfigLedger   = topLevelConfigLedger

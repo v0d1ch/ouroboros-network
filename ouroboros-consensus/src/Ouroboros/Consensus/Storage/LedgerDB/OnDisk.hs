@@ -81,8 +81,8 @@ import           Ouroboros.Consensus.Storage.LedgerDB.InMemory
   Instantiate the in-memory DB to @blk@
 -------------------------------------------------------------------------------}
 
-type LedgerDB'       blk = LedgerDB       (ExtLedgerState blk)
-type AnnLedgerError' blk = AnnLedgerError (ExtLedgerState blk) blk
+type LedgerDB'       i blk = LedgerDB       (ExtLedgerState i blk)
+type AnnLedgerError' i blk = AnnLedgerError (ExtLedgerState i blk) blk
 
 {-------------------------------------------------------------------------------
   Abstraction over the streaming API provided by the Chain DB
@@ -187,22 +187,22 @@ data InitLog blk =
 -- obtained in this way will (hopefully) share much of their memory footprint
 -- with their predecessors.
 initLedgerDB ::
-     forall m blk. (
+     forall m blk i. (
          IOLike m
-       , LedgerSupportsProtocol blk
+       , LedgerSupportsProtocol i blk
        , InspectLedger blk
        , HasCallStack
        )
   => Tracer m (TraceReplayEvent blk ())
   -> Tracer m (TraceEvent blk)
   -> SomeHasFS m
-  -> OnDiskLedgerStDb m (ExtLedgerState blk)
-  -> (forall s. Decoder s (ExtLedgerState blk EmptyMK))
+  -> OnDiskLedgerStDb m (ExtLedgerState i blk)
+  -> (forall s. Decoder s (ExtLedgerState i blk EmptyMK))
   -> (forall s. Decoder s (HeaderHash blk))
-  -> LedgerDbCfg (ExtLedgerState blk)
-  -> m (ExtLedgerState blk EmptyMK) -- ^ Genesis ledger state
+  -> LedgerDbCfg (ExtLedgerState i blk)
+  -> m (ExtLedgerState i blk EmptyMK) -- ^ Genesis ledger state
   -> StreamAPI m blk
-  -> m (InitLog blk, LedgerDB' blk, Word64)
+  -> m (InitLog blk, LedgerDB' i blk, Word64)
 initLedgerDB replayTracer
              tracer
              hasFS
@@ -220,7 +220,7 @@ initLedgerDB replayTracer
   where
     tryNewestFirst :: (InitLog blk -> InitLog blk)
                    -> [DiskSnapshot]
-                   -> m (InitLog blk, LedgerDB' blk, Word64)
+                   -> m (InitLog blk, LedgerDB' i blk, Word64)
     tryNewestFirst acc [] = do
         -- We're out of snapshots. Start at genesis
         traceWith replayTracer $ ReplayFromGenesis ()
@@ -288,21 +288,21 @@ data InitFailure blk =
 -- and an error is returned. This should not throw any errors itself (ignoring
 -- unexpected exceptions such as asynchronous exceptions, of course).
 initFromSnapshot ::
-     forall m blk . (
+     forall m blk i . (
          IOLike m
-       , LedgerSupportsProtocol blk
+       , LedgerSupportsProtocol i blk
        , InspectLedger blk
        , HasCallStack
        )
   => Tracer m (TraceReplayEvent blk ())
   -> SomeHasFS m
-  -> (forall s. Decoder s (ExtLedgerState blk EmptyMK))
+  -> (forall s. Decoder s (ExtLedgerState i blk EmptyMK))
   -> (forall s. Decoder s (HeaderHash blk))
-  -> LedgerDbCfg (ExtLedgerState blk)
-  -> OnDiskLedgerStDb m (ExtLedgerState blk)
+  -> LedgerDbCfg (ExtLedgerState i blk)
+  -> OnDiskLedgerStDb m (ExtLedgerState i blk)
   -> StreamAPI m blk
   -> DiskSnapshot
-  -> ExceptT (InitFailure blk) m (RealPoint blk, LedgerDB' blk, Word64)
+  -> ExceptT (InitFailure blk) m (RealPoint blk, LedgerDB' i blk, Word64)
 initFromSnapshot tracer hasFS decLedger decHash cfg readLedgerDb streamAPI ss = do
     initSS <- withExceptT InitFailureRead $
                 readSnapshot hasFS decLedger decHash ss
@@ -366,25 +366,25 @@ data OnDiskLedgerStDb m l =
 
 -- | Attempt to initialize the ledger DB starting from the given ledger DB
 initStartingWith ::
-     forall m blk. (
+     forall m blk i. (
          Monad m
-       , LedgerSupportsProtocol blk
+       , LedgerSupportsProtocol i blk
        , InspectLedger blk
        , HasCallStack
        )
   => Tracer m (TraceReplayEvent blk ())
-  -> LedgerDbCfg (ExtLedgerState blk)
-  -> OnDiskLedgerStDb m (ExtLedgerState blk)
+  -> LedgerDbCfg (ExtLedgerState i blk)
+  -> OnDiskLedgerStDb m (ExtLedgerState i blk)
   -> StreamAPI m blk
-  -> LedgerDB' blk
-  -> ExceptT (InitFailure blk) m (LedgerDB' blk, Word64)
+  -> LedgerDB' i blk
+  -> ExceptT (InitFailure blk) m (LedgerDB' i blk, Word64)
 initStartingWith tracer cfg onDiskLedgerDbSt streamAPI initDb = do
     streamAll streamAPI (castPoint (ledgerDbTip initDb))
       InitFailureTooRecent
       (initDb, 0)
       push
   where
-    push :: blk -> (LedgerDB' blk, Word64) -> m (LedgerDB' blk, Word64)
+    push :: blk -> (LedgerDB' i blk, Word64) -> m (LedgerDB' i blk, Word64)
     push blk !(!db, !replayed) = do
         !db' <- defaultReadKeySets (readKeySets onDiskLedgerDbSt) $
                   ledgerDbPush cfg (ReapplyVal blk) db
@@ -438,11 +438,11 @@ initStartingWith tracer cfg onDiskLedgerDbSt streamAPI initDb = do
 --
 -- TODO: Should we delete the file if an error occurs during writing?
 takeSnapshot ::
-     forall m blk. (MonadThrow m, IsLedger (LedgerState blk))
+     forall m blk i. (MonadThrow m, IsLedger (LedgerState i blk))
   => Tracer m (TraceEvent blk)
   -> SomeHasFS m
-  -> (ExtLedgerState blk EmptyMK -> Encoding)
-  -> LedgerDB' blk -> m (Maybe (DiskSnapshot, RealPoint blk))
+  -> (ExtLedgerState i blk EmptyMK -> Encoding)
+  -> LedgerDB' i blk -> m (Maybe (DiskSnapshot, RealPoint blk))
 takeSnapshot tracer hasFS encLedger db =
     case pointToWithOriginRealPoint (castPoint (getTip oldest)) of
       Origin ->
@@ -458,7 +458,7 @@ takeSnapshot tracer hasFS encLedger db =
           traceWith tracer $ TookSnapshot snapshot tip
           return $ Just (snapshot, tip)
   where
-    oldest :: ExtLedgerState blk EmptyMK
+    oldest :: ExtLedgerState i blk EmptyMK
     oldest = ledgerDbAnchor db
 
 -- | Trim the number of on disk snapshots so that at most 'onDiskNumSnapshots'
@@ -518,32 +518,32 @@ diskSnapshotIsTemporary = not . diskSnapshotIsPermanent
 
 -- | Read snapshot from disk
 readSnapshot ::
-     forall m blk. IOLike m
+     forall m blk i. IOLike m
   => SomeHasFS m
-  -> (forall s. Decoder s (ExtLedgerState blk EmptyMK))
+  -> (forall s. Decoder s (ExtLedgerState i blk EmptyMK))
   -> (forall s. Decoder s (HeaderHash blk))
   -> DiskSnapshot
-  -> ExceptT ReadIncrementalErr m (ExtLedgerState blk EmptyMK)
+  -> ExceptT ReadIncrementalErr m (ExtLedgerState i blk EmptyMK)
 readSnapshot hasFS decLedger decHash =
       ExceptT
     . readIncremental hasFS decoder
     . snapshotToPath
   where
-    decoder :: Decoder s (ExtLedgerState blk EmptyMK)
+    decoder :: Decoder s (ExtLedgerState i blk EmptyMK)
     decoder = decodeSnapshotBackwardsCompatible (Proxy @blk) decLedger decHash
 
 -- | Write snapshot to disk
 writeSnapshot ::
-     forall m blk. MonadThrow m
+     forall m blk i. MonadThrow m
   => SomeHasFS m
-  -> (ExtLedgerState blk EmptyMK -> Encoding)
+  -> (ExtLedgerState i blk EmptyMK -> Encoding)
   -> DiskSnapshot
-  -> ExtLedgerState blk EmptyMK -> m ()
+  -> ExtLedgerState i blk EmptyMK -> m ()
 writeSnapshot (SomeHasFS hasFS) encLedger ss cs = do
     withFile hasFS (snapshotToPath ss) (WriteMode MustBeNew) $ \h ->
       void $ hPut hasFS h $ CBOR.toBuilder (encode cs)
   where
-    encode :: ExtLedgerState blk EmptyMK -> Encoding
+    encode :: ExtLedgerState i blk EmptyMK -> Encoding
     encode = encodeSnapshot encLedger
 
 -- | Delete snapshot from disk

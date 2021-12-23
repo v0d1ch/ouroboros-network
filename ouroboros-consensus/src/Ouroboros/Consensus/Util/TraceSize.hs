@@ -57,7 +57,7 @@ data LedgerDbSize (l :: LedgerStateKind) = LedgerDbSize {
 --
 -- Only traces slots for which the predicate results true (genesis will be
 -- considered to be slot 0).
-traceLedgerDbSize :: forall m l. (MonadIO m, forall mk. GetTip (l mk), HeaderHash (l EmptyMK) ~ HeaderHash l)
+traceLedgerDbSize :: forall m l. (MonadIO m, forall mk. GetTip (l mk))
                   => (Word64 -> Bool)
                   -> Tracer m (LedgerDbSize l)
                   -> Tracer m (LedgerDB l)

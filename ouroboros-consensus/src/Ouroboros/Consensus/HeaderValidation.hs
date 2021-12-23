@@ -291,15 +291,15 @@ class ( BasicEnvelopeValidation blk
   type OtherHeaderEnvelopeError blk = Void
 
   -- | Do additional envelope checks
-  additionalEnvelopeChecks :: TopLevelConfig blk
+  additionalEnvelopeChecks :: TopLevelConfig i blk
                            -> Ticked (LedgerView (BlockProtocol blk))
                            -> Header blk
                            -> Except (OtherHeaderEnvelopeError blk) ()
   additionalEnvelopeChecks _ _ _ = return ()
 
 -- | Validate the header envelope
-validateEnvelope :: forall blk. (ValidateEnvelope blk)
-                 => TopLevelConfig blk
+validateEnvelope :: forall blk i. (ValidateEnvelope blk)
+                 => TopLevelConfig i blk
                  -> Ticked (LedgerView (BlockProtocol blk))
                  -> WithOrigin (AnnTip blk) -- ^ Old tip
                  -> Header blk
@@ -415,7 +415,7 @@ castHeaderError (HeaderEnvelopeError e) = HeaderEnvelopeError $
 -- will get the chance to do so in 'applyBlockLedgerResult', which is passed the
 -- entire block (not just the block body).
 validateHeader :: (BlockSupportsProtocol blk, ValidateEnvelope blk)
-               => TopLevelConfig blk
+               => TopLevelConfig i blk
                -> Ticked (LedgerView (BlockProtocol blk))
                -> Header blk
                -> Ticked (HeaderState blk)
@@ -443,8 +443,8 @@ validateHeader cfg ledgerView hdr st = do
 -- Expensive validation checks are skipped ('reupdateChainDepState' vs.
 -- 'updateChainDepState').
 revalidateHeader ::
-     forall blk. (BlockSupportsProtocol blk, ValidateEnvelope blk, HasCallStack)
-  => TopLevelConfig blk
+     forall blk i. (BlockSupportsProtocol blk, ValidateEnvelope blk, HasCallStack)
+  => TopLevelConfig i blk
   -> Ticked (LedgerView (BlockProtocol blk))
   -> Header blk
   -> Ticked (HeaderState blk)

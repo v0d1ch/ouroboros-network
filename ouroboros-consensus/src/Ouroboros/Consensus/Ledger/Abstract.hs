@@ -9,6 +9,8 @@
 {-# LANGUAGE TypeFamilies          #-}
 {-# LANGUAGE TypeOperators         #-}
 {-# LANGUAGE UndecidableInstances  #-}
+{-# LANGUAGE TypeFamilyDependencies #-}
+{-# LANGUAGE AllowAmbiguousTypes #-}
 
 -- | Interface to the ledger layer
 module Ouroboros.Consensus.Ledger.Abstract (
@@ -19,7 +21,6 @@ module Ouroboros.Consensus.Ledger.Abstract (
   , UpdateLedger
     -- * Derived
   , applyLedgerBlock
-  , foldLedger
   , reapplyLedgerBlock
   , refoldLedger
   , tickThenApply
@@ -32,6 +33,7 @@ module Ouroboros.Consensus.Ledger.Abstract (
   , ledgerTipSlot
     -- * Re-exports
   , module Ouroboros.Consensus.Ledger.Basics
+  , CoercibleLedgerState(..)
   ) where
 
 import           Control.Monad.Except
@@ -40,9 +42,11 @@ import           Data.Proxy
 import           GHC.Stack (HasCallStack)
 
 import           Ouroboros.Consensus.Block.Abstract
-import           Ouroboros.Consensus.Ledger.Basics
+import           Ouroboros.Consensus.Ledger.Basics hiding (Output)
+import qualified Ouroboros.Consensus.Ledger.Basics as Basics
 import           Ouroboros.Consensus.Ticked
-import           Ouroboros.Consensus.Util (repeatedly, repeatedlyM, (..:))
+import           Ouroboros.Consensus.Util (repeatedly, (..:))
+import Data.Coerce
 
 -- | " Validated " transaction or block
 --
@@ -78,7 +82,9 @@ class ( IsLedger l
       , HeaderHash l ~ HeaderHash blk
       , HasHeader blk
       , HasHeader (Header blk)
-      ) => ApplyBlock l blk where
+      ) => ApplyBlock (l :: LedgerStateKind) blk where
+
+  type family Output l :: MapKind
 
   -- | Apply a block to the ledger state.
   --
@@ -88,8 +94,8 @@ class ( IsLedger l
        HasCallStack
     => LedgerCfg l
     -> blk
-    -> Ticked1 l ValuesMK
-    -> Except (LedgerErr l) (LedgerResult l (l TrackingMK))
+    -> Ticked1 l ValuesMK -- Ticked1 l ValuesMK in New and Ticked1 l ValuesMK in Old
+    -> Except (LedgerErr l) (LedgerResult l (l (Output l)))
 
   -- | Re-apply a block to the very same ledger state it was applied in before.
   --
@@ -105,10 +111,15 @@ class ( IsLedger l
     => LedgerCfg l
     -> blk
     -> Ticked1 l ValuesMK
-    -> LedgerResult l (l TrackingMK)
+    -> LedgerResult l (l (Output l))
+
+class CoercibleLedgerState l where
+  fromTickedOutput :: Ticked1 l (Basics.Output l) -> Ticked1 l ValuesMK
+  fromOutput2      ::         l (Output l)        ->         l ValuesMK
+  combineOutputs   :: Ticked1 l (Basics.Output l) -> l (Output l) -> l (Output l)
 
 -- | Interaction with the ledger layer
-class (ApplyBlock (LedgerState blk) blk, TickedTableStuff (LedgerState blk)) => UpdateLedger blk
+class (ApplyBlock (LedgerState i blk) blk, TickedTableStuff (LedgerState i blk)) => UpdateLedger i blk
 
 {-------------------------------------------------------------------------------
   Derived functionality
@@ -120,7 +131,7 @@ applyLedgerBlock ::
   => LedgerCfg l
   -> blk
   -> Ticked1 l ValuesMK
-  -> Except (LedgerErr l) (l TrackingMK)
+  -> Except (LedgerErr l) (l (Output l))
 applyLedgerBlock = fmap lrResult ..: applyBlockLedgerResult
 
 -- | 'lrResult' after 'reapplyBlockLedgerResult'
@@ -129,62 +140,57 @@ reapplyLedgerBlock ::
   => LedgerCfg l
   -> blk
   -> Ticked1 l ValuesMK
-  -> l TrackingMK
+  -> l (Output l)
 reapplyLedgerBlock = lrResult ..: reapplyBlockLedgerResult
 
 tickThenApplyLedgerResult ::
-     (ApplyBlock l blk, TickedTableStuff l)
+     (ApplyBlock l blk, CoercibleLedgerState l)
   => LedgerCfg l
   -> blk
   -> l ValuesMK
-  -> Except (LedgerErr l) (LedgerResult l (l TrackingMK))
+  -> Except (LedgerErr l) (LedgerResult l (l (Output l)))
 tickThenApplyLedgerResult cfg blk l = do
   let lrTick = applyChainTickLedgerResult cfg (blockSlot blk) l
-  lrBlock <-   applyBlockLedgerResult     cfg            blk  (forgetTickedLedgerStateTracking (lrResult lrTick))
+  lrBlock <-   applyBlockLedgerResult cfg  blk  (fromTickedOutput (lrResult lrTick))
   pure LedgerResult {
       lrEvents = lrEvents lrTick <> lrEvents lrBlock
-    , lrResult = lrResult lrTick `prependLedgerStateTracking` lrResult lrBlock
+    , lrResult = combineOutputs (lrResult lrTick) (lrResult lrBlock)
     }
 
 tickThenReapplyLedgerResult ::
-     (ApplyBlock l blk, TickedTableStuff l)
+     (ApplyBlock l blk, CoercibleLedgerState l)
   => LedgerCfg l
   -> blk
   -> l ValuesMK
-  -> LedgerResult l (l TrackingMK)
+  -> LedgerResult l (l (Output l))
 tickThenReapplyLedgerResult cfg blk l =
   let lrTick  = applyChainTickLedgerResult cfg (blockSlot blk) l
-      lrBlock = reapplyBlockLedgerResult   cfg            blk (forgetTickedLedgerStateTracking (lrResult lrTick))
+      lrBlock = reapplyBlockLedgerResult   cfg            blk (fromTickedOutput (lrResult lrTick))
   in LedgerResult {
       lrEvents = lrEvents lrTick <> lrEvents lrBlock
-    , lrResult = lrResult lrTick `prependLedgerStateTracking` lrResult lrBlock
+    , lrResult = combineOutputs (lrResult lrTick) (lrResult lrBlock)
     }
 
 tickThenApply ::
-     (ApplyBlock l blk, TickedTableStuff l)
+     (ApplyBlock l blk, CoercibleLedgerState l)
   => LedgerCfg l
   -> blk
   -> l ValuesMK
-  -> Except (LedgerErr l) (l TrackingMK)
+  -> Except (LedgerErr l) (l (Output l))
 tickThenApply = fmap lrResult ..: tickThenApplyLedgerResult
 
 tickThenReapply ::
-     (ApplyBlock l blk, TickedTableStuff l)
+     (ApplyBlock l blk, CoercibleLedgerState l)
   => LedgerCfg l
   -> blk
   -> l ValuesMK
-  -> l TrackingMK
+  -> l (Output l)
 tickThenReapply = lrResult ..: tickThenReapplyLedgerResult
 
-foldLedger ::
-     (ApplyBlock l blk, TickedTableStuff l)
-  => LedgerCfg l -> [blk] -> l ValuesMK -> Except (LedgerErr l) (l ValuesMK)
-foldLedger cfg = repeatedlyM (\blk -> fmap forgetLedgerStateTracking . tickThenApply cfg blk)
-
 refoldLedger ::
-     (ApplyBlock l blk, TickedTableStuff l)
+     forall l blk . (ApplyBlock l blk, CoercibleLedgerState l)
   => LedgerCfg l -> [blk] -> l ValuesMK -> l ValuesMK
-refoldLedger cfg = repeatedly (\blk -> forgetLedgerStateTracking . tickThenReapply cfg blk)
+refoldLedger cfg = repeatedly (\blk -> fromOutput2 @l . tickThenReapply cfg blk)
 
 {-------------------------------------------------------------------------------
   Short-hand
@@ -194,16 +200,16 @@ refoldLedger cfg = repeatedly (\blk -> forgetLedgerStateTracking . tickThenReapp
 --
 -- This is occassionally useful to guide type inference
 ledgerTipPoint ::
-     UpdateLedger blk
-  => Proxy blk -> LedgerState blk mk -> Point blk
+     (UpdateLedger i blk, Coercible (HeaderHash (LedgerState i blk mk)) (HeaderHash blk))
+  => Proxy blk -> LedgerState i blk mk -> Point blk
 ledgerTipPoint _ = castPoint . getTip
 
 ledgerTipHash ::
-     forall blk mk. UpdateLedger blk
-  => LedgerState blk mk -> ChainHash blk
+     forall i blk mk. (UpdateLedger i blk, Coercible (HeaderHash (LedgerState i blk mk)) (HeaderHash blk))
+  => LedgerState i blk mk -> ChainHash blk
 ledgerTipHash = pointHash . (ledgerTipPoint (Proxy @blk))
 
 ledgerTipSlot ::
-     forall blk mk. UpdateLedger blk
-  => LedgerState blk mk -> WithOrigin SlotNo
+     forall i blk mk. (UpdateLedger i blk, Coercible (HeaderHash (LedgerState i blk mk)) (HeaderHash blk))
+  => LedgerState i blk mk -> WithOrigin SlotNo
 ledgerTipSlot = pointSlot . (ledgerTipPoint (Proxy @blk))

@@ -84,7 +84,7 @@ castForgeStateUpdateInfo = \case
 -- NOTE: do not refer to the consensus or ledger config in the closure of this
 -- record because they might contain an @EpochInfo Identity@, which will be
 -- incorrect when used as part of the hard fork combinator.
-data BlockForging m blk = BlockForging {
+data BlockForging m i blk = BlockForging {
       -- | Identifier used in the trace messages produced for this
       -- 'BlockForging' record.
       --
@@ -108,7 +108,7 @@ data BlockForging m blk = BlockForging {
       -- When 'UpdateFailed' is returned, we trace the 'ForgeStateUpdateError'
       -- and don't call 'checkCanForge'.
     , updateForgeState ::
-           TopLevelConfig blk
+           TopLevelConfig i blk
         -> SlotNo
         -> Ticked (ChainDepState (BlockProtocol blk))
         -> m (ForgeStateUpdateInfo blk)
@@ -120,7 +120,7 @@ data BlockForging m blk = BlockForging {
       --
       -- When 'CannotForge' is returned, we don't call 'forgeBlock'.
     , checkCanForge ::
-           TopLevelConfig blk
+           TopLevelConfig i blk
         -> SlotNo
         -> Ticked (ChainDepState (BlockProtocol blk))
         -> IsLeader (BlockProtocol blk)
@@ -143,10 +143,10 @@ data BlockForging m blk = BlockForging {
       --
       -- PRECONDITION: 'checkCanForge' returned @Right ()@.
     , forgeBlock :: forall mk.
-           TopLevelConfig blk
+           TopLevelConfig i blk
         -> BlockNo                       -- Current block number
         -> SlotNo                        -- Current slot number
-        -> TickedLedgerState blk mk      -- Current ledger state
+        -> TickedLedgerState i blk mk      -- Current ledger state
         -> [Validated (GenTx blk)]       -- Contents of the mempool
         -> IsLeader (BlockProtocol blk)  -- Proof we are leader
         -> m blk
@@ -163,7 +163,7 @@ data BlockForging m blk = BlockForging {
 takeLargestPrefixThatFits ::
      TxLimits blk
   => TxLimits.Overrides blk
-  -> TickedLedgerState blk mk
+  -> TickedLedgerState i blk mk
   -> [Validated (GenTx blk)]
   -> [Validated (GenTx blk)]
 takeLargestPrefixThatFits overrides ledger txs =
@@ -197,14 +197,14 @@ data ShouldForge blk =
   | ShouldForge (IsLeader (BlockProtocol blk))
 
 checkShouldForge ::
-     forall m blk.
+     forall m blk i.
      ( Monad m
      , ConsensusProtocol (BlockProtocol blk)
      , HasCallStack
      )
-  => BlockForging m blk
+  => BlockForging m i blk
   -> Tracer m (ForgeStateInfo blk)
-  -> TopLevelConfig blk
+  -> TopLevelConfig i blk
   -> SlotNo
   -> Ticked (ChainDepState (BlockProtocol blk))
   -> m (ShouldForge blk)

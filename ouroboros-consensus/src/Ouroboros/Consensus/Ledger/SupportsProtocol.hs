@@ -1,6 +1,7 @@
-{-# LANGUAGE DataKinds           #-}
-{-# LANGUAGE FlexibleContexts    #-}
-{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE DataKinds             #-}
+{-# LANGUAGE FlexibleContexts      #-}
+{-# LANGUAGE ScopedTypeVariables   #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
 
 module Ouroboros.Consensus.Ledger.SupportsProtocol (LedgerSupportsProtocol (..)) where
 
@@ -15,15 +16,15 @@ import           Ouroboros.Consensus.Protocol.Abstract
 
 -- | Link protocol to ledger
 class ( BlockSupportsProtocol blk
-      , UpdateLedger          blk
+      , UpdateLedger          i blk
       , ValidateEnvelope      blk
-      ) => LedgerSupportsProtocol blk where
+      ) => LedgerSupportsProtocol i blk where
   -- | Extract ticked ledger view from ticked ledger state
   --
   -- See 'ledgerViewForecastAt' for a discussion and precise definition of the
   -- relation between this and forecasting.
-  protocolLedgerView :: LedgerConfig blk
-                     -> TickedLedgerState blk mk
+  protocolLedgerView :: LedgerConfig i blk
+                     -> TickedLedgerState i blk mk
                      -> Ticked (LedgerView (BlockProtocol blk))
 
   -- | Get a forecast at the given ledger state.
@@ -63,18 +64,18 @@ class ( BlockSupportsProtocol blk
   -- See 'lemma_ledgerViewForecastAt_applyChainTick'.
   ledgerViewForecastAt ::
        HasCallStack
-    => LedgerConfig blk
-    -> LedgerState blk mk
+    => LedgerConfig i blk
+    -> LedgerState i blk mk
     -> Forecast (LedgerView (BlockProtocol blk))
 
 -- | Relation between 'ledgerViewForecastAt' and 'applyChainTick'
 _lemma_ledgerViewForecastAt_applyChainTick
-  :: ( LedgerSupportsProtocol blk
+  :: ( LedgerSupportsProtocol i blk
      , Eq   (Ticked (LedgerView (BlockProtocol blk)))
      , Show (Ticked (LedgerView (BlockProtocol blk)))
      )
-  => LedgerConfig blk
-  -> LedgerState blk ValuesMK
+  => LedgerConfig i blk
+  -> LedgerState i blk ValuesMK
   -> Forecast (LedgerView (BlockProtocol blk))
   -> SlotNo
   -> Either String ()
