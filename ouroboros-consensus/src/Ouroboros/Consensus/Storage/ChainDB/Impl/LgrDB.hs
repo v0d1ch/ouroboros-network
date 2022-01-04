@@ -10,7 +10,7 @@
 {-# LANGUAGE StandaloneDeriving  #-}
 {-# LANGUAGE TypeApplications    #-}
 {-# LANGUAGE TypeFamilies        #-}
-
+{-# LANGUAGE UndecidableInstances #-}
 -- | Thin wrapper around the LedgerDB
 module Ouroboros.Consensus.Storage.ChainDB.Impl.LgrDB (
     LgrDB
@@ -106,8 +106,8 @@ import qualified Ouroboros.Consensus.Storage.ImmutableDB as ImmutableDB
 import           Ouroboros.Consensus.Storage.Serialisation
 
 -- | Thin wrapper around the ledger database
-data LgrDB m blk = LgrDB {
-      varDB          :: !(StrictTVar m (LedgerDB' blk))
+data LgrDB m i blk = LgrDB {
+      varDB          :: !(StrictTVar m (LedgerDB' i blk))
       -- ^ INVARIANT: the tip of the 'LedgerDB' is always in sync with the tip
       -- of the current chain of the ChainDB.
     , varPrevApplied :: !(StrictTVar m (Set (RealPoint blk)))
@@ -122,14 +122,14 @@ data LgrDB m blk = LgrDB {
       -- When a garbage-collection is performed on the VolatileDB, the points
       -- of the blocks eligible for garbage-collection should be removed from
       -- this set.
-    , lgrOnDiskLedgerStDb :: !(LedgerDB.OnDiskLedgerStDb m (ExtLedgerState blk))
+    , lgrOnDiskLedgerStDb :: !(LedgerDB.OnDiskLedgerStDb m (ExtLedgerState i blk))
       -- ^
       --
       -- TODO: align the other fields.
     , lgrDbFlushLock :: !FlushLock
     , resolveBlock   :: !(LedgerDB.ResolveBlock m blk) -- TODO: ~ (RealPoint blk -> m blk)
       -- ^ Read a block from disk
-    , cfg            :: !(TopLevelConfig blk)
+    , cfg            :: !(TopLevelConfig i blk)
     , diskPolicy     :: !DiskPolicy
     , hasFS          :: !(SomeHasFS m)
     , tracer         :: !(Tracer m (TraceEvent blk))
@@ -138,15 +138,15 @@ data LgrDB m blk = LgrDB {
 
     } deriving (Generic)
 
-deriving instance (IOLike m, LedgerSupportsProtocol blk)
-               => NoThunks (LgrDB m blk)
+deriving instance (IOLike m, LedgerSupportsProtocol i blk, NoThunks (LedgerDB.LedgerDB (ExtLedgerState i blk)))
+               => NoThunks (LgrDB m i blk)
   -- use generic instance
 
 -- | 'EncodeDisk' and 'DecodeDisk' constraints needed for the LgrDB.
-type LgrDbSerialiseConstraints blk =
+type LgrDbSerialiseConstraints i blk =
   ( Serialise      (HeaderHash  blk)
-  , EncodeDisk blk (LedgerState blk EmptyMK)
-  , DecodeDisk blk (LedgerState blk EmptyMK)
+  , EncodeDisk blk (LedgerState i blk EmptyMK)
+  , DecodeDisk blk (LedgerState i blk EmptyMK)
   , EncodeDisk blk (AnnTip      blk)
   , DecodeDisk blk (AnnTip      blk)
   , EncodeDisk blk (ChainDepState (BlockProtocol blk))
@@ -157,13 +157,13 @@ type LgrDbSerialiseConstraints blk =
   Initialization
 -------------------------------------------------------------------------------}
 
-data LgrDbArgs f m blk = LgrDbArgs {
+data LgrDbArgs f m i blk = LgrDbArgs {
       lgrDiskPolicy     :: DiskPolicy
-    , lgrGenesis        :: HKD f (m (ExtLedgerState blk EmptyMK))
+    , lgrGenesis        :: HKD f (m (ExtLedgerState i blk EmptyMK))
     , lgrHasFS          :: SomeHasFS m
     , lgrHasFSLedgerSt  :: SomeHasFS m
-    , lgrTopLevelConfig :: HKD f (TopLevelConfig blk)
-    , lgrTraceLedger    :: Tracer m (LedgerDB' blk)
+    , lgrTopLevelConfig :: HKD f (TopLevelConfig i blk)
+    , lgrTraceLedger    :: Tracer m (LedgerDB' i blk)
     , lgrTracer         :: Tracer m (TraceEvent blk)
     }
 
@@ -175,7 +175,7 @@ defaultArgs ::
   -- ^ TODO: we need some type wrappers to distinguish the two kind of SomeHasFS
   -- we use in this function.
   -> DiskPolicy
-  -> LgrDbArgs Defaults m blk
+  -> LgrDbArgs Defaults m i blk
 defaultArgs lgrHasFS lgrHasFSLedgerSt diskPolicy = LgrDbArgs {
       lgrDiskPolicy     = diskPolicy
     , lgrGenesis        = NoDefault
@@ -190,14 +190,15 @@ defaultArgs lgrHasFS lgrHasFSLedgerSt diskPolicy = LgrDbArgs {
 --
 -- In addition to the ledger DB also returns the number of immutable blocks
 -- that were replayed.
-openDB :: forall m blk.
+openDB :: forall m blk i.
           ( IOLike m
-          , LedgerSupportsProtocol blk
-          , LgrDbSerialiseConstraints blk
+          , LedgerSupportsProtocol i blk
+          , LgrDbSerialiseConstraints i blk
           , InspectLedger blk
           , HasCallStack
+          , NoThunks (LedgerDB' i blk)
           )
-       => LgrDbArgs Identity m blk
+       => LgrDbArgs Identity m i blk
        -- ^ Stateless initializaton arguments
        -> Tracer m (TraceReplayEvent blk ())
        -- ^ Used to trace the progress while replaying blocks against the
@@ -216,7 +217,7 @@ openDB :: forall m blk.
        -- DB does not know where the boundary is at any given point.
        --
        -- TODO: should we replace this type with @ResolveBlock blk m@?
-       -> m (LgrDB m blk, Word64)
+       -> m (LgrDB m i blk, Word64)
 openDB args@LgrDbArgs { lgrHasFS = lgrHasFS@(SomeHasFS hasFS), .. } replayTracer immutableDB getBlock = do
     createDirectoryIfMissing hasFS True (mkFsPath [])
     (db, replayed, onDiskLedgerStDb) <- initFromDisk args replayTracer immutableDB
@@ -237,7 +238,7 @@ openDB args@LgrDbArgs { lgrHasFS = lgrHasFS@(SomeHasFS hasFS), .. } replayTracer
     -- >k blocks long. Thus 'Lbn' is the oldest point we can roll back to.
     -- Therefore, we need to make the newest state (current) of the ledger DB
     -- the anchor.
-    let dbPrunedToImmDBTip = LedgerDB.ledgerDbPrune (SecurityParam 0) db
+    let dbPrunedToImmDBTip = undefined --LedgerDB.ledgerDbPrune (SecurityParam 0) db
     (varDB, varPrevApplied) <-
       (,) <$> newTVarIO dbPrunedToImmDBTip <*> newTVarIO Set.empty
     flock <- mkFlushLock -- TODO: do we want to register this lock in any
@@ -260,17 +261,17 @@ openDB args@LgrDbArgs { lgrHasFS = lgrHasFS@(SomeHasFS hasFS), .. } replayTracer
       )
 
 initFromDisk
-  :: forall blk m.
+  :: forall blk m i.
      ( IOLike m
-     , LedgerSupportsProtocol blk
-     , LgrDbSerialiseConstraints blk
+     , LedgerSupportsProtocol i blk
+     , LgrDbSerialiseConstraints i blk
      , InspectLedger blk
      , HasCallStack
      )
-  => LgrDbArgs Identity m blk
+  => LgrDbArgs Identity m i blk
   -> Tracer m (TraceReplayEvent blk ())
   -> ImmutableDB m blk
-  -> m (LedgerDB' blk, Word64, OnDiskLedgerStDb m (ExtLedgerState blk))
+  -> m (LedgerDB' i blk, Word64, OnDiskLedgerStDb m (ExtLedgerState i blk))
 initFromDisk args replayTracer immutableDB = wrapFailure (Proxy @blk) $ do
     onDiskLedgerStDb <- LedgerDB.mkOnDiskLedgerStDb lgrHasFSLedgerSt
     -- TODO: is it correct that we pick a instance of the 'OnDiskLedgerStDb' here?
@@ -291,20 +292,20 @@ initFromDisk args replayTracer immutableDB = wrapFailure (Proxy @blk) $ do
 
     ccfg = configCodec lgrTopLevelConfig
 
-    decodeExtLedgerState' :: forall s. Decoder s (ExtLedgerState blk EmptyMK)
+    decodeExtLedgerState' :: forall s. Decoder s (ExtLedgerState i blk EmptyMK)
     decodeExtLedgerState' = decodeExtLedgerState
                               (decodeDisk ccfg)
                               (decodeDisk ccfg)
                               (decodeDisk ccfg)
 
 -- | For testing purposes
-mkLgrDB :: StrictTVar m (LedgerDB' blk)
+mkLgrDB :: StrictTVar m (LedgerDB' i blk)
         -> StrictTVar m (Set (RealPoint blk))
-        -> LedgerDB.OnDiskLedgerStDb m (ExtLedgerState blk)
+        -> LedgerDB.OnDiskLedgerStDb m (ExtLedgerState i blk)
         -> FlushLock
         -> (RealPoint blk -> m blk)
-        -> LgrDbArgs Identity m blk
-        -> LgrDB m blk
+        -> LgrDbArgs Identity m i blk
+        -> LgrDB m i blk
 mkLgrDB varDB varPrevApplied lgrOnDiskLedgerStDb lgrDbFlushLock resolveBlock args = LgrDB {..}
   where
     LgrDbArgs {
@@ -338,29 +339,29 @@ decorateReplayTracer immTip = contramap $ fmap (const immTip)
   Wrappers
 -------------------------------------------------------------------------------}
 
-getCurrent :: IOLike m => LgrDB m blk -> STM m (LedgerDB' blk)
+getCurrent :: IOLike m => LgrDB m i blk -> STM m (LedgerDB' i blk)
 getCurrent LgrDB{..} = readTVar varDB
 
 -- | PRECONDITION: The new 'LedgerDB' must be the result of calling either
 -- 'LedgerDB.ledgerDbSwitch' or 'LedgerDB.ledgerDbPushMany' on the current
 -- 'LedgerDB'.
-setCurrent :: IOLike m => LgrDB m blk -> LedgerDB' blk -> STM m ()
+setCurrent :: IOLike m => LgrDB m i blk -> LedgerDB' i blk -> STM m ()
 setCurrent LgrDB{..} = writeTVar $! varDB
 
-currentPoint :: forall blk. UpdateLedger blk => LedgerDB' blk -> Point blk
-currentPoint = castPoint
-             . ledgerTipPoint (Proxy @blk)
+currentPoint :: forall blk i. UpdateLedger i blk => LedgerDB' i blk -> Point blk
+currentPoint = undefined -- castPoint
+             . undefined --ledgerTipPoint (Proxy @blk)
              . ledgerState
-             . LedgerDB.ledgerDbCurrent
+             . undefined --LedgerDB.ledgerDbCurrent
 
 takeSnapshot ::
-     forall m blk.
+     forall m blk i.
      ( IOLike m
-     , LgrDbSerialiseConstraints blk
+     , LgrDbSerialiseConstraints i blk
      , HasHeader blk
-     , IsLedger (LedgerState blk)
+     , IsLedger (LedgerState i blk)
      )
-  => LgrDB m blk -> m (Maybe (DiskSnapshot, RealPoint blk))
+  => LgrDB m i blk -> m (Maybe (DiskSnapshot, RealPoint blk))
 takeSnapshot lgrDB@LgrDB{ cfg, tracer, hasFS } = wrapFailure (Proxy @blk) $ do
     ledgerDB <- atomically $ getCurrent lgrDB
     LedgerDB.takeSnapshot
@@ -371,23 +372,23 @@ takeSnapshot lgrDB@LgrDB{ cfg, tracer, hasFS } = wrapFailure (Proxy @blk) $ do
   where
     ccfg = configCodec cfg
 
-    encodeExtLedgerState' :: ExtLedgerState blk EmptyMK -> Encoding
+    encodeExtLedgerState' :: ExtLedgerState i blk EmptyMK -> Encoding
     encodeExtLedgerState' = encodeExtLedgerState
                               (encodeDisk ccfg)
                               (encodeDisk ccfg)
                               (encodeDisk ccfg)
 
 trimSnapshots ::
-     forall m blk. (MonadCatch m, HasHeader blk)
-  => LgrDB m blk
+     forall m blk i . (MonadCatch m, HasHeader blk)
+  => LgrDB m i blk
   -> m [DiskSnapshot]
 trimSnapshots LgrDB { diskPolicy, tracer, hasFS } = wrapFailure (Proxy @blk) $
     LedgerDB.trimSnapshots tracer hasFS diskPolicy
 
-getDiskPolicy :: LgrDB m blk -> DiskPolicy
+getDiskPolicy :: LgrDB m i blk -> DiskPolicy
 getDiskPolicy = diskPolicy
 
-flush :: IOLike m => LgrDB m blk -> m ()
+flush :: IOLike m => LgrDB m i blk -> m ()
 flush lgrDB@LgrDB { varDB, lgrOnDiskLedgerStDb } =
   -- TODO: why putting the lock inside LgrDB and not in the CDB? I rather couple
   -- the ledger DB with the flush lock that guards it. I don't feel comfortable
@@ -396,33 +397,33 @@ flush lgrDB@LgrDB { varDB, lgrOnDiskLedgerStDb } =
   -- extra argument.
   withWriteLock lgrDB $ do
     db  <- readTVarIO varDB
-    db' <- LedgerDB.ledgerDbFlush (flushDb lgrOnDiskLedgerStDb) db
+    db' <- undefined --LedgerDB.ledgerDbFlush (flushDb lgrOnDiskLedgerStDb) db
     atomically $ writeTVar varDB db'
 
 {-------------------------------------------------------------------------------
   Validation
 -------------------------------------------------------------------------------}
 
-data ValidateResult blk =
-    ValidateSuccessful       (LedgerDB'       blk)
-  | ValidateLedgerError      (AnnLedgerError' blk)
+data ValidateResult i blk =
+    ValidateSuccessful       (LedgerDB'       i blk)
+  | ValidateLedgerError      (AnnLedgerError' i blk)
   | ValidateExceededRollBack ExceededRollback
 
-validate :: forall m blk. (IOLike m, LedgerSupportsProtocol blk, HasCallStack)
-         => LgrDB m blk
-         -> LedgerDB' blk
+validate :: forall m blk i. (IOLike m, LedgerSupportsProtocol i blk, HasCallStack)
+         => LgrDB m i blk
+         -> LedgerDB' i blk
             -- ^ This is used as the starting point for validation, not the one
             -- in the 'LgrDB'.
          -> BlockCache blk
          -> Word64  -- ^ How many blocks to roll back
          -> [Header blk]
-         -> m (ValidateResult blk)
+         -> m (ValidateResult i blk)
 validate LgrDB{..} ledgerDB blockCache numRollbacks = \hdrs -> do
     aps <- mkAps hdrs <$> atomically (readTVar varPrevApplied)
     res <- fmap rewrap $
-             LedgerDB.defaultReadKeySets (readKeySets lgrOnDiskLedgerStDb) $
-             LedgerDB.defaultResolveWithErrors (LedgerDB.DbReader . lift . resolveBlock) $
-               LedgerDB.ledgerDbSwitch
+             undefined --LedgerDB.defaultReadKeySets (readKeySets lgrOnDiskLedgerStDb) $
+             undefined --LedgerDB.defaultResolveWithErrors (LedgerDB.DbReader . lift . resolveBlock) $
+             undefined --  LedgerDB.ledgerDbSwitch
                  (configLedgerDb cfg)
                  numRollbacks
                  aps
@@ -431,18 +432,20 @@ validate LgrDB{..} ledgerDB blockCache numRollbacks = \hdrs -> do
       addPoints (validBlockPoints res (map headerRealPoint hdrs))
     return res
   where
-    rewrap :: Either (AnnLedgerError' blk) (Either ExceededRollback (LedgerDB' blk))
-           -> ValidateResult blk
+    rewrap :: Either (AnnLedgerError' i blk) (Either ExceededRollback (LedgerDB' i blk))
+           -> ValidateResult i blk
     rewrap (Left         e)  = ValidateLedgerError      e
     rewrap (Right (Left  e)) = ValidateExceededRollBack e
     rewrap (Right (Right l)) = ValidateSuccessful       l
 
-    mkAps :: forall n l. l ~ ExtLedgerState blk
-          => [Header blk]
+    mkAps :: forall n l. l ~ LedgerState Both blk =>
+          -- =>
+          [Header blk]
           -> Set (RealPoint blk)
           -> [Ap n l blk ( LedgerDB.ResolvesBlocks    n   blk
-                         , LedgerDB.ReadsKeySets         n l
-                         , LedgerDB.ThrowsLedgerError n l blk
+                         , LedgerDB.ReadsKeySets      n (LedgerState New blk)
+                         , LedgerDB.ThrowsLedgerError n (LedgerState New blk) blk
+                         , LedgerDB.ThrowsLedgerError n (LedgerState Old blk) blk
                          )]
     mkAps hdrs prevApplied =
       [ case ( Set.member (headerRealPoint hdr) prevApplied
@@ -457,7 +460,7 @@ validate LgrDB{..} ledgerDB blockCache numRollbacks = \hdrs -> do
 
     -- | Based on the 'ValidateResult', return the hashes corresponding to
     -- valid blocks.
-    validBlockPoints :: ValidateResult blk -> [RealPoint blk] -> [RealPoint blk]
+    validBlockPoints :: ValidateResult i blk -> [RealPoint blk] -> [RealPoint blk]
     validBlockPoints = \case
       ValidateExceededRollBack _ -> const []
       ValidateSuccessful       _ -> id
@@ -502,12 +505,12 @@ streamAPI immutableDB = StreamAPI streamAfter
   Previously applied blocks
 -------------------------------------------------------------------------------}
 
-getPrevApplied :: IOLike m => LgrDB m blk -> STM m (Set (RealPoint blk))
+getPrevApplied :: IOLike m => LgrDB m i blk -> STM m (Set (RealPoint blk))
 getPrevApplied LgrDB{..} = readTVar varPrevApplied
 
 -- | Remove all points with a slot older than the given slot from the set of
 -- previously applied points.
-garbageCollectPrevApplied :: IOLike m => LgrDB m blk -> SlotNo -> STM m ()
+garbageCollectPrevApplied :: IOLike m => LgrDB m i blk -> SlotNo -> STM m ()
 garbageCollectPrevApplied LgrDB{..} slotNo = modifyTVar varPrevApplied $
     Set.dropWhileAntitone ((< slotNo) . realPointSlot)
 
@@ -533,8 +536,8 @@ wrapFailure _ k = catch k rethrow
 
 configLedgerDb ::
      ConsensusProtocol (BlockProtocol blk)
-  => TopLevelConfig blk
-  -> LedgerDbCfg (ExtLedgerState blk)
+  => TopLevelConfig i blk
+  -> LedgerDbCfg (ExtLedgerState i blk)
 configLedgerDb cfg = LedgerDbCfg {
       ledgerDbCfgSecParam = configSecurityParam cfg
     , ledgerDbCfg         = ExtLedgerCfg cfg
@@ -545,12 +548,12 @@ configLedgerDb cfg = LedgerDbCfg {
 -------------------------------------------------------------------------------}
 
 -- | Perform an action acquiring and holding the ledger DB read lock.
-withReadLock :: IOLike m => LgrDB m blk -> m a -> m a
+withReadLock :: IOLike m => LgrDB m i blk -> m a -> m a
 withReadLock lgrDB =
   bracket_ (unsafeAcquireReadLock lgrDB) (unsafeReleaseReadLock lgrDB)
 
 -- | Perform an action acquiring and holding the ledger DB write lock.
-withWriteLock :: IOLike m => LgrDB m blk -> m () -> m ()
+withWriteLock :: IOLike m => LgrDB m i blk -> m () -> m ()
 withWriteLock lgrDB =
   bracket_ (unsafeAcquireWriteLock lgrDB) (unsafeReleaseWriteLock lgrDB)
 
@@ -558,16 +561,16 @@ withWriteLock lgrDB =
 --
 -- This operation must be guarded against (asyncrhonous) exceptions, ensuring
 -- that the corresponding release operation is called.
-unsafeAcquireReadLock :: LgrDB m blk -> m ()
+unsafeAcquireReadLock :: LgrDB m i blk -> m ()
 unsafeAcquireReadLock = undefined
 
-unsafeReleaseReadLock :: LgrDB m blk -> m ()
+unsafeReleaseReadLock :: LgrDB m i blk -> m ()
 unsafeReleaseReadLock = undefined
 
-unsafeAcquireWriteLock :: LgrDB m blk -> m ()
+unsafeAcquireWriteLock :: LgrDB m i blk -> m ()
 unsafeAcquireWriteLock = undefined
 
-unsafeReleaseWriteLock :: LgrDB m blk -> m ()
+unsafeReleaseWriteLock :: LgrDB m i blk -> m ()
 unsafeReleaseWriteLock = undefined
 
 data FlushLock = FlushLock

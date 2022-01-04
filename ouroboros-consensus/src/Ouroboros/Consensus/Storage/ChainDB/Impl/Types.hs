@@ -12,6 +12,7 @@
 {-# LANGUAGE StandaloneDeriving         #-}
 {-# LANGUAGE TypeApplications           #-}
 {-# LANGUAGE UndecidableInstances       #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
 
 -- | Types used throughout the implementation: handle, state, environment,
 -- types, trace types, etc.
@@ -75,7 +76,7 @@ import           Ouroboros.Consensus.Block
 import           Ouroboros.Consensus.Config
 import           Ouroboros.Consensus.Fragment.Diff (ChainDiff)
 import           Ouroboros.Consensus.Fragment.InFuture (CheckInFuture)
-import           Ouroboros.Consensus.Ledger.Extended (ExtValidationError)
+import           Ouroboros.Consensus.Ledger.Extended (ExtValidationError, ExtLedgerState)
 import           Ouroboros.Consensus.Ledger.Inspect
 import           Ouroboros.Consensus.Ledger.SupportsProtocol
 import           Ouroboros.Consensus.Util.CallStack
@@ -97,23 +98,24 @@ import qualified Ouroboros.Consensus.Storage.ImmutableDB as ImmutableDB
 import           Ouroboros.Consensus.Storage.VolatileDB (VolatileDB,
                      VolatileDbSerialiseConstraints)
 import qualified Ouroboros.Consensus.Storage.VolatileDB as VolatileDB
+import qualified Ouroboros.Consensus.Storage.LedgerDB.InMemory.Base as Base
 
 -- | All the serialisation related constraints needed by the ChainDB.
 class ( ImmutableDbSerialiseConstraints blk
-      , LgrDbSerialiseConstraints blk
+      , LgrDbSerialiseConstraints i blk
       , VolatileDbSerialiseConstraints blk
         -- Needed for Follower
       , EncodeDiskDep (NestedCtxt Header) blk
-      ) => SerialiseDiskConstraints blk
+      ) => SerialiseDiskConstraints i blk
 
 -- | A handle to the internal ChainDB state
-newtype ChainDbHandle m blk = CDBHandle (StrictTVar m (ChainDbState m blk))
+newtype ChainDbHandle m i blk = CDBHandle (StrictTVar m (ChainDbState m i blk))
 
 -- | Check if the ChainDB is open, if so, executing the given function on the
 -- 'ChainDbEnv', otherwise, throw a 'CloseDBError'.
-getEnv :: forall m blk r. (IOLike m, HasCallStack, HasHeader blk)
-       => ChainDbHandle m blk
-       -> (ChainDbEnv m blk -> m r)
+getEnv :: forall m blk i r. (IOLike m, HasCallStack, HasHeader blk)
+       => ChainDbHandle m i blk
+       -> (ChainDbEnv m i blk -> m r)
        -> m r
 getEnv (CDBHandle varState) f = atomically (readTVar varState) >>= \case
     ChainDbOpen env -> f env
@@ -121,23 +123,23 @@ getEnv (CDBHandle varState) f = atomically (readTVar varState) >>= \case
 
 -- | Variant 'of 'getEnv' for functions taking one argument.
 getEnv1 :: (IOLike m, HasCallStack, HasHeader blk)
-        => ChainDbHandle m blk
-        -> (ChainDbEnv m blk -> a -> m r)
+        => ChainDbHandle m i blk
+        -> (ChainDbEnv m i blk -> a -> m r)
         -> a -> m r
 getEnv1 h f a = getEnv h (\env -> f env a)
 
 -- | Variant 'of 'getEnv' for functions taking two arguments.
 getEnv2 :: (IOLike m, HasCallStack, HasHeader blk)
-        => ChainDbHandle m blk
-        -> (ChainDbEnv m blk -> a -> b -> m r)
+        => ChainDbHandle m i blk
+        -> (ChainDbEnv m i blk -> a -> b -> m r)
         -> a -> b -> m r
 getEnv2 h f a b = getEnv h (\env -> f env a b)
 
 
 -- | Variant of 'getEnv' that works in 'STM'.
-getEnvSTM :: forall m blk r. (IOLike m, HasCallStack, HasHeader blk)
-          => ChainDbHandle m blk
-          -> (ChainDbEnv m blk -> STM m r)
+getEnvSTM :: forall m blk i r. (IOLike m, HasCallStack, HasHeader blk)
+          => ChainDbHandle m i blk
+          -> (ChainDbEnv m i blk -> STM m r)
           -> STM m r
 getEnvSTM (CDBHandle varState) f = readTVar varState >>= \case
     ChainDbOpen env -> f env
@@ -145,23 +147,25 @@ getEnvSTM (CDBHandle varState) f = readTVar varState >>= \case
 
 -- | Variant of 'getEnv1' that works in 'STM'.
 getEnvSTM1 ::
-     forall m blk a r. (IOLike m, HasCallStack, HasHeader blk)
-  => ChainDbHandle m blk
-  -> (ChainDbEnv m blk -> a -> STM m r)
+     forall m blk a i r. (IOLike m, HasCallStack, HasHeader blk)
+  => ChainDbHandle m i blk
+  -> (ChainDbEnv m i blk -> a -> STM m r)
   -> a -> STM m r
 getEnvSTM1 (CDBHandle varState) f a = readTVar varState >>= \case
     ChainDbOpen env -> f env a
     ChainDbClosed   -> throwSTM $ ClosedDBError @blk prettyCallStack
 
-data ChainDbState m blk
-  = ChainDbOpen   !(ChainDbEnv m blk)
+data ChainDbState m i blk
+  = ChainDbOpen   !(ChainDbEnv m i blk)
   | ChainDbClosed
-  deriving (Generic, NoThunks)
+  deriving (Generic)
 
-data ChainDbEnv m blk = CDB
+deriving instance NoThunks (ChainDbState m i blk)
+
+data ChainDbEnv m i blk = CDB
   { cdbImmutableDB     :: !(ImmutableDB m blk)
   , cdbVolatileDB      :: !(VolatileDB m blk)
-  , cdbLgrDB           :: !(LgrDB m blk)
+  , cdbLgrDB           :: !(LgrDB m i blk)
   , cdbChain           :: !(StrictTVar m (AnchoredFragment (Header blk)))
     -- ^ Contains the current chain fragment.
     --
@@ -209,8 +213,8 @@ data ChainDbEnv m blk = CDB
     -- INVARIANT: the 'followerPoint' of each follower is 'withinFragmentBounds'
     -- of the current chain fragment (retrieved 'cdbGetCurrentChain', not by
     -- reading 'cdbChain' directly).
-  , cdbTopLevelConfig  :: !(TopLevelConfig blk)
-  , cdbInvalid         :: !(StrictTVar m (WithFingerprint (InvalidBlocks blk)))
+  , cdbTopLevelConfig  :: !(TopLevelConfig i blk)
+  , cdbInvalid         :: !(StrictTVar m (WithFingerprint (InvalidBlocks i blk)))
     -- ^ See the docstring of 'InvalidBlocks'.
     --
     -- The 'Fingerprint' changes every time a hash is added to the map, but
@@ -223,8 +227,8 @@ data ChainDbEnv m blk = CDB
     --
     -- Note that 'copyToImmutableDB' can still be executed concurrently with all
     -- others functions, just not with itself.
-  , cdbTracer          :: !(Tracer m (TraceEvent blk))
-  , cdbTraceLedger     :: !(Tracer m (LedgerDB' blk))
+  , cdbTracer          :: !(Tracer m (TraceEvent i blk))
+  , cdbTraceLedger     :: !(Tracer m (LedgerDB' i blk))
   , cdbRegistry        :: !(ResourceRegistry m)
     -- ^ Resource registry that will be used to (re)start the background
     -- threads, see 'cdbBgThreads'.
@@ -238,7 +242,7 @@ data ChainDbEnv m blk = CDB
     -- ^ A handle to kill the background threads.
   , cdbChunkInfo       :: !ImmutableDB.ChunkInfo
   , cdbCheckIntegrity  :: !(blk -> Bool)
-  , cdbCheckInFuture   :: !(CheckInFuture m blk)
+  , cdbCheckInFuture   :: !(CheckInFuture m i blk)
   , cdbBlocksToAdd     :: !(BlocksToAdd m blk)
     -- ^ Queue of blocks that still have to be added.
   , cdbFutureBlocks    :: !(StrictTVar m (FutureBlocks blk))
@@ -264,10 +268,9 @@ data ChainDbEnv m blk = CDB
 -- | We include @blk@ in 'showTypeOf' because it helps resolving type families
 -- (but avoid including @m@ because we cannot impose @Typeable m@ as a
 -- constraint and still have it work with the simulator)
-instance (IOLike m, LedgerSupportsProtocol blk)
-      => NoThunks (ChainDbEnv m blk) where
+instance (IOLike m, LedgerSupportsProtocol i blk, NoThunks (Base.LedgerDB (ExtLedgerState i blk)))
+      => NoThunks (ChainDbEnv m i blk) where
     showTypeOf _ = "ChainDbEnv m " ++ show (typeRep (Proxy @blk))
-
 {-------------------------------------------------------------------------------
   Exposed internals for testing purposes
 -------------------------------------------------------------------------------}
@@ -396,14 +399,14 @@ followerRollStatePoint (RollForwardFrom pt) = pt
 
 -- | Hashes corresponding to invalid blocks. This is used to ignore these
 -- blocks during chain selection.
-type InvalidBlocks blk = Map (HeaderHash blk) (InvalidBlockInfo blk)
+type InvalidBlocks i blk = Map (HeaderHash blk) (InvalidBlockInfo i blk)
 
 -- | In addition to the reason why a block is invalid, the slot number of the
 -- block is stored, so that whenever a garbage collection is performed on the
 -- VolatileDB for some slot @s@, the hashes older or equal to @s@ can be
 -- removed from this map.
-data InvalidBlockInfo blk = InvalidBlockInfo
-  { invalidBlockReason :: !(InvalidBlockReason blk)
+data InvalidBlockInfo i blk = InvalidBlockInfo
+  { invalidBlockReason :: !(InvalidBlockReason i blk)
   , invalidBlockSlotNo :: !SlotNo
   } deriving (Eq, Show, Generic, NoThunks)
 
@@ -445,7 +448,7 @@ newBlocksToAdd queueSize = BlocksToAdd <$>
 -- | Add a block to the 'BlocksToAdd' queue. Can block when the queue is full.
 addBlockToAdd
   :: (IOLike m, HasHeader blk)
-  => Tracer m (TraceAddBlockEvent blk)
+  => Tracer m (TraceAddBlockEvent i blk)
   -> BlocksToAdd m blk
   -> blk
   -> m (AddBlockPromise m blk)
@@ -477,12 +480,12 @@ getBlockToAdd (BlocksToAdd queue) = atomically $ readTBQueue queue
 -------------------------------------------------------------------------------}
 
 -- | Trace type for the various events of the ChainDB.
-data TraceEvent blk
-  = TraceAddBlockEvent          (TraceAddBlockEvent           blk)
+data TraceEvent i blk
+  = TraceAddBlockEvent          (TraceAddBlockEvent           i blk)
   | TraceFollowerEvent          (TraceFollowerEvent           blk)
   | TraceCopyToImmutableDBEvent (TraceCopyToImmutableDBEvent  blk)
   | TraceGCEvent                (TraceGCEvent                 blk)
-  | TraceInitChainSelEvent      (TraceInitChainSelEvent       blk)
+  | TraceInitChainSelEvent      (TraceInitChainSelEvent       i blk)
   | TraceOpenEvent              (TraceOpenEvent               blk)
   | TraceIteratorEvent          (TraceIteratorEvent           blk)
   | TraceLedgerEvent            (LgrDB.TraceEvent             blk)
@@ -494,15 +497,15 @@ data TraceEvent blk
 deriving instance
   ( HasHeader blk
   , Eq (Header blk)
-  , LedgerSupportsProtocol blk
+  , LedgerSupportsProtocol i blk
   , InspectLedger blk
-  ) => Eq (TraceEvent blk)
+  ) => Eq (TraceEvent i blk)
 deriving instance
   ( HasHeader blk
   , Show (Header blk)
-  , LedgerSupportsProtocol blk
+  , LedgerSupportsProtocol i blk
   , InspectLedger blk
-  ) => Show (TraceEvent blk)
+  ) => Show (TraceEvent i blk)
 
 data TraceOpenEvent blk =
     -- | The ChainDB was opened.
@@ -555,7 +558,7 @@ data NewTipInfo blk = NewTipInfo {
   deriving (Eq, Show, Generic)
 
 -- | Trace type for the various events that occur when adding a block.
-data TraceAddBlockEvent blk =
+data TraceAddBlockEvent i blk =
     -- | A block with a 'BlockNo' more than @k@ back than the current tip was
     -- ignored.
     IgnoreBlockOlderThanK (RealPoint blk)
@@ -564,7 +567,7 @@ data TraceAddBlockEvent blk =
   | IgnoreBlockAlreadyInVolatileDB (RealPoint blk)
 
     -- | A block that is know to be invalid was ignored.
-  | IgnoreInvalidBlock (RealPoint blk) (InvalidBlockReason blk)
+  | IgnoreInvalidBlock (RealPoint blk) (InvalidBlockReason i blk)
 
     -- | The block was added to the queue and will be added to the ChainDB by
     -- the background thread. The size of the queue is included.
@@ -608,7 +611,7 @@ data TraceAddBlockEvent blk =
       (AnchoredFragment (Header blk))
 
     -- | An event traced during validating performed while adding a block.
-  | AddBlockValidation (TraceValidationEvent blk)
+  | AddBlockValidation (TraceValidationEvent i blk)
 
     -- | Run chain selection for a block that was previously from the future.
     -- This is done for all blocks from the future each time a new block is
@@ -619,20 +622,20 @@ data TraceAddBlockEvent blk =
 deriving instance
   ( HasHeader blk
   , Eq (Header blk)
-  , LedgerSupportsProtocol blk
+  , LedgerSupportsProtocol i blk
   , InspectLedger blk
-  ) => Eq (TraceAddBlockEvent blk)
+  ) => Eq (TraceAddBlockEvent i blk)
 deriving instance
   ( HasHeader blk
   , Show (Header blk)
-  , LedgerSupportsProtocol blk
+  , LedgerSupportsProtocol i blk
   , InspectLedger blk
-  ) => Show (TraceAddBlockEvent blk)
+  ) => Show (TraceAddBlockEvent i blk)
 
-data TraceValidationEvent blk =
+data TraceValidationEvent i blk =
     -- | A point was found to be invalid.
     InvalidBlock
-      (ExtValidationError blk)
+      (ExtValidationError i blk)
       (RealPoint blk)
 
     -- | A candidate chain was invalid.
@@ -662,15 +665,15 @@ data TraceValidationEvent blk =
 deriving instance
   ( HasHeader              blk
   , Eq (Header             blk)
-  , LedgerSupportsProtocol blk
-  ) => Eq (TraceValidationEvent blk)
+  , LedgerSupportsProtocol i blk
+  ) => Eq (TraceValidationEvent i blk)
 deriving instance
   ( Show (Header           blk)
-  , LedgerSupportsProtocol blk
-  ) => Show (TraceValidationEvent blk)
+  , LedgerSupportsProtocol i blk
+  ) => Show (TraceValidationEvent i blk)
 
-data TraceInitChainSelEvent blk
-  = InitChainSelValidation (TraceValidationEvent blk)
+data TraceInitChainSelEvent i blk
+  = InitChainSelValidation (TraceValidationEvent i blk)
     -- ^ An event traced during validation performed while performing initial
     -- chain selection.
   deriving (Generic)
@@ -678,12 +681,12 @@ data TraceInitChainSelEvent blk
 deriving instance
   ( HasHeader              blk
   , Eq (Header             blk)
-  , LedgerSupportsProtocol blk
-  ) => Eq (TraceInitChainSelEvent blk)
+  , LedgerSupportsProtocol i blk
+  ) => Eq (TraceInitChainSelEvent i blk)
 deriving instance
   ( Show (Header           blk)
-  , LedgerSupportsProtocol blk
-  ) => Show (TraceInitChainSelEvent blk)
+  , LedgerSupportsProtocol i blk
+  ) => Show (TraceInitChainSelEvent i blk)
 
 
 data TraceFollowerEvent blk =

@@ -64,12 +64,12 @@ import qualified Ouroboros.Consensus.Storage.VolatileDB as VolatileDB
 -- account, as we know they /must/ have been \"immutable\" at some point, and,
 -- therefore, /must/ still be \"immutable\".
 getCurrentChain
-  :: forall m blk.
+  :: forall m blk i.
      ( IOLike m
      , HasHeader (Header blk)
      , ConsensusProtocol (BlockProtocol blk)
      )
-  => ChainDbEnv m blk
+  => ChainDbEnv m i blk
   -> STM m (AnchoredFragment (Header blk))
 getCurrentChain CDB{..} =
     AF.anchorNewest k <$> readTVar cdbChain
@@ -78,16 +78,16 @@ getCurrentChain CDB{..} =
 
 getLedgerDB ::
      IOLike m
-  => ChainDbEnv m blk -> STM m (LgrDB.LedgerDB' blk)
+  => ChainDbEnv m i blk -> STM m (LgrDB.LedgerDB' i blk)
 getLedgerDB CDB{..} = LgrDB.getCurrent cdbLgrDB
 
 getTipBlock
-  :: forall m blk.
+  :: forall m blk i.
      ( IOLike m
      , HasHeader blk
      , HasHeader (Header blk)
      )
-  => ChainDbEnv m blk
+  => ChainDbEnv m i blk
   -> m (Maybe blk)
 getTipBlock cdb@CDB{..} = do
     tipPoint <- atomically $ getTipPoint cdb
@@ -96,12 +96,12 @@ getTipBlock cdb@CDB{..} = do
       NotOrigin p -> Just <$> getAnyKnownBlock cdbImmutableDB cdbVolatileDB p
 
 getTipHeader
-  :: forall m blk.
+  :: forall m blk i.
      ( IOLike m
      , HasHeader blk
      , HasHeader (Header blk)
      )
-  => ChainDbEnv m blk
+  => ChainDbEnv m i blk
   -> m (Maybe (Header blk))
 getTipHeader CDB{..} = do
     anchorOrHdr <- AF.head <$> atomically (readTVar cdbChain)
@@ -120,21 +120,21 @@ getTipHeader CDB{..} = do
             Just <$> ImmutableDB.getKnownBlockComponent cdbImmutableDB GetHeader p
 
 getTipPoint
-  :: forall m blk. (IOLike m, HasHeader (Header blk))
-  => ChainDbEnv m blk -> STM m (Point blk)
+  :: forall m blk i. (IOLike m, HasHeader (Header blk))
+  => ChainDbEnv m i blk -> STM m (Point blk)
 getTipPoint CDB{..} =
     (castPoint . AF.headPoint) <$> readTVar cdbChain
 
 getBlockComponent ::
-     forall m blk b. IOLike m
-  => ChainDbEnv m blk
+     forall m blk b i. IOLike m
+  => ChainDbEnv m i blk
   -> BlockComponent blk b
   -> RealPoint blk -> m (Maybe b)
 getBlockComponent CDB{..} = getAnyBlockComponent cdbImmutableDB cdbVolatileDB
 
 getIsFetched ::
-     forall m blk. IOLike m
-  => ChainDbEnv m blk -> STM m (Point blk -> Bool)
+     forall m blk i. IOLike m
+  => ChainDbEnv m i blk -> STM m (Point blk -> Bool)
 getIsFetched CDB{..} = basedOnHash <$> VolatileDB.getIsMember cdbVolatileDB
   where
     -- The volatile DB indexes by hash only, not by points. However, it should
@@ -147,15 +147,15 @@ getIsFetched CDB{..} = basedOnHash <$> VolatileDB.getIsMember cdbVolatileDB
           GenesisHash    -> False
 
 getIsInvalidBlock ::
-     forall m blk. (IOLike m, HasHeader blk)
-  => ChainDbEnv m blk
-  -> STM m (WithFingerprint (HeaderHash blk -> Maybe (InvalidBlockReason blk)))
+     forall m blk i. (IOLike m, HasHeader blk)
+  => ChainDbEnv m i blk
+  -> STM m (WithFingerprint (HeaderHash blk -> Maybe (InvalidBlockReason i blk)))
 getIsInvalidBlock CDB{..} =
   fmap (fmap (fmap invalidBlockReason) . flip Map.lookup) <$> readTVar cdbInvalid
 
 getIsValid ::
-     forall m blk. (IOLike m, HasHeader blk)
-  => ChainDbEnv m blk
+     forall m blk i. (IOLike m, HasHeader blk)
+  => ChainDbEnv m i blk
   -> STM m (RealPoint blk -> Maybe Bool)
 getIsValid CDB{..} = do
     prevApplied <- LgrDB.getPrevApplied cdbLgrDB
@@ -170,8 +170,8 @@ getIsValid CDB{..} = do
          | otherwise                 -> Nothing
 
 getMaxSlotNo ::
-     forall m blk. (IOLike m, HasHeader (Header blk))
-  => ChainDbEnv m blk -> STM m MaxSlotNo
+     forall m blk i. (IOLike m, HasHeader (Header blk))
+  => ChainDbEnv m i blk -> STM m MaxSlotNo
 getMaxSlotNo CDB{..} = do
     -- Note that we need to look at both the current chain and the VolatileDB
     -- in all cases (even when the VolatileDB is not empty), because the

@@ -29,7 +29,7 @@ data InitChainDB m i blk = InitChainDB {
 
 fromFull ::
      (IsLedger (LedgerState i blk), IOLike m)
-  => ChainDB m i blk -> InitChainDB i m blk
+  => ChainDB m i blk -> InitChainDB m i blk
 fromFull db = InitChainDB {
       addBlock         = ChainDB.addBlock_ db
     , getCurrentLedger =

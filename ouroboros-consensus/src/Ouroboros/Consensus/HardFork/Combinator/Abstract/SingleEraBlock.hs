@@ -7,6 +7,7 @@
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE AllowAmbiguousTypes #-}
+{-# LANGUAGE KindSignatures #-}
 
 module Ouroboros.Consensus.HardFork.Combinator.Abstract.SingleEraBlock (
     -- * Single era block
@@ -94,7 +95,7 @@ class ( LedgerSupportsProtocol i blk
                       -> Maybe EpochNo
 
   -- | Era information (for use in error messages)
-  singleEraInfo       :: proxy blk -> SingleEraInfo blk
+  singleEraInfo       :: proxy blk -> SingleEraInfo i blk
 
 proxySingle :: Proxy (SingleEraBlock i)
 proxySingle = Proxy
@@ -110,26 +111,26 @@ singleEraTransition' = singleEraTransition . unwrapPartialLedgerConfig
   Era index
 -------------------------------------------------------------------------------}
 
-newtype EraIndex xs = EraIndex {
+newtype EraIndex (i :: Implementation) xs = EraIndex {
       getEraIndex :: NS (K ()) xs
     }
 
-instance Eq (EraIndex xs) where
+instance Eq (EraIndex i xs) where
   EraIndex era == EraIndex era' = isRight (matchNS era era')
 
-instance All (SingleEraBlock i) xs => Show (EraIndex xs) where
-  show = hcollapse . hcmap proxySingle getEraName . getEraIndex
+instance All (SingleEraBlock i) xs => Show (EraIndex i xs) where
+  show = hcollapse . hcmap proxySingle (getEraName @i) . getEraIndex
     where
-      getEraName :: forall blk i. SingleEraBlock i blk
+      getEraName :: forall blk. SingleEraBlock i blk
                  => K () blk -> K String blk
       getEraName _ =
             K
           . (\name -> "<EraIndex " <> name <> ">")
           . Text.unpack
           . singleEraName
-          $ singleEraInfo (Proxy @blk)
+          $ singleEraInfo @i (Proxy @blk)
 
-instance All (SingleEraBlock i) xs => Condense (EraIndex xs) where
+instance All (SingleEraBlock i) xs => Condense (EraIndex i xs) where
   condense = hcollapse . hcmap proxySingle getEraName . getEraIndex
     where
       getEraName :: forall blk. SingleEraBlock i blk
@@ -138,9 +139,9 @@ instance All (SingleEraBlock i) xs => Condense (EraIndex xs) where
             K
           . Text.unpack
           . singleEraName
-          $ singleEraInfo (Proxy @blk)
+          $ singleEraInfo @i (Proxy @blk)
 
-instance SListI xs => Serialise (EraIndex xs) where
+instance SListI xs => Serialise (EraIndex i xs) where
   encode = encode . nsToIndex . getEraIndex
   decode = do
     idx <- decode
@@ -148,20 +149,20 @@ instance SListI xs => Serialise (EraIndex xs) where
       Nothing       -> fail $ "EraIndex: invalid index " <> show idx
       Just eraIndex -> return (EraIndex eraIndex)
 
-eraIndexEmpty :: EraIndex '[] -> Void
+eraIndexEmpty :: EraIndex i '[] -> Void
 eraIndexEmpty (EraIndex ns) = case ns of {}
 
-eraIndexFromNS :: SListI xs => NS f xs -> EraIndex xs
+eraIndexFromNS :: SListI xs => NS f xs -> EraIndex i xs
 eraIndexFromNS = EraIndex . hmap (const (K ()))
 
-eraIndexFromIndex :: Index xs blk -> EraIndex xs
+eraIndexFromIndex :: Index xs blk -> EraIndex i xs
 eraIndexFromIndex index = EraIndex $ injectNS index (K ())
 
-eraIndexZero :: EraIndex (x ': xs)
+eraIndexZero :: EraIndex i (x ': xs)
 eraIndexZero = EraIndex (Z (K ()))
 
-eraIndexSucc :: EraIndex xs -> EraIndex (x ': xs)
+eraIndexSucc :: EraIndex i xs -> EraIndex i (x ': xs)
 eraIndexSucc (EraIndex ix) = EraIndex (S ix)
 
-eraIndexToInt :: EraIndex xs -> Int
+eraIndexToInt :: EraIndex i xs -> Int
 eraIndexToInt = index_NS . getEraIndex

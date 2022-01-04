@@ -29,7 +29,8 @@ module Ouroboros.Consensus.Storage.LedgerDB.InMemory (
   , ledgerDbWithAnchor
     -- ** opaque
   , LedgerDB
-    -- ** Serialisation
+  , New.ReadsKeySets
+  -- ** Serialisation
   , decodeSnapshotBackwardsCompatible
   , encodeSnapshot
     -- ** Queries
@@ -43,7 +44,7 @@ module Ouroboros.Consensus.Storage.LedgerDB.InMemory (
   , ledgerDbTip
     -- ** Running updates
   , AnnLedgerError (..)
-  , New.Ap(..)
+  , Ap(..)
   , ResolveBlock
   , ResolvesBlocks (..)
   , ThrowsLedgerError (..)

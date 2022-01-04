@@ -225,7 +225,7 @@ initLedgerDB replayTracer
     tryNewestFirst acc [] = do
         -- We're out of snapshots. Start at genesis
         traceWith replayTracer $ ReplayFromGenesis ()
-        initDb <- ledgerDbWithAnchor <$> getGenesisLedger
+        initDb <- undefined --ledgerDbWithAnchor <$> getGenesisLedger
         ml     <- runExceptT
                   -- TODO: here initStartingWith could and should probably flush!
                   --
@@ -317,7 +317,7 @@ initFromSnapshot tracer hasFS decLedger decHash cfg readLedgerDb streamAPI ss = 
             cfg
             readLedgerDb
             streamAPI
-            (ledgerDbWithAnchor initSS)
+            undefined --(ledgerDbWithAnchor initSS)
         return (tip, initDB, replayed)
 
 -- | Attempt to initialize the ledger DB starting from the given ledger DB
@@ -335,21 +335,21 @@ initStartingWith ::
   -> LedgerDB' i blk
   -> ExceptT (InitFailure blk) m (LedgerDB' i blk, Word64)
 initStartingWith tracer cfg onDiskLedgerDbSt streamAPI initDb = do
-    streamAll streamAPI (castPoint (ledgerDbTip initDb))
+    streamAll streamAPI (undefined) --castPoint (undefined {- ledgerDbTip initDb -}))
       InitFailureTooRecent
       (initDb, 0)
       push
   where
     push :: blk -> (LedgerDB' i blk, Word64) -> m (LedgerDB' i blk, Word64)
     push blk !(!db, !replayed) = do
-        !db' <- defaultReadKeySets (readKeySets onDiskLedgerDbSt) $
-                  ledgerDbPush cfg (ReapplyVal blk) db
+        !db' <- undefined --defaultReadKeySets (readKeySets onDiskLedgerDbSt) $
+                  --ledgerDbPush cfg (ReapplyVal blk) db
         -- TODO: here it is important that we don't have a lock acquired.
 
         -- Alternatively, we could chose not to check for a lock when we're
         -- flushing here since we know the `LgrDB` does not exist at this point
         -- yet.
-        db'' <- ledgerDbFlush (flushDb onDiskLedgerDbSt) db'
+        db'' <- undefined --ledgerDbFlush (flushDb onDiskLedgerDbSt) db'
         -- TODO: it seems we'd want:
         --
         --     - flush
@@ -364,8 +364,8 @@ initStartingWith tracer cfg onDiskLedgerDbSt streamAPI initDb = do
             events :: [LedgerEvent blk]
             events = inspectLedger
                        (getExtLedgerCfg (ledgerDbCfg cfg))
-                       (ledgerState (ledgerDbCurrent db))
-                       (ledgerState (ledgerDbCurrent db''))
+                       (ledgerState (undefined {-ledgerDbCurrent db-}))
+                       (ledgerState (undefined {-ledgerDbCurrent db''-}))
 
         traceWith tracer (ReplayedBlock (blockRealPoint blk) events ())
         return (db'', replayed')
@@ -415,7 +415,7 @@ takeSnapshot tracer hasFS encLedger db =
           return $ Just (snapshot, tip)
   where
     oldest :: ExtLedgerState i blk EmptyMK
-    oldest = ledgerDbAnchor db
+    oldest = undefined --ledgerDbAnchor db
 
 -- | Trim the number of on disk snapshots so that at most 'onDiskNumSnapshots'
 -- snapshots are stored on disk. The oldest snapshots are deleted.
