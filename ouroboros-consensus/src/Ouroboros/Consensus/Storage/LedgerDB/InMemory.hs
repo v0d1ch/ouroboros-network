@@ -114,7 +114,7 @@ instance ShowLedgerState l => Show (LedgerDB l) where
 -- | Ledger DB starting at the specified ledger state
 ledgerDbWithAnchor ::
      (GetTip ((LedgerState Old blk) ValuesMK), GetTip ((LedgerState New blk) EmptyMK))
-  => (LedgerState Both blk (BaseLedgerStateMK (LedgerState New blk)))
+  => LedgerState Both blk EmptyMK
   -> LedgerDB (LedgerState Both blk)
 ledgerDbWithAnchor (LedgerState old new) = LedgerDB {
       ledgerDbOld = Old.ledgerDbWithAnchor old
@@ -125,7 +125,7 @@ ledgerDbWithAnchor (LedgerState old new) = LedgerDB {
   Internal utilities for 'Ap'
 -------------------------------------------------------------------------------}
 
-pureBlock :: blk -> Ap m (LedgerState Both blk) blk (New.ReadsKeySets m (New.BaseLedgerState blk))
+pureBlock :: blk -> Ap m (LedgerState Both blk) blk (New.ReadsKeySets m (LedgerState New blk))
 pureBlock = ReapplyVal
 
 -- | 'Ap' is used to pass information about blocks to ledger DB updates
@@ -140,17 +140,17 @@ pureBlock = ReapplyVal
 --   a. If we are passing a block by reference, we must be able to resolve it.
 --   b. If we are applying rather than reapplying, we might have ledger errors.
 data Ap :: (Type -> Type) -> LedgerStateKind -> Type -> Constraint -> Type where
-  ReapplyVal ::           blk -> Ap m (LedgerState Both blk) blk ( New.ReadsKeySets m (New.BaseLedgerState blk))
-  ApplyVal   ::           blk -> Ap m (LedgerState Both blk) blk ( New.ReadsKeySets m (New.BaseLedgerState blk)
-                                                                 , ThrowsLedgerError m (Old.BaseLedgerState blk) blk
-                                                                 , ThrowsLedgerError m (New.BaseLedgerState blk) blk)
+  ReapplyVal ::           blk -> Ap m (LedgerState Both blk) blk ( New.ReadsKeySets m (LedgerState New blk))
+  ApplyVal   ::           blk -> Ap m (LedgerState Both blk) blk ( New.ReadsKeySets m (LedgerState New blk)
+                                                                 , ThrowsLedgerError m (LedgerState Old blk) blk
+                                                                 , ThrowsLedgerError m (LedgerState New blk) blk)
   ReapplyRef :: RealPoint blk -> Ap m (LedgerState Both blk) blk ( ResolvesBlocks m blk
-                                                                 , New.ReadsKeySets m (New.BaseLedgerState blk)
+                                                                 , New.ReadsKeySets m (LedgerState New blk)
                                                                  )
   ApplyRef   :: RealPoint blk -> Ap m (LedgerState Both blk) blk ( ResolvesBlocks m blk
-                                                                 , ThrowsLedgerError m (Old.BaseLedgerState blk) blk
-                                                                 , ThrowsLedgerError m (New.BaseLedgerState blk) blk
-                                                                 , New.ReadsKeySets m (New.BaseLedgerState blk)
+                                                                 , ThrowsLedgerError m (LedgerState Old blk) blk
+                                                                 , ThrowsLedgerError m (LedgerState New blk) blk
+                                                                 , New.ReadsKeySets m (LedgerState New blk)
                                                                  )
 
   -- | 'Weaken' increases the constraint on the monad @m@.
@@ -159,14 +159,14 @@ data Ap :: (Type -> Type) -> LedgerStateKind -> Type -> Constraint -> Type where
   -- homogeneous structure.
   Weaken :: (c' => c) => Ap m (LedgerState Both blk) blk c -> Ap m (LedgerState Both blk) blk c'
 
-apToOldAp :: Ap m (LedgerState Both blk) blk c -> Old.Ap m (Old.BaseLedgerState blk) blk c
+apToOldAp :: Ap m (LedgerState Both blk) blk c -> Old.Ap m (LedgerState Old blk) blk c
 apToOldAp (ApplyVal b)   = Old.Weaken $ Old.ApplyVal b
 apToOldAp (ReapplyVal b) = Old.Weaken $ Old.ReapplyVal b
 apToOldAp (ApplyRef b)   = Old.Weaken $ Old.ApplyRef b
 apToOldAp (ReapplyRef b) = Old.Weaken $ Old.ReapplyRef b
 apToOldAp (Weaken ap)    = Old.Weaken $ apToOldAp ap
 
-apToNewAp :: Ap m (LedgerState Both blk) blk c -> New.Ap m (New.BaseLedgerState blk) blk c
+apToNewAp :: Ap m (LedgerState Both blk) blk c -> New.Ap m (LedgerState New blk) blk c
 apToNewAp (ApplyVal b)   = New.Weaken $ New.ApplyVal b
 apToNewAp (ReapplyVal b) = New.Weaken $ New.ReapplyVal b
 apToNewAp (ApplyRef b)   = New.Weaken $ New.ApplyRef b
@@ -174,18 +174,18 @@ apToNewAp (ReapplyRef b) = New.Weaken $ New.ReapplyRef b
 apToNewAp (Weaken ap)    = New.Weaken $ apToNewAp ap
 
 _applyBlock :: forall m c blk
-            . ( ApplyBlockC m c (Old.BaseLedgerState blk) blk
-              , ApplyBlockC m c (New.BaseLedgerState blk) blk
-              , LedgerCfg (LedgerState Both blk) ~ LedgerCfg (Old.BaseLedgerState blk)
-              , LedgerCfg (LedgerState Both blk) ~ LedgerCfg (New.BaseLedgerState blk)
-              , Output (Old.BaseLedgerState blk) ~ ValuesMK
-              , Output (New.BaseLedgerState blk) ~ TrackingMK
+            . ( ApplyBlockC m c (LedgerState Old blk) blk
+              , ApplyBlockC m c (LedgerState New blk) blk
+              , LedgerCfg (LedgerState Both blk) ~ LedgerCfg (LedgerState Old blk)
+              , LedgerCfg (LedgerState Both blk) ~ LedgerCfg (LedgerState New blk)
+              , Output (LedgerState Old blk) ~ ValuesMK
+              , Output (LedgerState New blk) ~ TrackingMK
               )
            => LedgerCfg (LedgerState Both blk)
            -> Ap m (LedgerState Both blk) blk c
            -> LedgerDB (LedgerState Both blk)
-           -> m ( Old.BaseLedgerState' blk
-                , New.BaseLedgerState blk TrackingMK)
+           -> m ( LedgerState Old blk ValuesMK
+                , LedgerState New blk TrackingMK)
 _applyBlock cfg ap LedgerDB{..} = do
   old <- Old.applyBlock cfg (apToOldAp ap) ledgerDbOld
   new <- New.applyBlock cfg (apToNewAp ap) ledgerDbNew
@@ -333,8 +333,8 @@ _rollback n LedgerDB{..} = LedgerDB <$> Old.rollback n ledgerDbOld <*> New.rollb
 -------------------------------------------------------------------------------}
 
 ledgerDbPush :: forall m c blk
-              . ( LedgerDBPush m c (Old.BaseLedgerState blk) blk ValuesMK
-                , LedgerDBPush m c (New.BaseLedgerState blk) blk TrackingMK
+              . ( LedgerDBPush m c (LedgerState Old blk) blk ValuesMK
+                , LedgerDBPush m c (LedgerState New blk) blk TrackingMK
                 , Coercible (LedgerDbCfg (LedgerState Both blk)) (LedgerDbCfg (LedgerState Old blk))
                 , Coercible (LedgerDbCfg (LedgerState Both blk))  (LedgerDbCfg (LedgerState New blk))
                 )
@@ -352,8 +352,8 @@ ledgerDbPush cfg ap LedgerDB{..} =
 
 -- | Push a bunch of blocks (oldest first)
 ledgerDbPushMany ::
-                ( LedgerDBPush m c (Old.BaseLedgerState blk) blk ValuesMK
-                , LedgerDBPush m c (New.BaseLedgerState blk) blk TrackingMK
+                ( LedgerDBPush m c (LedgerState Old blk) blk ValuesMK
+                , LedgerDBPush m c (LedgerState New blk) blk TrackingMK
                 , Coercible (LedgerDbCfg (LedgerState Both blk)) (LedgerDbCfg (LedgerState Old blk))
                 , Coercible (LedgerDbCfg (LedgerState Both blk))  (LedgerDbCfg (LedgerState New blk))
                 )
@@ -365,8 +365,8 @@ ledgerDbPushMany = repeatedlyM . ledgerDbPush
 
 -- | Switch to a fork
 ledgerDbSwitch ::
-                ( LedgerDBPush m c (Old.BaseLedgerState blk) blk ValuesMK
-                , LedgerDBPush m c (New.BaseLedgerState blk) blk TrackingMK
+                ( LedgerDBPush m c (LedgerState Old blk) blk ValuesMK
+                , LedgerDBPush m c (LedgerState New blk) blk TrackingMK
                 , Coercible (LedgerDbCfg (LedgerState Both blk)) (LedgerDbCfg (LedgerState Old blk))
                 , Coercible (LedgerDbCfg (LedgerState Both blk))  (LedgerDbCfg (LedgerState New blk))
                 )
@@ -391,8 +391,8 @@ instance GetTip (LedgerDB (LedgerState Both blk)) where
   Support for testing
 -------------------------------------------------------------------------------}
 
-ledgerDbPush' :: ( New.TestingLedgerDBPush (New.BaseLedgerState blk) blk TrackingMK
-                 , LedgerDBPush Identity () (Old.BaseLedgerState blk) blk ValuesMK
+ledgerDbPush' :: ( New.TestingLedgerDBPush (LedgerState New blk) blk TrackingMK
+                 , LedgerDBPush Identity () (LedgerState Old blk) blk ValuesMK
                  , Coercible (LedgerDbCfg (LedgerState Both blk)) (LedgerDbCfg (LedgerState Old blk))
                  , Coercible (LedgerDbCfg (LedgerState Both blk))  (LedgerDbCfg (LedgerState New blk))
                  )
@@ -404,8 +404,8 @@ ledgerDbPush' cfg b LedgerDB{..} =
   LedgerDB (Old.ledgerDbPush' (coerce cfg) b ledgerDbOld)
            (New.ledgerDbPush' (coerce cfg) b ledgerDbNew)
 
-ledgerDbPushMany' :: ( New.TestingLedgerDBPush (New.BaseLedgerState blk) blk TrackingMK
-                     , LedgerDBPush Identity () (Old.BaseLedgerState blk) blk ValuesMK
+ledgerDbPushMany' :: ( New.TestingLedgerDBPush (LedgerState New blk) blk TrackingMK
+                     , LedgerDBPush Identity () (LedgerState Old blk) blk ValuesMK
                      , Coercible (LedgerDbCfg (LedgerState Both blk)) (LedgerDbCfg (LedgerState Old blk))
                      , Coercible (LedgerDbCfg (LedgerState Both blk))  (LedgerDbCfg (LedgerState New blk))
                      )
@@ -417,8 +417,8 @@ ledgerDbPushMany' cfg bs LedgerDB{..} =
   LedgerDB (Old.ledgerDbPushMany' (coerce cfg) bs ledgerDbOld)
            (New.ledgerDbPushMany' (coerce cfg) bs ledgerDbNew)
 
-ledgerDbSwitch' :: ( New.TestingLedgerDBPush (New.BaseLedgerState blk) blk TrackingMK
-                   , LedgerDBPush Identity () (Old.BaseLedgerState blk) blk ValuesMK
+ledgerDbSwitch' :: ( New.TestingLedgerDBPush (LedgerState New blk) blk TrackingMK
+                   , LedgerDBPush Identity () (LedgerState Old blk) blk ValuesMK
                    , Coercible (LedgerDbCfg (LedgerState Both blk)) (LedgerDbCfg (LedgerState Old blk))
                    , Coercible (LedgerDbCfg (LedgerState Both blk))  (LedgerDbCfg (LedgerState New blk))
                    )

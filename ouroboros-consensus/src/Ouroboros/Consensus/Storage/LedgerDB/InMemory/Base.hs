@@ -25,7 +25,6 @@
 
 module Ouroboros.Consensus.Storage.LedgerDB.InMemory.Base
   ( LedgerDB
-  , BaseLedgerStateMK
   , AnnLedgerError (..)
   , defaultResolveBlocks
   , ThrowsLedgerError(..)
@@ -55,7 +54,6 @@ import           Ouroboros.Consensus.Ledger.Abstract
 -------------------------------------------------------------------------------}
 
 data family LedgerDB           (l :: LedgerStateKind)
-type family BaseLedgerStateMK  (l :: LedgerStateKind) :: MapKind
 
 {-------------------------------------------------------------------------------
   Compute signature
