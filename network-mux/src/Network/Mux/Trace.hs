@@ -27,6 +27,7 @@ import           GHC.Generics (Generic (..))
 import           Quiet (Quiet (..))
 
 import           Network.Mux.Types
+import           Network.Mux.TCPInfo
 
 
 --
@@ -147,6 +148,7 @@ data MuxTrace =
     | MuxTraceStartedOnDemand MiniProtocolNum MiniProtocolDir
     | MuxTraceTerminating MiniProtocolNum MiniProtocolDir
     | MuxTraceShutdown
+    | MuxTraceTCPInfo StructTCPInfo
 
 instance Show MuxTrace where
     show MuxTraceRecvHeaderStart = printf "Bearer Receive Header Start"
@@ -184,4 +186,13 @@ instance Show MuxTrace where
     show (MuxTraceStartedOnDemand mid dir) = printf "Started on demand (%s) in %s" (show mid) (show dir)
     show (MuxTraceTerminating mid dir) = printf "Terminating (%s) in %s" (show mid) (show dir)
     show MuxTraceShutdown = "Mux shutdown"
+    show (MuxTraceTCPInfo StructTCPInfo { tcpi_snd_mss, tcpi_rcv_mss, tcpi_lost, tcpi_retrans
+                                  , tcpi_rtt, tcpi_rttvar, tcpi_snd_cwnd } )
+                                     =
+      printf "TCPInfo rtt %d rttvar %d cwnd %d smss %d rmss %d lost %d retrans %d"
+        (fromIntegral tcpi_rtt :: Word) (fromIntegral tcpi_rttvar :: Word)
+        (fromIntegral tcpi_snd_cwnd :: Word) (fromIntegral tcpi_snd_mss :: Word)
+        (fromIntegral tcpi_rcv_mss :: Word) (fromIntegral tcpi_lost :: Word)
+        (fromIntegral tcpi_retrans :: Word)
+
 
