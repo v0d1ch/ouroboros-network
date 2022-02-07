@@ -83,7 +83,7 @@ import           Ouroboros.Consensus.Byron.Node
 import qualified Cardano.Ledger.Era as Core
 import qualified Cardano.Ledger.Shelley.API as SL
 
-import           Ouroboros.Consensus.Protocol.TPraos (TPraosParams (..))
+import           Ouroboros.Consensus.Protocol.TPraos (TPraosParams (..), TPraos)
 import qualified Ouroboros.Consensus.Protocol.TPraos as Shelley
 import           Ouroboros.Consensus.Shelley.Ledger (ShelleyBlock)
 import qualified Ouroboros.Consensus.Shelley.Ledger as Shelley
@@ -94,6 +94,7 @@ import           Ouroboros.Consensus.Shelley.ShelleyBased
 import           Ouroboros.Consensus.Cardano.Block
 import           Ouroboros.Consensus.Cardano.CanHardFork
 import           Ouroboros.Consensus.Cardano.ShelleyBased
+import Ouroboros.Consensus.Util.NP2
 
 {-------------------------------------------------------------------------------
   SerialiseHFC
@@ -379,13 +380,13 @@ pattern CardanoNodeToClientVersion8 =
 
 instance CardanoHardForkConstraints c
       => SupportedNetworkProtocolVersion (CardanoBlock c) where
-  supportedNodeToNodeVersions _ = Map.fromList $
+  supportedNodeToNodeVersions _ = Map.fromList
       [ (NodeToNodeV_6, CardanoNodeToNodeVersion4)
       , (NodeToNodeV_7, CardanoNodeToNodeVersion5)
       , (NodeToNodeV_8, CardanoNodeToNodeVersion5)
       ]
 
-  supportedNodeToClientVersions _ = Map.fromList $
+  supportedNodeToClientVersions _ = Map.fromList
       [ (NodeToClientV_1 , CardanoNodeToClientVersion1)
       , (NodeToClientV_2 , CardanoNodeToClientVersion1)
       , (NodeToClientV_3 , CardanoNodeToClientVersion2)
@@ -550,7 +551,7 @@ protocolInfoCardano protocolParamsByron@ProtocolParamsByron {
     genesisAllegra :: ShelleyGenesis (AllegraEra c)
     genesisAllegra = Core.translateEra' () genesisShelley
 
-    blockConfigAllegra :: BlockConfig (ShelleyBlock (AllegraEra c))
+    blockConfigAllegra :: BlockConfig (ShelleyBlock (TPraos c) (AllegraEra c))
     blockConfigAllegra =
         Shelley.mkShelleyBlockConfig
           protVerAllegra
@@ -574,7 +575,7 @@ protocolInfoCardano protocolParamsByron@ProtocolParamsByron {
     genesisMary :: ShelleyGenesis (MaryEra c)
     genesisMary = Core.translateEra' () genesisAllegra
 
-    blockConfigMary :: BlockConfig (ShelleyBlock (MaryEra c))
+    blockConfigMary :: BlockConfig (ShelleyBlock (TPraos c) (MaryEra c))
     blockConfigMary =
         Shelley.mkShelleyBlockConfig
           protVerMary
@@ -582,10 +583,10 @@ protocolInfoCardano protocolParamsByron@ProtocolParamsByron {
           (tpraosBlockIssuerVKey <$> credssShelleyBased)
 
     partialConsensusConfigMary ::
-         PartialConsensusConfig (BlockProtocol (ShelleyBlock (MaryEra c)))
+         PartialConsensusConfig (BlockProtocol (ShelleyBlock (TPraos c) (MaryEra c)))
     partialConsensusConfigMary = tpraosParams
 
-    partialLedgerConfigMary :: PartialLedgerConfig (ShelleyBlock (MaryEra c))
+    partialLedgerConfigMary :: PartialLedgerConfig (ShelleyBlock (TPraos c) (MaryEra c))
     partialLedgerConfigMary =
         mkPartialLedgerConfigShelley
           genesisMary
@@ -598,7 +599,7 @@ protocolInfoCardano protocolParamsByron@ProtocolParamsByron {
     genesisAlonzo :: ShelleyGenesis (AlonzoEra c)
     genesisAlonzo = Core.translateEra' transCtxtAlonzo genesisMary
 
-    blockConfigAlonzo :: BlockConfig (ShelleyBlock (AlonzoEra c))
+    blockConfigAlonzo :: BlockConfig (ShelleyBlock (TPraos c) (AlonzoEra c))
     blockConfigAlonzo =
         Shelley.mkShelleyBlockConfig
           protVerAlonzo
@@ -606,10 +607,10 @@ protocolInfoCardano protocolParamsByron@ProtocolParamsByron {
           (tpraosBlockIssuerVKey <$> credssShelleyBased)
 
     partialConsensusConfigAlonzo ::
-         PartialConsensusConfig (BlockProtocol (ShelleyBlock (AlonzoEra c)))
+         PartialConsensusConfig (BlockProtocol (ShelleyBlock (TPraos c) (AlonzoEra c)))
     partialConsensusConfigAlonzo = tpraosParams
 
-    partialLedgerConfigAlonzo :: PartialLedgerConfig (ShelleyBlock (AlonzoEra c))
+    partialLedgerConfigAlonzo :: PartialLedgerConfig (ShelleyBlock (TPraos c) (AlonzoEra c))
     partialLedgerConfigAlonzo =
         mkPartialLedgerConfigShelley
           genesisAlonzo
@@ -762,7 +763,7 @@ protocolInfoCardano protocolParamsByron@ProtocolParamsByron {
         return $ reassoc <$> shelleyBased
       where
         reassoc ::
-             NP (BlockForging m :.: ShelleyBlock) (ShelleyBasedEras c)
+             NP2 (BlockForging m :..: ShelleyBlock) (ShelleyErasAndProtos c)
           -> OptNP 'False (BlockForging m) (CardanoEras c)
         reassoc = OptSkip . injectShelleyOptNP unComp . OptNP.fromNonEmptyNP
 

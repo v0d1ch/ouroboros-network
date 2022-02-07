@@ -64,7 +64,8 @@ injectShelleyOptNP f (OptCons2 x xs) = OptCons (f x) (injectShelleyOptNP f xs)
   Transform Shelley-based types
 -------------------------------------------------------------------------------}
 
--- | Witness the relation between the crypto used by a Shelley-based era.
+-- | Witness the relation between the crypto used by a Shelley-based era and
+-- protocol.
 --
 -- Can be partially applied while an equality constraint cannot.
 class (EraCrypto era ~ c, ProtoCrypto proto ~ c) => HasCrypto c proto era
