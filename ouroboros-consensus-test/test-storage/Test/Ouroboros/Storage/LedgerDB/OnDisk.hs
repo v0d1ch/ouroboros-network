@@ -41,7 +41,7 @@ import           Data.Functor.Classes
 import qualified Data.List as L
 import           Data.Map.Strict (Map)
 import qualified Data.Map.Strict as Map
-import           Data.Maybe (fromJust)
+import           Data.Maybe (fromJust, fromMaybe)
 import           Data.Word
 import           GHC.Generics (Generic)
 import           System.Random (getStdRandom, randomR)
@@ -458,7 +458,13 @@ data StandaloneDB m = DB {
       --
       -- We can think of this as mocking the volatile DB. Blocks can be
       -- added to this without updating the rest of the state.
-    , dbBlocks      :: StrictTVar m (Map (RealPoint TestBlock) TestBlock)
+    -- , dbBlocks      :: StrictTVar m (Map (RealPoint TestBlock) TestBlock)
+
+
+      -- TODO: do we do anything with the invalid blocks we push to dbBlocks? It
+      -- seems we don't: no command 'Cmd' uses the invalid blocks.
+
+
 
       -- | Current chain and corresponding ledger state
       --
@@ -466,10 +472,16 @@ data StandaloneDB m = DB {
       -- track of a current chain and keep the ledger DB in sync with it.
       --
       -- Invariant: all references @r@ here must be present in 'dbBlocks'.
-    , dbState       :: StrictTVar m ([RealPoint TestBlock], LedgerDB' TestBlock)
+      --
+    , dbState       :: StrictTVar m ([TestBlock], LedgerDB' TestBlock)
+    -- TODO: if removing dbBlocks makes sense we might need to maintain a map
+    -- from real point to blocks to avoid a linear scan.
+
+    -- TODO: we should gather some ad-hoc indication of the testing time before and after the changes
 
       -- | Resolve blocks
     , dbResolve     :: ResolveBlock m TestBlock
+      -- TODO: this is used in a single place. Move there
 
       -- | LedgerDB config
     , dbLedgerDbCfg :: LedgerDbCfg (ExtLedgerState TestBlock)
@@ -477,11 +489,11 @@ data StandaloneDB m = DB {
 
 initStandaloneDB :: forall m. IOLike m => DbEnv m -> m (StandaloneDB m)
 initStandaloneDB dbEnv@DbEnv{..} = do
-    dbBlocks <- uncheckedNewTVarM Map.empty
     dbState  <- uncheckedNewTVarM (initChain, initDB)
 
     let dbResolve :: ResolveBlock m TestBlock
-        dbResolve r = atomically $ getBlock r <$> readTVar dbBlocks
+        -- TODO: if we remove dbBlocks we'd need a way to implenent block resolution.
+        dbResolve r = atomically $ getBlock r . fst  <$> readTVar dbState
 
         dbLedgerDbCfg :: LedgerDbCfg (ExtLedgerState TestBlock)
         dbLedgerDbCfg = extLedgerDbConfig dbSecParam
@@ -496,9 +508,9 @@ initStandaloneDB dbEnv@DbEnv{..} = do
 
     getBlock ::
          RealPoint TestBlock
-      -> Map (RealPoint TestBlock) TestBlock
+      -> [TestBlock]
       -> TestBlock
-    getBlock = Map.findWithDefault (error blockNotFound)
+    getBlock p bs = fromMaybe (error blockNotFound) $ L.find ((p ==) . blockRealPoint)
 
     blockNotFound :: String
     blockNotFound = concat [
