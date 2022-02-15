@@ -39,6 +39,7 @@ import           Control.Monad.Class.MonadThrow (MonadEvaluate, MonadMask,
                      MonadThrow, SomeException)
 import           Control.Monad.Class.MonadTime (DiffTime, MonadTime)
 import           Control.Monad.Class.MonadTimer (MonadTimer)
+import           Control.Monad.Class.MonadSay (MonadSay)
 import           Control.Tracer (nullTracer)
 
 import           Data.IP (IP (..))
@@ -144,6 +145,7 @@ run :: forall resolver m.
        , MonadTimer       m
        , MonadThrow       m
        , MonadThrow       (STM m)
+       , MonadSay         m
 
        , resolver ~ ()
        , forall a. Semigroup a => Semigroup (m a)
@@ -153,8 +155,11 @@ run :: forall resolver m.
     -> Node.LimitsAndTimeouts Block
     -> Interfaces m
     -> Arguments m
+    -> Diff.P2P.TracersExtra NtNAddr NtNVersion NtNVersionData
+                             NtCAddr NtCVersion NtCVersionData
+                             ResolverException m
     -> m Void
-run blockGeneratorArgs limits ni na =
+run blockGeneratorArgs limits ni na tracersExtra =
     Node.withNodeKernelThread blockGeneratorArgs
       $ \ nodeKernel nodeKernelThread -> do
         dnsTimeoutScriptVar <- LazySTM.newTVarIO (aDNSTimeoutScript na)
@@ -201,11 +206,6 @@ run blockGeneratorArgs limits ni na =
                                                      dnsTimeoutScriptVar
                                                      dnsLookupDelayScriptVar)
               }
-
-            tracersExtra :: Diff.P2P.TracersExtra NtNAddr NtNVersion NtNVersionData
-                                                  NtCAddr NtCVersion NtCVersionData
-                                                  ResolverException m
-            tracersExtra = Diff.P2P.nullTracers
 
             appsExtra :: Diff.P2P.ApplicationsExtra NtNAddr m
             appsExtra = Diff.P2P.ApplicationsExtra
