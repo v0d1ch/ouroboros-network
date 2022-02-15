@@ -5,26 +5,28 @@
 {-# LANGUAGE ScopedTypeVariables   #-}
 
 module Test.Ouroboros.Network.Testnet.Simulation.Node
-  ( SimArgs
+  ( SimArgs(..)
   , DiffusionScript (..)
+  , DiffusionSimulationTrace (..)
   , prop_diffusionScript_fixupCommands
   , prop_diffusionScript_commandScript_valid
-  , diffusion_simulation
+  , diffusionSimulation
   ) where
 
 import           Control.Monad (replicateM, (>=>))
 import           Control.Monad.Class.MonadAsync
-                     (MonadAsync (Async, cancel, wait, waitAny, withAsync))
+                     (MonadAsync (Async, cancel, waitAny, withAsync))
 import           Control.Monad.Class.MonadFork (MonadFork)
 import           Control.Monad.Class.MonadST (MonadST)
 import           Control.Monad.Class.MonadSTM.Strict (MonadLabelledSTM,
-                     MonadSTM (STM), StrictTVar, atomically, modifyTVar,
-                     newTVarIO, readTVar)
+                     MonadSTM (STM), StrictTVar, atomically,
+                     newTVarIO, readTVar, writeTVar)
 import           Control.Monad.Class.MonadThrow (MonadCatch, MonadEvaluate,
-                     MonadMask, MonadThrow)
+                     MonadMask, MonadThrow, SomeException)
 import           Control.Monad.Class.MonadTime (DiffTime, MonadTime)
 import           Control.Monad.Class.MonadTimer (MonadTimer, threadDelay)
-import           Control.Tracer (nullTracer)
+import           Control.Monad.Class.MonadSay (MonadSay)
+import           Control.Tracer (nullTracer, Tracer, traceWith)
 
 import qualified Data.ByteString.Lazy as BL
 import           Data.IP (IP (..), toIPv4, toIPv6)
@@ -33,6 +35,7 @@ import           Data.Map (Map)
 import qualified Data.Map as Map
 import           Data.Set (Set)
 import qualified Data.Set as Set
+import           Data.Time.Clock (secondsToDiffTime)
 import           Data.Void (Void)
 import           System.Random (StdGen, mkStdGen)
 
@@ -60,6 +63,7 @@ import           Ouroboros.Network.Protocol.Limits (shortWait, smallByteLimit)
 import           Ouroboros.Network.Server.RateLimiting
                      (AcceptedConnectionsLimit (..))
 import           Ouroboros.Network.Snocket (TestAddress (..))
+import qualified Ouroboros.Network.Diffusion.P2P as Diff.P2P
 
 import           Ouroboros.Network.Testing.ConcreteBlock (Block)
 import           Ouroboros.Network.Testing.Data.Script (Script (..))
@@ -68,14 +72,16 @@ import           Simulation.Network.Snocket (BearerInfo (..), withSnocket)
 
 import qualified Test.Ouroboros.Network.Diffusion.Node as Node
 import           Test.Ouroboros.Network.Diffusion.Node.NodeKernel
-                     (BlockGeneratorArgs, NtNAddr, randomBlockGenerationArgs)
+                     (BlockGeneratorArgs, NtNAddr, randomBlockGenerationArgs,
+                     NtNVersion, NtCVersion, NtCAddr, NtCVersionData,
+                     NtNVersionData)
 import qualified Test.Ouroboros.Network.Diffusion.Node.NodeKernel as Node
 import           Test.Ouroboros.Network.PeerSelection.RootPeersDNS
                      (DNSLookupDelay, DNSTimeout)
 
 import           Test.QuickCheck (Arbitrary (..), Gen, Property, choose,
                      chooseInt, counterexample, frequency, oneof, property,
-                     shrinkList, sized, sublistOf, suchThat, vectorOf, (.&&.))
+                     shrinkList, sized, sublistOf, vectorOf, (.&&.))
 
 
 -- | Diffusion Simulator Arguments
@@ -105,7 +111,7 @@ data SimArgs =
       -- ^ 'Arguments' 'LocalRootPeers' values
     , saLocalSelectionTargets :: PeerSelectionTargets
       -- ^ 'Arguments' 'aLocalSelectionTargets' value
-    , saDNSTimeoutSctipt      :: Script DNSTimeout
+    , saDNSTimeoutScript      :: Script DNSTimeout
       -- ^ 'Arguments' 'aDNSTimeoutScript' value
     , saDNSLookupDelayScript  :: Script DNSLookupDelay
       -- ^ 'Arguments' 'aDNSLookupDelayScript' value
@@ -139,13 +145,13 @@ genDomainMap raps = do
 genCommands :: [(Int, Map RelayAccessPoint PeerAdvertise)] -> Gen [Command]
 genCommands localRoots = sized $ \size -> do
   commands <- vectorOf size (oneof [ JoinNetwork <$> delay
-                                         , Reconfigure <$> delay
-                                                       <*> sublistOf localRoots
-                                         , Kill <$> delay
-                                         ])
+                                   , Reconfigure <$> delay
+                                                 <*> sublistOf localRoots
+                                   , Kill <$> delay
+                                   ])
   return (fixupCommands commands)
   where
-    delay = frequency [(1, genDelayWithPrecision 100), (3, (/ 10) <$> genDelayWithPrecision 100)]
+    delay = frequency [(3, genDelayWithPrecision 10), (1, (/ 10) <$> genDelayWithPrecision 2)]
 
 fixupCommands :: [Command] -> [Command]
 fixupCommands [] = []
@@ -172,10 +178,11 @@ newtype DiffusionScript = DiffusionScript
 
 
 instance Arbitrary DiffusionScript where
-  arbitrary = sized $ \s -> do
-    -- Guarantee that there's always at least 1 of each
-    let size = s + 1
-    raps <- vectorOf size arbitrary `suchThat` any isRelayAccessAddress
+  arbitrary = do
+    -- Limit the number of nodes to run in Simulation otherwise it is going
+    -- to take very long time for tests to run
+    size <- chooseInt (0, 3)
+    raps <- vectorOf size arbitrary
     dMap <- genDomainMap raps
     toRun <- mapM (addressToRun raps dMap)
                  [ (ntnToPeerAddr ip p, r)
@@ -185,11 +192,6 @@ instance Arbitrary DiffusionScript where
 
     return (DiffusionScript (zip toRun comands))
     where
-      isRelayAccessAddress :: RelayAccessPoint -> Bool
-      isRelayAccessAddress (RelayAccessAddress _ _) = True
-      isRelayAccessAddress _                        = False
-
-
       -- | Generate Local Root Peers
       --
       -- Only 1 group is generated
@@ -211,9 +213,15 @@ instance Arbitrary DiffusionScript where
                    -> (NtNAddr, RelayAccessPoint)
                    -> Gen SimArgs
       addressToRun raps dMap (ntnAddr, rap) = do
-        bgaSlotDuration <- fromInteger <$> choose (0, 100)
+        -- Slot length needs to be greater than 0 else we get a livelock on
+        -- the IOSim.
+        --
+        -- Quota values matches mainnet, so a slot length of 1s and 1 / 20
+        -- chance that someone gets to make a block
+        let bgaSlotDuration = secondsToDiffTime 1
+            numberOfNodes   = length [ r | r@(RelayAccessAddress _ _) <- raps ]
+            quota = 20 `div` numberOfNodes
         bgaSeed <- mkStdGen <$> arbitrary
-        quota <- chooseInt (0, 100)
 
         -- These values approximately correspond to false positive
         -- thresholds for streaks of empty slots with 99% probability,
@@ -249,7 +257,7 @@ instance Arbitrary DiffusionScript where
             , saAddr                  = ntnAddr
             , saLocalRootPeers        = lrp
             , saLocalSelectionTargets = peerSelectionTargets
-            , saDNSTimeoutSctipt      = dnsTimeout
+            , saDNSTimeoutScript      = dnsTimeout
             , saDNSLookupDelayScript  = dnsLookupDelay
             }
   shrink (DiffusionScript []) = []
@@ -262,7 +270,7 @@ instance Arbitrary DiffusionScript where
 
       shrinkCommand :: Command -> [Command]
       shrinkCommand (JoinNetwork d)     = JoinNetwork <$> shrinkDelay d
-      shrinkCommand (Kill d)            = Kill <$> shrinkDelay d
+      shrinkCommand (Kill d)            = Kill        <$> shrinkDelay d
       shrinkCommand (Reconfigure d lrp) = Reconfigure <$> shrinkDelay d <*> shrink lrp
 
 -- Tests if the fixupCommand is idempotent.
@@ -307,8 +315,18 @@ prop_diffusionScript_commandScript_valid (DiffusionScript ((_, cmds): t)) =
             property False
         _                                -> isValid (y:xs)
 
+-- | Diffusion Simulation Trace so we know what command is concurrently
+-- running
+--
+data DiffusionSimulationTrace
+  = TrJoiningNetwork
+  | TrKillingNode
+  | TrReconfigurionNode
+  | TrRunning
+  deriving (Show)
+
 -- | Run an arbitrary topology
-diffusion_simulation
+diffusionSimulation
   :: forall m. ( MonadAsync m
               , MonadFork m
               , MonadST m
@@ -319,17 +337,27 @@ diffusion_simulation
               , MonadTime        m
               , MonadTimer       m
               , MonadThrow  (STM m)
+              , MonadSay         m
               , Eq (Async m Void)
               , forall a. Semigroup a => Semigroup (m a)
               )
   => BearerInfo
   -> DiffusionScript
+  -> ( NtNAddr
+     -> Diff.P2P.TracersExtra NtNAddr NtNVersion NtNVersionData
+                              NtCAddr NtCVersion NtCVersionData
+                              SomeException m )
+  -> ( NtNAddr
+     -> Tracer m DiffusionSimulationTrace )
   -> m Void
-diffusion_simulation
+diffusionSimulation
   defaultBearerInfo
-  (DiffusionScript args) = withAsyncAll (map (uncurry (runCommand Nothing)) args) $ \nodes -> do
-    (_, x) <- waitAny nodes
-    return x
+  (DiffusionScript args)
+  tracersExtraWithTimeName
+  diffSimTracerWithTimName =
+    withAsyncAll (map (uncurry (runCommand Nothing)) args) $ \nodes -> do
+      (_, x) <- waitAny nodes
+      return x
   where
     -- | Runs a single node according to a list of commands.
     runCommand
@@ -342,12 +370,18 @@ diffusion_simulation
       -> m Void
     runCommand Nothing simArgs [] = do
       threadDelay 3600
+      traceWith (diffSimTracerWithTimName (saAddr simArgs)) TrRunning
       runCommand Nothing simArgs []
-    runCommand (Just (async, _)) simArgs [] = do
-      _ <- wait async
+    runCommand (Just (_, _)) simArgs [] = do
+      -- We shouldn't block this runCommand thread waiting
+      -- on the async since this will lead to a Deadlock on
+      -- IOSim, since this returns Void.
+      threadDelay 3600
+      traceWith (diffSimTracerWithTimName (saAddr simArgs)) TrRunning
       runCommand Nothing simArgs []
     runCommand Nothing simArgs (JoinNetwork delay:cs) = do
       threadDelay delay
+      traceWith (diffSimTracerWithTimName (saAddr simArgs)) TrJoiningNetwork
       lrpVar <- newTVarIO $ saLocalRootPeers simArgs
       withAsync (runNode simArgs lrpVar) $ \nodeAsync ->
         runCommand (Just (nodeAsync, lrpVar)) simArgs cs
@@ -355,6 +389,7 @@ diffusion_simulation
       error "runCommand: Impossible happened"
     runCommand (Just (async, _)) simArgs (Kill delay:cs) = do
       threadDelay delay
+      traceWith (diffSimTracerWithTimName (saAddr simArgs)) TrKillingNode
       cancel async
       runCommand Nothing simArgs cs
     runCommand _ _ (Kill _:_) = do
@@ -363,7 +398,8 @@ diffusion_simulation
       error "runCommand: Impossible happened"
     runCommand (Just (async, lrpVar)) simArgs (Reconfigure delay newLrp:cs) = do
       threadDelay delay
-      _ <- atomically $ modifyTVar lrpVar (const newLrp)
+      traceWith (diffSimTracerWithTimName (saAddr simArgs)) TrReconfigurionNode
+      _ <- atomically $ writeTVar lrpVar newLrp
       runCommand (Just (async, lrpVar)) simArgs cs
 
     runNode :: SimArgs
@@ -379,7 +415,7 @@ diffusion_simulation
             , saDomainMap             = dMap
             , saAddr                  = rap
             , saLocalSelectionTargets = peerSelectionTargets
-            , saDNSTimeoutSctipt      = dnsTimeout
+            , saDNSTimeoutScript      = dnsTimeout
             , saDNSLookupDelayScript  = dnsLookupDelay
             }
             lrpVar =
@@ -470,7 +506,11 @@ diffusion_simulation
                   , Node.aDNSLookupDelayScript = dnsLookupDelay
                   }
 
-           in Node.run blockGeneratorArgs limitsAndTimeouts interfaces arguments
+           in Node.run blockGeneratorArgs
+                       limitsAndTimeouts
+                       interfaces
+                       arguments
+                       (tracersExtraWithTimeName rap)
 
     domainResolver :: [RelayAccessPoint]
                    -> Map Domain [IP]
