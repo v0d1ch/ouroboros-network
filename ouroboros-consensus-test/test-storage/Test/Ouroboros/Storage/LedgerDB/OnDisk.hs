@@ -98,17 +98,26 @@ tests = testGroup "OnDisk" [
 
 type TestBlock = TestBlockWith Tx
 
--- | Simple block transaction
+-- | Mock of a UTxO transaction where exactly one (transaction) input is
+-- consumed and exactly one output is produced.
 --
-data Tx = Tx { consumed :: Token, produced :: (Token, TValue) }
+data Tx = Tx {
+    -- | Input that the transaction consumes.
+    consumed :: Token
+    -- | Ouptupt that the transaction produces.
+  , produced :: (Token, TValue)
+  }
   deriving stock (Show, Eq, Ord, Generic)
   deriving anyclass (Serialise, NoThunks, ToExpr)
 
-newtype Token = Token (Point TestBlock)
+-- | A token is an identifier for the values produced and consumed by the
+-- 'TestBlock' transactions.
+newtype Token = Token { unToken :: Point TestBlock }
   deriving stock (Show, Eq, Ord, Generic)
   deriving newtype (Serialise, NoThunks, ToExpr)
 
-newtype TValue = TValue SlotNo
+-- | Unit of value associated with the output produced by a transaction.
+newtype TValue = TValue (WithOrigin SlotNo)
   deriving stock (Show, Eq, Ord, Generic)
   deriving newtype (Serialise, NoThunks, ToExpr)
 
@@ -181,8 +190,8 @@ instance PayloadSemantics Tx where
   - The ledger state is a map from Point to SlotNo.
   - We start always in an initial state in which 'GenesisPoint' maps to slot 0.
   - When we generate a block for point p, the payload of the block will be:
-      - input: point p
-      - ouptput: (point p + 1, slot of point p + 1)
+      - input: point p - 1
+      - ouptput: (point p, slot of point p)
 
 
   A consequence of adopting the strategy above is that the initial state is
@@ -200,32 +209,29 @@ initialTestLedgerState = UTxTok {
 -- | Get the token value associated to a given token. This is coupled to the
 -- generators semantics.
 pointTValue :: Token -> TValue
-pointTValue (Token GenesisPoint)        = TValue 0
-pointTValue (Token (BlockPoint slot _)) = TValue slot
+pointTValue = TValue . pointSlot . unToken
 
 genBlocks ::
-     ExtLedgerCfg TestBlock
-  -> Word64
+     Word64
   -> Point TestBlock
   -> [TestBlock]
-genBlocks _   0 _ = []
-genBlocks cfg n pt =
-  let b  = genBlock pt
-      bs = genBlocks cfg (n - 1) (blockPoint b)
-  in b:bs
+genBlocks n pt0 = take (fromIntegral n) (go pt0)
+  where
+    go pt = let b = genBlock pt in b : go (blockPoint b)
 
 genBlock ::
      Point TestBlock -> TestBlock
-genBlock pt = completeBlock (mkBlockFrom pt)
+genBlock pt =
+  let blk = mkBlockFrom pt
+          $ Tx { consumed = Token pt
+               , produced = (Token (blockPoint blk), TValue (pointSlot $ blockPoint blk))
+               }
+  in blk
   where
+    mkBlockFrom :: Point TestBlock -> Tx -> TestBlock
     mkBlockFrom GenesisPoint           = firstBlockWithPayload 0
     mkBlockFrom (BlockPoint slot hash) = successorBlockWithPayload hash slot
 
-    completeBlock :: (Tx -> TestBlock) -> TestBlock
-    completeBlock f = blk
-       where blk = f $ Tx { consumed = Token pt
-                          , produced = (Token (blockPoint blk), TValue (blockSlot blk))
-                          }
 genBlockFromLedgerState :: ExtLedgerState TestBlock -> Gen TestBlock
 genBlockFromLedgerState = pure . genBlock . lastAppliedPoint . ledgerState
 
@@ -243,7 +249,6 @@ data instance CodecConfig TestBlock = TestBlockCodecConfig
 -- | TODO: for the time being 'TestBlock' does not have any storage config
 data instance StorageConfig TestBlock = TestBlockStorageConfig
   deriving (Show, Generic, NoThunks)
-
 
 {-------------------------------------------------------------------------------
   Commands
@@ -902,9 +907,6 @@ generator secParam (Model mock hs) = Just $ QC.oneof $ concat [
         else [(At . uncurry Corrupt) <$> QC.elements possibleCorruptions]
     ]
   where
-    cfg :: LedgerDbCfg (ExtLedgerState TestBlock)
-    cfg = extLedgerDbConfig (mockSecParam mock)
-
     withoutRef :: [Gen (Cmd :@ Symbolic)]
     withoutRef = [
           fmap At $ return Current
@@ -919,7 +921,6 @@ generator secParam (Model mock hs) = Just $ QC.oneof $ concat [
             let
               afterRollback = mockRollback numRollback mock
               blocks        = genBlocks
-                                (ledgerDbCfg cfg)
                                 numNewBlocks
                                 (lastAppliedPoint . ledgerState . mockCurrent $ afterRollback)
             return $ Switch numRollback blocks
